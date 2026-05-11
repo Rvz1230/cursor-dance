@@ -32,6 +32,7 @@ export function TabsList({ className, value, onValueChange, children }) {
 export function TabsTrigger({ className, value, selected, onSelect, ...props }) {
   return (
     <button
+      type="button"
       onClick={onSelect}
       className={cn(
         'inline-flex items-center justify-center whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium ring-1 ring-black/5 transition-all focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50',

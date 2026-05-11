@@ -13,6 +13,7 @@ export const Button = React.forwardRef(({ className, variant = 'default', size =
   }
   return (
     <button
+      type="button"
       ref={ref}
       className={cn(
         'inline-flex items-center justify-center rounded-full text-sm font-medium ring-1 ring-black/5 transition-colors focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50',

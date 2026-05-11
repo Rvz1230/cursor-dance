@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "CursorDance",
+  "description": "A minimal mouse click effect prototype.",
+  "version": "0.6.0",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "CursorDance"
+  },
+  "options_page": "index.html",
+  "permissions": ["storage", "activeTab", "unlimitedStorage"],
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["config.js", "content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
