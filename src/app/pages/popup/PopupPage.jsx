@@ -22,11 +22,6 @@ const POPUP_PREVIEW_KEYFRAMES = `
     18% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
     100% { opacity: 0; transform: translate3d(var(--particle-x), var(--particle-y), 0) scale(0.82); }
   }
-  @keyframes cursorDancePopupText {
-    0% { opacity: 0; transform: translate3d(0, 8px, 0) scale(0.96); }
-    18% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
-    100% { opacity: 0; transform: translate3d(0, -14px, 0) scale(1.02); }
-  }
 `;
 
 const FALLBACK_DEFAULT_CURSOR = createBuiltinCursorAsset("default", "system");
@@ -62,24 +57,13 @@ function resolveThemeCursorAsset(themePack, stateId = "default") {
   if (cursorState?.imageDataUrl) {
     return {
       imageDataUrl: cursorState.imageDataUrl,
-      size: cursorState.size ?? 48,
-      mimeLabel: getMimeLabel(cursorState.imageDataUrl),
     };
   }
 
   const fallbackAsset = stateId === "pointer" ? FALLBACK_POINTER_CURSOR : FALLBACK_DEFAULT_CURSOR;
   return {
     imageDataUrl: fallbackAsset.imageDataUrl,
-    size: fallbackAsset.size ?? 48,
-    mimeLabel: "内置",
   };
-}
-
-function getMimeLabel(dataUrl = "") {
-  if (dataUrl.startsWith("data:image/png")) return "PNG";
-  if (dataUrl.startsWith("data:image/webp")) return "WEBP";
-  if (dataUrl.startsWith("data:image/svg+xml")) return "SVG";
-  return "内置";
 }
 
 function buildParticleDots(actionConfig) {
@@ -90,14 +74,6 @@ function buildParticleDots(actionConfig) {
     { x: -26, y: 52, delay: 120 },
     { x: 42, y: 44, delay: 180 },
   ];
-}
-
-function getPreviewText(actionConfig) {
-  if (!actionConfig?.textEnabled) return "";
-  const primaryText = typeof actionConfig.textContent === "string" ? actionConfig.textContent.trim() : "";
-  if (primaryText) return primaryText;
-  const firstTag = Array.isArray(actionConfig.textTags) ? actionConfig.textTags.find(Boolean) : "";
-  return firstTag || "";
 }
 
 function useReducedMotion() {
