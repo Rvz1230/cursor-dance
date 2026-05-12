@@ -13,6 +13,7 @@ import {
 import {
   buildPreviewThemePackFromWorkbench,
   buildStoredConfigFromWorkbench,
+  clearLivePreviewConfig,
   draftFromThemePack,
   hydrateWorkbenchState,
   previewThemePack,
@@ -21,6 +22,7 @@ import {
   readRecentCursorAssets,
   subscribeExtensionConfig,
   themePackToThemeLibraryItem,
+  writeLivePreviewConfig,
   writeRecentCursorAsset,
   writeExtensionConfig,
 } from "../lib/extensionConfig.js";
@@ -274,8 +276,24 @@ export function useThemeWorkbenchState() {
     return () => {
       cancelled = true;
       unsubscribe();
+      void clearLivePreviewConfig();
     };
   }, []);
+
+  useEffect(() => {
+    if (!state.ui.isHydrated) return;
+
+    if (!state.ui.unsaved) {
+      void clearLivePreviewConfig();
+      return;
+    }
+
+    const baseConfig = configRef.current;
+    if (!baseConfig) return;
+
+    const livePreviewConfig = buildStoredConfigFromWorkbench(baseConfig, state);
+    void writeLivePreviewConfig(livePreviewConfig);
+  }, [state]);
 
   const selected = state.selection;
   const activeTheme = useMemo(
@@ -296,6 +314,7 @@ export function useThemeWorkbenchState() {
     try {
       const nextConfig = buildStoredConfigFromWorkbench(configRef.current ?? (await readExtensionConfig()), state);
       const savedConfig = await writeExtensionConfig(nextConfig);
+      await clearLivePreviewConfig();
       configRef.current = savedConfig;
       dispatch({ type: "save/success" });
     } catch (error) {

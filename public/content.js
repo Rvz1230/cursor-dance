@@ -3,6 +3,8 @@
   const STYLE_ID = "cursordance-style";
   const HIDE_CURSOR_CLASS = "cd-hide-native-cursor";
   const CONFIG_STORAGE_KEY = "cursordance.config";
+  const LIVE_PREVIEW_CONFIG_STORAGE_KEY = "cursordance.livePreviewConfig";
+  const LOCAL_PREVIEW_CHANNEL_NAME = "cursordance.local-preview";
   const CURSOR_ASSET_STORAGE_KEY_PREFIX = "cursordance.cursorAsset.";
   const LEGACY_ENABLED_STORAGE_KEY = "cursordance.enabled";
   const DEFAULT_CONFIG = window.CursorDanceDefaultConfig || {};
@@ -24,9 +26,43 @@
   let audioContext = null;
   let stateCursorNode = null;
   let stateCursorImg = null;
+  let localPreviewChannel = null;
 
   function normalizeConfig(value) {
     return (CONFIG_RUNTIME.normalizeConfig || ((nextValue) => nextValue))(value, DEFAULT_CONFIG);
+  }
+
+  function isLocalPreviewHost() {
+    const hostname = window.location.hostname;
+    return hostname === "localhost" || hostname === "127.0.0.1";
+  }
+
+  function canUseWindowLocalStorage() {
+    try {
+      const probeKey = "__cursordance_content_probe__";
+      window.localStorage.setItem(probeKey, "1");
+      window.localStorage.removeItem(probeKey);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function readLocalPreviewConfig() {
+    if (!isLocalPreviewHost() || !canUseWindowLocalStorage()) return null;
+    try {
+      const raw = window.localStorage.getItem(CONFIG_STORAGE_KEY);
+      const legacyEnabledRaw = window.localStorage.getItem(LEGACY_ENABLED_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      return normalizeConfig(
+        parsed || {
+          ...DEFAULT_CONFIG,
+          enabled: legacyEnabledRaw !== "false",
+        }
+      );
+    } catch {
+      return null;
+    }
   }
 
   function buildCursorAssetStorageKey(themeId, stateId) {
@@ -97,6 +133,81 @@
     const rippleEffect = effects.ripple || {};
     const particleEffect = effects.particle || {};
     const mergedCursorStates = mergeCursorStates(DEFAULT_CONFIG.schemes?.[0]?.cursorStates, scheme?.cursorStates);
+    const fallbackLeftClick = {
+      textKind: "数字飘字",
+      textStyle: "阿拉伯数字 (1, 2, 3)",
+      textMode: "默认模式 (+1)",
+      textTemplate: "${number}",
+      textEnabled: textEffect.enabled !== false,
+      textContent: "",
+      textTags: [],
+      textTagPlayMode: "按顺序显示",
+      comboEnabled: true,
+    };
+
+    const inferredTextKind = (() => {
+      if (textEffect.kind === "text") return "文本飘字";
+      if (textEffect.kind === "number") return "数字飘字";
+      const tags = Array.isArray(textEffect.tags) ? textEffect.tags.filter(Boolean) : [];
+      if (tags.length > 1) return "文本飘字";
+      const content = typeof textEffect.content === "string" ? textEffect.content.trim() : "";
+      if (!content) return fallbackLeftClick.textKind;
+      if (content.includes("${number}")) return "数字飘字";
+      const compactContent = content.replace(/\s+/g, "");
+      if (/^[+\-]?\d+$/.test(compactContent)) return "数字飘字";
+      if (/^[+\-]?[一二三四五六七八九十百千万]+$/.test(compactContent)) return "数字飘字";
+      if (/^(one|two|three|four|five|six|seven|eight|nine|ten)$/i.test(compactContent)) return "数字飘字";
+      return "文本飘字";
+    })();
+
+    const inferredTextStyle = (() => {
+      const numberStyle = String(textEffect.numberStyle || "").toLowerCase();
+      if (numberStyle.includes("zh") || numberStyle.includes("cn") || numberStyle.includes("中文")) return "中文数字 (一, 二, 三)";
+      if (numberStyle.includes("en") || numberStyle.includes("英文")) return "英文单词 (one, two, three)";
+      if (numberStyle.includes("arabic") || numberStyle.includes("digit") || numberStyle.includes("阿拉伯")) return "阿拉伯数字 (1, 2, 3)";
+      return fallbackLeftClick.textStyle;
+    })();
+
+    const inferredTextMode = (() => {
+      if (textEffect.mode === "template") return "模板模式";
+      if (textEffect.mode === "default") return "默认模式 (+1)";
+      if (typeof textEffect.template === "string" && textEffect.template.includes("${number}")) return "模板模式";
+      if (typeof textEffect.content === "string" && textEffect.content.includes("${number}")) return "模板模式";
+      return fallbackLeftClick.textMode;
+    })();
+
+    const inferredTextConfig =
+      inferredTextKind === "文本飘字"
+        ? (() => {
+            const primaryText = typeof textEffect.content === "string" ? textEffect.content.trim() : "";
+            const tags = Array.isArray(textEffect.tags) ? textEffect.tags.filter(Boolean) : [];
+            const orderedTags = Array.from(new Set([primaryText, ...tags].filter(Boolean)));
+            return {
+              textKind: inferredTextKind,
+              textStyle: inferredTextStyle,
+              textMode: inferredTextMode,
+              textTemplate: fallbackLeftClick.textTemplate,
+              textContent: orderedTags[0] || "",
+              textTags: orderedTags,
+              textTagPlayMode: textEffect.tagPlayMode || fallbackLeftClick.textTagPlayMode,
+              comboEnabled: false,
+            };
+          })()
+        : {
+            textKind: inferredTextKind,
+            textStyle: inferredTextStyle,
+            textMode: inferredTextMode,
+            textTemplate:
+              typeof textEffect.template === "string" && textEffect.template
+                ? textEffect.template
+                : (typeof textEffect.content === "string" && textEffect.content.includes("${number}")
+                  ? textEffect.content
+                  : "你当前点击了${number}次"),
+            textContent: "",
+            textTags: [],
+            textTagPlayMode: fallbackLeftClick.textTagPlayMode,
+            comboEnabled: textEffect.comboEnabled ?? fallbackLeftClick.comboEnabled,
+          };
 
     return {
       cursorModes: Object.fromEntries(
@@ -110,14 +221,8 @@
       ),
       actionConfigs: {
         leftClick: {
-          textKind: "文本飘字",
-          textStyle: "阿拉伯数字 (1, 2, 3)",
-          textMode: "默认模式 (+1)",
-          textTemplate: "${number}",
+          ...inferredTextConfig,
           textEnabled: textEffect.enabled !== false,
-          textContent: textEffect.content || "+1",
-          textTags: [textEffect.content || "+1"],
-          textTagPlayMode: "按顺序显示",
           textColor: textEffect.color || "#ec4899",
           textDuration: textEffect.durationMs || 950,
           textOpacity: 100,
@@ -345,7 +450,6 @@
     if (actionConfig.textMode === "模板模式") {
       return (actionConfig.textTemplate || "${number}").replaceAll("${number}", formattedNumber);
     }
-    if (actionConfig.textContent) return actionConfig.textContent.replaceAll("${number}", formattedNumber);
     return `+${formattedNumber}`;
   }
 
@@ -1077,6 +1181,25 @@
 
   async function syncConfigFromStorage() {
     try {
+      const localPreviewConfig = readLocalPreviewConfig();
+      if (localPreviewConfig) {
+        config = normalizeConfig(localPreviewConfig);
+        clearStateCursorOverlay();
+        return;
+      }
+
+      try {
+        const livePreviewResult = await chrome.storage.session.get([LIVE_PREVIEW_CONFIG_STORAGE_KEY]);
+        const livePreviewConfig = livePreviewResult[LIVE_PREVIEW_CONFIG_STORAGE_KEY];
+        if (livePreviewConfig) {
+          config = normalizeConfig(livePreviewConfig);
+          clearStateCursorOverlay();
+          return;
+        }
+      } catch {
+        // Ignore live preview session read failures and fall back to persisted config.
+      }
+
       const result = await chrome.storage.local.get([CONFIG_STORAGE_KEY, LEGACY_ENABLED_STORAGE_KEY]);
       const storedConfig = result[CONFIG_STORAGE_KEY];
       const nextConfig = normalizeConfig(storedConfig || {
@@ -1113,12 +1236,47 @@
   ensureRoot();
   syncConfigFromStorage();
 
+  if (isLocalPreviewHost()) {
+    try {
+      window.addEventListener("storage", (event) => {
+        if (
+          event.key !== CONFIG_STORAGE_KEY
+          && event.key !== LEGACY_ENABLED_STORAGE_KEY
+          && event.key !== LIVE_PREVIEW_CONFIG_STORAGE_KEY
+        ) return;
+        syncConfigFromStorage();
+      });
+    } catch {
+      // Ignore local preview storage bridge failures.
+    }
+
+    try {
+      if (typeof window.BroadcastChannel === "function") {
+        localPreviewChannel = new window.BroadcastChannel(LOCAL_PREVIEW_CHANNEL_NAME);
+        localPreviewChannel.addEventListener("message", (event) => {
+          const message = event.data || {};
+          if (message.type === "config-updated") {
+            config = normalizeConfig(message.config || DEFAULT_CONFIG);
+            clearStateCursorOverlay();
+            return;
+          }
+          if (message.type === "preview-theme") {
+            previewAtViewportCenter(message.themeId, message.themePack, message.actionId);
+          }
+        });
+      }
+    } catch {
+      // Ignore local preview broadcast bridge failures.
+    }
+  }
+
   try {
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName !== "local") return;
       const changedKeys = Object.keys(changes);
       if (
         changedKeys.includes(CONFIG_STORAGE_KEY)
+        || changedKeys.includes(LIVE_PREVIEW_CONFIG_STORAGE_KEY)
         || changedKeys.includes(LEGACY_ENABLED_STORAGE_KEY)
         || changedKeys.some((key) => key.startsWith(CURSOR_ASSET_STORAGE_KEY_PREFIX))
       ) {
