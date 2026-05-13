@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest --watch"
+    "test:watch": "vitest --watch",
+    "test:smoke": "playwright test",
+    "test:smoke:attached": "CURSORDANCE_SMOKE_EXTERNAL_SERVER=1 playwright test"
   },
   "dependencies": {
     "clsx": "^2.0.0",
@@ -19,6 +21,7 @@
     "tailwind-merge": "^2.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
     "@vitejs/plugin-react": "^4.2.0",

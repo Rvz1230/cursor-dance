@@ -229,6 +229,10 @@ export function useThemeWorkbenchState() {
   useEffect(() => {
     let cancelled = false;
 
+    function clearPreviewOnPageHide() {
+      void clearLivePreviewConfig();
+    }
+
     async function hydrate() {
       const [config, site, recentCursorAssets] = await Promise.all([readExtensionConfig(), readActiveSiteContext(), readRecentCursorAssets()]);
       if (cancelled) return;
@@ -237,6 +241,7 @@ export function useThemeWorkbenchState() {
     }
 
     hydrate();
+    window.addEventListener("pagehide", clearPreviewOnPageHide);
 
     const unsubscribe = subscribeExtensionConfig(async (nextConfigOrUpdater) => {
       const site = await readActiveSiteContext();
@@ -252,6 +257,7 @@ export function useThemeWorkbenchState() {
     return () => {
       cancelled = true;
       unsubscribe();
+      window.removeEventListener("pagehide", clearPreviewOnPageHide);
       void clearLivePreviewConfig();
     };
   }, []);
