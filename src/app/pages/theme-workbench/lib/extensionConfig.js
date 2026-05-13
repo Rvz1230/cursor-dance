@@ -528,9 +528,43 @@ export function themePackToThemeLibraryItem(themePack, fallbackIndex = 0) {
   return buildThemeLibraryItem(themePack, fallbackIndex);
 }
 
+function buildDraftCursorState(baseDraft, themePack, stateId) {
+  const legacyAsset = themePack?.workbenchDraft?.cursorStateAssets?.[stateId] || {};
+  const cursorState = themePack?.cursorStates?.[stateId] || {};
+
+  return {
+    mode:
+      themePack?.cursorStates?.[stateId]
+        ? toWorkbenchCursorMode(stateId, cursorState.mode)
+        : (themePack?.workbenchDraft?.cursorModes?.[stateId] || baseDraft.cursorModes[stateId]),
+    actionId:
+      themePack?.cursorStates?.[stateId]?.actionId
+      || themePack?.workbenchDraft?.cursorStateActions?.[stateId]
+      || baseDraft.cursorStateActions[stateId],
+    asset: {
+      ...baseDraft.cursorStateAssets[stateId],
+      ...legacyAsset,
+      imageDataUrl: cursorState.imageDataUrl || legacyAsset.imageDataUrl || baseDraft.cursorStateAssets[stateId].imageDataUrl,
+      hotspotX: cursorState.hotspotX ?? legacyAsset.hotspotX ?? baseDraft.cursorStateAssets[stateId].hotspotX,
+      hotspotY: cursorState.hotspotY ?? legacyAsset.hotspotY ?? baseDraft.cursorStateAssets[stateId].hotspotY,
+      size: cursorState.size ?? legacyAsset.size ?? baseDraft.cursorStateAssets[stateId].size,
+    },
+  };
+}
+
+function buildDraftCursorMaps(baseDraft, themePack) {
+  const draftStates = CURSOR_STATES.map((state) => [state.id, buildDraftCursorState(baseDraft, themePack, state.id)]);
+  return {
+    cursorModes: Object.fromEntries(draftStates.map(([stateId, stateDraft]) => [stateId, stateDraft.mode])),
+    cursorStateActions: Object.fromEntries(draftStates.map(([stateId, stateDraft]) => [stateId, stateDraft.actionId])),
+    cursorStateAssets: Object.fromEntries(draftStates.map(([stateId, stateDraft]) => [stateId, stateDraft.asset])),
+  };
+}
+
 function buildDraftFromThemePack(themePack, siteMode) {
   const themeId = themePack?.id;
   const baseDraft = createThemeDraft(themeId);
+  const cursorDraft = buildDraftCursorMaps(baseDraft, themePack);
   if (themePack?.workbenchDraft?.actionConfigs) {
     return {
       ...baseDraft,
@@ -540,43 +574,9 @@ function buildDraftFromThemePack(themePack, siteMode) {
         ...baseDraft.actionConfigs,
         ...(themePack.workbenchDraft.actionConfigs || {}),
       },
-      cursorModes: {
-        ...baseDraft.cursorModes,
-        ...(themePack.workbenchDraft.cursorModes || {}),
-      },
-      cursorStateActions: {
-        ...baseDraft.cursorStateActions,
-        ...(themePack.workbenchDraft.cursorStateActions || {}),
-      },
-      cursorStateAssets: {
-        ...baseDraft.cursorStateAssets,
-        ...(themePack.workbenchDraft.cursorStateAssets || {}),
-        ...Object.fromEntries(
-          CURSOR_STATES.map((state) => [
-            state.id,
-            {
-              ...baseDraft.cursorStateAssets[state.id],
-              ...(themePack.workbenchDraft.cursorStateAssets?.[state.id] || {}),
-              imageDataUrl:
-                themePack?.cursorStates?.[state.id]?.imageDataUrl
-                || themePack.workbenchDraft.cursorStateAssets?.[state.id]?.imageDataUrl
-                || baseDraft.cursorStateAssets[state.id].imageDataUrl,
-              hotspotX:
-                themePack?.cursorStates?.[state.id]?.hotspotX
-                ?? themePack.workbenchDraft.cursorStateAssets?.[state.id]?.hotspotX
-                ?? baseDraft.cursorStateAssets[state.id].hotspotX,
-              hotspotY:
-                themePack?.cursorStates?.[state.id]?.hotspotY
-                ?? themePack.workbenchDraft.cursorStateAssets?.[state.id]?.hotspotY
-                ?? baseDraft.cursorStateAssets[state.id].hotspotY,
-              size:
-                themePack?.cursorStates?.[state.id]?.size
-                ?? themePack.workbenchDraft.cursorStateAssets?.[state.id]?.size
-                ?? baseDraft.cursorStateAssets[state.id].size,
-            },
-          ])
-        ),
-      },
+      cursorModes: cursorDraft.cursorModes,
+      cursorStateActions: cursorDraft.cursorStateActions,
+      cursorStateAssets: cursorDraft.cursorStateAssets,
     };
   }
   const clickConfig = themePack?.behavior?.click ?? {};
@@ -586,37 +586,12 @@ function buildDraftFromThemePack(themePack, siteMode) {
   const particleEffect = effects.particle ?? {};
   const fallbackTextConfig = getRuntimeConfig().resolveActionTextConfigFromEffect?.(baseDraft.actionConfigs.leftClick, textEffect)
     ?? baseDraft.actionConfigs.leftClick;
-  const nextCursorModes = Object.fromEntries(
-    CURSOR_STATES.map((state) => [
-      state.id,
-      toWorkbenchCursorMode(state.id, themePack?.cursorStates?.[state.id]?.mode),
-    ])
-  );
-  const nextCursorStateActions = Object.fromEntries(
-    CURSOR_STATES.map((state) => [
-      state.id,
-      themePack?.cursorStates?.[state.id]?.actionId || baseDraft.cursorStateActions[state.id],
-    ])
-  );
-  const nextCursorStateAssets = Object.fromEntries(
-    CURSOR_STATES.map((state) => [
-      state.id,
-      {
-        ...baseDraft.cursorStateAssets[state.id],
-        imageDataUrl: themePack?.cursorStates?.[state.id]?.imageDataUrl || baseDraft.cursorStateAssets[state.id].imageDataUrl,
-        hotspotX: themePack?.cursorStates?.[state.id]?.hotspotX ?? baseDraft.cursorStateAssets[state.id].hotspotX,
-        hotspotY: themePack?.cursorStates?.[state.id]?.hotspotY ?? baseDraft.cursorStateAssets[state.id].hotspotY,
-        size: themePack?.cursorStates?.[state.id]?.size ?? baseDraft.cursorStateAssets[state.id].size,
-      },
-    ])
-  );
-
   return {
     ...baseDraft,
     siteMode,
-    cursorModes: nextCursorModes,
-    cursorStateActions: nextCursorStateActions,
-    cursorStateAssets: nextCursorStateAssets,
+    cursorModes: cursorDraft.cursorModes,
+    cursorStateActions: cursorDraft.cursorStateActions,
+    cursorStateAssets: cursorDraft.cursorStateAssets,
     actionConfigs: {
       ...baseDraft.actionConfigs,
       leftClick: {
@@ -764,8 +739,6 @@ function buildStoredThemePack(themeId, draft, previousConfig, themeRecord) {
     kind: themeRecord?.kind === "内置" ? "builtin" : previousThemePack.kind || "custom",
     workbenchDraft: {
       actionConfigs: draft.actionConfigs,
-      cursorModes: draft.cursorModes,
-      cursorStateActions: draft.cursorStateActions,
     },
     cursorStates: Object.fromEntries(
       CURSOR_STATES.map((state) => [

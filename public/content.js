@@ -218,11 +218,6 @@
     return draft.actionConfigs?.[actionId] || draft.actionConfigs?.leftClick || null;
   }
 
-  function getCursorMode(scheme, stateId) {
-    const draft = getWorkbenchDraft(scheme);
-    return draft.cursorModes?.[stateId] || (stateId === "default" ? "源" : "继承");
-  }
-
   function getMergedCursorStates(scheme) {
     return mergeCursorStates(DEFAULT_CONFIG.schemes?.[0]?.cursorStates, scheme?.cursorStates);
   }
