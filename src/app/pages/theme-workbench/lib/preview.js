@@ -2,6 +2,7 @@ import {
   getActionAudioConfig,
   getActionCursorFeedbackConfig,
   getActionParticleConfig,
+  getOrderedActionTextTags,
   getActionRippleConfig,
   getActionTextConfig,
   getActionTriggerConfig,
@@ -44,11 +45,7 @@ export function getPreviewText(config, runIndex = 0) {
   const textConfig = getActionTextConfig(config);
   if (!textConfig.textEnabled) return "静默";
   if (textConfig.textKind === "文本飘字") {
-    const primaryText = typeof textConfig.textContent === "string" ? textConfig.textContent.trim() : "";
-    const tags = [
-      ...(primaryText ? [primaryText] : []),
-      ...(textConfig.textTags || []).filter((item) => item && item !== primaryText),
-    ];
+    const tags = getOrderedActionTextTags(textConfig);
     if (!tags.length) return "未设置文本";
     if (textConfig.textTagPlayMode === "随机显示") {
       return tags[(runIndex * 7 + 3) % tags.length];

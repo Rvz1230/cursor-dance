@@ -9,6 +9,9 @@ import {
   getActionRippleConfig,
   getActionTextConfig,
   getActionTriggerConfig,
+  getOrderedActionTextTags,
+  mergeActionConfig,
+  pickStoredWorkbenchActionConfigs,
 } from "../model/workbenchSchema.js";
 import { getDefaultConfig, getRuntimeConfig, normalizeStoredConfig } from "./runtimeConfig.js";
 
@@ -40,11 +43,53 @@ function mapFontWeightToStored(weight) {
   return 500;
 }
 
-function getOrderedTextTags(actionConfig) {
-  const currentTags = Array.isArray(actionConfig?.textTags) ? actionConfig.textTags.filter(Boolean) : [];
-  const primaryText = typeof actionConfig?.textContent === "string" ? actionConfig.textContent.trim() : "";
-  if (!primaryText) return currentTags;
-  return [primaryText, ...currentTags.filter((item) => item !== primaryText)];
+function buildLeftClickBehaviorActionConfig(baseActionConfig, themePack) {
+  const clickConfig = themePack?.behavior?.click ?? {};
+  const effects = clickConfig.effects ?? {};
+  const textEffect = effects.text ?? {};
+  const rippleEffect = effects.ripple ?? {};
+  const particleEffect = effects.particle ?? {};
+  const fallbackTextConfig = getRuntimeConfig().resolveActionTextConfigFromEffect?.(baseActionConfig, textEffect)
+    ?? baseActionConfig;
+
+  return {
+    ...fallbackTextConfig,
+    textEnabled: textEffect.enabled !== false,
+    textColor: textEffect.color ?? baseActionConfig.textColor,
+    fontSize: textEffect.fontSize ?? baseActionConfig.fontSize,
+    textWeight: mapFontWeightToWorkbench(textEffect.fontWeight ?? 800),
+    textOffsetX: textEffect.offsetX ?? baseActionConfig.textOffsetX,
+    textOffsetY: textEffect.offsetY ?? baseActionConfig.textOffsetY,
+    textDuration: textEffect.durationMs ?? baseActionConfig.textDuration,
+    ripple: rippleEffect.enabled !== false,
+    rippleSize: rippleEffect.size ?? baseActionConfig.rippleSize,
+    rippleDuration: rippleEffect.durationMs ?? baseActionConfig.rippleDuration,
+    particle: particleEffect.enabled !== false,
+    particleCount: particleEffect.count ?? baseActionConfig.particleCount,
+    particleSize: particleEffect.size ?? baseActionConfig.particleSize,
+    particleSpread: particleEffect.baseDistance ?? baseActionConfig.particleSpread,
+    particleDuration: particleEffect.durationMs ?? baseActionConfig.particleDuration,
+    holdMs: clickConfig.trigger?.cooldownMs ?? baseActionConfig.holdMs,
+  };
+}
+
+function buildDraftActionConfigs(baseDraft, themePack) {
+  const storedActionConfigs = themePack?.workbenchDraft?.actionConfigs || {};
+  const leftClickBehaviorConfig = themePack?.behavior?.click
+    ? buildLeftClickBehaviorActionConfig(baseDraft.actionConfigs.leftClick, themePack)
+    : {};
+
+  return Object.fromEntries(
+    ACTIONS.map((action) => {
+      const baseActionConfig = baseDraft.actionConfigs[action.id];
+      const storedActionConfig = storedActionConfigs[action.id] || {};
+      const behaviorActionConfig = action.id === "leftClick" ? leftClickBehaviorConfig : {};
+      return [
+        action.id,
+        mergeActionConfig(baseActionConfig, storedActionConfig, behaviorActionConfig),
+      ];
+    })
+  );
 }
 
 export function themePackToThemeLibraryItem(themePack, fallbackIndex = 0) {
@@ -88,54 +133,14 @@ function buildDraftFromThemePack(themePack) {
   const themeId = themePack?.id;
   const baseDraft = createThemeDraft(themeId);
   const cursorDraft = buildDraftCursorMaps(baseDraft, themePack);
-  if (themePack?.workbenchDraft?.actionConfigs) {
-    return {
-      ...baseDraft,
-      ...themePack.workbenchDraft,
-      actionConfigs: {
-        ...baseDraft.actionConfigs,
-        ...(themePack.workbenchDraft.actionConfigs || {}),
-      },
-      cursorModes: cursorDraft.cursorModes,
-      cursorStateActions: cursorDraft.cursorStateActions,
-      cursorStateAssets: cursorDraft.cursorStateAssets,
-    };
-  }
-  const clickConfig = themePack?.behavior?.click ?? {};
-  const effects = clickConfig.effects ?? {};
-  const textEffect = effects.text ?? {};
-  const rippleEffect = effects.ripple ?? {};
-  const particleEffect = effects.particle ?? {};
-  const fallbackTextConfig = getRuntimeConfig().resolveActionTextConfigFromEffect?.(baseDraft.actionConfigs.leftClick, textEffect)
-    ?? baseDraft.actionConfigs.leftClick;
+
   return {
     ...baseDraft,
+    ...(themePack?.workbenchDraft || {}),
     cursorModes: cursorDraft.cursorModes,
     cursorStateActions: cursorDraft.cursorStateActions,
     cursorStateAssets: cursorDraft.cursorStateAssets,
-    actionConfigs: {
-      ...baseDraft.actionConfigs,
-      leftClick: {
-        ...baseDraft.actionConfigs.leftClick,
-        ...fallbackTextConfig,
-        textEnabled: textEffect.enabled !== false,
-        textColor: textEffect.color ?? baseDraft.actionConfigs.leftClick.textColor,
-        fontSize: textEffect.fontSize ?? baseDraft.actionConfigs.leftClick.fontSize,
-        textWeight: mapFontWeightToWorkbench(textEffect.fontWeight ?? 800),
-        textOffsetX: textEffect.offsetX ?? baseDraft.actionConfigs.leftClick.textOffsetX,
-        textOffsetY: textEffect.offsetY ?? baseDraft.actionConfigs.leftClick.textOffsetY,
-        textDuration: textEffect.durationMs ?? baseDraft.actionConfigs.leftClick.textDuration,
-        ripple: rippleEffect.enabled !== false,
-        rippleSize: rippleEffect.size ?? baseDraft.actionConfigs.leftClick.rippleSize,
-        rippleDuration: rippleEffect.durationMs ?? baseDraft.actionConfigs.leftClick.rippleDuration,
-        particle: particleEffect.enabled !== false,
-        particleCount: particleEffect.count ?? baseDraft.actionConfigs.leftClick.particleCount,
-        particleSize: particleEffect.size ?? baseDraft.actionConfigs.leftClick.particleSize,
-        particleSpread: particleEffect.baseDistance ?? baseDraft.actionConfigs.leftClick.particleSpread,
-        particleDuration: particleEffect.durationMs ?? baseDraft.actionConfigs.leftClick.particleDuration,
-        holdMs: clickConfig.trigger?.cooldownMs ?? baseDraft.actionConfigs.leftClick.holdMs,
-      },
-    },
+    actionConfigs: buildDraftActionConfigs(baseDraft, themePack),
   };
 }
 
@@ -233,7 +238,7 @@ function buildStoredThemePack(themeId, draft, previousConfig, themeRecord) {
   const particleConfig = getActionParticleConfig(actionConfig);
   const rippleConfig = getActionRippleConfig(actionConfig);
   const triggerConfig = getActionTriggerConfig(actionConfig);
-  const orderedTextTags = getOrderedTextTags(actionConfig);
+  const orderedTextTags = getOrderedActionTextTags(actionConfig);
   const storedTextEffect = getRuntimeConfig().buildStoredTextEffectPayload?.(textConfig, orderedTextTags) ?? {
     kind: textConfig.textKind === "文本飘字" ? "text" : "number",
     numberStyle: textConfig.textStyle,
@@ -252,7 +257,7 @@ function buildStoredThemePack(themeId, draft, previousConfig, themeRecord) {
     description: themeRecord?.description ?? themeRecord?.summary ?? previousThemePack.description ?? "",
     kind: themeRecord?.kind === "内置" ? "builtin" : previousThemePack.kind || "custom",
     workbenchDraft: {
-      actionConfigs: draft.actionConfigs,
+      actionConfigs: pickStoredWorkbenchActionConfigs(draft.actionConfigs),
     },
     cursorStates: Object.fromEntries(
       CURSOR_STATES.map((state) => [

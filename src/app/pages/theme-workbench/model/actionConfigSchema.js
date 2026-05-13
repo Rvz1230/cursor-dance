@@ -105,9 +105,109 @@ export const ACTION_AUDIO_FIELDS = [
   "soundFile",
 ];
 export const ACTION_CURSOR_FEEDBACK_FIELDS = ["shake", "cursorOverride", "cursorSize"];
+export const ACTION_RUNTIME_FIELDS = Array.from(
+  new Set([
+    ...ACTION_TRIGGER_FIELDS,
+    ...ACTION_TEXT_FIELDS,
+    ...ACTION_PARTICLE_FIELDS,
+    ...ACTION_RIPPLE_FIELDS,
+    ...ACTION_AUDIO_FIELDS,
+    ...ACTION_CURSOR_FEEDBACK_FIELDS,
+  ])
+);
+
+// `leftClick` currently has two canonical sources:
+// - behavior.click: left-click runtime semantics shared with legacy theme packs
+// - workbenchDraft.actionConfigs.leftClick: remaining workbench-backed runtime/editor fields
+export const LEFT_CLICK_BEHAVIOR_CANONICAL_FIELDS = [
+  "textKind",
+  "textStyle",
+  "textMode",
+  "textTemplate",
+  "textEnabled",
+  "textContent",
+  "textTags",
+  "textTagPlayMode",
+  "textColor",
+  "textDuration",
+  "textWeight",
+  "comboEnabled",
+  "textOffsetX",
+  "textOffsetY",
+  "fontSize",
+  "particle",
+  "particleCount",
+  "particleSpread",
+  "particleDuration",
+  "particleSize",
+  "ripple",
+  "rippleSize",
+  "rippleDuration",
+  "holdMs",
+];
+
+export const ACTION_WORKBENCH_CANONICAL_FIELDS = ACTION_RUNTIME_FIELDS.filter(
+  (fieldName) => !LEFT_CLICK_BEHAVIOR_CANONICAL_FIELDS.includes(fieldName)
+);
+
+// Preview values are derived at render time and should never be persisted in actionConfig.
+export const ACTION_PREVIEW_DERIVED_FIELDS = [
+  "previewText",
+  "previewLoopDelay",
+  "previewParticleSpecs",
+  "previewRippleSpecs",
+  "previewTriggerSummary",
+];
+
+export const ACTION_CONFIG_MODEL_BOUNDARIES = {
+  runtimeSemantic: {
+    leftClickBehaviorCanonical: LEFT_CLICK_BEHAVIOR_CANONICAL_FIELDS,
+    workbenchCanonical: ACTION_WORKBENCH_CANONICAL_FIELDS,
+  },
+  editorOnly: [],
+  previewOnlyDerived: ACTION_PREVIEW_DERIVED_FIELDS,
+};
 
 function pickActionConfigFields(config, fieldNames) {
   return Object.fromEntries(fieldNames.map((fieldName) => [fieldName, config?.[fieldName]]));
+}
+
+export function mergeActionConfig(baseConfig = {}, ...overlays) {
+  return overlays.reduce(
+    (mergedConfig, overlay) => ({
+      ...mergedConfig,
+      ...(overlay || {}),
+      textTags: Array.isArray(overlay?.textTags)
+        ? [...overlay.textTags]
+        : mergedConfig.textTags,
+    }),
+    {
+      ...baseConfig,
+      textTags: Array.isArray(baseConfig?.textTags) ? [...baseConfig.textTags] : [],
+    }
+  );
+}
+
+export function getOrderedActionTextTags(config) {
+  const currentTags = Array.isArray(config?.textTags) ? config.textTags.filter(Boolean) : [];
+  const primaryText = typeof config?.textContent === "string" ? config.textContent.trim() : "";
+  if (!primaryText) return currentTags;
+  return [primaryText, ...currentTags.filter((item) => item !== primaryText)];
+}
+
+export function pickStoredWorkbenchActionConfig(actionId, config) {
+  if (!config || typeof config !== "object") return {};
+  const fieldNames = actionId === "leftClick" ? ACTION_WORKBENCH_CANONICAL_FIELDS : ACTION_RUNTIME_FIELDS;
+  return pickActionConfigFields(config, fieldNames);
+}
+
+export function pickStoredWorkbenchActionConfigs(actionConfigs = {}) {
+  return Object.fromEntries(
+    Object.entries(actionConfigs).map(([actionId, config]) => [
+      actionId,
+      pickStoredWorkbenchActionConfig(actionId, config),
+    ])
+  );
 }
 
 export function getActionTriggerConfig(config) {

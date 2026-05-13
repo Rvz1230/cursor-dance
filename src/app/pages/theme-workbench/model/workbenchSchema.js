@@ -20,10 +20,14 @@ import {
   CURSOR_OVERRIDE_OPTIONS,
   CURSOR_SIZE_OPTIONS,
   NUMBER_STYLE_OPTIONS,
+  LEFT_CLICK_BEHAVIOR_CANONICAL_FIELDS,
   ACTION_AUDIO_FIELDS,
   ACTION_CURSOR_FEEDBACK_FIELDS,
   ACTION_PARTICLE_FIELDS,
+  ACTION_CONFIG_MODEL_BOUNDARIES,
+  ACTION_PREVIEW_DERIVED_FIELDS,
   ACTION_RIPPLE_FIELDS,
+  ACTION_RUNTIME_FIELDS,
   ACTION_TEXT_FIELDS,
   ACTION_TRIGGER_FIELDS,
   PARTICLE_COLOR_MODE_OPTIONS,
@@ -45,9 +49,13 @@ import {
   getActionCursorFeedbackConfig,
   getActionParticleConfig,
   getActionRippleConfig,
+  getOrderedActionTextTags,
   getActionTextConfig,
   getActionTriggerConfig,
   getTimingFieldMeta,
+  mergeActionConfig,
+  pickStoredWorkbenchActionConfig,
+  pickStoredWorkbenchActionConfigs,
 } from "./actionConfigSchema.js";
 
 export const WORKSPACES = [
@@ -145,7 +153,36 @@ function getDefaultThemePacks() {
 
 function getThemeSummaryActionConfig(themePack) {
   if (themePack?.workbenchDraft?.actionConfigs?.leftClick) {
-    return themePack.workbenchDraft.actionConfigs.leftClick;
+    const baseActionConfig = createThemeDraft(themePack?.id).actionConfigs.leftClick;
+    const storedActionConfig = themePack.workbenchDraft.actionConfigs.leftClick;
+    if (!themePack?.behavior?.click) {
+      return mergeActionConfig(baseActionConfig, storedActionConfig);
+    }
+    const textEffect = themePack?.behavior?.click?.effects?.text ?? {};
+    const rippleEffect = themePack?.behavior?.click?.effects?.ripple ?? {};
+    const particleEffect = themePack?.behavior?.click?.effects?.particle ?? {};
+    const runtimeConfig = typeof window === "undefined" ? null : window.CursorDanceConfigRuntime;
+    const inferredTextConfig = runtimeConfig?.resolveActionTextConfigFromEffect?.(baseActionConfig, textEffect) ?? baseActionConfig;
+    const behaviorBackedActionConfig = {
+      ...inferredTextConfig,
+      textEnabled: textEffect.enabled !== false,
+      textColor: textEffect.color ?? baseActionConfig.textColor,
+      fontSize: textEffect.fontSize ?? baseActionConfig.fontSize,
+      textWeight: (textEffect.fontWeight ?? 800) >= 700 ? "加粗" : (textEffect.fontWeight ?? 800) >= 600 ? "中等" : "常规",
+      textOffsetX: textEffect.offsetX ?? baseActionConfig.textOffsetX,
+      textOffsetY: textEffect.offsetY ?? baseActionConfig.textOffsetY,
+      textDuration: textEffect.durationMs ?? baseActionConfig.textDuration,
+      ripple: rippleEffect.enabled !== false,
+      rippleSize: rippleEffect.size ?? baseActionConfig.rippleSize,
+      rippleDuration: rippleEffect.durationMs ?? baseActionConfig.rippleDuration,
+      particle: particleEffect.enabled !== false,
+      particleCount: particleEffect.count ?? baseActionConfig.particleCount,
+      particleSize: particleEffect.size ?? baseActionConfig.particleSize,
+      particleSpread: particleEffect.baseDistance ?? baseActionConfig.particleSpread,
+      particleDuration: particleEffect.durationMs ?? baseActionConfig.particleDuration,
+      holdMs: themePack?.behavior?.click?.trigger?.cooldownMs ?? baseActionConfig.holdMs,
+    };
+    return mergeActionConfig(baseActionConfig, storedActionConfig, behaviorBackedActionConfig);
   }
   if (themePack?.id && THEME_TONE_BY_ID[themePack.id]) {
     return createThemeDraft(themePack.id).actionConfigs.leftClick;
@@ -252,14 +289,18 @@ export {
   AUDIO_BLEND_OPTIONS,
   AUDIO_TRIGGER_OPTIONS,
   ACTION_AUDIO_FIELDS,
+  ACTION_CONFIG_MODEL_BOUNDARIES,
   ACTION_CURSOR_FEEDBACK_FIELDS,
   ACTION_PARTICLE_FIELDS,
+  ACTION_PREVIEW_DERIVED_FIELDS,
   ACTION_RIPPLE_FIELDS,
+  ACTION_RUNTIME_FIELDS,
   ACTION_TEXT_FIELDS,
   ACTION_TRIGGER_FIELDS,
   CURSOR_HOTSPOT_OPTIONS,
   CURSOR_OVERRIDE_OPTIONS,
   CURSOR_SIZE_OPTIONS,
+  LEFT_CLICK_BEHAVIOR_CANONICAL_FIELDS,
   NUMBER_STYLE_OPTIONS,
   PARTICLE_COLOR_MODE_OPTIONS,
   PARTICLE_DIRECTION_OPTIONS,
@@ -278,9 +319,13 @@ export {
   getActionCursorFeedbackConfig,
   getActionParticleConfig,
   getActionRippleConfig,
+  getOrderedActionTextTags,
   getActionTextConfig,
   getActionTriggerConfig,
   getConflictsForAction,
   getDefaultActionConfigs,
   getTimingFieldMeta,
+  mergeActionConfig,
+  pickStoredWorkbenchActionConfig,
+  pickStoredWorkbenchActionConfigs,
 };

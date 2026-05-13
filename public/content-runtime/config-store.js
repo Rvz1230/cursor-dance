@@ -225,9 +225,37 @@
       };
     }
 
+    function mergeActionConfig(baseConfig, ...overlays) {
+      return overlays.reduce(
+        (mergedConfig, overlay) => ({
+          ...mergedConfig,
+          ...(overlay || {}),
+          textTags: Array.isArray(overlay?.textTags)
+            ? [...overlay.textTags]
+            : mergedConfig.textTags,
+        }),
+        {
+          ...baseConfig,
+          textTags: Array.isArray(baseConfig?.textTags) ? [...baseConfig.textTags] : [],
+        }
+      );
+    }
+
     function getWorkbenchDraft(scheme) {
-      if (scheme?.workbenchDraft?.actionConfigs) return scheme.workbenchDraft;
-      return getFallbackDraft(scheme);
+      const fallbackDraft = getFallbackDraft(scheme);
+      if (!scheme?.workbenchDraft?.actionConfigs) return fallbackDraft;
+      return {
+        ...scheme.workbenchDraft,
+        actionConfigs: {
+          ...(scheme.workbenchDraft.actionConfigs || {}),
+          leftClick: scheme?.behavior?.click
+            ? mergeActionConfig(
+                fallbackDraft.actionConfigs.leftClick,
+                scheme.workbenchDraft.actionConfigs.leftClick || {}
+              )
+            : mergeActionConfig(scheme.workbenchDraft.actionConfigs.leftClick || {}),
+        },
+      };
     }
 
     function getActionConfig(scheme, actionId) {

@@ -267,4 +267,48 @@ describe("themeDraftAdapter", () => {
     expect(previewThemePack.behavior.click.effects.text.tags).toEqual(["预览文案", "备用文案"]);
     expect(defaultConfig.themePacks.find((item) => item.id === "woodfish").behavior.click.effects.text.content).toBe(originalContent);
   });
+
+  it("stores left-click workbench draft with only workbench-canonical fields", () => {
+    const { defaultConfig } = installPublicConfigRuntime();
+    const state = hydrateWorkbenchState(defaultConfig, { host: "example.com" });
+
+    state.draftsByTheme.woodfish.actionConfigs.leftClick.textEasing = "弹性";
+    state.draftsByTheme.woodfish.actionConfigs.leftClick.sound = true;
+    state.draftsByTheme.woodfish.actionConfigs.leftClick.cursorOverride = "木鱼（增强态）";
+
+    const storedConfig = buildStoredConfigFromWorkbench(defaultConfig, state);
+    const storedLeftClickDraft = storedConfig.themePacks.find((item) => item.id === "woodfish").workbenchDraft.actionConfigs.leftClick;
+
+    expect(storedLeftClickDraft).toMatchObject({
+      textEasing: "弹性",
+      sound: true,
+      cursorOverride: "木鱼（增强态）",
+      triggerTiming: "抬起时",
+      triggerZone: "当前页面可点击区域",
+    });
+    expect(storedLeftClickDraft).not.toHaveProperty("textKind");
+    expect(storedLeftClickDraft).not.toHaveProperty("textEnabled");
+    expect(storedLeftClickDraft).not.toHaveProperty("ripple");
+    expect(storedLeftClickDraft).not.toHaveProperty("particle");
+    expect(storedLeftClickDraft).not.toHaveProperty("holdMs");
+  });
+
+  it("rehydrates left-click runtime semantics from behavior plus stored draft patch", () => {
+    const { defaultConfig } = installPublicConfigRuntime();
+    const state = hydrateWorkbenchState(defaultConfig, { host: "example.com" });
+    state.draftsByTheme.woodfish.actionConfigs.leftClick.textEasing = "弹性";
+
+    const storedConfig = buildStoredConfigFromWorkbench(defaultConfig, state);
+    const rehydratedState = hydrateWorkbenchState(storedConfig, { host: "example.com" });
+    const leftClickConfig = rehydratedState.draftsByTheme.woodfish.actionConfigs.leftClick;
+
+    expect(leftClickConfig.textKind).toBe("数字飘字");
+    expect(leftClickConfig.textEnabled).toBe(true);
+    expect(leftClickConfig.ripple).toBe(true);
+    expect(leftClickConfig.particle).toBe(true);
+    expect(leftClickConfig.holdMs).toBe(80);
+    expect(leftClickConfig.textEasing).toBe("弹性");
+    expect(leftClickConfig.sound).toBe(true);
+    expect(leftClickConfig.triggerTiming).toBe("抬起时");
+  });
 });
