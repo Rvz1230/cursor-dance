@@ -121,6 +121,16 @@ function buildCursorAssetStorageKey(themeId, stateId) {
   return `${CURSOR_ASSET_STORAGE_KEY_PREFIX}${themeId}.${stateId}`;
 }
 
+function slugifyFileSegment(value, fallback = "theme") {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48)
+    || fallback;
+}
+
 function buildCursorAssetStorageKeys(config) {
   return (config.themePacks || []).flatMap((themePack) =>
     CURSOR_STATES.map((state) => buildCursorAssetStorageKey(themePack.id, state.id))
@@ -284,6 +294,43 @@ export async function clearLivePreviewConfig() {
 
   await ensurePreviewStorageAccess(chromeApi);
   await chromeApi.storage.session.remove([LIVE_PREVIEW_CONFIG_STORAGE_KEY]);
+}
+
+export function buildThemeExportPayload(themePack) {
+  return {
+    format: "cursordance-theme-pack",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    themePack: normalizeStoredConfig({
+      enabled: true,
+      activeThemePackId: themePack?.id || "",
+      activeSchemeId: themePack?.id || "",
+      themePacks: [themePack],
+      schemes: [themePack],
+      siteRules: { byHost: {} },
+      editor: {},
+    }).themePacks[0],
+  };
+}
+
+export function downloadThemePackExport(themePack) {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    throw new Error("当前环境不支持导出主题文件。");
+  }
+
+  const payload = buildThemeExportPayload(themePack);
+  const fileName = `${slugifyFileSegment(themePack?.name || themePack?.id, "theme")}.cursordance-theme.json`;
+  const blob = new Blob([`${JSON.stringify(payload, null, 2)}\n`], { type: "application/json" });
+  const objectUrl = window.URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = objectUrl;
+  anchor.download = fileName;
+  anchor.rel = "noopener";
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  window.setTimeout(() => window.URL.revokeObjectURL(objectUrl), 0);
+  return fileName;
 }
 
 export function subscribeExtensionConfig(onChange) {

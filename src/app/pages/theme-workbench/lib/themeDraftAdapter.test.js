@@ -5,8 +5,10 @@ import { createThemeDraft } from "../model/workbenchSchema.js";
 import {
   buildPreviewThemePackFromWorkbench,
   buildStoredConfigFromWorkbench,
+  buildStoredThemePackFromWorkbench,
   hydrateWorkbenchState,
 } from "./themeDraftAdapter.js";
+import { buildThemeExportPayload } from "./extensionStorage.js";
 
 const publicConfigSource = readFileSync(new URL("../../../../../public/config.js", import.meta.url), "utf8");
 
@@ -310,5 +312,21 @@ describe("themeDraftAdapter", () => {
     expect(leftClickConfig.textEasing).toBe("弹性");
     expect(leftClickConfig.sound).toBe(true);
     expect(leftClickConfig.triggerTiming).toBe("抬起时");
+  });
+
+  it("builds export payloads around the current stored theme pack shape", () => {
+    const { defaultConfig } = installPublicConfigRuntime();
+    const state = hydrateWorkbenchState(defaultConfig, { host: "example.com" });
+    state.draftsByTheme.woodfish.actionConfigs.leftClick.textKind = "文本飘字";
+    state.draftsByTheme.woodfish.actionConfigs.leftClick.textContent = "导出测试";
+
+    const themePack = buildStoredThemePackFromWorkbench(defaultConfig, state, "woodfish");
+    const payload = buildThemeExportPayload(themePack);
+
+    expect(payload.format).toBe("cursordance-theme-pack");
+    expect(payload.version).toBe(1);
+    expect(payload.themePack.id).toBe("woodfish");
+    expect(payload.themePack.behavior.click.effects.text.content).toBe("导出测试");
+    expect(payload.themePack.workbenchDraft.actionConfigs.leftClick).not.toHaveProperty("textKind");
   });
 });

@@ -30,6 +30,9 @@ export default function ThemeWorkbenchPage() {
     saveChanges,
     previewActiveTheme,
     createTheme,
+    duplicateTheme,
+    deleteTheme,
+    exportTheme,
     importThemeFromText,
     resetCurrentTheme,
     setSiteFilter,
@@ -74,6 +77,9 @@ export default function ThemeWorkbenchPage() {
               themeId={selected.themeId}
               setThemeId={setThemeId}
               createTheme={createTheme}
+              duplicateTheme={duplicateTheme}
+              deleteTheme={deleteTheme}
+              exportTheme={exportTheme}
               importThemeFromText={importThemeFromText}
             />
 

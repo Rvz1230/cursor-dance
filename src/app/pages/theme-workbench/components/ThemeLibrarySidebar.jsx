@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { CheckCircle2, FileJson, Plus, Upload } from "lucide-react";
+import { CheckCircle2, Copy, Download, FileJson, Plus, Trash2, Upload } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Input } from "@/components/ui/input.jsx";
@@ -197,9 +197,20 @@ function ThemeComposerModal({
   );
 }
 
-export function ThemeLibrarySidebar({ themes, themeId, setThemeId, createTheme, importThemeFromText }) {
+export function ThemeLibrarySidebar({
+  themes,
+  themeId,
+  setThemeId,
+  createTheme,
+  duplicateTheme,
+  deleteTheme,
+  exportTheme,
+  importThemeFromText,
+}) {
   const [query, setQuery] = useState("");
   const [composerMode, setComposerMode] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [actionSuccess, setActionSuccess] = useState("");
 
   const filteredThemes = useMemo(() => {
     const keyword = query.trim().toLowerCase();
@@ -210,6 +221,44 @@ export function ThemeLibrarySidebar({ themes, themeId, setThemeId, createTheme, 
         .some((value) => value.toLowerCase().includes(keyword))
     );
   }, [query, themes]);
+
+  const selectedTheme = useMemo(
+    () => themes.find((theme) => theme.id === themeId) ?? themes[0] ?? null,
+    [themeId, themes]
+  );
+
+  function runThemeAction(action) {
+    try {
+      const result = action();
+      setActionError("");
+      return result;
+    } catch (error) {
+      setActionSuccess("");
+      setActionError(error instanceof Error ? error.message : "主题操作失败，请重试。");
+      return null;
+    }
+  }
+
+  async function handleExportTheme() {
+    const result = runThemeAction(() => exportTheme(themeId));
+    if (!result) return;
+    setActionSuccess(`已导出 ${result.fileName}`);
+  }
+
+  function handleDuplicateTheme() {
+    const duplicatedName = runThemeAction(() => duplicateTheme(themeId));
+    if (!duplicatedName) return;
+    setActionSuccess(`已复制为 ${duplicatedName}`);
+  }
+
+  function handleDeleteTheme() {
+    if (!selectedTheme) return;
+    const confirmed = window.confirm(`确定删除主题“${selectedTheme.name}”吗？此操作会在下次保存时写入配置。`);
+    if (!confirmed) return;
+    const deletedName = runThemeAction(() => deleteTheme(themeId));
+    if (!deletedName) return;
+    setActionSuccess(`已移除 ${deletedName}，保存后会从配置中删除。`);
+  }
 
   return (
     <aside className="flex w-[304px] flex-col border-r border-slate-200 bg-[#f3f6f8]">
@@ -248,6 +297,59 @@ export function ThemeLibrarySidebar({ themes, themeId, setThemeId, createTheme, 
             className="rounded-2xl bg-white"
           />
         </div>
+
+        {selectedTheme ? (
+          <div className="px-4 pb-3">
+            <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4 shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold text-slate-900">{selectedTheme.name}</div>
+                  <div className="mt-1 flex items-center gap-2">
+                    <DataPill tone={selectedTheme.kind === "内置" ? "teal" : "amber"}>{selectedTheme.kind}</DataPill>
+                    <span className="truncate text-xs text-slate-500">{selectedTheme.summary}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <Button variant="outline" className="rounded-2xl px-3" onClick={handleDuplicateTheme}>
+                  <Copy className="mr-2 h-4 w-4" />
+                  复制
+                </Button>
+                <Button variant="outline" className="rounded-2xl px-3" onClick={handleExportTheme}>
+                  <Download className="mr-2 h-4 w-4" />
+                  导出
+                </Button>
+              </div>
+
+              <Button
+                variant="ghost"
+                className="mt-2 h-10 w-full rounded-2xl text-rose-600 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:text-slate-400"
+                onClick={handleDeleteTheme}
+                disabled={selectedTheme.kind === "内置" || themes.length <= 1}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                删除当前主题
+              </Button>
+
+              {selectedTheme.kind === "内置" ? (
+                <div className="mt-2 text-xs text-slate-500">内置主题不能直接删除，先复制一份再继续修改会更安全。</div>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+
+        {actionSuccess ? (
+          <div className="px-4 pb-3">
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">{actionSuccess}</div>
+          </div>
+        ) : null}
+
+        {actionError ? (
+          <div className="px-4 pb-3">
+            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{actionError}</div>
+          </div>
+        ) : null}
 
         <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 pb-4">
           {filteredThemes.length ? (

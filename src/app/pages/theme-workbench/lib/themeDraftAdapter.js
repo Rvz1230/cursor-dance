@@ -315,17 +315,21 @@ function buildStoredThemePack(themeId, draft, previousConfig, themeRecord) {
 }
 
 export function buildPreviewThemePackFromWorkbench(previousConfig, state) {
+  return buildStoredThemePackFromWorkbench(previousConfig, state, state.selection.themeId);
+}
+
+export function buildStoredThemePackFromWorkbench(previousConfig, state, themeId = state.selection.themeId) {
   return buildStoredThemePack(
-    state.selection.themeId,
-    state.draftsByTheme[state.selection.themeId],
+    themeId,
+    state.draftsByTheme[themeId],
     previousConfig,
-    state.themeLibrary.find((item) => item.id === state.selection.themeId)
+    state.themeLibrary.find((item) => item.id === themeId)
   );
 }
 
 export function buildStoredConfigFromWorkbench(previousConfig, state) {
   const nextThemePacks = (state.themeLibrary || []).map((theme) =>
-    buildStoredThemePack(theme.id, state.draftsByTheme[theme.id], previousConfig, theme)
+    buildStoredThemePackFromWorkbench(previousConfig, state, theme.id)
   );
 
   const workspaceId = state.workspaceId === "workbench" ? "workspace" : state.workspaceId;

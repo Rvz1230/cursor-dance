@@ -10,11 +10,14 @@ import {
   getConflictsForAction,
 } from "../model/workbenchSchema.js";
 import {
+  buildStoredThemePackFromWorkbench,
   buildPreviewThemePackFromWorkbench,
   buildStoredConfigFromWorkbench,
+  buildThemeExportPayload,
   clearLivePreviewConfig,
   createWorkbenchThemeState,
   DEFAULT_WORKBENCH_SITE_MODE,
+  downloadThemePackExport,
   draftFromThemePack,
   hydrateWorkbenchState,
   previewThemePack,
@@ -80,6 +83,16 @@ function buildUniqueThemeId(name, existingIds) {
   return `${base}-${index}`;
 }
 
+function buildUniqueThemeName(name, existingNames) {
+  const trimmedName = String(name || "").trim() || "自定义主题";
+  if (!existingNames.has(trimmedName)) return trimmedName;
+  let index = 2;
+  while (existingNames.has(`${trimmedName} ${index}`)) {
+    index += 1;
+  }
+  return `${trimmedName} ${index}`;
+}
+
 function resolveImportedThemePack(rawValue) {
   if (!rawValue || typeof rawValue !== "object" || Array.isArray(rawValue)) {
     throw new Error("导入失败：JSON 需要是一个主题对象。");
@@ -129,6 +142,21 @@ function reducer(state, action) {
           [theme.id]: draft,
         },
         selection: select ? { ...state.selection, themeId: theme.id } : state.selection,
+        ui: { ...state.ui, unsaved: true, saveError: "" },
+      };
+    }
+    case "theme/library-remove": {
+      const { themeId, nextSelectedThemeId } = action.payload;
+      const nextDraftsByTheme = { ...state.draftsByTheme };
+      delete nextDraftsByTheme[themeId];
+      return {
+        ...state,
+        themeLibrary: state.themeLibrary.filter((theme) => theme.id !== themeId),
+        draftsByTheme: nextDraftsByTheme,
+        selection: {
+          ...state.selection,
+          themeId: nextSelectedThemeId || state.selection.themeId,
+        },
         ui: { ...state.ui, unsaved: true, saveError: "" },
       };
     }
@@ -346,6 +374,85 @@ export function useThemeWorkbenchState() {
     });
   }
 
+  function duplicateTheme(themeId = selected.themeId) {
+    const sourceTheme = state.themeLibrary.find((item) => item.id === themeId);
+    const sourceDraft = state.draftsByTheme[themeId];
+    if (!sourceTheme || !sourceDraft) {
+      throw new Error("复制失败：没有找到要复制的主题。");
+    }
+
+    const existingIds = new Set(state.themeLibrary.map((item) => item.id));
+    const existingNames = new Set(state.themeLibrary.map((item) => item.name));
+    const nextName = buildUniqueThemeName(`${sourceTheme.name} 副本`, existingNames);
+    const nextId = buildUniqueThemeId(nextName, existingIds);
+
+    dispatch({
+      type: "theme/library-add",
+      payload: {
+        theme: {
+          ...sourceTheme,
+          id: nextId,
+          name: nextName,
+          kind: "自定义",
+          summary: sourceTheme.description?.trim() ? sourceTheme.description.trim() : `复制自 ${sourceTheme.name}`,
+          description: sourceTheme.description || "",
+        },
+        draft: cloneValue(sourceDraft),
+      },
+    });
+
+    return nextName;
+  }
+
+  function deleteTheme(themeId = selected.themeId) {
+    const themeIndex = state.themeLibrary.findIndex((item) => item.id === themeId);
+    if (themeIndex < 0) {
+      throw new Error("删除失败：没有找到对应主题。");
+    }
+
+    const theme = state.themeLibrary[themeIndex];
+    if (theme.kind === "内置") {
+      throw new Error("内置主题不能删除，请先复制成自定义主题再编辑。");
+    }
+    if (state.themeLibrary.length <= 1) {
+      throw new Error("至少保留一个主题后才能删除当前主题。");
+    }
+
+    const fallbackTheme = state.themeLibrary[themeIndex + 1] || state.themeLibrary[themeIndex - 1] || state.themeLibrary[0];
+    dispatch({
+      type: "theme/library-remove",
+      payload: {
+        themeId,
+        nextSelectedThemeId: fallbackTheme?.id || "",
+      },
+    });
+
+    return theme.name;
+  }
+
+  function exportTheme(themeId = selected.themeId) {
+    const theme = state.themeLibrary.find((item) => item.id === themeId);
+    if (!theme) {
+      throw new Error("导出失败：没有找到要导出的主题。");
+    }
+
+    const previousConfig = configRef.current ?? {
+      enabled: state.ui.enabled,
+      activeThemePackId: state.selection.themeId,
+      activeSchemeId: state.selection.themeId,
+      themePacks: [],
+      schemes: [],
+      siteRules: { byHost: {} },
+      editor: {},
+    };
+    const themePack = buildStoredThemePackFromWorkbench(previousConfig, state, themeId);
+    const fileName = downloadThemePackExport(themePack);
+    return {
+      fileName,
+      payload: buildThemeExportPayload(themePack),
+    };
+  }
+
   function importThemeFromText(text, fileName = "") {
     let parsed;
     try {
@@ -396,6 +503,9 @@ export function useThemeWorkbenchState() {
     saveChanges,
     previewActiveTheme,
     createTheme,
+    duplicateTheme,
+    deleteTheme,
+    exportTheme,
     importThemeFromText,
     resetCurrentTheme: () => dispatch({ type: "theme/reset-current" }),
     setSiteFilter: (value) => dispatch({ type: "site-filter/set", payload: value }),

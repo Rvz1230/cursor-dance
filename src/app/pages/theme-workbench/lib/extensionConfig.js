@@ -1,6 +1,8 @@
 export { normalizeStoredConfig } from "./runtimeConfig.js";
 export {
+  buildThemeExportPayload,
   clearLivePreviewConfig,
+  downloadThemePackExport,
   previewThemePack,
   readActiveSiteContext,
   readExtensionConfig,
@@ -16,6 +18,7 @@ export {
   DEFAULT_WORKBENCH_SITE_MODE,
   buildPreviewThemePackFromWorkbench,
   buildStoredConfigFromWorkbench,
+  buildStoredThemePackFromWorkbench,
   buildThemeLibrary,
   createWorkbenchThemeState,
   draftFromThemePack,
