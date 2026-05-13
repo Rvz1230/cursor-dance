@@ -5,6 +5,10 @@ import path from 'path'
 export default defineConfig({
   base: './',
   plugins: [react()],
+  test: {
+    environment: "node",
+    include: ["src/**/*.test.js"],
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
