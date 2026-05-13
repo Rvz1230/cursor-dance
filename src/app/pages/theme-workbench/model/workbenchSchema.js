@@ -21,12 +21,12 @@ export const WORKSPACES = [
   { id: "sites", label: "站点规则", icon: Link2 },
 ];
 
-export const THEMES = [
+const FALLBACK_THEMES = [
   {
     id: "woodfish",
     name: "木鱼方案",
     kind: "自定义",
-    summary: "功德 +1 · 声音反馈 · 轻波纹",
+    summary: "数字飘字 · 声音反馈 · 轻波纹",
     tone: "amber",
   },
   {
@@ -51,6 +51,15 @@ export const THEMES = [
     tone: "rose",
   },
 ];
+
+export const THEME_TONES = ["amber", "teal", "sky", "rose"];
+
+const THEME_TONE_BY_ID = {
+  woodfish: "amber",
+  "lite-default": "teal",
+  "demo-highlight": "sky",
+  petal: "rose",
+};
 
 export const ACTIONS = [
   { id: "leftClick", label: "左键单击", hint: "最常用的触发入口" },
@@ -92,6 +101,69 @@ const toneMap = {
     border: "border-rose-200",
   },
 };
+
+function getDefaultThemePacks() {
+  if (typeof window === "undefined") return [];
+  return Array.isArray(window.CursorDanceDefaultConfig?.themePacks) ? window.CursorDanceDefaultConfig.themePacks : [];
+}
+
+function getThemeSummaryActionConfig(themePack) {
+  if (themePack?.workbenchDraft?.actionConfigs?.leftClick) {
+    return themePack.workbenchDraft.actionConfigs.leftClick;
+  }
+  if (themePack?.id && THEME_TONE_BY_ID[themePack.id]) {
+    return createThemeDraft(themePack.id).actionConfigs.leftClick;
+  }
+  return null;
+}
+
+function buildThemeSummary(themePack) {
+  const actionConfig = getThemeSummaryActionConfig(themePack);
+  const effects = themePack?.behavior?.click?.effects ?? {};
+  const parts = [];
+
+  if (actionConfig?.textEnabled || effects.text?.enabled !== false) {
+    parts.push(actionConfig?.textKind === "文本飘字" ? "文本飘字" : "数字飘字");
+  }
+  if (actionConfig?.sound) {
+    parts.push("声音反馈");
+  }
+  if (actionConfig?.ripple || effects.ripple?.enabled !== false) {
+    parts.push("轻波纹");
+  }
+  if (actionConfig?.particle || effects.particle?.enabled !== false) {
+    parts.push("粒子反馈");
+  }
+
+  return parts.slice(0, 3).join(" · ") || "默认反馈主题";
+}
+
+export function toThemeKindLabel(kind) {
+  return kind === "builtin" || kind === "内置" ? "内置" : "自定义";
+}
+
+export function getThemeTone(themeId, fallbackIndex = 0) {
+  return THEME_TONE_BY_ID[themeId] || THEME_TONES[fallbackIndex % THEME_TONES.length];
+}
+
+export function buildThemeLibraryItem(themePack, fallbackIndex = 0) {
+  const description = themePack?.description || "未填写说明";
+  return {
+    id: themePack?.id || `theme-${fallbackIndex + 1}`,
+    name: themePack?.name || `主题 ${fallbackIndex + 1}`,
+    kind: toThemeKindLabel(themePack?.kind),
+    summary: buildThemeSummary(themePack),
+    description,
+    tone: getThemeTone(themePack?.id, fallbackIndex),
+  };
+}
+
+export function buildThemeLibrarySeed(themePacks = getDefaultThemePacks()) {
+  if (!themePacks.length) return FALLBACK_THEMES;
+  return themePacks.map((themePack, index) => buildThemeLibraryItem(themePack, index));
+}
+
+export const THEMES = buildThemeLibrarySeed();
 
 export const TRIGGER_OPTIONS = {
   leftClick: {

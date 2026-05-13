@@ -1,4 +1,11 @@
-import { ACTIONS, CURSOR_STATES, THEMES, buildThemeDrafts, createThemeDraft } from "../model/workbenchSchema.js";
+import {
+  ACTIONS,
+  CURSOR_STATES,
+  THEMES,
+  buildThemeDrafts,
+  buildThemeLibraryItem,
+  createThemeDraft,
+} from "../model/workbenchSchema.js";
 
 const CONFIG_STORAGE_KEY = "cursordance.config";
 const LEGACY_ENABLED_STORAGE_KEY = "cursordance.enabled";
@@ -9,7 +16,6 @@ const CURSOR_ASSET_STORAGE_KEY_PREFIX = "cursordance.cursorAsset.";
 const RECENT_CURSOR_ASSETS_STORAGE_KEY = "cursordance.cursorAssetRecents";
 const MAX_CURSOR_ASSET_DATA_URL_LENGTH = 600 * 1024;
 const MAX_RECENT_CURSOR_ASSETS = 6;
-const THEME_TONES = ["amber", "teal", "sky", "rose"];
 let localPreviewChannel = null;
 let previewStorageAccessPromise = null;
 
@@ -517,108 +523,8 @@ function getOrderedTextTags(actionConfig) {
   return [primaryText, ...currentTags.filter((item) => item !== primaryText)];
 }
 
-function inferTextKindFromEffect(textEffect, fallbackKind = "数字飘字") {
-  if (textEffect?.kind === "text") return "文本飘字";
-  if (textEffect?.kind === "number") return "数字飘字";
-
-  const tags = Array.isArray(textEffect?.tags) ? textEffect.tags.filter(Boolean) : [];
-  if (tags.length > 1) return "文本飘字";
-
-  const content = typeof textEffect?.content === "string" ? textEffect.content.trim() : "";
-  if (!content) return fallbackKind;
-  if (content.includes("${number}")) return "数字飘字";
-
-  const compactContent = content.replace(/\s+/g, "");
-  if (/^[+\-]?\d+$/.test(compactContent)) return "数字飘字";
-  if (/^[+\-]?[一二三四五六七八九十百千万]+$/.test(compactContent)) return "数字飘字";
-  if (/^(one|two|three|four|five|six|seven|eight|nine|ten)$/i.test(compactContent)) return "数字飘字";
-
-  return "文本飘字";
-}
-
-function resolveNumberStyleFromEffect(textEffect, fallbackStyle) {
-  const numberStyle = String(textEffect?.numberStyle || "").toLowerCase();
-  if (numberStyle.includes("zh") || numberStyle.includes("cn") || numberStyle.includes("中文")) {
-    return "中文数字 (一, 二, 三)";
-  }
-  if (numberStyle.includes("en") || numberStyle.includes("英文")) {
-    return "英文单词 (one, two, three)";
-  }
-  if (numberStyle.includes("arabic") || numberStyle.includes("digit") || numberStyle.includes("阿拉伯")) {
-    return "阿拉伯数字 (1, 2, 3)";
-  }
-  return fallbackStyle;
-}
-
-function resolveTextModeFromEffect(textEffect, fallbackMode) {
-  if (textEffect?.mode === "template") return "模板模式";
-  if (textEffect?.mode === "default") return "默认模式 (+1)";
-  if (typeof textEffect?.template === "string" && textEffect.template.includes("${number}")) return "模板模式";
-  if (typeof textEffect?.content === "string" && textEffect.content.includes("${number}")) return "模板模式";
-  return fallbackMode;
-}
-
-function resolveFallbackActionTextConfig(baseActionConfig, textEffect) {
-  const textKind = inferTextKindFromEffect(textEffect, baseActionConfig.textKind);
-  const textStyle = resolveNumberStyleFromEffect(textEffect, baseActionConfig.textStyle);
-  const textMode = resolveTextModeFromEffect(textEffect, baseActionConfig.textMode);
-  const textTags = Array.isArray(textEffect?.tags) ? textEffect.tags.filter(Boolean) : [];
-  const primaryText = typeof textEffect?.content === "string" ? textEffect.content.trim() : "";
-
-  if (textKind === "文本飘字") {
-    const orderedTags = Array.from(new Set([primaryText, ...textTags, ...baseActionConfig.textTags].filter(Boolean)));
-    return {
-      textKind,
-      textStyle,
-      textMode,
-      textTemplate: baseActionConfig.textTemplate,
-      textContent: orderedTags[0] ?? "",
-      textTags: orderedTags,
-      textTagPlayMode: textEffect?.tagPlayMode || baseActionConfig.textTagPlayMode,
-      comboEnabled: false,
-    };
-  }
-
-  return {
-    textKind,
-    textStyle,
-    textMode,
-    textTemplate:
-      typeof textEffect?.template === "string" && textEffect.template
-        ? textEffect.template
-        : (typeof textEffect?.content === "string" && textEffect.content.includes("${number}")
-          ? textEffect.content
-          : baseActionConfig.textTemplate),
-    textContent: "",
-    textTags: baseActionConfig.textTags,
-    textTagPlayMode: baseActionConfig.textTagPlayMode,
-    comboEnabled: textEffect?.comboEnabled ?? baseActionConfig.comboEnabled,
-  };
-}
-
-function getKnownTheme(themeId) {
-  return THEMES.find((theme) => theme.id === themeId);
-}
-
-function toThemeKindLabel(kind) {
-  return kind === "builtin" ? "内置" : "自定义";
-}
-
-function pickThemeTone(themeId, fallbackIndex = 0) {
-  return getKnownTheme(themeId)?.tone || THEME_TONES[fallbackIndex % THEME_TONES.length];
-}
-
 export function themePackToThemeLibraryItem(themePack, fallbackIndex = 0) {
-  const knownTheme = getKnownTheme(themePack?.id);
-  const description = themePack?.description || knownTheme?.summary || "未填写说明";
-  return {
-    id: themePack?.id || `theme-${fallbackIndex + 1}`,
-    name: themePack?.name || knownTheme?.name || `主题 ${fallbackIndex + 1}`,
-    kind: toThemeKindLabel(themePack?.kind || knownTheme?.kind || "custom"),
-    summary: description,
-    description,
-    tone: pickThemeTone(themePack?.id, fallbackIndex),
-  };
+  return buildThemeLibraryItem(themePack, fallbackIndex);
 }
 
 function buildDraftFromThemePack(themePack, siteMode) {
@@ -677,7 +583,8 @@ function buildDraftFromThemePack(themePack, siteMode) {
   const textEffect = effects.text ?? {};
   const rippleEffect = effects.ripple ?? {};
   const particleEffect = effects.particle ?? {};
-  const fallbackTextConfig = resolveFallbackActionTextConfig(baseDraft.actionConfigs.leftClick, textEffect);
+  const fallbackTextConfig = getRuntimeConfig().resolveActionTextConfigFromEffect?.(baseDraft.actionConfigs.leftClick, textEffect)
+    ?? baseDraft.actionConfigs.leftClick;
   const nextCursorModes = Object.fromEntries(
     CURSOR_STATES.map((state) => [
       state.id,
@@ -809,24 +716,27 @@ function getStoredThemePack(config, themeId) {
 }
 
 function buildStoredThemePack(themeId, draft, previousConfig, themeRecord) {
-  const knownTheme = getKnownTheme(themeId);
   const previousThemePack = getStoredThemePack(previousConfig, themeId) ?? {};
   const previousEffects = previousThemePack.behavior?.click?.effects ?? {};
   const actionConfig = draft.actionConfigs.leftClick;
   const orderedTextTags = getOrderedTextTags(actionConfig);
-  const textContent =
-    actionConfig.textKind === "数字飘字"
-      ? actionConfig.textMode === "模板模式"
-        ? actionConfig.textTemplate.replace("${number}", "1")
-        : ""
-      : orderedTextTags[0] || actionConfig.textContent || "";
+  const storedTextEffect = getRuntimeConfig().buildStoredTextEffectPayload?.(actionConfig, orderedTextTags) ?? {
+    kind: actionConfig.textKind === "文本飘字" ? "text" : "number",
+    numberStyle: actionConfig.textStyle,
+    mode: actionConfig.textMode === "模板模式" ? "template" : "default",
+    template: actionConfig.textTemplate,
+    tags: orderedTextTags,
+    tagPlayMode: actionConfig.textTagPlayMode,
+    comboEnabled: actionConfig.comboEnabled,
+    content: actionConfig.textKind === "数字飘字" ? "" : (orderedTextTags[0] || actionConfig.textContent || ""),
+  };
 
   return {
     ...previousThemePack,
     id: themeId,
-    name: themeRecord?.name ?? knownTheme?.name ?? previousThemePack.name ?? themeId,
-    description: themeRecord?.description ?? themeRecord?.summary ?? knownTheme?.summary ?? previousThemePack.description ?? "",
-    kind: themeRecord?.kind === "内置" || knownTheme?.kind === "内置" ? "builtin" : previousThemePack.kind || "custom",
+    name: themeRecord?.name ?? previousThemePack.name ?? themeId,
+    description: themeRecord?.description ?? themeRecord?.summary ?? previousThemePack.description ?? "",
+    kind: themeRecord?.kind === "内置" ? "builtin" : previousThemePack.kind || "custom",
     workbenchDraft: {
       actionConfigs: draft.actionConfigs,
       cursorModes: draft.cursorModes,
@@ -859,14 +769,7 @@ function buildStoredThemePack(themeId, draft, previousConfig, themeRecord) {
           text: {
             ...previousEffects.text,
             enabled: actionConfig.textEnabled,
-            kind: actionConfig.textKind === "文本飘字" ? "text" : "number",
-            numberStyle: actionConfig.textStyle,
-            mode: actionConfig.textMode === "模板模式" ? "template" : "default",
-            template: actionConfig.textTemplate,
-            tags: orderedTextTags,
-            tagPlayMode: actionConfig.textTagPlayMode,
-            comboEnabled: actionConfig.comboEnabled,
-            content: textContent,
+            ...storedTextEffect,
             color: actionConfig.textColor,
             fontSize: actionConfig.fontSize,
             fontWeight: mapFontWeightToStored(actionConfig.textWeight),

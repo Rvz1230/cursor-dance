@@ -144,70 +144,10 @@
       textTagPlayMode: "按顺序显示",
       comboEnabled: true,
     };
-
-    const inferredTextKind = (() => {
-      if (textEffect.kind === "text") return "文本飘字";
-      if (textEffect.kind === "number") return "数字飘字";
-      const tags = Array.isArray(textEffect.tags) ? textEffect.tags.filter(Boolean) : [];
-      if (tags.length > 1) return "文本飘字";
-      const content = typeof textEffect.content === "string" ? textEffect.content.trim() : "";
-      if (!content) return fallbackLeftClick.textKind;
-      if (content.includes("${number}")) return "数字飘字";
-      const compactContent = content.replace(/\s+/g, "");
-      if (/^[+\-]?\d+$/.test(compactContent)) return "数字飘字";
-      if (/^[+\-]?[一二三四五六七八九十百千万]+$/.test(compactContent)) return "数字飘字";
-      if (/^(one|two|three|four|five|six|seven|eight|nine|ten)$/i.test(compactContent)) return "数字飘字";
-      return "文本飘字";
-    })();
-
-    const inferredTextStyle = (() => {
-      const numberStyle = String(textEffect.numberStyle || "").toLowerCase();
-      if (numberStyle.includes("zh") || numberStyle.includes("cn") || numberStyle.includes("中文")) return "中文数字 (一, 二, 三)";
-      if (numberStyle.includes("en") || numberStyle.includes("英文")) return "英文单词 (one, two, three)";
-      if (numberStyle.includes("arabic") || numberStyle.includes("digit") || numberStyle.includes("阿拉伯")) return "阿拉伯数字 (1, 2, 3)";
-      return fallbackLeftClick.textStyle;
-    })();
-
-    const inferredTextMode = (() => {
-      if (textEffect.mode === "template") return "模板模式";
-      if (textEffect.mode === "default") return "默认模式 (+1)";
-      if (typeof textEffect.template === "string" && textEffect.template.includes("${number}")) return "模板模式";
-      if (typeof textEffect.content === "string" && textEffect.content.includes("${number}")) return "模板模式";
-      return fallbackLeftClick.textMode;
-    })();
-
-    const inferredTextConfig =
-      inferredTextKind === "文本飘字"
-        ? (() => {
-            const primaryText = typeof textEffect.content === "string" ? textEffect.content.trim() : "";
-            const tags = Array.isArray(textEffect.tags) ? textEffect.tags.filter(Boolean) : [];
-            const orderedTags = Array.from(new Set([primaryText, ...tags].filter(Boolean)));
-            return {
-              textKind: inferredTextKind,
-              textStyle: inferredTextStyle,
-              textMode: inferredTextMode,
-              textTemplate: fallbackLeftClick.textTemplate,
-              textContent: orderedTags[0] || "",
-              textTags: orderedTags,
-              textTagPlayMode: textEffect.tagPlayMode || fallbackLeftClick.textTagPlayMode,
-              comboEnabled: false,
-            };
-          })()
-        : {
-            textKind: inferredTextKind,
-            textStyle: inferredTextStyle,
-            textMode: inferredTextMode,
-            textTemplate:
-              typeof textEffect.template === "string" && textEffect.template
-                ? textEffect.template
-                : (typeof textEffect.content === "string" && textEffect.content.includes("${number}")
-                  ? textEffect.content
-                  : "你当前点击了${number}次"),
-            textContent: "",
-            textTags: [],
-            textTagPlayMode: fallbackLeftClick.textTagPlayMode,
-            comboEnabled: textEffect.comboEnabled ?? fallbackLeftClick.comboEnabled,
-          };
+    const inferredTextConfig = (CONFIG_RUNTIME.resolveActionTextConfigFromEffect || ((baseActionConfig) => baseActionConfig))(
+      fallbackLeftClick,
+      textEffect
+    );
 
     return {
       cursorModes: Object.fromEntries(
@@ -229,7 +169,7 @@
           textWeight: (textEffect.fontWeight || 800) >= 700 ? "加粗" : (textEffect.fontWeight || 800) >= 600 ? "中等" : "常规",
           textOutlineWidth: 0,
           textShadow: "无",
-          comboEnabled: true,
+          comboEnabled: inferredTextConfig.comboEnabled,
           textOffsetX: textEffect.offsetX || 0,
           textOffsetY: textEffect.offsetY || -58,
           particle: particleEffect.enabled !== false,
