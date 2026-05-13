@@ -90,6 +90,10 @@
       return (runtimeConfig.getActionAudioConfig || ((nextConfig) => nextConfig || {}))(actionConfig || {});
     }
 
+    function getActionImageConfig(actionConfig) {
+      return (runtimeConfig.getActionImageConfig || ((nextConfig) => nextConfig || {}))(actionConfig || {});
+    }
+
     function getActionCursorFeedbackConfig(actionConfig) {
       return (runtimeConfig.getActionCursorFeedbackConfig || ((nextConfig) => nextConfig || {}))(actionConfig || {});
     }
@@ -214,6 +218,13 @@
             soundFadeOut: 0,
             soundTriggerMode: "每次触发",
             soundBlendMode: "保持原音量",
+            imageEnabled: false,
+            imageDataUrl: "",
+            imageDuration: 780,
+            imageSize: 56,
+            imageOpacity: 100,
+            imageOffsetX: 0,
+            imageOffsetY: -18,
             shake: 0,
             cursorOverride: "跟随当前状态",
             cursorSize: 48,
@@ -412,6 +423,7 @@
       getActionParticleConfig,
       getActionRippleConfig,
       getActionAudioConfig,
+      getActionImageConfig,
       getActionCursorFeedbackConfig,
       getActiveScheme,
       getActionConfig,

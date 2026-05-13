@@ -23,6 +23,7 @@ import {
   LEFT_CLICK_BEHAVIOR_CANONICAL_FIELDS,
   ACTION_AUDIO_FIELDS,
   ACTION_CURSOR_FEEDBACK_FIELDS,
+  ACTION_IMAGE_FIELDS,
   ACTION_PARTICLE_FIELDS,
   ACTION_CONFIG_MODEL_BOUNDARIES,
   ACTION_PREVIEW_DERIVED_FIELDS,
@@ -47,6 +48,7 @@ import {
   getDefaultActionConfigs,
   getActionAudioConfig,
   getActionCursorFeedbackConfig,
+  getActionImageConfig,
   getActionParticleConfig,
   getActionRippleConfig,
   getOrderedActionTextTags,
@@ -201,6 +203,9 @@ function buildThemeSummary(themePack) {
   if (actionConfig?.sound) {
     parts.push("声音反馈");
   }
+  if (actionConfig?.imageEnabled) {
+    parts.push("图片贴纸");
+  }
   if (actionConfig?.ripple || effects.ripple?.enabled !== false) {
     parts.push("轻波纹");
   }
@@ -291,6 +296,7 @@ export {
   ACTION_AUDIO_FIELDS,
   ACTION_CONFIG_MODEL_BOUNDARIES,
   ACTION_CURSOR_FEEDBACK_FIELDS,
+  ACTION_IMAGE_FIELDS,
   ACTION_PARTICLE_FIELDS,
   ACTION_PREVIEW_DERIVED_FIELDS,
   ACTION_RIPPLE_FIELDS,
@@ -317,6 +323,7 @@ export {
   TRIGGER_OPTIONS,
   getActionAudioConfig,
   getActionCursorFeedbackConfig,
+  getActionImageConfig,
   getActionParticleConfig,
   getActionRippleConfig,
   getOrderedActionTextTags,

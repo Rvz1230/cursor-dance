@@ -2,6 +2,7 @@ import { AlertTriangle } from "lucide-react";
 import { cn } from "@/components/ui/utils.js";
 import { CursorFeedbackCard } from "./panels/CursorFeedbackCard.jsx";
 import { AudioFeedbackCard } from "./panels/AudioFeedbackCard.jsx";
+import { ImageFeedbackCard } from "./panels/ImageFeedbackCard.jsx";
 import { ParticleFeedbackCard } from "./panels/ParticleFeedbackCard.jsx";
 import { RippleFeedbackCard } from "./panels/RippleFeedbackCard.jsx";
 import { TextFeedbackCard } from "./panels/TextFeedbackCard.jsx";
@@ -29,6 +30,7 @@ export function WorkbenchPanel({ actionId, config, updateActionConfig, conflicts
       <div className="space-y-3">
         <TriggerBehaviorCard actionId={actionId} config={config} updateActionConfig={updateActionConfig} />
         <TextFeedbackCard config={config} updateActionConfig={updateActionConfig} />
+        <ImageFeedbackCard config={config} updateActionConfig={updateActionConfig} />
         <ParticleFeedbackCard config={config} updateActionConfig={updateActionConfig} />
         <RippleFeedbackCard config={config} updateActionConfig={updateActionConfig} />
         <AudioFeedbackCard config={config} updateActionConfig={updateActionConfig} />

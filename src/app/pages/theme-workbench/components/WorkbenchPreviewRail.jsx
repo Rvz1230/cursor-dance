@@ -8,6 +8,7 @@ import {
   buildRippleSpecs,
   buildParticleSpecs,
   getAnimationEasingCss,
+  getPreviewImageStyle,
   getParticleStyleProps,
   getParticleTint,
   getPreviewCursorSize,
@@ -21,6 +22,7 @@ import {
 } from "../lib/preview.js";
 import {
   getActionAudioConfig,
+  getActionImageConfig,
   getActionParticleConfig,
   getActionRippleConfig,
   getActionTextConfig,
@@ -35,6 +37,7 @@ function CursorPreview({ actionLabel, config, siteMode }) {
   const particleConfig = useMemo(() => getActionParticleConfig(config), [config]);
   const rippleConfig = useMemo(() => getActionRippleConfig(config), [config]);
   const audioConfig = useMemo(() => getActionAudioConfig(config), [config]);
+  const imageConfig = useMemo(() => getActionImageConfig(config), [config]);
   const cursorSize = getPreviewCursorSize(config);
   const accentText = getPreviewText(config, runId);
   const particleSpecs = useMemo(() => buildParticleSpecs(config, runId), [config, runId]);
@@ -163,6 +166,22 @@ function CursorPreview({ actionLabel, config, siteMode }) {
                 >
                   {accentText}
                 </div>
+              </div>
+            ) : null}
+
+            {imageConfig.imageEnabled && imageConfig.imageDataUrl && !disabledBySite ? (
+              <div
+                className="absolute left-1/2 top-1/2"
+                style={{
+                  ...getPreviewImageStyle(config),
+                  animation: `cursorDancePreviewImage ${imageConfig.imageDuration}ms cubic-bezier(0.22, 1, 0.36, 1) forwards`,
+                }}
+              >
+                <img
+                  src={imageConfig.imageDataUrl}
+                  alt="贴纸预览"
+                  className="block h-full w-full object-contain drop-shadow-[0_12px_24px_rgba(15,23,42,0.16)]"
+                />
               </div>
             ) : null}
 

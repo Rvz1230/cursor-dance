@@ -104,6 +104,15 @@ export const ACTION_AUDIO_FIELDS = [
   "soundBlendMode",
   "soundFile",
 ];
+export const ACTION_IMAGE_FIELDS = [
+  "imageEnabled",
+  "imageDataUrl",
+  "imageDuration",
+  "imageSize",
+  "imageOpacity",
+  "imageOffsetX",
+  "imageOffsetY",
+];
 export const ACTION_CURSOR_FEEDBACK_FIELDS = ["shake", "cursorOverride", "cursorSize"];
 export const ACTION_RUNTIME_FIELDS = Array.from(
   new Set([
@@ -112,6 +121,7 @@ export const ACTION_RUNTIME_FIELDS = Array.from(
     ...ACTION_PARTICLE_FIELDS,
     ...ACTION_RIPPLE_FIELDS,
     ...ACTION_AUDIO_FIELDS,
+    ...ACTION_IMAGE_FIELDS,
     ...ACTION_CURSOR_FEEDBACK_FIELDS,
   ])
 );
@@ -230,6 +240,10 @@ export function getActionAudioConfig(config) {
   return pickActionConfigFields(config, ACTION_AUDIO_FIELDS);
 }
 
+export function getActionImageConfig(config) {
+  return pickActionConfigFields(config, ACTION_IMAGE_FIELDS);
+}
+
 export function getActionCursorFeedbackConfig(config) {
   return pickActionConfigFields(config, ACTION_CURSOR_FEEDBACK_FIELDS);
 }
@@ -250,6 +264,13 @@ const ACTION_CONFIG_SHARED_DEFAULTS = {
   soundBlendMode: "保持原音量",
   playbackRate: 100,
   soundDelay: 0,
+  imageEnabled: false,
+  imageDataUrl: "",
+  imageDuration: 780,
+  imageSize: 56,
+  imageOpacity: 100,
+  imageOffsetX: 0,
+  imageOffsetY: -18,
 };
 
 function createActionConfig(overrides) {
@@ -300,6 +321,7 @@ const ACTION_CONFIG_PRESETS = {
     shake: 42,
     cursorOverride: "木鱼（继承默认）",
     cursorSize: 48,
+    imageEnabled: false,
     triggerTiming: "抬起时",
     triggerZone: "当前页面可点击区域",
     holdMs: 0,
@@ -337,6 +359,7 @@ const ACTION_CONFIG_PRESETS = {
     shake: 18,
     cursorOverride: "跟随当前状态",
     cursorSize: 44,
+    imageEnabled: false,
     triggerTiming: "菜单弹出前",
     triggerZone: "右键菜单前",
     holdMs: 0,
@@ -385,6 +408,7 @@ const ACTION_CONFIG_PRESETS = {
     shake: 50,
     cursorOverride: "木鱼（增强态）",
     cursorSize: 52,
+    imageEnabled: false,
     triggerTiming: "第二次抬起后",
     triggerZone: "双击命中区域",
     holdMs: 320,
@@ -428,6 +452,7 @@ const ACTION_CONFIG_PRESETS = {
     shake: 58,
     cursorOverride: "木鱼（按压态）",
     cursorSize: 50,
+    imageEnabled: false,
     triggerTiming: "松开后触发",
     triggerZone: "按住后释放",
     holdMs: 560,
@@ -469,6 +494,7 @@ const ACTION_CONFIG_PRESETS = {
     shake: 16,
     cursorOverride: "跟随当前状态",
     cursorSize: 44,
+    imageEnabled: false,
     triggerTiming: "连续滚动中",
     triggerZone: "向上 / 向下滚轮",
     holdMs: 180,
@@ -509,6 +535,7 @@ const ACTION_CONFIG_PRESETS = {
     shake: 0,
     cursorOverride: "切换到 pointer",
     cursorSize: 44,
+    imageEnabled: false,
     triggerTiming: "停留后",
     triggerZone: "进入可交互元素",
     holdMs: 220,
@@ -575,7 +602,7 @@ export function getConflictsForAction(actionId, actionConfigs) {
     conflicts.push("悬停已经带视觉反馈，后续要明确是否覆盖 pointer 状态。");
   }
 
-  if (!current.textEnabled && !current.particle && !current.ripple && !current.sound) {
+  if (!current.textEnabled && !current.particle && !current.ripple && !current.sound && !current.imageEnabled) {
     conflicts.push("当前动作没有绑定任何反馈，用户点击时会感觉没效果。");
   }
 

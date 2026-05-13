@@ -329,4 +329,31 @@ describe("themeDraftAdapter", () => {
     expect(payload.themePack.behavior.click.effects.text.content).toBe("导出测试");
     expect(payload.themePack.workbenchDraft.actionConfigs.leftClick).not.toHaveProperty("textKind");
   });
+
+  it("stores and rehydrates image effect fields through workbench drafts", () => {
+    const { defaultConfig } = installPublicConfigRuntime();
+    const state = hydrateWorkbenchState(defaultConfig, { host: "example.com" });
+    state.draftsByTheme.woodfish.actionConfigs.leftClick.imageEnabled = true;
+    state.draftsByTheme.woodfish.actionConfigs.leftClick.imageDataUrl = "data:image/svg+xml;utf8,%3Csvg/%3E";
+    state.draftsByTheme.woodfish.actionConfigs.leftClick.imageSize = 72;
+    state.draftsByTheme.woodfish.actionConfigs.leftClick.imageDuration = 960;
+
+    const storedConfig = buildStoredConfigFromWorkbench(defaultConfig, state);
+    const storedDraft = storedConfig.themePacks.find((item) => item.id === "woodfish").workbenchDraft.actionConfigs.leftClick;
+
+    expect(storedDraft).toMatchObject({
+      imageEnabled: true,
+      imageDataUrl: "data:image/svg+xml;utf8,%3Csvg/%3E",
+      imageSize: 72,
+      imageDuration: 960,
+    });
+
+    const rehydratedState = hydrateWorkbenchState(storedConfig, { host: "example.com" });
+    expect(rehydratedState.draftsByTheme.woodfish.actionConfigs.leftClick).toMatchObject({
+      imageEnabled: true,
+      imageDataUrl: "data:image/svg+xml;utf8,%3Csvg/%3E",
+      imageSize: 72,
+      imageDuration: 960,
+    });
+  });
 });

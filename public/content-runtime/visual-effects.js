@@ -128,6 +128,15 @@
           border-radius: 999px;
           box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
         }
+        .cd-image-effect img {
+          display: block;
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          user-select: none;
+          -webkit-user-drag: none;
+          filter: drop-shadow(0 12px 24px rgba(15, 23, 42, 0.16));
+        }
         .cd-cursor {
           display: flex;
           align-items: center;
@@ -369,6 +378,37 @@
       renderLayer({ scaleFrom: 0.18, scaleMid: 0.72, scaleTo: 1 });
     }
 
+    function renderImageEffect(x, y, actionConfig) {
+      const imageConfig = configStore.getActionImageConfig(actionConfig);
+      if (!imageConfig.imageEnabled || !imageConfig.imageDataUrl) return;
+
+      const node = document.createElement("div");
+      node.className = "cd-effect cd-image-effect";
+      node.style.left = `${x + (imageConfig.imageOffsetX || 0)}px`;
+      node.style.top = `${y + (imageConfig.imageOffsetY || -18)}px`;
+      node.style.width = `${imageConfig.imageSize || 56}px`;
+      node.style.height = `${imageConfig.imageSize || 56}px`;
+      node.style.opacity = String(Math.max(0.2, (imageConfig.imageOpacity || 100) / 100));
+
+      const image = document.createElement("img");
+      image.src = imageConfig.imageDataUrl;
+      image.alt = "";
+      node.append(image);
+
+      animateNode(
+        node,
+        [
+          { opacity: 0, transform: "translate3d(-50%, -30%, 0) scale(0.72) rotate(-8deg)" },
+          { opacity: Math.max(0.2, (imageConfig.imageOpacity || 100) / 100), transform: "translate3d(-50%, -50%, 0) scale(1) rotate(0deg)" },
+          { opacity: 0, transform: "translate3d(-50%, -92%, 0) scale(1.06) rotate(4deg)" },
+        ],
+        {
+          duration: imageConfig.imageDuration || 780,
+          easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+        }
+      );
+    }
+
     function renderParticles(x, y, actionConfig) {
       const particleConfig = configStore.getActionParticleConfig(actionConfig);
       if (!particleConfig.particle) return;
@@ -432,6 +472,7 @@
       ensureRoot,
       renderText,
       renderRipple,
+      renderImageEffect,
       renderParticles,
       renderCursorOverride,
       hasCursorOverride,
