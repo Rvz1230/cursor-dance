@@ -365,15 +365,43 @@
     return fallbackMode;
   }
 
+  function normalizeTextCandidate(value) {
+    return typeof value === "string" ? value.replace(/\s+/g, "").trim() : "";
+  }
+
+  function shouldPreserveBaseNumberSemantics(baseActionConfig, textEffect, textTags, primaryText) {
+    if (baseActionConfig?.textKind !== "数字飘字") return false;
+    if (textEffect?.kind === "text") return false;
+    if (textEffect?.kind === "number") return true;
+
+    const candidateTexts = [primaryText, ...textTags].map(normalizeTextCandidate).filter(Boolean);
+    if (!candidateTexts.length) return true;
+
+    const baseTexts = [baseActionConfig.textContent, ...(baseActionConfig.textTags || [])]
+      .map(normalizeTextCandidate)
+      .filter(Boolean);
+    if (!baseTexts.length) return false;
+
+    return candidateTexts.every((item) => baseTexts.includes(item));
+  }
+
   function resolveActionTextConfigFromEffect(baseActionConfig, textEffect) {
-    const textKind = inferTextKindFromEffect(textEffect, baseActionConfig.textKind);
-    const textStyle = resolveNumberStyleFromEffect(textEffect, baseActionConfig.textStyle);
-    const textMode = resolveTextModeFromEffect(textEffect, baseActionConfig.textMode);
     const textTags = Array.isArray(textEffect?.tags) ? textEffect.tags.filter(Boolean) : [];
     const primaryText = typeof textEffect?.content === "string" ? textEffect.content.trim() : "";
+    const preserveBaseNumberSemantics = shouldPreserveBaseNumberSemantics(baseActionConfig, textEffect, textTags, primaryText);
+    const textKind = preserveBaseNumberSemantics
+      ? "数字飘字"
+      : inferTextKindFromEffect(textEffect, baseActionConfig.textKind);
+    const textStyle = resolveNumberStyleFromEffect(textEffect, baseActionConfig.textStyle);
+    const textMode = resolveTextModeFromEffect(textEffect, baseActionConfig.textMode);
 
     if (textKind === "文本飘字") {
-      const orderedTags = Array.from(new Set([primaryText, ...textTags, ...(baseActionConfig.textTags || [])].filter(Boolean)));
+      const orderedTags = Array.from(
+        new Set(
+          [primaryText, ...textTags, ...(primaryText || textTags.length ? [] : (baseActionConfig.textTags || []))]
+            .filter(Boolean)
+        )
+      );
       return {
         textKind,
         textStyle,
