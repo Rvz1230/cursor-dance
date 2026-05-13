@@ -44,24 +44,34 @@
     state,
   };
 
-  const configStore = modules.createConfigStore(runtime);
+  const diagnostics = modules.createDiagnostics({
+    ...runtime,
+  });
+  const configStore = modules.createConfigStore({
+    ...runtime,
+    diagnostics,
+  });
   state.config = configStore.normalizeConfig(defaultConfig);
 
   const visualEffects = modules.createVisualEffects({
     ...runtime,
+    diagnostics,
     configStore,
   });
   const audioRuntime = modules.createAudioRuntime({
     ...runtime,
+    diagnostics,
     configStore,
   });
   const cursorOverlay = modules.createCursorOverlay({
     ...runtime,
+    diagnostics,
     configStore,
     visualEffects,
   });
   const triggerHandlers = modules.createTriggerHandlers({
     ...runtime,
+    diagnostics,
     configStore,
     visualEffects,
     audioRuntime,
@@ -69,6 +79,12 @@
   });
 
   visualEffects.ensureRoot();
+  diagnostics.log("runtime.ready", {
+    diagnosticsStorageKey: diagnostics.STORAGE_KEY,
+    activeSchemeId: state.config?.activeSchemeId || defaultConfig.activeSchemeId || null,
+    host: window.location.host || null,
+    localPreviewHost: configStore.isLocalPreviewHost(),
+  });
   void configStore.syncConfigFromStorage({
     clearStateCursorOverlay: cursorOverlay.clearStateCursorOverlay,
   });

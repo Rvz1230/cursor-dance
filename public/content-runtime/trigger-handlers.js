@@ -6,6 +6,7 @@
       window,
       document,
       state,
+      diagnostics,
       configStore,
       visualEffects,
       audioRuntime,
@@ -43,37 +44,116 @@
       };
     }
 
+    function getTriggerSource(options) {
+      return options.triggerSource || "unknown";
+    }
+
     function triggerAction(sourceActionId, coords, scheme, options = {}) {
-      if (!configStore.isCurrentSiteEnabled()) return;
+      const triggerSource = getTriggerSource(options);
+      if (!configStore.isCurrentSiteEnabled()) {
+        diagnostics?.log("action.skip", {
+          reason: "site-disabled",
+          sourceActionId,
+          triggerSource,
+        });
+        return;
+      }
 
       const targetScheme = scheme || configStore.getActiveScheme();
       const sourceActionConfig = configStore.getActionConfig(targetScheme, sourceActionId);
-      if (!sourceActionConfig) return;
+      if (!sourceActionConfig) {
+        diagnostics?.log("action.skip", {
+          reason: "missing-source-action-config",
+          sourceActionId,
+          triggerSource,
+        });
+        return;
+      }
       const sourceTriggerConfig = configStore.getActionTriggerConfig(sourceActionConfig);
-      if (!configStore.matchesTriggerZone(coords.target, sourceTriggerConfig.triggerZone, coords.event)) return;
+      if (!configStore.matchesTriggerZone(coords.target, sourceTriggerConfig.triggerZone, coords.event, { actionId: sourceActionId, triggerSource })) {
+        diagnostics?.log("action.skip", {
+          reason: "trigger-zone-filtered",
+          sourceActionId,
+          triggerSource,
+          triggerZone: sourceTriggerConfig.triggerZone || "任意区域",
+          target: diagnostics?.describeTarget(coords.target),
+        });
+        return;
+      }
 
-      const resolvedActionId = options.resolvedActionId || configStore.getCursorStateBinding(
+      const binding = configStore.getCursorStateBinding(
         targetScheme,
         configStore.resolveCursorStateId(coords.target),
         sourceActionId
-      ).actionId;
+      );
+      const resolvedActionId = options.resolvedActionId || binding.actionId;
+      diagnostics?.log("action.resolve", {
+        sourceActionId,
+        resolvedActionId,
+        triggerSource,
+        cursorStateId: binding.cursorStateId,
+        inheritedFromDefault: binding.inheritedFromDefault,
+        target: diagnostics?.describeTarget(coords.target),
+      });
       const actionConfig = configStore.getActionConfig(targetScheme, resolvedActionId);
-      if (!actionConfig) return;
+      if (!actionConfig) {
+        diagnostics?.log("action.skip", {
+          reason: "missing-resolved-action-config",
+          sourceActionId,
+          resolvedActionId,
+          triggerSource,
+        });
+        return;
+      }
       const textConfig = configStore.getActionTextConfig(actionConfig);
       const particleConfig = configStore.getActionParticleConfig(actionConfig);
       const rippleConfig = configStore.getActionRippleConfig(actionConfig);
       const audioConfig = configStore.getActionAudioConfig(actionConfig);
-      if (!textConfig.textEnabled && !particleConfig.particle && !rippleConfig.ripple && !audioConfig.sound && !visualEffects.hasCursorOverride(actionConfig)) {
+      const outputSummary = {
+        textEnabled: Boolean(textConfig.textEnabled),
+        particleEnabled: Boolean(particleConfig.particle),
+        rippleEnabled: Boolean(rippleConfig.ripple),
+        soundEnabled: Boolean(audioConfig.sound),
+        cursorOverrideEnabled: Boolean(visualEffects.hasCursorOverride(actionConfig)),
+      };
+      if (!outputSummary.textEnabled && !outputSummary.particleEnabled && !outputSummary.rippleEnabled && !outputSummary.soundEnabled && !outputSummary.cursorOverrideEnabled) {
+        diagnostics?.log("action.skip", {
+          reason: "no-enabled-effects",
+          sourceActionId,
+          resolvedActionId,
+          triggerSource,
+          outputs: outputSummary,
+        });
         return;
       }
 
       const now = Date.now();
       const throttleMs = options.throttleMs ?? (sourceActionId === "wheel" || sourceActionId === "hover" ? Math.max(80, sourceTriggerConfig.holdMs || 80) : 40);
-      if (!options.force && now - (state.lastTriggerAtByAction[sourceActionId] || 0) < throttleMs) return;
+      const elapsedMs = now - (state.lastTriggerAtByAction[sourceActionId] || 0);
+      if (!options.force && elapsedMs < throttleMs) {
+        diagnostics?.log("action.skip", {
+          reason: "throttled",
+          sourceActionId,
+          resolvedActionId,
+          triggerSource,
+          elapsedMs,
+          throttleMs,
+        });
+        return;
+      }
       state.lastTriggerAtByAction[sourceActionId] = now;
 
       const runIndex = (state.actionRunCounts[resolvedActionId] || 0) + 1;
       state.actionRunCounts[resolvedActionId] = runIndex;
+      diagnostics?.log("action.fire", {
+        sourceActionId,
+        resolvedActionId,
+        triggerSource,
+        runIndex,
+        force: Boolean(options.force),
+        outputs: outputSummary,
+        target: diagnostics?.describeTarget(coords.target),
+      });
       visualEffects.renderRipple(coords.x, coords.y, actionConfig);
       visualEffects.renderParticles(coords.x, coords.y, actionConfig);
       visualEffects.renderText(coords.x, coords.y, actionConfig, resolvedActionId, runIndex);
@@ -87,6 +167,11 @@
         run();
         return;
       }
+      diagnostics?.log("action.schedule", {
+        actionId,
+        triggerSource: getTriggerSource(options),
+        delayMs,
+      });
       window.setTimeout(run, delayMs);
     }
 
@@ -96,7 +181,9 @@
       const leftClickConfig = configStore.getActionConfig(scheme, "leftClick");
       const leftClickTriggerConfig = configStore.getActionTriggerConfig(leftClickConfig);
       if (leftClickTriggerConfig.triggerTiming === "按下时") {
-        scheduleActionTrigger("leftClick", makeCoordsFromEvent(event), scheme, getActionTimingMs("leftClick", leftClickConfig));
+        scheduleActionTrigger("leftClick", makeCoordsFromEvent(event), scheme, getActionTimingMs("leftClick", leftClickConfig), {
+          triggerSource: "left-pointer-down",
+        });
       }
 
       const doubleClickConfig = configStore.getActionConfig(scheme, "doubleClick");
@@ -105,10 +192,18 @@
       const now = Date.now();
       if (doubleClickTriggerConfig.triggerTiming === "第二次按下时") {
         if (now - state.lastLeftPointerDownAt <= doubleClickInterval) {
-          triggerAction("doubleClick", makeCoordsFromEvent(event), scheme, { throttleMs: doubleClickInterval });
+          triggerAction("doubleClick", makeCoordsFromEvent(event), scheme, {
+            throttleMs: doubleClickInterval,
+            triggerSource: "double-click-down",
+          });
           state.lastLeftPointerDownAt = 0;
         } else {
           state.lastLeftPointerDownAt = now;
+          diagnostics?.log("action.arm", {
+            actionId: "doubleClick",
+            triggerSource: "double-click-down",
+            windowMs: doubleClickInterval,
+          });
         }
       } else {
         state.lastLeftPointerDownAt = now;
@@ -116,7 +211,10 @@
 
       const longPressConfig = configStore.getActionConfig(scheme, "longPress");
       const longPressTriggerConfig = configStore.getActionTriggerConfig(longPressConfig);
-      if (!longPressConfig || !configStore.matchesTriggerZone(event.target, longPressTriggerConfig.triggerZone, event)) return;
+      if (!longPressConfig || !configStore.matchesTriggerZone(event.target, longPressTriggerConfig.triggerZone, event, {
+        actionId: "longPress",
+        triggerSource: "longpress-arm",
+      })) return;
 
       state.longPressState = {
         startedAt: Date.now(),
@@ -129,6 +227,11 @@
         releaseMode: longPressTriggerConfig.triggerTiming === "松开后触发",
         thresholdMs: getActionTimingMs("longPress", longPressConfig),
       };
+      diagnostics?.log("action.arm", {
+        actionId: "longPress",
+        triggerSource: "longpress-arm",
+        thresholdMs: state.longPressState.thresholdMs,
+      });
 
       state.longPressState.timeoutId = window.setTimeout(() => {
         if (!state.longPressState) return;
@@ -136,6 +239,7 @@
         if (!state.longPressState.releaseMode) {
           triggerAction("longPress", { x: state.longPressState.x, y: state.longPressState.y, target: state.longPressState.target }, state.longPressState.scheme, {
             throttleMs: state.longPressState.thresholdMs,
+            triggerSource: "longpress-timeout",
           });
         }
       }, state.longPressState.thresholdMs);
@@ -155,7 +259,10 @@
             event,
           },
           state.longPressState.scheme,
-          { throttleMs: state.longPressState.thresholdMs }
+          {
+            throttleMs: state.longPressState.thresholdMs,
+            triggerSource: "longpress-release",
+          }
         );
       }
       state.longPressState = null;
@@ -164,6 +271,10 @@
     function cancelLongPress() {
       if (!state.longPressState) return;
       window.clearTimeout(state.longPressState.timeoutId);
+      diagnostics?.log("action.skip", {
+        actionId: "longPress",
+        reason: "longpress-cancelled",
+      });
       state.longPressState = null;
     }
 
@@ -173,7 +284,9 @@
         const leftClickConfig = configStore.getActionConfig(scheme, "leftClick");
         const leftClickTriggerConfig = configStore.getActionTriggerConfig(leftClickConfig);
         if (leftClickTriggerConfig.triggerTiming !== "按下时") {
-          scheduleActionTrigger("leftClick", makeCoordsFromEvent(event), scheme, getActionTimingMs("leftClick", leftClickConfig));
+          scheduleActionTrigger("leftClick", makeCoordsFromEvent(event), scheme, getActionTimingMs("leftClick", leftClickConfig), {
+            triggerSource: "left-pointer-up",
+          });
         }
 
         const doubleClickConfig = configStore.getActionConfig(scheme, "doubleClick");
@@ -181,14 +294,22 @@
         const doubleClickInterval = getActionTimingMs("doubleClick", doubleClickConfig);
         const now = Date.now();
         if (doubleClickTriggerConfig.triggerTiming !== "第二次按下时") {
-          if (now - state.lastLeftPointerUpAt <= doubleClickInterval) {
-            triggerAction("doubleClick", makeCoordsFromEvent(event), scheme, { throttleMs: doubleClickInterval });
-            state.lastLeftPointerUpAt = 0;
-          } else {
-            state.lastLeftPointerUpAt = now;
-          }
+        if (now - state.lastLeftPointerUpAt <= doubleClickInterval) {
+          triggerAction("doubleClick", makeCoordsFromEvent(event), scheme, {
+            throttleMs: doubleClickInterval,
+            triggerSource: "double-click-up",
+          });
+          state.lastLeftPointerUpAt = 0;
         } else {
           state.lastLeftPointerUpAt = now;
+          diagnostics?.log("action.arm", {
+            actionId: "doubleClick",
+            triggerSource: "double-click-up",
+            windowMs: doubleClickInterval,
+          });
+        }
+      } else {
+        state.lastLeftPointerUpAt = now;
         }
         finishLongPress(event);
       }
@@ -204,7 +325,9 @@
       const actionConfig = configStore.getActionConfig(scheme, "rightClick");
       const triggerConfig = configStore.getActionTriggerConfig(actionConfig);
       if (triggerConfig.triggerTiming === "按下时") {
-        scheduleActionTrigger("rightClick", makeCoordsFromEvent(event), scheme, getActionTimingMs("rightClick", actionConfig));
+        scheduleActionTrigger("rightClick", makeCoordsFromEvent(event), scheme, getActionTimingMs("rightClick", actionConfig), {
+          triggerSource: "right-pointer-down",
+        });
       }
     }
 
@@ -213,7 +336,9 @@
       const actionConfig = configStore.getActionConfig(scheme, "rightClick");
       const triggerConfig = configStore.getActionTriggerConfig(actionConfig);
       if (triggerConfig.triggerTiming !== "按下时") {
-        scheduleActionTrigger("rightClick", makeCoordsFromEvent(event), scheme, getActionTimingMs("rightClick", actionConfig));
+        scheduleActionTrigger("rightClick", makeCoordsFromEvent(event), scheme, getActionTimingMs("rightClick", actionConfig), {
+          triggerSource: "context-menu",
+        });
       }
     }
 
@@ -221,14 +346,26 @@
       const scheme = configStore.getActiveScheme();
       const actionConfig = configStore.getActionConfig(scheme, "wheel");
       const triggerConfig = configStore.getActionTriggerConfig(actionConfig);
-      if (!configStore.matchesTriggerZone(event.target, triggerConfig.triggerZone, event)) return;
+      if (!configStore.matchesTriggerZone(event.target, triggerConfig.triggerZone, event, {
+        actionId: "wheel",
+        triggerSource: "wheel",
+      })) return;
       const timingMs = getActionTimingMs("wheel", actionConfig);
       const now = Date.now();
       const isNewBurst = now - state.lastWheelEventAt > timingMs;
       state.lastWheelEventAt = now;
-      if (triggerConfig.triggerTiming === "滚动开始时" && !isNewBurst) return;
+      if (triggerConfig.triggerTiming === "滚动开始时" && !isNewBurst) {
+        diagnostics?.log("action.skip", {
+          actionId: "wheel",
+          triggerSource: "wheel",
+          reason: "wheel-burst-suppressed",
+          windowMs: timingMs,
+        });
+        return;
+      }
       triggerAction("wheel", makeCoordsFromEvent(event), scheme, {
         throttleMs: triggerConfig.triggerTiming === "连续滚动中" ? timingMs : 0,
+        triggerSource: "wheel",
       });
     }
 
@@ -237,13 +374,19 @@
       const scheme = configStore.getActiveScheme();
       const actionConfig = configStore.getActionConfig(scheme, "hover");
       const triggerConfig = configStore.getActionTriggerConfig(actionConfig);
-      if (!actionConfig || !configStore.matchesTriggerZone(event.target, triggerConfig.triggerZone, event)) return;
+      if (!actionConfig || !configStore.matchesTriggerZone(event.target, triggerConfig.triggerZone, event, {
+        actionId: "hover",
+        triggerSource: "hover-arm",
+      })) return;
 
       window.clearTimeout(state.hoverTimeoutId);
       state.hoverTarget = event.target;
 
       if (triggerConfig.triggerTiming === "进入时") {
-        triggerAction("hover", makeCoordsFromEvent(event), scheme, { throttleMs: 120 });
+        triggerAction("hover", makeCoordsFromEvent(event), scheme, {
+          throttleMs: 120,
+          triggerSource: "hover-enter",
+        });
         return;
       }
 
@@ -252,6 +395,7 @@
         if (state.hoverTarget !== event.target) return;
         triggerAction("hover", makeCoordsFromEvent(event), scheme, {
           throttleMs: hoverDelay,
+          triggerSource: "hover-delay",
         });
       }, hoverDelay);
     }
@@ -276,6 +420,7 @@
         force: true,
         resolvedActionId: actionId || "leftClick",
         throttleMs: 0,
+        triggerSource: "preview-center",
       });
     }
 

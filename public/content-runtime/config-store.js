@@ -9,6 +9,7 @@
       runtimeConfig,
       constants,
       state,
+      diagnostics,
     } = runtime;
 
     function normalizeConfig(value) {
@@ -320,15 +321,35 @@
       return target instanceof Element ? Boolean(target.closest("a,button,[role='button']")) : false;
     }
 
-    function matchesTriggerZone(target, triggerZone, event) {
-      if (!triggerZone) return true;
-      if (triggerZone.includes("按钮和链接")) return isButtonOrLinkTarget(target);
-      if (triggerZone.includes("可交互元素")) return isInteractiveTarget(target);
-      if (triggerZone.includes("空白区域")) return !isInteractiveTarget(target);
-      if (triggerZone.includes("内容卡片")) return target instanceof Element ? Boolean(target.closest("article,section,li,div")) : false;
-      if (triggerZone.includes("仅向上滚动")) return event?.deltaY < 0;
-      if (triggerZone.includes("仅向下滚动")) return event?.deltaY > 0;
-      return true;
+    function matchesTriggerZone(target, triggerZone, event, meta = {}) {
+      let matched = true;
+      if (!triggerZone) {
+        matched = true;
+      } else if (triggerZone.includes("按钮和链接")) {
+        matched = isButtonOrLinkTarget(target);
+      } else if (triggerZone.includes("可交互元素")) {
+        matched = isInteractiveTarget(target);
+      } else if (triggerZone.includes("空白区域")) {
+        matched = !isInteractiveTarget(target);
+      } else if (triggerZone.includes("内容卡片")) {
+        matched = target instanceof Element ? Boolean(target.closest("article,section,li,div")) : false;
+      } else if (triggerZone.includes("仅向上滚动")) {
+        matched = event?.deltaY < 0;
+      } else if (triggerZone.includes("仅向下滚动")) {
+        matched = event?.deltaY > 0;
+      }
+
+      diagnostics?.log("trigger-zone.check", {
+        actionId: meta.actionId || null,
+        triggerSource: meta.triggerSource || null,
+        triggerZone: triggerZone || "任意区域",
+        matched,
+        pointerType: event?.pointerType || null,
+        deltaY: Number.isFinite(event?.deltaY) ? event.deltaY : null,
+        target: diagnostics?.describeTarget(target),
+      });
+
+      return matched;
     }
 
     async function syncConfigFromStorage({ clearStateCursorOverlay }) {

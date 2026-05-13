@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CursorDance Smoke Target</title>
     <script src="/config.js"></script>
+    <script src="/content-runtime/diagnostics.js"></script>
     <script src="/content-runtime/config-store.js"></script>
     <script src="/content-runtime/visual-effects.js"></script>
     <script src="/content-runtime/audio.js"></script>
@@ -90,6 +91,7 @@
       <section class="panel">
         <h1>CursorDance 本地冒烟页</h1>
         <p>这个页面会直接加载 <code>config.js</code> 和 <code>content.js</code>，用于验证 popup 选中主题、workbench 未保存预览、以及回退到已保存配置的联动链路。</p>
+        <p style="margin-top: 14px;">如需查看运行时诊断日志，可追加 <code>?cursordance-debug=1</code>，或在控制台执行 <code>localStorage.setItem('cursordance.debug', '1')</code> 后刷新。</p>
 
         <div class="actions">
           <button id="smoke-trigger" type="button">点击我触发特效</button>
