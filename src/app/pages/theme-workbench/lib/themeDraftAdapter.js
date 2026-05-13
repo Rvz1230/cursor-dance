@@ -5,6 +5,10 @@ import {
   buildThemeDrafts,
   buildThemeLibraryItem,
   createThemeDraft,
+  getActionParticleConfig,
+  getActionRippleConfig,
+  getActionTextConfig,
+  getActionTriggerConfig,
 } from "../model/workbenchSchema.js";
 import { getDefaultConfig, getRuntimeConfig, normalizeStoredConfig } from "./runtimeConfig.js";
 
@@ -225,16 +229,20 @@ function buildStoredThemePack(themeId, draft, previousConfig, themeRecord) {
   const previousThemePack = getStoredThemePack(previousConfig, themeId) ?? {};
   const previousEffects = previousThemePack.behavior?.click?.effects ?? {};
   const actionConfig = draft.actionConfigs.leftClick;
+  const textConfig = getActionTextConfig(actionConfig);
+  const particleConfig = getActionParticleConfig(actionConfig);
+  const rippleConfig = getActionRippleConfig(actionConfig);
+  const triggerConfig = getActionTriggerConfig(actionConfig);
   const orderedTextTags = getOrderedTextTags(actionConfig);
-  const storedTextEffect = getRuntimeConfig().buildStoredTextEffectPayload?.(actionConfig, orderedTextTags) ?? {
-    kind: actionConfig.textKind === "文本飘字" ? "text" : "number",
-    numberStyle: actionConfig.textStyle,
-    mode: actionConfig.textMode === "模板模式" ? "template" : "default",
-    template: actionConfig.textTemplate,
+  const storedTextEffect = getRuntimeConfig().buildStoredTextEffectPayload?.(textConfig, orderedTextTags) ?? {
+    kind: textConfig.textKind === "文本飘字" ? "text" : "number",
+    numberStyle: textConfig.textStyle,
+    mode: textConfig.textMode === "模板模式" ? "template" : "default",
+    template: textConfig.textTemplate,
     tags: orderedTextTags,
-    tagPlayMode: actionConfig.textTagPlayMode,
-    comboEnabled: actionConfig.comboEnabled,
-    content: actionConfig.textKind === "数字飘字" ? "" : (orderedTextTags[0] || actionConfig.textContent || ""),
+    tagPlayMode: textConfig.textTagPlayMode,
+    comboEnabled: textConfig.comboEnabled,
+    content: textConfig.textKind === "数字飘字" ? "" : (orderedTextTags[0] || textConfig.textContent || ""),
   };
 
   return {
@@ -262,38 +270,38 @@ function buildStoredThemePack(themeId, draft, previousConfig, themeRecord) {
       ...previousThemePack.behavior,
       click: {
         ...previousThemePack.behavior?.click,
-        enabled: actionConfig.textEnabled || actionConfig.particle || actionConfig.ripple,
+        enabled: textConfig.textEnabled || particleConfig.particle || rippleConfig.ripple,
         trigger: {
           ...previousThemePack.behavior?.click?.trigger,
           button: "left",
-          cooldownMs: actionConfig.holdMs,
+          cooldownMs: triggerConfig.holdMs,
         },
         effects: {
           ...previousEffects,
           text: {
             ...previousEffects.text,
-            enabled: actionConfig.textEnabled,
+            enabled: textConfig.textEnabled,
             ...storedTextEffect,
-            color: actionConfig.textColor,
-            fontSize: actionConfig.fontSize,
-            fontWeight: mapFontWeightToStored(actionConfig.textWeight),
-            offsetX: actionConfig.textOffsetX,
-            offsetY: actionConfig.textOffsetY,
-            durationMs: actionConfig.textDuration,
+            color: textConfig.textColor,
+            fontSize: textConfig.fontSize,
+            fontWeight: mapFontWeightToStored(textConfig.textWeight),
+            offsetX: textConfig.textOffsetX,
+            offsetY: textConfig.textOffsetY,
+            durationMs: textConfig.textDuration,
           },
           ripple: {
             ...previousEffects.ripple,
-            enabled: actionConfig.ripple,
-            size: actionConfig.rippleSize,
-            durationMs: actionConfig.rippleDuration,
+            enabled: rippleConfig.ripple,
+            size: rippleConfig.rippleSize,
+            durationMs: rippleConfig.rippleDuration,
           },
           particle: {
             ...previousEffects.particle,
-            enabled: actionConfig.particle,
-            count: actionConfig.particleCount,
-            size: actionConfig.particleSize,
-            baseDistance: actionConfig.particleSpread,
-            durationMs: actionConfig.particleDuration,
+            enabled: particleConfig.particle,
+            count: particleConfig.particleCount,
+            size: particleConfig.particleSize,
+            baseDistance: particleConfig.particleSpread,
+            durationMs: particleConfig.particleDuration,
           },
         },
       },

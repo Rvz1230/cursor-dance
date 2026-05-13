@@ -52,6 +52,88 @@ export const AUDIO_BLEND_OPTIONS = ["保持原音量", "压低页面音频", "�
 export const CURSOR_SIZE_OPTIONS = ["32 × 32", "40 × 40", "48 × 48", "56 × 56", "64 × 64"];
 export const CURSOR_HOTSPOT_OPTIONS = ["0, 0", "8, 8", "12, 12", "16, 16", "16, 32", "24, 24"];
 
+export const ACTION_TRIGGER_FIELDS = ["triggerTiming", "triggerZone", "holdMs"];
+export const ACTION_TEXT_FIELDS = [
+  "textKind",
+  "textStyle",
+  "textMode",
+  "textTemplate",
+  "textEnabled",
+  "textContent",
+  "textTags",
+  "textTagPlayMode",
+  "textColor",
+  "textDuration",
+  "textEasing",
+  "textOpacity",
+  "textWeight",
+  "textOutlineWidth",
+  "textShadow",
+  "comboEnabled",
+  "textOffsetX",
+  "textOffsetY",
+  "fontSize",
+];
+export const ACTION_PARTICLE_FIELDS = [
+  "particle",
+  "particleCount",
+  "particleSpread",
+  "particleStyle",
+  "particleDirection",
+  "particleColorMode",
+  "particleDuration",
+  "particleSize",
+  "particleOpacity",
+];
+export const ACTION_RIPPLE_FIELDS = [
+  "ripple",
+  "rippleSize",
+  "rippleDuration",
+  "rippleStyle",
+  "rippleEasing",
+  "rippleLineWidth",
+  "rippleOpacity",
+];
+export const ACTION_AUDIO_FIELDS = [
+  "sound",
+  "volume",
+  "playbackRate",
+  "soundDelay",
+  "soundFadeOut",
+  "soundTriggerMode",
+  "soundBlendMode",
+  "soundFile",
+];
+export const ACTION_CURSOR_FEEDBACK_FIELDS = ["shake", "cursorOverride", "cursorSize"];
+
+function pickActionConfigFields(config, fieldNames) {
+  return Object.fromEntries(fieldNames.map((fieldName) => [fieldName, config?.[fieldName]]));
+}
+
+export function getActionTriggerConfig(config) {
+  return pickActionConfigFields(config, ACTION_TRIGGER_FIELDS);
+}
+
+export function getActionTextConfig(config) {
+  return pickActionConfigFields(config, ACTION_TEXT_FIELDS);
+}
+
+export function getActionParticleConfig(config) {
+  return pickActionConfigFields(config, ACTION_PARTICLE_FIELDS);
+}
+
+export function getActionRippleConfig(config) {
+  return pickActionConfigFields(config, ACTION_RIPPLE_FIELDS);
+}
+
+export function getActionAudioConfig(config) {
+  return pickActionConfigFields(config, ACTION_AUDIO_FIELDS);
+}
+
+export function getActionCursorFeedbackConfig(config) {
+  return pickActionConfigFields(config, ACTION_CURSOR_FEEDBACK_FIELDS);
+}
+
 const ACTION_CONFIG_SHARED_DEFAULTS = {
   textStyle: "阿拉伯数字 (1, 2, 3)",
   textMode: "默认模式 (+1)",
