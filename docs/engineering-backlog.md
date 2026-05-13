@@ -1,6 +1,10 @@
 # CursorDance Engineering Backlog
 
-Last updated: 2026-05-10
+Last updated: 2026-05-13
+
+## Related Planning Docs
+
+- Main execution roadmap: `docs/project-stabilization-todo.md`
 
 ## Ticket CD-001
 
