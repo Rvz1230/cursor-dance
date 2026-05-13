@@ -6,7 +6,6 @@ import {
   WORKSPACES,
   buildDefaultCursorStateActions,
   buildDefaultCursorStateAssets,
-  buildThemeDrafts,
   createThemeDraft,
   getConflictsForAction,
 } from "../model/workbenchSchema.js";
@@ -14,6 +13,8 @@ import {
   buildPreviewThemePackFromWorkbench,
   buildStoredConfigFromWorkbench,
   clearLivePreviewConfig,
+  createWorkbenchThemeState,
+  DEFAULT_WORKBENCH_SITE_MODE,
   draftFromThemePack,
   hydrateWorkbenchState,
   previewThemePack,
@@ -27,10 +28,12 @@ import {
   writeExtensionConfig,
 } from "../lib/extensionConfig.js";
 
+const INITIAL_THEME_STATE = createWorkbenchThemeState(THEMES, DEFAULT_WORKBENCH_SITE_MODE);
+
 const initialState = {
   workspaceId: "workbench",
   selection: {
-    themeId: THEMES[0].id,
+    themeId: INITIAL_THEME_STATE.selectedThemeId,
     actionId: "leftClick",
     cursorStateId: "default",
   },
@@ -49,8 +52,8 @@ const initialState = {
   },
   recentCursorAssets: [],
   siteRulesByHost: {},
-  themeLibrary: THEMES,
-  draftsByTheme: buildThemeDrafts(),
+  themeLibrary: INITIAL_THEME_STATE.themeLibrary,
+  draftsByTheme: INITIAL_THEME_STATE.draftsByTheme,
 };
 
 function cloneValue(value) {
@@ -297,7 +300,7 @@ export function useThemeWorkbenchState() {
 
   const selected = state.selection;
   const activeTheme = useMemo(
-    () => state.themeLibrary.find((item) => item.id === selected.themeId) ?? state.themeLibrary[0] ?? THEMES[0],
+    () => state.themeLibrary.find((item) => item.id === selected.themeId) ?? state.themeLibrary[0] ?? INITIAL_THEME_STATE.themeLibrary[0],
     [selected.themeId, state.themeLibrary]
   );
   const draft = state.draftsByTheme[selected.themeId];

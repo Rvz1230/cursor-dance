@@ -16,6 +16,7 @@ const CURSOR_ASSET_STORAGE_KEY_PREFIX = "cursordance.cursorAsset.";
 const RECENT_CURSOR_ASSETS_STORAGE_KEY = "cursordance.cursorAssetRecents";
 const MAX_CURSOR_ASSET_DATA_URL_LENGTH = 600 * 1024;
 const MAX_RECENT_CURSOR_ASSETS = 6;
+export const DEFAULT_WORKBENCH_SITE_MODE = "跟随全局";
 let localPreviewChannel = null;
 let previewStorageAccessPromise = null;
 
@@ -651,24 +652,48 @@ export function buildThemeLibrary(config) {
   return themePacks.map((themePack, index) => themePackToThemeLibraryItem(themePack, index));
 }
 
+function applySiteModeToDrafts(draftsByTheme, siteMode = DEFAULT_WORKBENCH_SITE_MODE) {
+  return Object.fromEntries(
+    Object.entries(draftsByTheme).map(([themeId, themeDraft]) => [
+      themeId,
+      {
+        ...themeDraft,
+        siteMode,
+      },
+    ])
+  );
+}
+
+function resolveSelectedThemeId(themeLibrary, draftsByTheme, activeThemePackId) {
+  if (activeThemePackId && draftsByTheme[activeThemePackId]) return activeThemePackId;
+  return themeLibrary[0]?.id || THEMES[0]?.id || "";
+}
+
+export function createWorkbenchThemeState(themeLibrary = THEMES, siteMode = DEFAULT_WORKBENCH_SITE_MODE) {
+  const nextThemeLibrary = Array.isArray(themeLibrary) && themeLibrary.length ? themeLibrary : THEMES;
+  const nextDraftsByTheme = applySiteModeToDrafts(buildThemeDrafts(nextThemeLibrary), siteMode);
+  return {
+    themeLibrary: nextThemeLibrary,
+    draftsByTheme: nextDraftsByTheme,
+    selectedThemeId: resolveSelectedThemeId(nextThemeLibrary, nextDraftsByTheme),
+  };
+}
+
 export function hydrateWorkbenchState(config, site) {
   const storedThemePacks = Array.isArray(config?.themePacks) ? config.themePacks : [];
   const siteMode = getRuntimeConfig().getSiteMode?.(config, site.host) ?? "inherit";
+  const workbenchSiteMode = toWorkbenchSiteMode(siteMode);
   const themeLibrary = buildThemeLibrary(config);
-  const draftsByTheme = buildThemeDrafts(themeLibrary);
+  const baseThemeState = createWorkbenchThemeState(themeLibrary, workbenchSiteMode);
+  const draftsByTheme = {
+    ...baseThemeState.draftsByTheme,
+  };
 
   storedThemePacks.forEach((themePack) => {
-    draftsByTheme[themePack.id] = buildDraftFromThemePack(themePack, toWorkbenchSiteMode(siteMode));
+    draftsByTheme[themePack.id] = buildDraftFromThemePack(themePack, workbenchSiteMode);
   });
 
-  Object.keys(draftsByTheme).forEach((themeId) => {
-    draftsByTheme[themeId] = {
-      ...draftsByTheme[themeId],
-      siteMode: toWorkbenchSiteMode(siteMode),
-    };
-  });
-
-  const selectedThemeId = draftsByTheme[config.activeThemePackId] ? config.activeThemePackId : (themeLibrary[0]?.id || THEMES[0].id);
+  const selectedThemeId = resolveSelectedThemeId(themeLibrary, draftsByTheme, config.activeThemePackId);
   const workspaceAliasMap = {
     workspace: "workbench",
     diagnostics: "states",

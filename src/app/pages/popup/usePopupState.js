@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  createWorkbenchThemeState,
+  DEFAULT_WORKBENCH_SITE_MODE,
   clearLivePreviewConfig,
   hydrateWorkbenchState,
   normalizeStoredConfig,
@@ -21,12 +23,14 @@ const EMPTY_SITE = {
   tabId: null,
 };
 
+const EMPTY_THEME_STATE = createWorkbenchThemeState([], DEFAULT_WORKBENCH_SITE_MODE);
+
 const EMPTY_STATE = {
   selection: {
-    themeId: "",
+    themeId: EMPTY_THEME_STATE.selectedThemeId,
   },
-  themeLibrary: [],
-  draftsByTheme: {},
+  themeLibrary: EMPTY_THEME_STATE.themeLibrary,
+  draftsByTheme: EMPTY_THEME_STATE.draftsByTheme,
 };
 
 function getPreviewActionId(config) {
