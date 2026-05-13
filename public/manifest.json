@@ -12,7 +12,15 @@
   "content_scripts": [
     {
       "matches": ["http://*/*", "https://*/*"],
-      "js": ["config.js", "content.js"],
+      "js": [
+        "config.js",
+        "content-runtime/config-store.js",
+        "content-runtime/visual-effects.js",
+        "content-runtime/audio.js",
+        "content-runtime/cursor-overlay.js",
+        "content-runtime/trigger-handlers.js",
+        "content.js"
+      ],
       "run_at": "document_idle"
     }
   ]
