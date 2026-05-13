@@ -595,7 +595,6 @@ export function getDefaultActionConfigs(themeId) {
 
 export function createThemeDraft(themeId) {
   return {
-    siteMode: themeId === "demo-highlight" ? "当前启用" : "跟随全局",
     actionConfigs: getDefaultActionConfigs(themeId),
     cursorModes: Object.fromEntries(CURSOR_STATES.map((item) => [item.id, item.defaultMode])),
     cursorStateActions: buildDefaultCursorStateActions(),

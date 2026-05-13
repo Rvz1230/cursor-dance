@@ -28,7 +28,7 @@ import {
   writeExtensionConfig,
 } from "../lib/extensionConfig.js";
 
-const INITIAL_THEME_STATE = createWorkbenchThemeState(THEMES, DEFAULT_WORKBENCH_SITE_MODE);
+const INITIAL_THEME_STATE = createWorkbenchThemeState(THEMES);
 
 const initialState = {
   workspaceId: "workbench",
@@ -37,6 +37,7 @@ const initialState = {
     actionId: "leftClick",
     cursorStateId: "default",
   },
+  siteMode: DEFAULT_WORKBENCH_SITE_MODE,
   ui: {
     enabled: true,
     unsaved: true,
@@ -148,15 +149,6 @@ function reducer(state, action) {
     case "site-filter/set":
       return { ...state, ui: { ...state.ui, siteFilter: action.payload } };
     case "site-mode/set": {
-      const nextDrafts = Object.fromEntries(
-        Object.entries(state.draftsByTheme).map(([themeId, themeDraft]) => [
-          themeId,
-          {
-            ...themeDraft,
-            siteMode: action.payload,
-          },
-        ])
-      );
       const nextRulesByHost = { ...state.siteRulesByHost };
       if (state.site.host) {
         if (action.payload === "跟随全局") {
@@ -170,7 +162,7 @@ function reducer(state, action) {
       }
       return {
         ...state,
-        draftsByTheme: nextDrafts,
+        siteMode: action.payload,
         siteRulesByHost: nextRulesByHost,
         ui: { ...state.ui, unsaved: true, saveError: "" },
       };
@@ -178,16 +170,8 @@ function reducer(state, action) {
     case "site-rules/clear-all":
       return {
         ...state,
+        siteMode: DEFAULT_WORKBENCH_SITE_MODE,
         siteRulesByHost: {},
-        draftsByTheme: Object.fromEntries(
-          Object.entries(state.draftsByTheme).map(([themeId, themeDraft]) => [
-            themeId,
-            {
-              ...themeDraft,
-              siteMode: "跟随全局",
-            },
-          ])
-        ),
         ui: { ...state.ui, unsaved: true, saveError: "" },
       };
     case "site-rules/remove-hosts": {
@@ -197,17 +181,7 @@ function reducer(state, action) {
       return {
         ...state,
         siteRulesByHost: nextRulesByHost,
-        draftsByTheme: currentHostRemoved
-          ? Object.fromEntries(
-              Object.entries(state.draftsByTheme).map(([themeId, themeDraft]) => [
-                themeId,
-                {
-                  ...themeDraft,
-                  siteMode: "跟随全局",
-                },
-              ])
-            )
-          : state.draftsByTheme,
+        siteMode: currentHostRemoved ? DEFAULT_WORKBENCH_SITE_MODE : state.siteMode,
         ui: { ...state.ui, unsaved: true, saveError: "" },
       };
     }
@@ -239,7 +213,6 @@ function reducer(state, action) {
           ...state.draftsByTheme,
           [themeId]: {
             ...createThemeDraft(themeId),
-            siteMode: state.draftsByTheme[themeId].siteMode,
           },
         },
       };
@@ -380,7 +353,6 @@ export function useThemeWorkbenchState() {
     const resolvedName = importedThemePack.name || fallbackName || "导入主题";
     const existingIds = new Set(state.themeLibrary.map((item) => item.id));
     const nextId = buildUniqueThemeId(importedThemePack.id || resolvedName, existingIds);
-    const siteMode = state.draftsByTheme[selected.themeId]?.siteMode || "跟随全局";
     const nextThemePack = {
       ...cloneValue(importedThemePack),
       id: nextId,
@@ -392,7 +364,7 @@ export function useThemeWorkbenchState() {
       type: "theme/library-add",
       payload: {
         theme: themePackToThemeLibraryItem(nextThemePack, state.themeLibrary.length),
-        draft: draftFromThemePack(nextThemePack, siteMode),
+        draft: draftFromThemePack(nextThemePack),
       },
     });
   }

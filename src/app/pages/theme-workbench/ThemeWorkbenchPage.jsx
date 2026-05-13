@@ -111,7 +111,7 @@ export default function ThemeWorkbenchPage() {
                     <WorkbenchPreviewRail
                       actionLabel={formatActionLabel(selected.actionId)}
                       config={currentActionConfig}
-                      siteMode={draft.siteMode}
+                      siteMode={state.siteMode}
                     />
                   </div>
                 </div>
@@ -149,7 +149,7 @@ export default function ThemeWorkbenchPage() {
                 <SitesPanel
                   filter={state.ui.siteFilter}
                   setFilter={setSiteFilter}
-                  siteMode={draft.siteMode}
+                  siteMode={state.siteMode}
                   setSiteMode={setSiteMode}
                   activeThemeName={activeTheme.name}
                   activeHost={state.site.host}

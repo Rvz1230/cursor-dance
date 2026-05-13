@@ -561,7 +561,7 @@ function buildDraftCursorMaps(baseDraft, themePack) {
   };
 }
 
-function buildDraftFromThemePack(themePack, siteMode) {
+function buildDraftFromThemePack(themePack) {
   const themeId = themePack?.id;
   const baseDraft = createThemeDraft(themeId);
   const cursorDraft = buildDraftCursorMaps(baseDraft, themePack);
@@ -569,7 +569,6 @@ function buildDraftFromThemePack(themePack, siteMode) {
     return {
       ...baseDraft,
       ...themePack.workbenchDraft,
-      siteMode,
       actionConfigs: {
         ...baseDraft.actionConfigs,
         ...(themePack.workbenchDraft.actionConfigs || {}),
@@ -588,7 +587,6 @@ function buildDraftFromThemePack(themePack, siteMode) {
     ?? baseDraft.actionConfigs.leftClick;
   return {
     ...baseDraft,
-    siteMode,
     cursorModes: cursorDraft.cursorModes,
     cursorStateActions: cursorDraft.cursorStateActions,
     cursorStateAssets: cursorDraft.cursorStateAssets,
@@ -618,8 +616,8 @@ function buildDraftFromThemePack(themePack, siteMode) {
   };
 }
 
-export function draftFromThemePack(themePack, siteMode = "跟随全局") {
-  return buildDraftFromThemePack(themePack, siteMode);
+export function draftFromThemePack(themePack) {
+  return buildDraftFromThemePack(themePack);
 }
 
 export function buildThemeLibrary(config) {
@@ -627,26 +625,14 @@ export function buildThemeLibrary(config) {
   return themePacks.map((themePack, index) => themePackToThemeLibraryItem(themePack, index));
 }
 
-function applySiteModeToDrafts(draftsByTheme, siteMode = DEFAULT_WORKBENCH_SITE_MODE) {
-  return Object.fromEntries(
-    Object.entries(draftsByTheme).map(([themeId, themeDraft]) => [
-      themeId,
-      {
-        ...themeDraft,
-        siteMode,
-      },
-    ])
-  );
-}
-
 function resolveSelectedThemeId(themeLibrary, draftsByTheme, activeThemePackId) {
   if (activeThemePackId && draftsByTheme[activeThemePackId]) return activeThemePackId;
   return themeLibrary[0]?.id || THEMES[0]?.id || "";
 }
 
-export function createWorkbenchThemeState(themeLibrary = THEMES, siteMode = DEFAULT_WORKBENCH_SITE_MODE) {
+export function createWorkbenchThemeState(themeLibrary = THEMES) {
   const nextThemeLibrary = Array.isArray(themeLibrary) && themeLibrary.length ? themeLibrary : THEMES;
-  const nextDraftsByTheme = applySiteModeToDrafts(buildThemeDrafts(nextThemeLibrary), siteMode);
+  const nextDraftsByTheme = buildThemeDrafts(nextThemeLibrary);
   return {
     themeLibrary: nextThemeLibrary,
     draftsByTheme: nextDraftsByTheme,
@@ -659,13 +645,13 @@ export function hydrateWorkbenchState(config, site) {
   const siteMode = getRuntimeConfig().getSiteMode?.(config, site.host) ?? "inherit";
   const workbenchSiteMode = toWorkbenchSiteMode(siteMode);
   const themeLibrary = buildThemeLibrary(config);
-  const baseThemeState = createWorkbenchThemeState(themeLibrary, workbenchSiteMode);
+  const baseThemeState = createWorkbenchThemeState(themeLibrary);
   const draftsByTheme = {
     ...baseThemeState.draftsByTheme,
   };
 
   storedThemePacks.forEach((themePack) => {
-    draftsByTheme[themePack.id] = buildDraftFromThemePack(themePack, workbenchSiteMode);
+    draftsByTheme[themePack.id] = buildDraftFromThemePack(themePack);
   });
 
   const selectedThemeId = resolveSelectedThemeId(themeLibrary, draftsByTheme, config.activeThemePackId);
@@ -685,6 +671,7 @@ export function hydrateWorkbenchState(config, site) {
       actionId: selectedActionId,
       cursorStateId: selectedCursorStateId,
     },
+    siteMode: workbenchSiteMode,
     themeLibrary,
     siteRulesByHost: {
       ...(config.siteRules?.byHost || {}),
@@ -810,7 +797,7 @@ export function buildStoredConfigFromWorkbench(previousConfig, state) {
   );
 
   const workspaceId = state.workspaceId === "workbench" ? "workspace" : state.workspaceId;
-  const siteMode = toStoredSiteMode(state.draftsByTheme[state.selection.themeId].siteMode);
+  const siteMode = toStoredSiteMode(state.siteMode);
   const runtime = getRuntimeConfig();
   const nextConfig = {
     ...previousConfig,
