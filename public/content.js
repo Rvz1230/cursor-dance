@@ -76,6 +76,30 @@
     })))(fallbackCursorStates, cursorStates);
   }
 
+  function getActionTriggerConfig(actionConfig) {
+    return (CONFIG_RUNTIME.getActionTriggerConfig || ((nextConfig) => nextConfig || {}))(actionConfig || {});
+  }
+
+  function getActionTextConfig(actionConfig) {
+    return (CONFIG_RUNTIME.getActionTextConfig || ((nextConfig) => nextConfig || {}))(actionConfig || {});
+  }
+
+  function getActionParticleConfig(actionConfig) {
+    return (CONFIG_RUNTIME.getActionParticleConfig || ((nextConfig) => nextConfig || {}))(actionConfig || {});
+  }
+
+  function getActionRippleConfig(actionConfig) {
+    return (CONFIG_RUNTIME.getActionRippleConfig || ((nextConfig) => nextConfig || {}))(actionConfig || {});
+  }
+
+  function getActionAudioConfig(actionConfig) {
+    return (CONFIG_RUNTIME.getActionAudioConfig || ((nextConfig) => nextConfig || {}))(actionConfig || {});
+  }
+
+  function getActionCursorFeedbackConfig(actionConfig) {
+    return (CONFIG_RUNTIME.getActionCursorFeedbackConfig || ((nextConfig) => nextConfig || {}))(actionConfig || {});
+  }
+
   function normalizeHost(host) {
     return typeof host === "string" ? host.trim().toLowerCase() : "";
   }
@@ -369,34 +393,37 @@
   }
 
   function getActionText(actionConfig, actionId, runIndex) {
-    if (!actionConfig.textEnabled) return "";
+    const textConfig = getActionTextConfig(actionConfig);
+    if (!textConfig.textEnabled) return "";
 
-    if (actionConfig.textKind === "文本飘字") {
-      const tags = getOrderedTextTags(actionConfig);
+    if (textConfig.textKind === "文本飘字") {
+      const tags = getOrderedTextTags(textConfig);
       if (!tags.length) return "";
-      if (actionConfig.textTagPlayMode === "随机显示") {
+      if (textConfig.textTagPlayMode === "随机显示") {
         return tags[(runIndex * 7 + actionId.length) % tags.length];
       }
       return tags[(runIndex - 1) % tags.length];
     }
 
-    const numberValue = actionConfig.comboEnabled ? runIndex : 1;
-    const formattedNumber = formatNumber(actionConfig.textStyle, numberValue);
-    if (actionConfig.textMode === "模板模式") {
-      return (actionConfig.textTemplate || "${number}").replaceAll("${number}", formattedNumber);
+    const numberValue = textConfig.comboEnabled ? runIndex : 1;
+    const formattedNumber = formatNumber(textConfig.textStyle, numberValue);
+    if (textConfig.textMode === "模板模式") {
+      return (textConfig.textTemplate || "${number}").replaceAll("${number}", formattedNumber);
     }
     return `+${formattedNumber}`;
   }
 
   function getParticleColor(actionConfig, index) {
-    if (actionConfig.particleColorMode === "跟随飘字色") {
-      return hexToRgba(actionConfig.textColor, (actionConfig.particleOpacity || 88) / 100);
+    const particleConfig = getActionParticleConfig(actionConfig);
+    const textConfig = getActionTextConfig(actionConfig);
+    if (particleConfig.particleColorMode === "跟随飘字色") {
+      return hexToRgba(textConfig.textColor, (particleConfig.particleOpacity || 88) / 100);
     }
-    if (actionConfig.particleColorMode === "随机轻变化") {
+    if (particleConfig.particleColorMode === "随机轻变化") {
       const palette = ["#FDBA74", "#FDE68A", "#86EFAC", "#93C5FD", "#F9A8D4"];
-      return hexToRgba(palette[index % palette.length], (actionConfig.particleOpacity || 88) / 100);
+      return hexToRgba(palette[index % palette.length], (particleConfig.particleOpacity || 88) / 100);
     }
-    return hexToRgba("#F59E0B", (actionConfig.particleOpacity || 88) / 100);
+    return hexToRgba("#F59E0B", (particleConfig.particleOpacity || 88) / 100);
   }
 
   function ensureStyles() {
@@ -587,11 +614,12 @@
   }
 
   function duckPageMedia(actionConfig) {
-    const blendMode = actionConfig.soundBlendMode || "保持原音量";
+    const audioConfig = getActionAudioConfig(actionConfig);
+    const blendMode = audioConfig.soundBlendMode || "保持原音量";
     if (blendMode === "保持原音量") return;
 
     // Limitation: we can only control native <audio>/<video> elements in the page document.
-    const durationMs = Math.max(900, (actionConfig.soundFadeOut || 120) + (actionConfig.soundDelay || 0) + 780);
+    const durationMs = Math.max(900, (audioConfig.soundFadeOut || 120) + (audioConfig.soundDelay || 0) + 780);
     const targetVolume = blendMode === "仅插件音效" ? 0 : 0.12;
 
     getPageMediaElements().forEach((media) => {
@@ -647,11 +675,13 @@
   }
 
   function playSound(actionConfig, actionId) {
-    if (!actionConfig.sound || (actionConfig.volume || 0) <= 0) return;
+    const audioConfig = getActionAudioConfig(actionConfig);
+    const triggerConfig = getActionTriggerConfig(actionConfig);
+    if (!audioConfig.sound || (audioConfig.volume || 0) <= 0) return;
 
     const now = Date.now();
-    const mode = actionConfig.soundTriggerMode || "每次触发";
-    const throttleMs = mode === "节流播放" ? Math.max(140, actionConfig.soundDelay || 0, actionConfig.holdMs || 0) : 0;
+    const mode = audioConfig.soundTriggerMode || "每次触发";
+    const throttleMs = mode === "节流播放" ? Math.max(140, audioConfig.soundDelay || 0, triggerConfig.holdMs || 0) : 0;
     if (throttleMs && now - (lastSoundAtByAction[actionId] || 0) < throttleMs) return;
     lastSoundAtByAction[actionId] = now;
     duckPageMedia(actionConfig);
@@ -664,12 +694,12 @@
         context.resume().catch(() => {});
       }
 
-      const preset = getSoundPreset(actionConfig.soundFile);
-      const startAt = context.currentTime + ((actionConfig.soundDelay || 0) / 1000);
-      const duration = Math.max(0.06, ((actionConfig.soundFadeOut || preset.durationMs) || preset.durationMs) / 1000);
+      const preset = getSoundPreset(audioConfig.soundFile);
+      const startAt = context.currentTime + ((audioConfig.soundDelay || 0) / 1000);
+      const duration = Math.max(0.06, ((audioConfig.soundFadeOut || preset.durationMs) || preset.durationMs) / 1000);
       const gainNode = context.createGain();
-      const baseGain = Math.min(1, Math.max(0, (actionConfig.volume || 0) / 100) * 0.22);
-      const playbackRate = Math.max(0.5, (actionConfig.playbackRate || 100) / 100);
+      const baseGain = Math.min(1, Math.max(0, (audioConfig.volume || 0) / 100) * 0.22);
+      const playbackRate = Math.max(0.5, (audioConfig.playbackRate || 100) / 100);
       const stackBoost = mode === "连击叠加" ? Math.min(1.18, 1 + ((actionRunCounts[actionId] || 1) - 1) * 0.06) : 1;
       gainNode.connect(context.destination);
       gainNode.gain.setValueAtTime(0.0001, startAt);
@@ -698,7 +728,8 @@
   }
 
   function renderCursorOverride(x, y, actionConfig) {
-    const cursorKind = getCursorOverrideKind(actionConfig.cursorOverride);
+    const cursorFeedbackConfig = getActionCursorFeedbackConfig(actionConfig);
+    const cursorKind = getCursorOverrideKind(cursorFeedbackConfig.cursorOverride);
     if (!cursorKind) return;
 
     if (cursorKind === "pointer") {
@@ -713,7 +744,7 @@
 
     const node = document.createElement("div");
     node.className = "cd-effect cd-cursor";
-    const size = actionConfig.cursorSize || 48;
+    const size = cursorFeedbackConfig.cursorSize || 48;
     node.style.left = `${x}px`;
     node.style.top = `${y}px`;
     node.style.width = `${size}px`;
@@ -731,7 +762,7 @@
       node.textContent = "咚";
     }
 
-    const shake = Math.max(0, actionConfig.shake || 0) / 100;
+    const shake = Math.max(0, cursorFeedbackConfig.shake || 0) / 100;
     const driftX = (shake * 18) || 4;
     const driftY = Math.max(8, shake * 26);
     animateNode(
@@ -746,7 +777,8 @@
   }
 
   function renderText(x, y, actionConfig, actionId, runIndex) {
-    if (!actionConfig.textEnabled) return;
+    const textConfig = getActionTextConfig(actionConfig);
+    if (!textConfig.textEnabled) return;
 
     const content = getActionText(actionConfig, actionId, runIndex);
     if (!content) return;
@@ -754,18 +786,18 @@
     const node = document.createElement("div");
     node.className = "cd-effect cd-text";
     node.textContent = content;
-    node.style.left = `${x + (actionConfig.textOffsetX || 0)}px`;
-    node.style.top = `${y + (actionConfig.textOffsetY || -48)}px`;
-    node.style.color = hexToRgba(actionConfig.textColor || "#ec4899", (actionConfig.textOpacity || 100) / 100);
-    node.style.fontSize = `${actionConfig.fontSize || 22}px`;
-    node.style.fontWeight = String(getTextWeight(actionConfig));
-    node.style.webkitTextStroke = actionConfig.textOutlineWidth
-      ? `${actionConfig.textOutlineWidth}px ${hexToRgba("#ffffff", 0.82)}`
+    node.style.left = `${x + (textConfig.textOffsetX || 0)}px`;
+    node.style.top = `${y + (textConfig.textOffsetY || -48)}px`;
+    node.style.color = hexToRgba(textConfig.textColor || "#ec4899", (textConfig.textOpacity || 100) / 100);
+    node.style.fontSize = `${textConfig.fontSize || 22}px`;
+    node.style.fontWeight = String(getTextWeight(textConfig));
+    node.style.webkitTextStroke = textConfig.textOutlineWidth
+      ? `${textConfig.textOutlineWidth}px ${hexToRgba("#ffffff", 0.82)}`
       : "";
-    node.style.textShadow = actionConfig.textShadow === "清晰"
-      ? `0 8px 18px ${hexToRgba(actionConfig.textColor || "#ec4899", 0.32)}`
-      : actionConfig.textShadow === "柔和"
-        ? `0 4px 12px ${hexToRgba(actionConfig.textColor || "#ec4899", 0.22)}`
+    node.style.textShadow = textConfig.textShadow === "清晰"
+      ? `0 8px 18px ${hexToRgba(textConfig.textColor || "#ec4899", 0.32)}`
+      : textConfig.textShadow === "柔和"
+        ? `0 4px 12px ${hexToRgba(textConfig.textColor || "#ec4899", 0.22)}`
         : "none";
 
     animateNode(
@@ -776,22 +808,23 @@
         { opacity: 0, transform: "translate3d(-50%, -96%, 0) scale(1.02)" },
       ],
       {
-        duration: actionConfig.textDuration || 950,
-        easing: getAnimationEasing(actionConfig.textEasing),
+        duration: textConfig.textDuration || 950,
+        easing: getAnimationEasing(textConfig.textEasing),
       }
     );
   }
 
   function renderRipple(x, y, actionConfig) {
-    if (!actionConfig.ripple) return;
+    const rippleConfig = getActionRippleConfig(actionConfig);
+    if (!rippleConfig.ripple) return;
 
-    const easing = getAnimationEasing(actionConfig.rippleEasing);
-    const size = actionConfig.rippleSize || 88;
-    const lineWidth = actionConfig.rippleLineWidth || 2;
-    const opacity = (actionConfig.rippleOpacity || 72) / 100;
+    const easing = getAnimationEasing(rippleConfig.rippleEasing);
+    const size = rippleConfig.rippleSize || 88;
+    const lineWidth = rippleConfig.rippleLineWidth || 2;
+    const opacity = (rippleConfig.rippleOpacity || 72) / 100;
     const color = hexToRgba("#34D399", opacity);
-    const duration = actionConfig.rippleDuration || 820;
-    const style = actionConfig.rippleStyle || "单环";
+    const duration = rippleConfig.rippleDuration || 820;
+    const style = rippleConfig.rippleStyle || "单环";
 
     const renderLayer = ({ scaleFrom, scaleMid, scaleTo, delay = 0, layerSize = size, layerOpacity = opacity, filled = false }) => {
       const node = document.createElement("div");
@@ -849,33 +882,34 @@
   }
 
   function renderParticles(x, y, actionConfig) {
-    if (!actionConfig.particle) return;
+    const particleConfig = getActionParticleConfig(actionConfig);
+    if (!particleConfig.particle) return;
 
-    const count = Math.min(actionConfig.particleCount || 0, 40);
+    const count = Math.min(particleConfig.particleCount || 0, 40);
     if (!count) return;
 
     for (let index = 0; index < count; index += 1) {
       let startAngle = 0;
       let sweep = Math.PI * 2;
 
-      if (actionConfig.particleDirection === "向上喷发") {
+      if (particleConfig.particleDirection === "向上喷发") {
         startAngle = -Math.PI * 0.95;
         sweep = Math.PI * 0.9;
-      } else if (actionConfig.particleDirection === "沿点击方向") {
+      } else if (particleConfig.particleDirection === "沿点击方向") {
         startAngle = -Math.PI * 0.38;
         sweep = Math.PI * 0.76;
       }
 
       const angle = startAngle + (count === 1 ? 0 : (index / (count - 1)) * sweep);
-      const distance = Math.max(16, (actionConfig.particleSpread || 52) * (0.52 + index / Math.max(count * 1.4, 1)));
+      const distance = Math.max(16, (particleConfig.particleSpread || 52) * (0.52 + index / Math.max(count * 1.4, 1)));
       const tx = Math.cos(angle) * distance;
       const ty = Math.sin(angle) * distance;
       const node = document.createElement("span");
       node.className = "cd-effect cd-particle";
       node.style.left = `${x}px`;
       node.style.top = `${y}px`;
-      const baseSize = Math.max(4, (actionConfig.particleSize || 10) * (0.52 + (index % 4) * 0.1));
-      const particleStyle = actionConfig.particleStyle || "点状粒子";
+      const baseSize = Math.max(4, (particleConfig.particleSize || 10) * (0.52 + (index % 4) * 0.1));
+      const particleStyle = particleConfig.particleStyle || "点状粒子";
       const rotation = particleStyle === "火花"
         ? -28 + ((index * 17) % 7) * 11
         : particleStyle === "碎屑粒子"
@@ -899,7 +933,7 @@
           { opacity: 0, transform: `translate3d(calc(-50% + ${tx}px), calc(-50% + ${ty}px), 0) rotate(${rotation}deg) scale(${particleStyle === "火花" ? 0.52 : 0.65})` },
         ],
         {
-          duration: actionConfig.particleDuration || 760,
+          duration: particleConfig.particleDuration || 760,
           easing: particleStyle === "火花" ? "cubic-bezier(0.22, 1, 0.36, 1)" : "ease-out",
         }
       );
@@ -912,15 +946,21 @@
     const targetScheme = scheme || getActiveScheme();
     const sourceActionConfig = getActionConfig(targetScheme, sourceActionId);
     if (!sourceActionConfig) return;
-    if (!matchesTriggerZone(coords.target, sourceActionConfig.triggerZone, coords.event)) return;
+    const sourceTriggerConfig = getActionTriggerConfig(sourceActionConfig);
+    if (!matchesTriggerZone(coords.target, sourceTriggerConfig.triggerZone, coords.event)) return;
 
     const resolvedActionId = options.resolvedActionId || getCursorStateBinding(targetScheme, resolveCursorStateId(coords.target), sourceActionId).actionId;
     const actionConfig = getActionConfig(targetScheme, resolvedActionId);
     if (!actionConfig) return;
-    if (!actionConfig.textEnabled && !actionConfig.particle && !actionConfig.ripple && !actionConfig.sound && !getCursorOverrideKind(actionConfig.cursorOverride)) return;
+    const textConfig = getActionTextConfig(actionConfig);
+    const particleConfig = getActionParticleConfig(actionConfig);
+    const rippleConfig = getActionRippleConfig(actionConfig);
+    const audioConfig = getActionAudioConfig(actionConfig);
+    const cursorFeedbackConfig = getActionCursorFeedbackConfig(actionConfig);
+    if (!textConfig.textEnabled && !particleConfig.particle && !rippleConfig.ripple && !audioConfig.sound && !getCursorOverrideKind(cursorFeedbackConfig.cursorOverride)) return;
 
     const now = Date.now();
-    const throttleMs = options.throttleMs ?? (sourceActionId === "wheel" || sourceActionId === "hover" ? Math.max(80, sourceActionConfig.holdMs || 80) : 40);
+    const throttleMs = options.throttleMs ?? (sourceActionId === "wheel" || sourceActionId === "hover" ? Math.max(80, sourceTriggerConfig.holdMs || 80) : 40);
     if (!options.force && now - (lastTriggerAtByAction[sourceActionId] || 0) < throttleMs) return;
     lastTriggerAtByAction[sourceActionId] = now;
 
@@ -946,14 +986,16 @@
     if (event.button !== 0) return;
     const scheme = getActiveScheme();
     const leftClickConfig = getActionConfig(scheme, "leftClick");
-    if (leftClickConfig?.triggerTiming === "按下时") {
+    const leftClickTriggerConfig = getActionTriggerConfig(leftClickConfig);
+    if (leftClickTriggerConfig.triggerTiming === "按下时") {
       scheduleActionTrigger("leftClick", makeCoordsFromEvent(event), scheme, getActionTimingMs("leftClick", leftClickConfig));
     }
 
     const doubleClickConfig = getActionConfig(scheme, "doubleClick");
+    const doubleClickTriggerConfig = getActionTriggerConfig(doubleClickConfig);
     const doubleClickInterval = getActionTimingMs("doubleClick", doubleClickConfig);
     const now = Date.now();
-    if (doubleClickConfig?.triggerTiming === "第二次按下时") {
+    if (doubleClickTriggerConfig.triggerTiming === "第二次按下时") {
       if (now - lastLeftPointerDownAt <= doubleClickInterval) {
         triggerAction("doubleClick", makeCoordsFromEvent(event), scheme, { throttleMs: doubleClickInterval });
         lastLeftPointerDownAt = 0;
@@ -965,7 +1007,8 @@
     }
 
     const longPressConfig = getActionConfig(scheme, "longPress");
-    if (!longPressConfig || !matchesTriggerZone(event.target, longPressConfig.triggerZone, event)) return;
+    const longPressTriggerConfig = getActionTriggerConfig(longPressConfig);
+    if (!longPressConfig || !matchesTriggerZone(event.target, longPressTriggerConfig.triggerZone, event)) return;
 
     longPressState = {
       startedAt: Date.now(),
@@ -975,7 +1018,7 @@
       target: event.target,
       scheme,
       triggered: false,
-      releaseMode: longPressConfig.triggerTiming === "松开后触发",
+      releaseMode: longPressTriggerConfig.triggerTiming === "松开后触发",
       thresholdMs: getActionTimingMs("longPress", longPressConfig),
     };
 
@@ -1020,14 +1063,16 @@
     if (event.button === 0) {
       const scheme = getActiveScheme();
       const leftClickConfig = getActionConfig(scheme, "leftClick");
-      if (leftClickConfig?.triggerTiming !== "按下时") {
+      const leftClickTriggerConfig = getActionTriggerConfig(leftClickConfig);
+      if (leftClickTriggerConfig.triggerTiming !== "按下时") {
         scheduleActionTrigger("leftClick", makeCoordsFromEvent(event), scheme, getActionTimingMs("leftClick", leftClickConfig));
       }
 
       const doubleClickConfig = getActionConfig(scheme, "doubleClick");
+      const doubleClickTriggerConfig = getActionTriggerConfig(doubleClickConfig);
       const doubleClickInterval = getActionTimingMs("doubleClick", doubleClickConfig);
       const now = Date.now();
-      if (doubleClickConfig?.triggerTiming !== "第二次按下时") {
+      if (doubleClickTriggerConfig.triggerTiming !== "第二次按下时") {
         if (now - lastLeftPointerUpAt <= doubleClickInterval) {
           triggerAction("doubleClick", makeCoordsFromEvent(event), scheme, { throttleMs: doubleClickInterval });
           lastLeftPointerUpAt = 0;
@@ -1049,7 +1094,8 @@
     if (event.button !== 2) return;
     const scheme = getActiveScheme();
     const actionConfig = getActionConfig(scheme, "rightClick");
-    if (actionConfig?.triggerTiming === "按下时") {
+    const triggerConfig = getActionTriggerConfig(actionConfig);
+    if (triggerConfig.triggerTiming === "按下时") {
       scheduleActionTrigger("rightClick", makeCoordsFromEvent(event), scheme, getActionTimingMs("rightClick", actionConfig));
     }
   }
@@ -1057,7 +1103,8 @@
   function handleContextMenu(event) {
     const scheme = getActiveScheme();
     const actionConfig = getActionConfig(scheme, "rightClick");
-    if (actionConfig?.triggerTiming !== "按下时") {
+    const triggerConfig = getActionTriggerConfig(actionConfig);
+    if (triggerConfig.triggerTiming !== "按下时") {
       scheduleActionTrigger("rightClick", makeCoordsFromEvent(event), scheme, getActionTimingMs("rightClick", actionConfig));
     }
   }
@@ -1069,14 +1116,15 @@
   function handleWheel(event) {
     const scheme = getActiveScheme();
     const actionConfig = getActionConfig(scheme, "wheel");
-    if (!matchesTriggerZone(event.target, actionConfig?.triggerZone, event)) return;
+    const triggerConfig = getActionTriggerConfig(actionConfig);
+    if (!matchesTriggerZone(event.target, triggerConfig.triggerZone, event)) return;
     const timingMs = getActionTimingMs("wheel", actionConfig);
     const now = Date.now();
     const isNewBurst = now - lastWheelEventAt > timingMs;
     lastWheelEventAt = now;
-    if (actionConfig?.triggerTiming === "滚动开始时" && !isNewBurst) return;
+    if (triggerConfig.triggerTiming === "滚动开始时" && !isNewBurst) return;
     triggerAction("wheel", makeCoordsFromEvent(event), scheme, {
-      throttleMs: actionConfig?.triggerTiming === "连续滚动中" ? timingMs : 0,
+      throttleMs: triggerConfig.triggerTiming === "连续滚动中" ? timingMs : 0,
     });
   }
 
@@ -1084,12 +1132,13 @@
     syncStateCursorOverlay(event);
     const scheme = getActiveScheme();
     const actionConfig = getActionConfig(scheme, "hover");
-    if (!actionConfig || !matchesTriggerZone(event.target, actionConfig.triggerZone, event)) return;
+    const triggerConfig = getActionTriggerConfig(actionConfig);
+    if (!actionConfig || !matchesTriggerZone(event.target, triggerConfig.triggerZone, event)) return;
 
     window.clearTimeout(hoverTimeoutId);
     hoverTarget = event.target;
 
-    if (actionConfig.triggerTiming === "进入时") {
+    if (triggerConfig.triggerTiming === "进入时") {
       triggerAction("hover", makeCoordsFromEvent(event), scheme, { throttleMs: 120 });
       return;
     }
