@@ -13,6 +13,30 @@ import {
   Wand2,
   Waves,
 } from "lucide-react";
+import {
+  AUDIO_BLEND_OPTIONS,
+  AUDIO_TRIGGER_OPTIONS,
+  CURSOR_HOTSPOT_OPTIONS,
+  CURSOR_OVERRIDE_OPTIONS,
+  CURSOR_SIZE_OPTIONS,
+  NUMBER_STYLE_OPTIONS,
+  PARTICLE_COLOR_MODE_OPTIONS,
+  PARTICLE_DIRECTION_OPTIONS,
+  PARTICLE_STYLE_OPTIONS,
+  RIPPLE_EASING_OPTIONS,
+  RIPPLE_STYLE_OPTIONS,
+  SOUND_FILE_OPTIONS,
+  TEXT_EASING_OPTIONS,
+  TEXT_KIND_OPTIONS,
+  TEXT_MODE_OPTIONS,
+  TEXT_SHADOW_OPTIONS,
+  TEXT_TAG_PLAY_OPTIONS,
+  TEXT_WEIGHT_OPTIONS,
+  TRIGGER_OPTIONS,
+  getConflictsForAction,
+  getDefaultActionConfigs,
+  getTimingFieldMeta,
+} from "./actionConfigSchema.js";
 
 export const WORKSPACES = [
   { id: "workbench", label: "主题工作台", icon: Wand2 },
@@ -165,60 +189,6 @@ export function buildThemeLibrarySeed(themePacks = getDefaultThemePacks()) {
 
 export const THEMES = buildThemeLibrarySeed();
 
-export const TRIGGER_OPTIONS = {
-  leftClick: {
-    timing: ["按下时", "抬起时"],
-    zones: ["当前页面可点击区域", "仅按钮和链接", "全部可交互元素"],
-  },
-  rightClick: {
-    timing: ["按下时", "菜单弹出前"],
-    zones: ["右键菜单前", "可交互元素", "空白区域"],
-  },
-  doubleClick: {
-    timing: ["第二次按下时", "第二次抬起后"],
-    zones: ["双击命中区域", "主操作按钮", "内容卡片"],
-  },
-  longPress: {
-    timing: ["按住达到阈值", "松开后触发"],
-    zones: ["按住后释放", "长按可交互元素", "全局长按区"],
-  },
-  wheel: {
-    timing: ["滚动开始时", "连续滚动中"],
-    zones: ["向上 / 向下滚轮", "仅向上滚动", "仅向下滚动"],
-  },
-  hover: {
-    timing: ["进入时", "停留后"],
-    zones: ["进入可交互元素", "仅按钮和链接", "全页面 hover"],
-  },
-};
-
-export const SOUND_FILE_OPTIONS = ["woodfish-soft.wav", "woodfish-deep.wav", "tick-light.wav"];
-
-export const CURSOR_OVERRIDE_OPTIONS = [
-  "跟随当前状态",
-  "木鱼（继承默认）",
-  "木鱼（增强态）",
-  "木鱼（按压态）",
-  "切换到 pointer",
-];
-
-export const TEXT_KIND_OPTIONS = ["数字飘字", "文本飘字"];
-export const NUMBER_STYLE_OPTIONS = ["阿拉伯数字 (1, 2, 3)", "中文数字 (一, 二, 三)", "英文单词 (one, two, three)"];
-export const TEXT_MODE_OPTIONS = ["默认模式 (+1)", "模板模式"];
-export const TEXT_TAG_PLAY_OPTIONS = ["按顺序显示", "随机显示"];
-export const TEXT_EASING_OPTIONS = ["线性", "缓入", "缓出", "缓入缓出", "弹跳", "弹性"];
-export const TEXT_WEIGHT_OPTIONS = ["常规", "中等", "加粗"];
-export const TEXT_SHADOW_OPTIONS = ["无", "柔和", "清晰"];
-export const PARTICLE_STYLE_OPTIONS = ["点状粒子", "碎屑粒子", "火花"];
-export const PARTICLE_DIRECTION_OPTIONS = ["四周扩散", "向上喷发", "沿点击方向"];
-export const PARTICLE_COLOR_MODE_OPTIONS = ["跟随主题", "跟随飘字色", "随机轻变化"];
-export const RIPPLE_STYLE_OPTIONS = ["单环", "双环", "柔和面波"];
-export const RIPPLE_EASING_OPTIONS = ["线性", "缓出", "缓入缓出", "弹性"];
-export const AUDIO_TRIGGER_OPTIONS = ["每次触发", "连击叠加", "节流播放"];
-export const AUDIO_BLEND_OPTIONS = ["保持原音量", "压低页面音频", "仅插件音效"];
-export const CURSOR_SIZE_OPTIONS = ["32 × 32", "40 × 40", "48 × 48", "56 × 56", "64 × 64"];
-export const CURSOR_HOTSPOT_OPTIONS = ["0, 0", "8, 8", "12, 12", "16, 16", "16, 32", "24, 24"];
-
 export const PANEL_META = {
   trigger: { icon: MousePointer2, tone: "bg-emerald-100 text-emerald-700" },
   text: { icon: Type, tone: "bg-amber-100 text-amber-700" },
@@ -253,319 +223,6 @@ export function buildDefaultCursorStateAssets() {
   );
 }
 
-const ACTION_CONFIG_SHARED_DEFAULTS = {
-  textStyle: "阿拉伯数字 (1, 2, 3)",
-  textMode: "默认模式 (+1)",
-  textTemplate: "你当前点击了${number}次",
-  textTagPlayMode: "按顺序显示",
-  textOpacity: 100,
-  textOutlineWidth: 0,
-  comboEnabled: false,
-  textOffsetX: 0,
-  particleStyle: "点状粒子",
-  particleColorMode: "跟随主题",
-  rippleStyle: "单环",
-  rippleLineWidth: 2,
-  soundBlendMode: "保持原音量",
-  playbackRate: 100,
-  soundDelay: 0,
-};
-
-function createActionConfig(overrides) {
-  return {
-    ...ACTION_CONFIG_SHARED_DEFAULTS,
-    ...overrides,
-    textTags: [...(overrides.textTags || [])],
-  };
-}
-
-function cloneActionConfig(config) {
-  return {
-    ...config,
-    textTags: [...(config.textTags || [])],
-  };
-}
-
-const ACTION_CONFIG_PRESETS = {
-  leftClick: createActionConfig({
-    textKind: "数字飘字",
-    textEnabled: true,
-    textContent: "+1",
-    textTags: ["功德 +1", "继续点击", "已触发"],
-    textColor: "#B45309",
-    textDuration: 1000,
-    textEasing: "缓出",
-    textWeight: "加粗",
-    textShadow: "无",
-    comboEnabled: true,
-    textOffsetY: -26,
-    particle: true,
-    particleCount: 18,
-    particleSpread: 56,
-    particleDirection: "四周扩散",
-    particleDuration: 760,
-    particleSize: 14,
-    particleOpacity: 88,
-    ripple: true,
-    rippleSize: 68,
-    rippleDuration: 820,
-    rippleEasing: "缓出",
-    rippleOpacity: 72,
-    sound: true,
-    fontSize: 22,
-    volume: 78,
-    soundFadeOut: 80,
-    soundTriggerMode: "每次触发",
-    shake: 42,
-    cursorOverride: "木鱼（继承默认）",
-    cursorSize: 48,
-    triggerTiming: "抬起时",
-    triggerZone: "当前页面可点击区域",
-    holdMs: 0,
-    soundFile: "woodfish-soft.wav",
-  }),
-  rightClick: createActionConfig({
-    textKind: "文本飘字",
-    textEnabled: false,
-    textContent: "menu",
-    textTags: ["展开菜单", "右键操作", "更多选项"],
-    textColor: "#475569",
-    textDuration: 820,
-    textEasing: "缓出",
-    textWeight: "中等",
-    textShadow: "无",
-    textOffsetY: -18,
-    particle: false,
-    particleCount: 10,
-    particleSpread: 30,
-    particleDirection: "沿点击方向",
-    particleDuration: 520,
-    particleSize: 10,
-    particleOpacity: 70,
-    ripple: false,
-    rippleSize: 42,
-    rippleDuration: 520,
-    rippleEasing: "缓出",
-    rippleOpacity: 56,
-    sound: false,
-    fontSize: 18,
-    volume: 60,
-    playbackRate: 96,
-    soundFadeOut: 40,
-    soundTriggerMode: "节流播放",
-    shake: 18,
-    cursorOverride: "跟随当前状态",
-    cursorSize: 44,
-    triggerTiming: "菜单弹出前",
-    triggerZone: "右键菜单前",
-    holdMs: 0,
-    soundFile: "tick-light.wav",
-  }),
-  doubleClick: createActionConfig({
-    textKind: "数字飘字",
-    textStyle: "英文单词 (one, two, three)",
-    textMode: "模板模式",
-    textTemplate: "combo ${number}",
-    textEnabled: true,
-    textContent: "combo",
-    textTags: ["双击完成", "连击命中", "combo"],
-    textTagPlayMode: "随机显示",
-    textColor: "#0F766E",
-    textDuration: 1100,
-    textEasing: "弹性",
-    textWeight: "加粗",
-    textOutlineWidth: 1,
-    textShadow: "柔和",
-    comboEnabled: true,
-    textOffsetY: -30,
-    particle: true,
-    particleCount: 24,
-    particleSpread: 72,
-    particleStyle: "火花",
-    particleDirection: "四周扩散",
-    particleColorMode: "随机轻变化",
-    particleDuration: 980,
-    particleSize: 16,
-    particleOpacity: 96,
-    ripple: true,
-    rippleSize: 82,
-    rippleDuration: 920,
-    rippleStyle: "双环",
-    rippleEasing: "弹性",
-    rippleLineWidth: 3,
-    rippleOpacity: 84,
-    sound: true,
-    fontSize: 24,
-    volume: 80,
-    playbackRate: 104,
-    soundFadeOut: 90,
-    soundTriggerMode: "连击叠加",
-    soundBlendMode: "压低页面音频",
-    shake: 50,
-    cursorOverride: "木鱼（增强态）",
-    cursorSize: 52,
-    triggerTiming: "第二次抬起后",
-    triggerZone: "双击命中区域",
-    holdMs: 320,
-    soundFile: "woodfish-deep.wav",
-  }),
-  longPress: createActionConfig({
-    textKind: "文本飘字",
-    textStyle: "中文数字 (一, 二, 三)",
-    textEnabled: false,
-    textContent: "蓄",
-    textTags: ["按住中", "蓄力完成", "松开触发"],
-    textColor: "#7C3AED",
-    textDuration: 900,
-    textEasing: "缓入缓出",
-    textOpacity: 94,
-    textWeight: "中等",
-    textShadow: "柔和",
-    textOffsetY: -22,
-    particle: false,
-    particleCount: 14,
-    particleSpread: 44,
-    particleStyle: "碎屑粒子",
-    particleDirection: "向上喷发",
-    particleDuration: 720,
-    particleSize: 12,
-    particleOpacity: 78,
-    ripple: false,
-    rippleSize: 58,
-    rippleDuration: 760,
-    rippleStyle: "柔和面波",
-    rippleEasing: "缓入缓出",
-    rippleOpacity: 60,
-    sound: true,
-    fontSize: 20,
-    volume: 72,
-    playbackRate: 92,
-    soundDelay: 60,
-    soundFadeOut: 120,
-    soundTriggerMode: "每次触发",
-    soundBlendMode: "压低页面音频",
-    shake: 58,
-    cursorOverride: "木鱼（按压态）",
-    cursorSize: 50,
-    triggerTiming: "松开后触发",
-    triggerZone: "按住后释放",
-    holdMs: 560,
-    soundFile: "woodfish-deep.wav",
-  }),
-  wheel: createActionConfig({
-    textKind: "文本飘字",
-    textEnabled: false,
-    textContent: "roll",
-    textTags: ["向上滚动", "向下滚动", "继续滚动"],
-    textTagPlayMode: "随机显示",
-    textColor: "#0284C7",
-    textDuration: 700,
-    textEasing: "线性",
-    textOpacity: 90,
-    textWeight: "常规",
-    textShadow: "无",
-    textOffsetY: -14,
-    particle: true,
-    particleCount: 10,
-    particleSpread: 36,
-    particleDirection: "沿点击方向",
-    particleColorMode: "跟随飘字色",
-    particleDuration: 460,
-    particleSize: 10,
-    particleOpacity: 72,
-    ripple: false,
-    rippleSize: 36,
-    rippleDuration: 480,
-    rippleEasing: "线性",
-    rippleLineWidth: 1,
-    rippleOpacity: 44,
-    sound: false,
-    fontSize: 16,
-    volume: 40,
-    playbackRate: 110,
-    soundFadeOut: 30,
-    soundTriggerMode: "节流播放",
-    shake: 16,
-    cursorOverride: "跟随当前状态",
-    cursorSize: 44,
-    triggerTiming: "连续滚动中",
-    triggerZone: "向上 / 向下滚轮",
-    holdMs: 180,
-    soundFile: "tick-light.wav",
-  }),
-  hover: createActionConfig({
-    textKind: "文本飘字",
-    textEnabled: false,
-    textContent: "hover",
-    textTags: ["已聚焦", "经过目标", "可点击"],
-    textTagPlayMode: "随机显示",
-    textColor: "#475569",
-    textDuration: 680,
-    textEasing: "缓入缓出",
-    textOpacity: 88,
-    textWeight: "常规",
-    textShadow: "无",
-    textOffsetY: -12,
-    particle: false,
-    particleCount: 8,
-    particleSpread: 24,
-    particleDirection: "向上喷发",
-    particleDuration: 420,
-    particleSize: 8,
-    particleOpacity: 60,
-    ripple: false,
-    rippleSize: 32,
-    rippleDuration: 420,
-    rippleStyle: "柔和面波",
-    rippleEasing: "缓入缓出",
-    rippleLineWidth: 1,
-    rippleOpacity: 38,
-    sound: false,
-    fontSize: 16,
-    volume: 0,
-    soundFadeOut: 0,
-    soundTriggerMode: "节流播放",
-    shake: 0,
-    cursorOverride: "切换到 pointer",
-    cursorSize: 44,
-    triggerTiming: "停留后",
-    triggerZone: "进入可交互元素",
-    holdMs: 220,
-    soundFile: "tick-light.wav",
-  }),
-};
-
-const THEME_ACTION_OVERRIDES = {
-  "lite-default": {
-    leftClick: { sound: false, particle: false, fontSize: 18, shake: 12, textColor: "#0F766E" },
-    doubleClick: { sound: false, ripple: false, particle: true, fontSize: 18, shake: 18, textColor: "#0F766E" },
-    wheel: { particle: false, ripple: false },
-  },
-  "demo-highlight": {
-    leftClick: { fontSize: 26, volume: 84, shake: 55, particleCount: 26, rippleSize: 88 },
-    doubleClick: { fontSize: 28, particle: true, ripple: true, sound: true, shake: 68, particleCount: 32, rippleSize: 96 },
-    hover: { ripple: true },
-  },
-  petal: {
-    leftClick: { textStyle: "中文数字 (一, 二, 三)", volume: 68, shake: 26, textColor: "#BE185D" },
-    doubleClick: { textStyle: "中文数字 (一, 二, 三)", volume: 64, textColor: "#BE185D" },
-    wheel: { particle: true, ripple: true },
-  },
-};
-
-export function getDefaultActionConfigs(themeId) {
-  const themeOverrides = THEME_ACTION_OVERRIDES[themeId] || {};
-  return Object.fromEntries(
-    Object.entries(ACTION_CONFIG_PRESETS).map(([actionId, config]) => [
-      actionId,
-      {
-        ...cloneActionConfig(config),
-        ...(themeOverrides[actionId] || {}),
-      },
-    ])
-  );
-}
-
 export function createThemeDraft(themeId) {
   return {
     actionConfigs: getDefaultActionConfigs(themeId),
@@ -579,37 +236,27 @@ export function buildThemeDrafts(themes = THEMES) {
   return Object.fromEntries((themes || []).map((theme) => [theme.id, createThemeDraft(theme.id)]));
 }
 
-export function getTimingFieldMeta(actionId) {
-  if (actionId === "longPress") {
-    return { label: "长按阈值", hint: "按住多久以后才算长按。", min: 200, max: 900 };
-  }
-  if (actionId === "doubleClick") {
-    return { label: "双击间隔", hint: "两次点击之间允许的最大间隔。", min: 180, max: 520 };
-  }
-  if (actionId === "hover") {
-    return { label: "停留阈值", hint: "鼠标停多久之后再触发 hover 效果。", min: 80, max: 700 };
-  }
-  if (actionId === "wheel") {
-    return { label: "合并间隔", hint: "连续滚动时，多久合并为一次反馈。", min: 80, max: 520 };
-  }
-  return { label: "触发延迟", hint: "动作识别后，延迟多久开始反馈。", min: 0, max: 320 };
-}
-
-export function getConflictsForAction(actionId, actionConfigs) {
-  const current = actionConfigs[actionId];
-  const conflicts = [];
-
-  if (actionId === "longPress" && current.sound && actionConfigs.leftClick.sound) {
-    conflicts.push("长按和左键单击都在使用音效，后续需要明确谁先触发。");
-  }
-
-  if (actionId === "hover" && (current.ripple || current.particle)) {
-    conflicts.push("悬停已经带视觉反馈，后续要明确是否覆盖 pointer 状态。");
-  }
-
-  if (!current.textEnabled && !current.particle && !current.ripple && !current.sound) {
-    conflicts.push("当前动作没有绑定任何反馈，用户点击时会感觉没效果。");
-  }
-
-  return conflicts;
-}
+export {
+  AUDIO_BLEND_OPTIONS,
+  AUDIO_TRIGGER_OPTIONS,
+  CURSOR_HOTSPOT_OPTIONS,
+  CURSOR_OVERRIDE_OPTIONS,
+  CURSOR_SIZE_OPTIONS,
+  NUMBER_STYLE_OPTIONS,
+  PARTICLE_COLOR_MODE_OPTIONS,
+  PARTICLE_DIRECTION_OPTIONS,
+  PARTICLE_STYLE_OPTIONS,
+  RIPPLE_EASING_OPTIONS,
+  RIPPLE_STYLE_OPTIONS,
+  SOUND_FILE_OPTIONS,
+  TEXT_EASING_OPTIONS,
+  TEXT_KIND_OPTIONS,
+  TEXT_MODE_OPTIONS,
+  TEXT_SHADOW_OPTIONS,
+  TEXT_TAG_PLAY_OPTIONS,
+  TEXT_WEIGHT_OPTIONS,
+  TRIGGER_OPTIONS,
+  getConflictsForAction,
+  getDefaultActionConfigs,
+  getTimingFieldMeta,
+};
