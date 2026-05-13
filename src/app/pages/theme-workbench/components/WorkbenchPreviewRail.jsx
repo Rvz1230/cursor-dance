@@ -10,28 +10,36 @@ import {
   getAnimationEasingCss,
   getParticleStyleProps,
   getParticleTint,
+  getPreviewCursorSize,
+  getPreviewLoopDelay,
+  getPreviewSoundFile,
+  getPreviewTriggerSummary,
   getPreviewText,
   getTextShadowValue,
   getTextWeightValue,
   hexToRgba,
 } from "../lib/preview.js";
+import {
+  getActionAudioConfig,
+  getActionParticleConfig,
+  getActionRippleConfig,
+  getActionTextConfig,
+} from "../model/workbenchSchema.js";
 import { Panel, PreviewBadge } from "./WorkbenchControls.jsx";
 
 function CursorPreview({ actionLabel, config, siteMode }) {
   const disabledBySite = siteMode === "当前禁用";
   const [runId, setRunId] = useState(0);
   const [autoPlay, setAutoPlay] = useState(true);
+  const textConfig = useMemo(() => getActionTextConfig(config), [config]);
+  const particleConfig = useMemo(() => getActionParticleConfig(config), [config]);
+  const rippleConfig = useMemo(() => getActionRippleConfig(config), [config]);
+  const audioConfig = useMemo(() => getActionAudioConfig(config), [config]);
+  const cursorSize = getPreviewCursorSize(config);
   const accentText = getPreviewText(config, runId);
   const particleSpecs = useMemo(() => buildParticleSpecs(config, runId), [config, runId]);
   const rippleSpecs = useMemo(() => buildRippleSpecs(config), [config]);
-  const loopDelay =
-    Math.max(
-      config.textEnabled ? config.textDuration : 0,
-      config.particle ? config.particleDuration : 0,
-      config.ripple ? config.rippleDuration : 0,
-      config.sound ? 880 : 0,
-      1400
-    ) + 900;
+  const loopDelay = getPreviewLoopDelay(config);
 
   function replay() {
     if (disabledBySite) return;
@@ -61,7 +69,7 @@ function CursorPreview({ actionLabel, config, siteMode }) {
           <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
             <div className="truncate text-sm font-semibold text-slate-900">{actionLabel} 效果模拟</div>
             <div className="truncate text-xs text-slate-500">
-              {config.triggerTiming} · {config.triggerZone}
+              {getPreviewTriggerSummary(config)}
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -93,7 +101,7 @@ function CursorPreview({ actionLabel, config, siteMode }) {
           <div className="absolute inset-x-6 bottom-6 h-px bg-slate-300/70" />
 
           <div className="absolute left-1/2 top-[56%] h-0 w-0">
-            {config.ripple && !disabledBySite ? (
+            {rippleConfig.ripple && !disabledBySite ? (
               rippleSpecs.map((ripple, index) => (
                 <div
                   key={`ripple-${runId}-${index}`}
@@ -101,19 +109,19 @@ function CursorPreview({ actionLabel, config, siteMode }) {
                   style={{
                     width: `${ripple.size}px`,
                     height: `${ripple.size}px`,
-                    borderWidth: ripple.filled ? 0 : `${config.rippleLineWidth}px`,
+                    borderWidth: ripple.filled ? 0 : `${rippleConfig.rippleLineWidth}px`,
                     borderColor: ripple.filled ? "transparent" : hexToRgba("#34D399", ripple.opacity),
                     background: ripple.filled
                       ? `radial-gradient(circle, ${hexToRgba("#6EE7B7", ripple.opacity * 0.34)} 0%, ${hexToRgba("#34D399", ripple.opacity * 0.16)} 56%, ${hexToRgba("#34D399", 0)} 100%)`
                       : "transparent",
                     boxShadow: ripple.filled ? `0 0 0 1px ${hexToRgba("#34D399", ripple.opacity * 0.22)} inset` : undefined,
-                    animation: `cursorDancePreviewRipple ${config.rippleDuration}ms ${getAnimationEasingCss(config.rippleEasing)} ${ripple.delay}ms forwards`,
+                    animation: `cursorDancePreviewRipple ${rippleConfig.rippleDuration}ms ${getAnimationEasingCss(rippleConfig.rippleEasing)} ${ripple.delay}ms forwards`,
                   }}
                 />
               ))
             ) : null}
 
-            {config.particle && !disabledBySite
+            {particleConfig.particle && !disabledBySite
               ? particleSpecs.map((particle, index) => {
                   const shape = getParticleStyleProps(config, index, particle.size);
                   return (
@@ -128,7 +136,7 @@ function CursorPreview({ actionLabel, config, siteMode }) {
                       boxShadow: shape.boxShadow,
                       "--particle-x": `${particle.x}px`,
                       "--particle-y": `${particle.y}px`,
-                      animation: `cursorDancePreviewParticle ${config.particleDuration}ms ${config.particleStyle === "火花" ? "cubic-bezier(0.22, 1, 0.36, 1)" : "ease-out"} ${particle.delay}ms forwards`,
+                      animation: `cursorDancePreviewParticle ${particleConfig.particleDuration}ms ${particleConfig.particleStyle === "火花" ? "cubic-bezier(0.22, 1, 0.36, 1)" : "ease-out"} ${particle.delay}ms forwards`,
                       transform: `rotate(${shape.rotation}deg)`,
                     }}
                   />
@@ -136,21 +144,21 @@ function CursorPreview({ actionLabel, config, siteMode }) {
                 })
               : null}
 
-            {config.textEnabled && !disabledBySite ? (
+            {textConfig.textEnabled && !disabledBySite ? (
               <div
                 className="absolute left-1/2 top-1/2"
-                style={{ marginLeft: `${config.textOffsetX}px`, marginTop: `${config.textOffsetY}px` }}
+                style={{ marginLeft: `${textConfig.textOffsetX}px`, marginTop: `${textConfig.textOffsetY}px` }}
               >
                 <div
                   key={`text-${runId}`}
                   className="whitespace-nowrap text-center tabular-nums"
                   style={{
-                    color: hexToRgba(config.textColor, config.textOpacity / 100),
-                    fontSize: `${config.fontSize}px`,
-                    fontWeight: getTextWeightValue(config.textWeight),
+                    color: hexToRgba(textConfig.textColor, textConfig.textOpacity / 100),
+                    fontSize: `${textConfig.fontSize}px`,
+                    fontWeight: getTextWeightValue(textConfig.textWeight),
                     textShadow: getTextShadowValue(config),
-                    WebkitTextStroke: config.textOutlineWidth ? `${config.textOutlineWidth}px ${hexToRgba("#FFFFFF", 0.82)}` : undefined,
-                    animation: `cursorDancePreviewFloat ${config.textDuration}ms ${getAnimationEasingCss(config.textEasing)} forwards`,
+                    WebkitTextStroke: textConfig.textOutlineWidth ? `${textConfig.textOutlineWidth}px ${hexToRgba("#FFFFFF", 0.82)}` : undefined,
+                    animation: `cursorDancePreviewFloat ${textConfig.textDuration}ms ${getAnimationEasingCss(textConfig.textEasing)} forwards`,
                   }}
                 >
                   {accentText}
@@ -168,7 +176,7 @@ function CursorPreview({ actionLabel, config, siteMode }) {
             >
               <div
                 className="relative flex items-center justify-center rounded-full border border-amber-300 bg-amber-50 shadow-sm"
-                style={{ width: `${config.cursorSize}px`, height: `${config.cursorSize}px` }}
+                style={{ width: `${cursorSize}px`, height: `${cursorSize}px` }}
               >
                 <Bell className="h-5 w-5 text-amber-700" />
                 <div className="absolute inset-2 rounded-full border border-amber-200/80" />
@@ -176,9 +184,9 @@ function CursorPreview({ actionLabel, config, siteMode }) {
             </div>
           </div>
 
-          {config.sound && !disabledBySite ? (
+          {audioConfig.sound && !disabledBySite ? (
             <div className="absolute right-4 top-4 flex items-center gap-2 rounded-full border border-slate-200 bg-white/94 px-2.5 py-1.5 text-[11px] text-slate-500 shadow-sm">
-              <span className="max-w-[96px] truncate">{config.soundFile}</span>
+              <span className="max-w-[96px] truncate">{getPreviewSoundFile(config)}</span>
               <div className="flex items-end gap-1">
                 {[0, 1, 2, 3].map((bar) => (
                   <span

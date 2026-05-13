@@ -1,3 +1,12 @@
+import {
+  getActionAudioConfig,
+  getActionCursorFeedbackConfig,
+  getActionParticleConfig,
+  getActionRippleConfig,
+  getActionTextConfig,
+  getActionTriggerConfig,
+} from "../model/workbenchSchema.js";
+
 export const PREVIEW_KEYFRAMES = `
   @keyframes cursorDancePreviewFloat {
     0% { opacity: 0; transform: translate3d(0, 8px, 0) scale(0.92); }
@@ -32,23 +41,24 @@ export function formatPreviewNumber(style) {
 }
 
 export function getPreviewText(config, runIndex = 0) {
-  if (!config.textEnabled) return "静默";
-  if (config.textKind === "文本飘字") {
-    const primaryText = typeof config.textContent === "string" ? config.textContent.trim() : "";
+  const textConfig = getActionTextConfig(config);
+  if (!textConfig.textEnabled) return "静默";
+  if (textConfig.textKind === "文本飘字") {
+    const primaryText = typeof textConfig.textContent === "string" ? textConfig.textContent.trim() : "";
     const tags = [
       ...(primaryText ? [primaryText] : []),
-      ...(config.textTags || []).filter((item) => item && item !== primaryText),
+      ...(textConfig.textTags || []).filter((item) => item && item !== primaryText),
     ];
     if (!tags.length) return "未设置文本";
-    if (config.textTagPlayMode === "随机显示") {
+    if (textConfig.textTagPlayMode === "随机显示") {
       return tags[(runIndex * 7 + 3) % tags.length];
     }
     return tags[runIndex % tags.length];
   }
 
-  const previewNumber = formatPreviewNumber(config.textStyle);
-  if (config.textMode === "模板模式") {
-    return config.textTemplate.replaceAll("${number}", previewNumber);
+  const previewNumber = formatPreviewNumber(textConfig.textStyle);
+  if (textConfig.textMode === "模板模式") {
+    return textConfig.textTemplate.replaceAll("${number}", previewNumber);
   }
 
   return `+${previewNumber}`;
@@ -77,9 +87,10 @@ export function hexToRgba(hex, alpha) {
 }
 
 export function getTextShadowValue(config) {
-  const color = hexToRgba(config.textColor, config.textShadow === "清晰" ? 0.36 : 0.24);
-  if (config.textShadow === "清晰") return `0 8px 18px ${color}`;
-  if (config.textShadow === "柔和") return `0 4px 12px ${color}`;
+  const textConfig = getActionTextConfig(config);
+  const color = hexToRgba(textConfig.textColor, textConfig.textShadow === "清晰" ? 0.36 : 0.24);
+  if (textConfig.textShadow === "清晰") return `0 8px 18px ${color}`;
+  if (textConfig.textShadow === "柔和") return `0 4px 12px ${color}`;
   return "none";
 }
 
@@ -93,26 +104,29 @@ export function getAnimationEasingCss(label) {
 }
 
 export function getParticleTint(config, index) {
-  if (config.particleColorMode === "跟随飘字色") return hexToRgba(config.textColor, config.particleOpacity / 100);
-  if (config.particleColorMode === "随机轻变化") {
+  const particleConfig = getActionParticleConfig(config);
+  const textConfig = getActionTextConfig(config);
+  if (particleConfig.particleColorMode === "跟随飘字色") return hexToRgba(textConfig.textColor, particleConfig.particleOpacity / 100);
+  if (particleConfig.particleColorMode === "随机轻变化") {
     const palette = ["#FDBA74", "#FDE68A", "#86EFAC", "#93C5FD", "#F9A8D4"];
-    return hexToRgba(palette[index % palette.length], config.particleOpacity / 100);
+    return hexToRgba(palette[index % palette.length], particleConfig.particleOpacity / 100);
   }
-  return hexToRgba("#FBBF24", config.particleOpacity / 100);
+  return hexToRgba("#FBBF24", particleConfig.particleOpacity / 100);
 }
 
 export function buildParticleSpecs(config, runIndex) {
-  const visibleCount = Math.min(config.particleCount, 20);
-  const spread = Math.max(18, Math.min(config.particleSpread, 88));
+  const particleConfig = getActionParticleConfig(config);
+  const visibleCount = Math.min(particleConfig.particleCount, 20);
+  const spread = Math.max(18, Math.min(particleConfig.particleSpread, 88));
 
   return Array.from({ length: visibleCount }, (_, index) => {
     let startAngle = 0;
     let sweep = Math.PI * 2;
 
-    if (config.particleDirection === "向上喷发") {
+    if (particleConfig.particleDirection === "向上喷发") {
       startAngle = -Math.PI * 0.95;
       sweep = Math.PI * 0.9;
-    } else if (config.particleDirection === "沿点击方向") {
+    } else if (particleConfig.particleDirection === "沿点击方向") {
       startAngle = -Math.PI * 0.38;
       sweep = Math.PI * 0.76;
     }
@@ -124,13 +138,14 @@ export function buildParticleSpecs(config, runIndex) {
       x: Math.cos(angle) * distance,
       y: Math.sin(angle) * distance,
       delay: index * 26,
-      size: Math.max(6, config.particleSize * (0.52 + (index % 4) * 0.1)),
+      size: Math.max(6, particleConfig.particleSize * (0.52 + (index % 4) * 0.1)),
     };
   });
 }
 
 export function getParticleStyleProps(config, index, size) {
-  const style = config.particleStyle || "点状粒子";
+  const particleConfig = getActionParticleConfig(config);
+  const style = particleConfig.particleStyle || "点状粒子";
   if (style === "火花") {
     return {
       width: size * 1.9,
@@ -159,14 +174,15 @@ export function getParticleStyleProps(config, index, size) {
 }
 
 export function buildRippleSpecs(config) {
-  const size = config.rippleSize;
-  const opacity = config.rippleOpacity / 100;
-  const style = config.rippleStyle || "单环";
+  const rippleConfig = getActionRippleConfig(config);
+  const size = rippleConfig.rippleSize;
+  const opacity = rippleConfig.rippleOpacity / 100;
+  const style = rippleConfig.rippleStyle || "单环";
 
   if (style === "双环") {
     return [
       { size, opacity, delay: 0, filled: false },
-      { size: size * 1.12, opacity: opacity * 0.82, delay: Math.min(120, config.rippleDuration * 0.12), filled: false },
+      { size: size * 1.12, opacity: opacity * 0.82, delay: Math.min(120, rippleConfig.rippleDuration * 0.12), filled: false },
     ];
   }
 
@@ -175,4 +191,36 @@ export function buildRippleSpecs(config) {
   }
 
   return [{ size, opacity, delay: 0, filled: false }];
+}
+
+export function getPreviewLoopDelay(config) {
+  const textConfig = getActionTextConfig(config);
+  const particleConfig = getActionParticleConfig(config);
+  const rippleConfig = getActionRippleConfig(config);
+  const audioConfig = getActionAudioConfig(config);
+
+  return (
+    Math.max(
+      textConfig.textEnabled ? textConfig.textDuration : 0,
+      particleConfig.particle ? particleConfig.particleDuration : 0,
+      rippleConfig.ripple ? rippleConfig.rippleDuration : 0,
+      audioConfig.sound ? 880 : 0,
+      1400
+    ) + 900
+  );
+}
+
+export function getPreviewCursorSize(config) {
+  const cursorConfig = getActionCursorFeedbackConfig(config);
+  return cursorConfig.cursorSize;
+}
+
+export function getPreviewSoundFile(config) {
+  const audioConfig = getActionAudioConfig(config);
+  return audioConfig.soundFile;
+}
+
+export function getPreviewTriggerSummary(config) {
+  const triggerConfig = getActionTriggerConfig(config);
+  return `${triggerConfig.triggerTiming} · ${triggerConfig.triggerZone}`;
 }
