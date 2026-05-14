@@ -2,11 +2,9 @@ import { useEffect, useMemo, useReducer, useRef } from "react";
 import {
   ACTIONS,
   CURSOR_STATES,
-  THEMES,
   WORKSPACES,
   buildDefaultCursorStateActions,
   buildDefaultCursorStateAssets,
-  createThemeDraft,
   getConflictsForAction,
 } from "../model/workbenchSchema.js";
 import {
@@ -14,296 +12,29 @@ import {
   buildPreviewThemePackFromWorkbench,
   buildStoredConfigFromWorkbench,
   buildThemeExportPayload,
-  clearLivePreviewConfig,
-  createWorkbenchThemeState,
-  DEFAULT_WORKBENCH_SITE_MODE,
   downloadThemePackExport,
-  draftFromThemePack,
-  hydrateWorkbenchState,
   previewThemePack,
-  readActiveSiteContext,
   readExtensionConfig,
-  readRecentCursorAssets,
-  subscribeExtensionConfig,
-  themePackToThemeLibraryItem,
-  writeLivePreviewConfig,
   writeRecentCursorAsset,
   writeExtensionConfig,
 } from "../lib/extensionConfig.js";
-
-const INITIAL_THEME_STATE = createWorkbenchThemeState(THEMES);
-
-const initialState = {
-  workspaceId: "workbench",
-  selection: {
-    themeId: INITIAL_THEME_STATE.selectedThemeId,
-    actionId: "leftClick",
-    cursorStateId: "default",
-  },
-  siteMode: DEFAULT_WORKBENCH_SITE_MODE,
-  ui: {
-    enabled: true,
-    unsaved: true,
-    siteFilter: "",
-    isHydrated: false,
-    isSaving: false,
-    saveError: "",
-  },
-  site: {
-    host: "example.com",
-    isSupportedPage: false,
-    tabId: null,
-  },
-  recentCursorAssets: [],
-  siteRulesByHost: {},
-  themeLibrary: INITIAL_THEME_STATE.themeLibrary,
-  draftsByTheme: INITIAL_THEME_STATE.draftsByTheme,
-};
-
-function cloneValue(value) {
-  return JSON.parse(JSON.stringify(value));
-}
-
-function slugifyThemeName(name) {
-  return String(name || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 48);
-}
-
-function buildUniqueThemeId(name, existingIds) {
-  const base = slugifyThemeName(name) || "custom-theme";
-  if (!existingIds.has(base)) return base;
-  let index = 2;
-  while (existingIds.has(`${base}-${index}`)) {
-    index += 1;
-  }
-  return `${base}-${index}`;
-}
-
-function buildUniqueThemeName(name, existingNames) {
-  const trimmedName = String(name || "").trim() || "自定义主题";
-  if (!existingNames.has(trimmedName)) return trimmedName;
-  let index = 2;
-  while (existingNames.has(`${trimmedName} ${index}`)) {
-    index += 1;
-  }
-  return `${trimmedName} ${index}`;
-}
-
-function resolveImportedThemePack(rawValue) {
-  if (!rawValue || typeof rawValue !== "object" || Array.isArray(rawValue)) {
-    throw new Error("导入失败：JSON 需要是一个主题对象。");
-  }
-
-  const candidate = rawValue.themePack || rawValue.theme || rawValue.pack || rawValue.cursordanceTheme || rawValue;
-  if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) {
-    throw new Error("导入失败：没有识别到可用的主题包。");
-  }
-
-  if (!candidate.workbenchDraft && !candidate.behavior && !candidate.cursorStates) {
-    throw new Error("导入失败：主题包里缺少行为配置。");
-  }
-
-  return candidate;
-}
-
-function reducer(state, action) {
-  switch (action.type) {
-    case "hydrate":
-      return {
-        ...state,
-        ...action.payload,
-        ui: {
-          ...state.ui,
-          ...action.payload.ui,
-          isHydrated: true,
-          isSaving: false,
-          saveError: "",
-        },
-      };
-    case "workspace/set":
-      return {
-        ...state,
-        workspaceId: action.payload,
-        ui: { ...state.ui, unsaved: true, saveError: "" },
-      };
-    case "theme/select":
-      return { ...state, selection: { ...state.selection, themeId: action.payload }, ui: { ...state.ui, saveError: "" } };
-    case "theme/library-add": {
-      const { theme, draft, select = true } = action.payload;
-      return {
-        ...state,
-        themeLibrary: [...state.themeLibrary, theme],
-        draftsByTheme: {
-          ...state.draftsByTheme,
-          [theme.id]: draft,
-        },
-        selection: select ? { ...state.selection, themeId: theme.id } : state.selection,
-        ui: { ...state.ui, unsaved: true, saveError: "" },
-      };
-    }
-    case "theme/library-remove": {
-      const { themeId, nextSelectedThemeId } = action.payload;
-      const nextDraftsByTheme = { ...state.draftsByTheme };
-      delete nextDraftsByTheme[themeId];
-      return {
-        ...state,
-        themeLibrary: state.themeLibrary.filter((theme) => theme.id !== themeId),
-        draftsByTheme: nextDraftsByTheme,
-        selection: {
-          ...state.selection,
-          themeId: nextSelectedThemeId || state.selection.themeId,
-        },
-        ui: { ...state.ui, unsaved: true, saveError: "" },
-      };
-    }
-    case "action/select":
-      return {
-        ...state,
-        selection: { ...state.selection, actionId: action.payload },
-        ui: { ...state.ui, unsaved: true, saveError: "" },
-      };
-    case "cursor-state/select":
-      return {
-        ...state,
-        selection: { ...state.selection, cursorStateId: action.payload },
-        ui: { ...state.ui, unsaved: true, saveError: "" },
-      };
-    case "global-enabled/set":
-      return { ...state, ui: { ...state.ui, enabled: action.payload, unsaved: true, saveError: "" } };
-    case "site-filter/set":
-      return { ...state, ui: { ...state.ui, siteFilter: action.payload } };
-    case "site-mode/set": {
-      const nextRulesByHost = { ...state.siteRulesByHost };
-      if (state.site.host) {
-        if (action.payload === "跟随全局") {
-          delete nextRulesByHost[state.site.host];
-        } else {
-          nextRulesByHost[state.site.host] = {
-            ...(nextRulesByHost[state.site.host] || {}),
-            mode: action.payload === "当前启用" ? "enabled" : "disabled",
-          };
-        }
-      }
-      return {
-        ...state,
-        siteMode: action.payload,
-        siteRulesByHost: nextRulesByHost,
-        ui: { ...state.ui, unsaved: true, saveError: "" },
-      };
-    }
-    case "site-rules/clear-all":
-      return {
-        ...state,
-        siteMode: DEFAULT_WORKBENCH_SITE_MODE,
-        siteRulesByHost: {},
-        ui: { ...state.ui, unsaved: true, saveError: "" },
-      };
-    case "site-rules/remove-hosts": {
-      const nextRulesByHost = { ...state.siteRulesByHost };
-      action.payload.forEach((host) => delete nextRulesByHost[host]);
-      const currentHostRemoved = action.payload.includes(state.site.host);
-      return {
-        ...state,
-        siteRulesByHost: nextRulesByHost,
-        siteMode: currentHostRemoved ? DEFAULT_WORKBENCH_SITE_MODE : state.siteMode,
-        ui: { ...state.ui, unsaved: true, saveError: "" },
-      };
-    }
-    case "save/start":
-      return { ...state, ui: { ...state.ui, isSaving: true, saveError: "" } };
-    case "save/success":
-      return { ...state, ui: { ...state.ui, unsaved: false, isSaving: false, saveError: "" } };
-    case "save/error":
-      return { ...state, ui: { ...state.ui, isSaving: false, saveError: action.payload || "保存失败" } };
-    case "recent-assets/set":
-      return { ...state, recentCursorAssets: action.payload };
-    case "theme/update-current": {
-      const themeId = state.selection.themeId;
-      return {
-        ...state,
-        ui: { ...state.ui, unsaved: true, saveError: "" },
-        draftsByTheme: {
-          ...state.draftsByTheme,
-          [themeId]: action.payload(state.draftsByTheme[themeId]),
-        },
-      };
-    }
-    case "theme/reset-current": {
-      const themeId = state.selection.themeId;
-      return {
-        ...state,
-        ui: { ...state.ui, unsaved: true, saveError: "" },
-        draftsByTheme: {
-          ...state.draftsByTheme,
-          [themeId]: {
-            ...createThemeDraft(themeId),
-          },
-        },
-      };
-    }
-    default:
-      return state;
-  }
-}
+import {
+  buildCreateThemePayload,
+  buildDeleteThemePlan,
+  buildDuplicateThemePayload,
+  buildImportedThemePayload,
+} from "../lib/themeWorkbenchThemeLifecycle.js";
+import {
+  INITIAL_THEME_STATE,
+  initialState,
+  reducer,
+} from "./themeWorkbenchStateStore.js";
+import { useThemeWorkbenchPersistence } from "./useThemeWorkbenchPersistence.js";
 
 export function useThemeWorkbenchState() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const configRef = useRef(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    function clearPreviewOnPageHide() {
-      void clearLivePreviewConfig();
-    }
-
-    async function hydrate() {
-      const [config, site, recentCursorAssets] = await Promise.all([readExtensionConfig(), readActiveSiteContext(), readRecentCursorAssets()]);
-      if (cancelled) return;
-      configRef.current = config;
-      dispatch({ type: "hydrate", payload: { ...hydrateWorkbenchState(config, site), recentCursorAssets } });
-    }
-
-    hydrate();
-    window.addEventListener("pagehide", clearPreviewOnPageHide);
-
-    const unsubscribe = subscribeExtensionConfig(async (nextConfigOrUpdater) => {
-      const site = await readActiveSiteContext();
-      const nextConfig =
-        typeof nextConfigOrUpdater === "function"
-          ? nextConfigOrUpdater(configRef.current ?? {})
-          : nextConfigOrUpdater;
-      configRef.current = nextConfig;
-      if (cancelled) return;
-      dispatch({ type: "hydrate", payload: hydrateWorkbenchState(nextConfig, site) });
-    });
-
-    return () => {
-      cancelled = true;
-      unsubscribe();
-      window.removeEventListener("pagehide", clearPreviewOnPageHide);
-      void clearLivePreviewConfig();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!state.ui.isHydrated) return;
-
-    if (!state.ui.unsaved) {
-      void clearLivePreviewConfig();
-      return;
-    }
-
-    const baseConfig = configRef.current;
-    if (!baseConfig) return;
-
-    const livePreviewConfig = buildStoredConfigFromWorkbench(baseConfig, state);
-    void writeLivePreviewConfig(livePreviewConfig);
-  }, [state]);
+  useThemeWorkbenchPersistence({ state, dispatch, configRef });
 
   const selected = state.selection;
   const activeTheme = useMemo(
@@ -345,89 +76,40 @@ export function useThemeWorkbenchState() {
   }
 
   function createTheme({ name, description = "", basedOnThemeId = "blank" }) {
-    const trimmedName = name.trim();
-    if (!trimmedName) {
-      throw new Error("请先填写主题名称。");
-    }
-
-    const existingIds = new Set(state.themeLibrary.map((item) => item.id));
-    const themeId = buildUniqueThemeId(trimmedName, existingIds);
-    const baseDraft =
-      basedOnThemeId === "blank"
-        ? createThemeDraft(themeId)
-        : cloneValue(state.draftsByTheme[basedOnThemeId] || createThemeDraft(themeId));
-    const basedOnTheme = state.themeLibrary.find((item) => item.id === basedOnThemeId);
-
     dispatch({
       type: "theme/library-add",
-      payload: {
-        theme: {
-          id: themeId,
-          name: trimmedName,
-          kind: "自定义",
-          summary: description.trim() || (basedOnThemeId === "blank" ? "从空白模板开始。" : `基于 ${basedOnTheme?.name || "当前主题"} 创建。`),
-          description: description.trim(),
-          tone: basedOnTheme?.tone || "amber",
-        },
-        draft: baseDraft,
-      },
+      payload: buildCreateThemePayload(
+        { themeLibrary: state.themeLibrary, draftsByTheme: state.draftsByTheme },
+        { name, description, basedOnThemeId }
+      ),
     });
   }
 
   function duplicateTheme(themeId = selected.themeId) {
-    const sourceTheme = state.themeLibrary.find((item) => item.id === themeId);
-    const sourceDraft = state.draftsByTheme[themeId];
-    if (!sourceTheme || !sourceDraft) {
-      throw new Error("复制失败：没有找到要复制的主题。");
-    }
-
-    const existingIds = new Set(state.themeLibrary.map((item) => item.id));
-    const existingNames = new Set(state.themeLibrary.map((item) => item.name));
-    const nextName = buildUniqueThemeName(`${sourceTheme.name} 副本`, existingNames);
-    const nextId = buildUniqueThemeId(nextName, existingIds);
+    const { duplicatedName, payload } = buildDuplicateThemePayload(
+      { themeLibrary: state.themeLibrary, draftsByTheme: state.draftsByTheme },
+      themeId
+    );
 
     dispatch({
       type: "theme/library-add",
-      payload: {
-        theme: {
-          ...sourceTheme,
-          id: nextId,
-          name: nextName,
-          kind: "自定义",
-          summary: sourceTheme.description?.trim() ? sourceTheme.description.trim() : `复制自 ${sourceTheme.name}`,
-          description: sourceTheme.description || "",
-        },
-        draft: cloneValue(sourceDraft),
-      },
+      payload,
     });
 
-    return nextName;
+    return duplicatedName;
   }
 
   function deleteTheme(themeId = selected.themeId) {
-    const themeIndex = state.themeLibrary.findIndex((item) => item.id === themeId);
-    if (themeIndex < 0) {
-      throw new Error("删除失败：没有找到对应主题。");
-    }
-
-    const theme = state.themeLibrary[themeIndex];
-    if (theme.kind === "内置") {
-      throw new Error("内置主题不能删除，请先复制成自定义主题再编辑。");
-    }
-    if (state.themeLibrary.length <= 1) {
-      throw new Error("至少保留一个主题后才能删除当前主题。");
-    }
-
-    const fallbackTheme = state.themeLibrary[themeIndex + 1] || state.themeLibrary[themeIndex - 1] || state.themeLibrary[0];
+    const { themeName, nextSelectedThemeId } = buildDeleteThemePlan(state.themeLibrary, themeId);
     dispatch({
       type: "theme/library-remove",
       payload: {
         themeId,
-        nextSelectedThemeId: fallbackTheme?.id || "",
+        nextSelectedThemeId,
       },
     });
 
-    return theme.name;
+    return themeName;
   }
 
   function exportTheme(themeId = selected.themeId) {
@@ -461,24 +143,9 @@ export function useThemeWorkbenchState() {
       throw new Error("导入失败：文件不是合法的 JSON。");
     }
 
-    const importedThemePack = resolveImportedThemePack(parsed);
-    const fallbackName = fileName.replace(/\.[^.]+$/, "").trim();
-    const resolvedName = importedThemePack.name || fallbackName || "导入主题";
-    const existingIds = new Set(state.themeLibrary.map((item) => item.id));
-    const nextId = buildUniqueThemeId(importedThemePack.id || resolvedName, existingIds);
-    const nextThemePack = {
-      ...cloneValue(importedThemePack),
-      id: nextId,
-      name: resolvedName,
-      kind: importedThemePack.kind || "custom",
-    };
-
     dispatch({
       type: "theme/library-add",
-      payload: {
-        theme: themePackToThemeLibraryItem(nextThemePack, state.themeLibrary.length),
-        draft: draftFromThemePack(nextThemePack),
-      },
+      payload: buildImportedThemePayload(state.themeLibrary, parsed, fileName),
     });
   }
 
