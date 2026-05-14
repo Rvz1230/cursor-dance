@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Bell, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Slider } from "@/components/ui/slider.jsx";
+import { Select } from "@/components/ui/select.jsx";
 import { cn } from "@/components/ui/utils.js";
 import { toneClasses } from "../model/workbenchSchema.js";
 
@@ -45,27 +46,9 @@ export function DataPill({ children, tone = "slate" }) {
   );
 }
 
-export function SmallSelect({ value, options, onChange }) {
+export function SmallSelect({ value, options, onChange, label }) {
   const disabled = !onChange;
-  const selectOptions = options?.length ? options : [value];
-  return (
-    <select
-      value={value}
-      onChange={(event) => onChange?.(event.target.value)}
-      disabled={disabled}
-      className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 shadow-sm shadow-slate-100/60 outline-none focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-50"
-    >
-      {selectOptions.map((item) => {
-        const optionValue = typeof item === "string" ? item : item.value;
-        const optionLabel = typeof item === "string" ? item : item.label;
-        return (
-          <option key={optionValue} value={optionValue}>
-            {optionLabel}
-          </option>
-        );
-      })}
-    </select>
-  );
+  return <Select value={value} options={options} onValueChange={onChange} disabled={disabled} aria-label={label || "选择配置项"} />;
 }
 
 export function FieldRow({ label, hint, control }) {
@@ -80,38 +63,103 @@ export function FieldRow({ label, hint, control }) {
   );
 }
 
-export function ControlSlider({ value, min, max, onValueChange, suffix = "", width = "w-14", disabled = false }) {
+function clampNumber(value, min, max) {
+  if (!Number.isFinite(value)) return min;
+  return Math.min(max, Math.max(min, value));
+}
+
+export function ControlSlider({ value, min, max, onValueChange, suffix = "", width = "w-14", disabled = false, label = "调整数值" }) {
+  function commitValue(nextValue) {
+    onValueChange?.([clampNumber(nextValue, min, max)]);
+  }
+
   return (
     <div className={cn("flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5", disabled && "opacity-50")}>
-      <Slider className="flex-1" value={[value]} min={min} max={max} onValueChange={onValueChange} disabled={disabled} />
-      <span className={cn("rounded-full bg-white px-2.5 py-1 text-right text-sm font-medium tabular-nums text-slate-700", width)}>
-        {value}
-        {suffix}
-      </span>
+      <Slider className="flex-1" value={[value]} min={min} max={max} onValueChange={(next) => commitValue(next[0])} disabled={disabled} aria-label={label} />
+      <div className={cn("flex items-center rounded-xl bg-white px-2 py-1 ring-1 ring-slate-200", width)}>
+        <input
+          type="number"
+          value={value}
+          min={min}
+          max={max}
+          disabled={disabled}
+          aria-label={`${label}数值`}
+          onChange={(event) => {
+            const raw = event.target.value;
+            if (raw === "") return;
+            commitValue(Number(raw));
+          }}
+          onBlur={(event) => commitValue(Number(event.target.value))}
+          className="min-w-0 flex-1 bg-transparent text-right text-sm font-medium tabular-nums text-slate-700 outline-none disabled:cursor-not-allowed"
+        />
+        {suffix ? <span className="ml-0.5 shrink-0 text-xs font-medium text-slate-500">{suffix}</span> : null}
+      </div>
     </div>
   );
 }
 
 export function ColorOptions({ value, onChange, disabled = false }) {
   const colors = ["#B45309", "#0F766E", "#0284C7", "#7C3AED", "#BE185D"];
+  const normalizedValue = /^#[0-9a-f]{6}$/i.test(value || "") ? value.toUpperCase() : "#B45309";
+  const [draft, setDraft] = useState(normalizedValue);
+
+  useEffect(() => {
+    setDraft(normalizedValue);
+  }, [normalizedValue]);
+
+  function commitColor(nextColor) {
+    const normalized = nextColor.trim().startsWith("#") ? nextColor.trim() : `#${nextColor.trim()}`;
+    if (!/^#[0-9a-f]{6}$/i.test(normalized)) {
+      setDraft(value || normalizedValue);
+      return;
+    }
+    const upper = normalized.toUpperCase();
+    setDraft(upper);
+    onChange?.(upper);
+  }
+
   return (
-    <div className={cn("flex flex-wrap gap-2", disabled && "opacity-50")}>
-      {colors.map((color) => (
-        <button
-          key={color}
-          type="button"
+    <div className={cn("grid gap-3", disabled && "opacity-50")}>
+      <div className="flex flex-wrap gap-2">
+        {colors.map((color) => (
+          <button
+            key={color}
+            type="button"
+            disabled={disabled}
+            onClick={() => commitColor(color)}
+            className={cn(
+              "flex size-9 items-center justify-center rounded-xl border transition-transform disabled:cursor-not-allowed",
+              value?.toUpperCase() === color ? "border-slate-900 ring-2 ring-slate-200" : "border-slate-200 hover:scale-[1.03]"
+            )}
+            style={{ backgroundColor: color }}
+            aria-label={`选择颜色 ${color}`}
+          >
+            {value?.toUpperCase() === color ? <span className="size-2.5 rounded-full bg-white/95" /> : null}
+          </button>
+        ))}
+      </div>
+      <div className="grid grid-cols-[44px_minmax(0,1fr)] gap-2">
+        <input
+          type="color"
+          value={normalizedValue}
           disabled={disabled}
-          onClick={() => onChange(color)}
-          className={cn(
-            "flex size-9 items-center justify-center rounded-xl border transition-transform disabled:cursor-not-allowed",
-            value === color ? "border-slate-900 ring-2 ring-slate-200" : "border-slate-200 hover:scale-[1.03]"
-          )}
-          style={{ backgroundColor: color }}
-          aria-label={`选择颜色 ${color}`}
-        >
-          {value === color ? <span className="h-2.5 w-2.5 rounded-full bg-white/95" /> : null}
-        </button>
-      ))}
+          aria-label="选择自定义飘字颜色"
+          onChange={(event) => commitColor(event.target.value)}
+          className="h-10 w-11 cursor-pointer rounded-xl border border-slate-200 bg-white p-1 disabled:cursor-not-allowed"
+        />
+        <Input
+          value={draft}
+          disabled={disabled}
+          aria-label="输入飘字颜色十六进制值"
+          onChange={(event) => setDraft(event.target.value)}
+          onBlur={(event) => commitColor(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") commitColor(event.currentTarget.value);
+          }}
+          className="rounded-xl bg-white font-mono uppercase"
+          placeholder="#B45309"
+        />
+      </div>
     </div>
   );
 }

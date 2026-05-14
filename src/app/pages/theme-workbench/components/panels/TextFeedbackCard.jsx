@@ -119,7 +119,7 @@ export function TextFeedbackCard({ config, updateActionConfig }) {
           <FieldRow
             label="飘字大小"
             hint="字号。"
-            control={<ControlSlider disabled={!config.textEnabled} value={config.fontSize} min={14} max={30} onValueChange={(value) => updateActionConfig({ fontSize: value[0] })} suffix="px" />}
+            control={<ControlSlider disabled={!config.textEnabled} value={config.fontSize} min={14} max={30} onValueChange={(value) => updateActionConfig({ fontSize: value[0] })} suffix="px" label="飘字大小" />}
           />
           <FieldRow label="飘字颜色" hint="颜色。" control={<ColorOptions disabled={!config.textEnabled} value={config.textColor} onChange={(color) => updateActionConfig({ textColor: color })} />} />
           <FieldRow

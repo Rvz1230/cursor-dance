@@ -1,9 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useMemo, useRef, useState } from "react";
 import { CheckCircle2, Copy, Download, FileJson, Plus, Trash2, Upload } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Input } from "@/components/ui/input.jsx";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog.jsx";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog.jsx";
 import { DataPill, SmallSelect, ThemeCard } from "./WorkbenchControls.jsx";
 
 function ThemeComposerModal({
@@ -15,6 +23,7 @@ function ThemeComposerModal({
   createTheme,
   importThemeFromText,
   closeComposer,
+  notify,
 }) {
   const [createName, setCreateName] = useState("");
   const [createDescription, setCreateDescription] = useState("");
@@ -32,25 +41,6 @@ function ThemeComposerModal({
     [themes]
   );
 
-  useEffect(() => {
-    if (!open) return undefined;
-
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    function handleKeyDown(event) {
-      if (event.key === "Escape") {
-        closeComposer();
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [open, closeComposer]);
-
   function handleCreate() {
     try {
       createTheme({
@@ -63,8 +53,11 @@ function ThemeComposerModal({
       setCreateDescription("");
       setCreateBaseThemeId(themeId);
       closeComposer();
+      notify?.({ tone: "success", title: "已创建主题", description: createName.trim() || "新主题已进入工作台。" });
     } catch (error) {
-      setCreateError(error instanceof Error ? error.message : "新建主题失败。");
+      const message = error instanceof Error ? error.message : "新建主题失败。";
+      setCreateError(message);
+      notify?.({ tone: "error", title: "新建主题失败", description: message });
     }
   }
 
@@ -79,31 +72,25 @@ function ThemeComposerModal({
       setImportError("");
       setImportSuccess(`已导入 ${file.name}`);
       closeComposer();
+      notify?.({ tone: "success", title: "已导入主题", description: file.name });
     } catch (error) {
       setImportSuccess("");
-      setImportError(error instanceof Error ? error.message : "导入主题失败。");
+      const message = error instanceof Error ? error.message : "导入主题失败。";
+      setImportError(message);
+      notify?.({ tone: "error", title: "导入主题失败", description: message });
     }
   }
 
-  if (!open) return null;
-
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/22 px-4 py-8" onClick={closeComposer}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="theme-composer-title"
-        className="flex max-h-[min(720px,calc(100dvh-4rem))] w-full max-w-[640px] flex-col overflow-hidden rounded-[32px] border border-slate-200 bg-[#f8fafc] shadow-xl"
-        onClick={(event) => event.stopPropagation()}
-      >
+  return (
+    <Dialog open={open} onOpenChange={(nextOpen) => {
+      if (!nextOpen) closeComposer();
+    }}>
+      <DialogContent titleId="theme-composer-title">
         <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-5 py-4">
           <div>
-            <div id="theme-composer-title" className="text-base font-semibold text-slate-900">主题管理</div>
-            <div className="mt-1 text-sm text-slate-500">新建一个可编辑主题，或导入现有 JSON 主题包。</div>
+            <DialogTitle id="theme-composer-title" className="text-base font-semibold text-slate-900">主题管理</DialogTitle>
+            <DialogDescription className="mt-1 text-sm text-slate-500">新建一个可编辑主题，或导入现有 JSON 主题包。</DialogDescription>
           </div>
-          <Button variant="ghost" className="h-9 rounded-full px-4 text-sm" onClick={closeComposer}>
-            关闭
-          </Button>
         </div>
 
         <div className="overflow-y-auto px-5 py-5">
@@ -117,24 +104,28 @@ function ThemeComposerModal({
           {mode === "create" ? (
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-medium uppercase text-slate-500">主题名称</label>
+                <label htmlFor="theme-create-name" className="text-xs font-medium uppercase text-slate-500">主题名称</label>
                 <Input
+                  id="theme-create-name"
                   value={createName}
                   onChange={(event) => setCreateName(event.target.value)}
                   placeholder="例如：Warm Click Studio"
                   className="bg-white"
                   autoFocus
+                  aria-describedby={createError ? "theme-create-error" : undefined}
+                  aria-invalid={Boolean(createError)}
                 />
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-xs font-medium uppercase text-slate-500">起始模板</label>
-                <SmallSelect value={createBaseThemeId} options={baseThemeOptions} onChange={setCreateBaseThemeId} />
+                <SmallSelect value={createBaseThemeId} options={baseThemeOptions} onChange={setCreateBaseThemeId} label="选择起始模板" />
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium uppercase text-slate-500">主题说明</label>
+                <label htmlFor="theme-create-description" className="text-xs font-medium uppercase text-slate-500">主题说明</label>
                 <textarea
+                  id="theme-create-description"
                   value={createDescription}
                   onChange={(event) => setCreateDescription(event.target.value)}
                   placeholder="一句话说明这个主题更适合什么场景。"
@@ -143,7 +134,7 @@ function ThemeComposerModal({
                 />
               </div>
 
-              {createError ? <div className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{createError}</div> : null}
+              {createError ? <div id="theme-create-error" className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{createError}</div> : null}
 
               <div className="flex items-center justify-between gap-3">
                 <DataPill tone="amber">新主题会先进入工作台，保存后写入扩展配置</DataPill>
@@ -191,9 +182,8 @@ function ThemeComposerModal({
             </div>
           )}
         </div>
-      </div>
-    </div>,
-    document.body
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -206,11 +196,13 @@ export function ThemeLibrarySidebar({
   deleteTheme,
   exportTheme,
   importThemeFromText,
+  notify,
 }) {
   const [query, setQuery] = useState("");
   const [composerMode, setComposerMode] = useState("");
   const [actionError, setActionError] = useState("");
   const [actionSuccess, setActionSuccess] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const filteredThemes = useMemo(() => {
     const keyword = query.trim().toLowerCase();
@@ -234,7 +226,9 @@ export function ThemeLibrarySidebar({
       return result;
     } catch (error) {
       setActionSuccess("");
-      setActionError(error instanceof Error ? error.message : "主题操作失败，请重试。");
+      const message = error instanceof Error ? error.message : "主题操作失败，请重试。";
+      setActionError(message);
+      notify?.({ tone: "error", title: "主题操作失败", description: message });
       return null;
     }
   }
@@ -243,21 +237,23 @@ export function ThemeLibrarySidebar({
     const result = runThemeAction(() => exportTheme(themeId));
     if (!result) return;
     setActionSuccess(`已导出 ${result.fileName}`);
+    notify?.({ tone: "success", title: "已导出主题", description: result.fileName });
   }
 
   function handleDuplicateTheme() {
     const duplicatedName = runThemeAction(() => duplicateTheme(themeId));
     if (!duplicatedName) return;
     setActionSuccess(`已复制为 ${duplicatedName}`);
+    notify?.({ tone: "success", title: "已复制主题", description: duplicatedName });
   }
 
   function handleDeleteTheme() {
     if (!selectedTheme) return;
-    const confirmed = window.confirm(`确定删除主题“${selectedTheme.name}”吗？此操作会在下次保存时写入配置。`);
-    if (!confirmed) return;
     const deletedName = runThemeAction(() => deleteTheme(themeId));
     if (!deletedName) return;
     setActionSuccess(`已移除 ${deletedName}，保存后会从配置中删除。`);
+    setDeleteDialogOpen(false);
+    notify?.({ tone: "success", title: "已移除主题", description: `${deletedName} 将在保存后从配置中删除。` });
   }
 
   return (
@@ -322,15 +318,34 @@ export function ThemeLibrarySidebar({
                 </Button>
               </div>
 
-              <Button
-                variant="ghost"
-                className="mt-2 h-10 w-full rounded-2xl text-rose-600 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:text-slate-400"
-                onClick={handleDeleteTheme}
-                disabled={selectedTheme.kind === "内置" || themes.length <= 1}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                删除当前主题
-              </Button>
+              <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <Button
+                  variant="ghost"
+                  className="mt-2 h-10 w-full rounded-2xl text-rose-600 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:text-slate-400"
+                  onClick={() => setDeleteDialogOpen(true)}
+                  disabled={selectedTheme.kind === "内置" || themes.length <= 1}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  删除当前主题
+                </Button>
+                <AlertDialogContent>
+                  <AlertDialogTitle className="text-base font-semibold text-slate-950">删除主题？</AlertDialogTitle>
+                  <AlertDialogDescription className="mt-2 text-sm leading-6 text-slate-600 text-pretty">
+                    确定删除主题“{selectedTheme.name}”吗？此操作会在下次保存时写入扩展配置。
+                  </AlertDialogDescription>
+                  <div className="mt-5 flex justify-end gap-2">
+                    <AlertDialogCancel className="inline-flex h-10 items-center justify-center rounded-full border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 ring-1 ring-black/5 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2">
+                      取消
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      className="inline-flex h-10 items-center justify-center rounded-full bg-rose-600 px-4 text-sm font-medium text-white ring-1 ring-black/5 transition-colors hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600 focus-visible:ring-offset-2"
+                      onClick={handleDeleteTheme}
+                    >
+                      删除主题
+                    </AlertDialogAction>
+                  </div>
+                </AlertDialogContent>
+              </AlertDialog>
 
               {selectedTheme.kind === "内置" ? (
                 <div className="mt-2 text-xs text-slate-500">内置主题不能直接删除，先复制一份再继续修改会更安全。</div>
@@ -377,6 +392,7 @@ export function ThemeLibrarySidebar({
         themeId={themeId}
         createTheme={createTheme}
         importThemeFromText={importThemeFromText}
+        notify={notify}
         closeComposer={() => setComposerMode("")}
       />
     </aside>

@@ -12,6 +12,7 @@ import {
   buildPreviewThemePackFromWorkbench,
   buildStoredConfigFromWorkbench,
   buildThemeExportPayload,
+  clearLivePreviewConfig,
   downloadThemePackExport,
   previewThemePack,
   readExtensionConfig,
@@ -58,9 +59,11 @@ export function useThemeWorkbenchState() {
       await clearLivePreviewConfig();
       configRef.current = savedConfig;
       dispatch({ type: "save/success" });
+      return { ok: true };
     } catch (error) {
       const message = error instanceof Error ? error.message : "保存失败，请重试";
       dispatch({ type: "save/error", payload: message });
+      return { ok: false, error: message };
     }
   }
 

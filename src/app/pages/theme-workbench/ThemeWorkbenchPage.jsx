@@ -11,8 +11,18 @@ import { WorkbenchPanel } from "./components/WorkbenchPanel.jsx";
 import { WorkbenchPreviewRail } from "./components/WorkbenchPreviewRail.jsx";
 import { ThemeLibrarySidebar } from "./components/ThemeLibrarySidebar.jsx";
 import { cn } from "@/components/ui/utils.js";
+import { ToastProvider, useToast } from "@/components/ui/toast.jsx";
 
 export default function ThemeWorkbenchPage() {
+  return (
+    <ToastProvider>
+      <ThemeWorkbenchPageContent />
+    </ToastProvider>
+  );
+}
+
+function ThemeWorkbenchPageContent() {
+  const toast = useToast();
   const {
     state,
     selected,
@@ -53,6 +63,36 @@ export default function ThemeWorkbenchPage() {
   } = useThemeWorkbenchState();
   const currentWorkspace = workspaceItems.find((item) => item.id === state.workspaceId);
 
+  async function handleSaveChanges() {
+    const result = await saveChanges();
+    if (result.ok) {
+      toast({ tone: "success", title: "已保存到扩展配置" });
+    } else {
+      toast({ tone: "error", title: "保存失败", description: result.error || "请稍后重试。" });
+    }
+  }
+
+  async function handlePreviewActiveTheme() {
+    try {
+      await previewActiveTheme();
+      toast({ tone: "success", title: "已发送网页预览" });
+    } catch (error) {
+      toast({ tone: "error", title: "预览失败", description: error instanceof Error ? error.message : "请检查当前页面连接状态。" });
+    }
+  }
+
+  function handleResetCurrentTheme() {
+    resetCurrentTheme();
+    toast({ tone: "info", title: "已恢复当前主题默认配置" });
+  }
+
+  function handleUpdateActionConfig(patch) {
+    updateActionConfig(patch);
+    if (patch && Object.prototype.hasOwnProperty.call(patch, "textColor")) {
+      toast({ tone: "info", title: "已更新飘字颜色", description: patch.textColor });
+    }
+  }
+
   return (
     <div
       className="min-h-dvh bg-[#edf1f5] p-4 text-slate-900"
@@ -69,9 +109,9 @@ export default function ThemeWorkbenchPage() {
             unsaved={state.ui.unsaved}
             isSaving={state.ui.isSaving}
             saveError={state.ui.saveError}
-            saveChanges={saveChanges}
-            previewActiveTheme={previewActiveTheme}
-            resetCurrentTheme={resetCurrentTheme}
+            saveChanges={handleSaveChanges}
+            previewActiveTheme={handlePreviewActiveTheme}
+            resetCurrentTheme={handleResetCurrentTheme}
           />
 
           <div className="flex min-h-0 flex-1">
@@ -84,6 +124,7 @@ export default function ThemeWorkbenchPage() {
               deleteTheme={deleteTheme}
               exportTheme={exportTheme}
               importThemeFromText={importThemeFromText}
+              notify={toast}
             />
 
             <main className={cn("min-w-0 flex-1 overflow-y-auto bg-[#f6f8fb] px-4 py-4", isWorkbench && "xl:overflow-hidden")}>
@@ -109,7 +150,7 @@ export default function ThemeWorkbenchPage() {
                         <WorkbenchPanel
                           actionId={selected.actionId}
                           config={currentActionConfig}
-                          updateActionConfig={updateActionConfig}
+                          updateActionConfig={handleUpdateActionConfig}
                           conflicts={currentConflicts}
                         />
                       </div>

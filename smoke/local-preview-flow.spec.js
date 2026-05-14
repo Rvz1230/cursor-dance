@@ -73,6 +73,11 @@ async function waitForStoredAudioBlendMode(page, expectedMode) {
   );
 }
 
+async function selectRadixOption(page, scope, index, optionName) {
+  await scope.getByRole("combobox").nth(index).click();
+  await page.getByRole("option", { name: optionName }).click();
+}
+
 test("popup theme selection, live preview override, and fallback to saved config stay in sync", async ({ context, page }) => {
   await clearLocalState(page);
 
@@ -170,7 +175,7 @@ test("animation effect can preview live, save into config, and render in content
   });
 
   await animationPanel.getByRole("switch", { name: "动画反馈开关" }).click();
-  await animationPanel.getByDisplayValue("聚焦脉冲").selectOption("弹跳徽记");
+  await selectRadixOption(workbenchPage, animationPanel, 0, "弹跳徽记");
 
   await page.waitForFunction((previewKey) => {
     const raw = window.localStorage.getItem(previewKey);
@@ -213,7 +218,7 @@ test("audio blend modes stay distinguishable on bilibili-like media reassertion"
   });
 
   await audioPanel.getByRole("switch", { name: "音效播放开关" }).click();
-  await audioPanel.locator("select").nth(2).selectOption("保持原音量");
+  await selectRadixOption(workbenchPage, audioPanel, 2, "保持原音量");
   await workbenchPage.getByRole("button", { name: "保存" }).click();
   await waitForStoredAudioBlendMode(workbenchPage, "保持原音量");
 
@@ -224,7 +229,7 @@ test("audio blend modes stay distinguishable on bilibili-like media reassertion"
     volume: 0.72,
   });
 
-  await audioPanel.locator("select").nth(2).selectOption("压低页面音频");
+  await selectRadixOption(workbenchPage, audioPanel, 2, "压低页面音频");
   await workbenchPage.getByRole("button", { name: "保存" }).click();
   await waitForStoredAudioBlendMode(workbenchPage, "压低页面音频");
 
@@ -238,7 +243,7 @@ test("audio blend modes stay distinguishable on bilibili-like media reassertion"
     volume: 0.035,
   });
 
-  await audioPanel.locator("select").nth(2).selectOption("仅插件音效");
+  await selectRadixOption(workbenchPage, audioPanel, 2, "仅插件音效");
   await workbenchPage.getByRole("button", { name: "保存" }).click();
   await waitForStoredAudioBlendMode(workbenchPage, "仅插件音效");
 
@@ -260,4 +265,59 @@ test("audio blend modes stay distinguishable on bilibili-like media reassertion"
     null,
     { timeout: 4000 }
   );
+});
+
+test("workbench dialogs, save toast, color picker, and slider controls are usable", async ({ context, page }) => {
+  await clearLocalState(page);
+
+  const workbenchPage = await context.newPage();
+  await workbenchPage.goto("/index.html");
+  await expect(workbenchPage.getByRole("button", { name: "保存" })).toBeVisible();
+
+  await workbenchPage.getByRole("button", { name: "新建" }).click();
+  await expect(workbenchPage.getByRole("dialog", { name: "主题管理" })).toBeVisible();
+  await workbenchPage.keyboard.press("Escape");
+  await expect(workbenchPage.getByRole("dialog", { name: "主题管理" })).toBeHidden();
+
+  await workbenchPage.getByRole("button", { name: "新建" }).click();
+  await workbenchPage.getByLabel("主题名称").fill("Smoke UX Theme");
+  await workbenchPage.getByRole("button", { name: "创建主题" }).click();
+  await expect(workbenchPage.getByText("已创建主题")).toBeVisible();
+
+  await workbenchPage.getByRole("button", { name: "复制" }).click();
+  await expect(workbenchPage.getByText("已复制主题")).toBeVisible();
+
+  await workbenchPage.getByRole("button", { name: "删除当前主题" }).click();
+  await expect(workbenchPage.getByRole("alertdialog", { name: "删除主题？" })).toBeVisible();
+  await workbenchPage.getByRole("button", { name: "取消" }).click();
+  await expect(workbenchPage.getByRole("alertdialog", { name: "删除主题？" })).toBeHidden();
+
+  await workbenchPage.getByRole("button", { name: "删除当前主题" }).click();
+  await workbenchPage.getByRole("button", { name: "删除主题" }).click();
+  await expect(workbenchPage.getByText("已移除主题")).toBeVisible();
+
+  const textPanel = workbenchPage.locator("section").filter({
+    has: workbenchPage.getByRole("heading", { name: "飘字反馈" }),
+  });
+
+  const colorHexInput = textPanel.getByLabel("输入飘字颜色十六进制值");
+  await colorHexInput.fill("#0284C7");
+  await colorHexInput.press("Enter");
+  await expect(workbenchPage.getByText("已更新飘字颜色")).toBeVisible();
+
+  const fontSizeInput = textPanel.getByRole("spinbutton", { name: "飘字大小数值" });
+  await fontSizeInput.fill("26");
+  await fontSizeInput.blur();
+
+  await workbenchPage.getByRole("button", { name: "保存" }).click();
+  await expect(workbenchPage.getByText("已保存到扩展配置")).toBeVisible();
+
+  await workbenchPage.waitForFunction((configKey) => {
+    const raw = window.localStorage.getItem(configKey);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    const selectedId = parsed.activeThemePackId;
+    const leftClickConfig = parsed.themePacks?.find((themePack) => themePack.id === selectedId)?.workbenchDraft?.actionConfigs?.leftClick;
+    return leftClickConfig?.textColor === "#0284C7" && leftClickConfig?.fontSize === 26;
+  }, CONFIG_STORAGE_KEY);
 });
