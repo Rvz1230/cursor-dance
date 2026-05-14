@@ -13,6 +13,8 @@
     {
       "matches": ["http://*/*", "https://*/*"],
       "js": [
+        "config-runtime/text-semantics.js",
+        "config-runtime/action-config.js",
         "config.js",
         "content-runtime/diagnostics.js",
         "content-runtime/config-store.js",

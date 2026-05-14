@@ -10,18 +10,23 @@ import {
 } from "./themeDraftAdapter.js";
 import { buildThemeExportPayload } from "./extensionStorage.js";
 
+const textSemanticsSource = readFileSync(new URL("../../../../../public/config-runtime/text-semantics.js", import.meta.url), "utf8");
+const actionConfigSource = readFileSync(new URL("../../../../../public/config-runtime/action-config.js", import.meta.url), "utf8");
 const publicConfigSource = readFileSync(new URL("../../../../../public/config.js", import.meta.url), "utf8");
 
 function installWindowStub(overrides = {}) {
   globalThis.window = {
     CursorDanceDefaultConfig: {},
     CursorDanceConfigRuntime: {},
+    CursorDanceConfigHelpers: {},
     ...overrides,
   };
 }
 
 function installPublicConfigRuntime() {
   installWindowStub();
+  new Function(textSemanticsSource)();
+  new Function(actionConfigSource)();
   new Function(publicConfigSource)();
   return {
     defaultConfig: window.CursorDanceDefaultConfig,

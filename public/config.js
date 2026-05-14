@@ -1,4 +1,30 @@
 (function cursorDanceDefaultConfig() {
+  const configHelpers = window.CursorDanceConfigHelpers || {};
+  const {
+    inferTextKindFromEffect,
+    resolveNumberStyleFromEffect,
+    resolveTextModeFromEffect,
+    resolveActionTextConfigFromEffect,
+    buildStoredTextEffectPayload,
+    ACTION_TRIGGER_FIELDS,
+    ACTION_TEXT_FIELDS,
+    ACTION_PARTICLE_FIELDS,
+    ACTION_RIPPLE_FIELDS,
+    ACTION_AUDIO_FIELDS,
+    ACTION_ANIMATION_FIELDS,
+    ACTION_IMAGE_FIELDS,
+    ACTION_CURSOR_FEEDBACK_FIELDS,
+    pickActionConfigFields,
+    getActionTriggerConfig,
+    getActionTextConfig,
+    getActionParticleConfig,
+    getActionRippleConfig,
+    getActionAudioConfig,
+    getActionAnimationConfig,
+    getActionImageConfig,
+    getActionCursorFeedbackConfig,
+  } = configHelpers;
+
   function cloneValue(value) {
     return JSON.parse(JSON.stringify(value));
   }
@@ -322,241 +348,6 @@
       lastActionId: editorPrefs?.lastActionId || fallbackEditorPrefs?.lastActionId || "leftClick",
       lastCursorState: editorPrefs?.lastCursorState || fallbackEditorPrefs?.lastCursorState || "default",
     };
-  }
-
-  function inferTextKindFromEffect(textEffect, fallbackKind = "数字飘字") {
-    if (textEffect?.kind === "text") return "文本飘字";
-    if (textEffect?.kind === "number") return "数字飘字";
-
-    const tags = Array.isArray(textEffect?.tags) ? textEffect.tags.filter(Boolean) : [];
-    if (tags.length > 1) return "文本飘字";
-
-    const content = typeof textEffect?.content === "string" ? textEffect.content.trim() : "";
-    if (!content) return fallbackKind;
-    if (content.includes("${number}")) return "数字飘字";
-
-    const compactContent = content.replace(/\s+/g, "");
-    if (/^[+\-]?\d+$/.test(compactContent)) return "数字飘字";
-    if (/^[+\-]?[一二三四五六七八九十百千万]+$/.test(compactContent)) return "数字飘字";
-    if (/^(one|two|three|four|five|six|seven|eight|nine|ten)$/i.test(compactContent)) return "数字飘字";
-
-    return "文本飘字";
-  }
-
-  function resolveNumberStyleFromEffect(textEffect, fallbackStyle) {
-    const numberStyle = String(textEffect?.numberStyle || "").toLowerCase();
-    if (numberStyle.includes("zh") || numberStyle.includes("cn") || numberStyle.includes("中文")) {
-      return "中文数字 (一, 二, 三)";
-    }
-    if (numberStyle.includes("en") || numberStyle.includes("英文")) {
-      return "英文单词 (one, two, three)";
-    }
-    if (numberStyle.includes("arabic") || numberStyle.includes("digit") || numberStyle.includes("阿拉伯")) {
-      return "阿拉伯数字 (1, 2, 3)";
-    }
-    return fallbackStyle;
-  }
-
-  function resolveTextModeFromEffect(textEffect, fallbackMode) {
-    if (textEffect?.mode === "template") return "模板模式";
-    if (textEffect?.mode === "default") return "默认模式 (+1)";
-    if (typeof textEffect?.template === "string" && textEffect.template.includes("${number}")) return "模板模式";
-    if (typeof textEffect?.content === "string" && textEffect.content.includes("${number}")) return "模板模式";
-    return fallbackMode;
-  }
-
-  function normalizeTextCandidate(value) {
-    return typeof value === "string" ? value.replace(/\s+/g, "").trim() : "";
-  }
-
-  function shouldPreserveBaseNumberSemantics(baseActionConfig, textEffect, textTags, primaryText) {
-    if (baseActionConfig?.textKind !== "数字飘字") return false;
-    if (textEffect?.kind === "text") return false;
-    if (textEffect?.kind === "number") return true;
-
-    const candidateTexts = [primaryText, ...textTags].map(normalizeTextCandidate).filter(Boolean);
-    if (!candidateTexts.length) return true;
-
-    const baseTexts = [baseActionConfig.textContent, ...(baseActionConfig.textTags || [])]
-      .map(normalizeTextCandidate)
-      .filter(Boolean);
-    if (!baseTexts.length) return false;
-
-    return candidateTexts.every((item) => baseTexts.includes(item));
-  }
-
-  function resolveActionTextConfigFromEffect(baseActionConfig, textEffect) {
-    const textTags = Array.isArray(textEffect?.tags) ? textEffect.tags.filter(Boolean) : [];
-    const primaryText = typeof textEffect?.content === "string" ? textEffect.content.trim() : "";
-    const preserveBaseNumberSemantics = shouldPreserveBaseNumberSemantics(baseActionConfig, textEffect, textTags, primaryText);
-    const textKind = preserveBaseNumberSemantics
-      ? "数字飘字"
-      : inferTextKindFromEffect(textEffect, baseActionConfig.textKind);
-    const textStyle = resolveNumberStyleFromEffect(textEffect, baseActionConfig.textStyle);
-    const textMode = resolveTextModeFromEffect(textEffect, baseActionConfig.textMode);
-
-    if (textKind === "文本飘字") {
-      const orderedTags = Array.from(
-        new Set(
-          [primaryText, ...textTags, ...(primaryText || textTags.length ? [] : (baseActionConfig.textTags || []))]
-            .filter(Boolean)
-        )
-      );
-      return {
-        textKind,
-        textStyle,
-        textMode,
-        textTemplate: baseActionConfig.textTemplate,
-        textContent: orderedTags[0] ?? "",
-        textTags: orderedTags,
-        textTagPlayMode: textEffect?.tagPlayMode || baseActionConfig.textTagPlayMode,
-        comboEnabled: false,
-      };
-    }
-
-    return {
-      textKind,
-      textStyle,
-      textMode,
-      textTemplate:
-        typeof textEffect?.template === "string" && textEffect.template
-          ? textEffect.template
-          : (typeof textEffect?.content === "string" && textEffect.content.includes("${number}")
-            ? textEffect.content
-            : baseActionConfig.textTemplate),
-      textContent: "",
-      textTags: Array.isArray(baseActionConfig.textTags) ? baseActionConfig.textTags : [],
-      textTagPlayMode: baseActionConfig.textTagPlayMode,
-      comboEnabled: textEffect?.comboEnabled ?? baseActionConfig.comboEnabled,
-    };
-  }
-
-  function buildStoredTextEffectPayload(actionConfig, orderedTextTags) {
-    const textContent =
-      actionConfig.textKind === "数字飘字"
-        ? actionConfig.textMode === "模板模式"
-          ? actionConfig.textTemplate.replace("${number}", "1")
-          : ""
-        : orderedTextTags[0] || actionConfig.textContent || "";
-
-    return {
-      kind: actionConfig.textKind === "文本飘字" ? "text" : "number",
-      numberStyle: actionConfig.textStyle,
-      mode: actionConfig.textMode === "模板模式" ? "template" : "default",
-      template: actionConfig.textTemplate,
-      tags: orderedTextTags,
-      tagPlayMode: actionConfig.textTagPlayMode,
-      comboEnabled: actionConfig.comboEnabled,
-      content: textContent,
-    };
-  }
-
-  const ACTION_TRIGGER_FIELDS = ["triggerTiming", "triggerZone", "holdMs"];
-  const ACTION_TEXT_FIELDS = [
-    "textKind",
-    "textStyle",
-    "textMode",
-    "textTemplate",
-    "textEnabled",
-    "textContent",
-    "textTags",
-    "textTagPlayMode",
-    "textColor",
-    "textDuration",
-    "textEasing",
-    "textOpacity",
-    "textWeight",
-    "textOutlineWidth",
-    "textShadow",
-    "comboEnabled",
-    "textOffsetX",
-    "textOffsetY",
-    "fontSize",
-  ];
-  const ACTION_PARTICLE_FIELDS = [
-    "particle",
-    "particleCount",
-    "particleSpread",
-    "particleStyle",
-    "particleDirection",
-    "particleColorMode",
-    "particleDuration",
-    "particleSize",
-    "particleOpacity",
-  ];
-  const ACTION_RIPPLE_FIELDS = [
-    "ripple",
-    "rippleSize",
-    "rippleDuration",
-    "rippleStyle",
-    "rippleEasing",
-    "rippleLineWidth",
-    "rippleOpacity",
-  ];
-  const ACTION_AUDIO_FIELDS = [
-    "sound",
-    "volume",
-    "playbackRate",
-    "soundDelay",
-    "soundFadeOut",
-    "soundTriggerMode",
-    "soundBlendMode",
-    "soundFile",
-  ];
-  const ACTION_ANIMATION_FIELDS = [
-    "animationEnabled",
-    "animationStyle",
-    "animationDuration",
-    "animationScale",
-    "animationOpacity",
-    "animationOffsetX",
-    "animationOffsetY",
-  ];
-  const ACTION_IMAGE_FIELDS = [
-    "imageEnabled",
-    "imageDataUrl",
-    "imageDuration",
-    "imageSize",
-    "imageOpacity",
-    "imageOffsetX",
-    "imageOffsetY",
-  ];
-  const ACTION_CURSOR_FEEDBACK_FIELDS = ["shake", "cursorOverride", "cursorSize"];
-
-  function pickActionConfigFields(config, fieldNames) {
-    return Object.fromEntries(fieldNames.map((fieldName) => [fieldName, config?.[fieldName]]));
-  }
-
-  function getActionTriggerConfig(config) {
-    return pickActionConfigFields(config, ACTION_TRIGGER_FIELDS);
-  }
-
-  function getActionTextConfig(config) {
-    return pickActionConfigFields(config, ACTION_TEXT_FIELDS);
-  }
-
-  function getActionParticleConfig(config) {
-    return pickActionConfigFields(config, ACTION_PARTICLE_FIELDS);
-  }
-
-  function getActionRippleConfig(config) {
-    return pickActionConfigFields(config, ACTION_RIPPLE_FIELDS);
-  }
-
-  function getActionAudioConfig(config) {
-    return pickActionConfigFields(config, ACTION_AUDIO_FIELDS);
-  }
-
-  function getActionAnimationConfig(config) {
-    return pickActionConfigFields(config, ACTION_ANIMATION_FIELDS);
-  }
-
-  function getActionImageConfig(config) {
-    return pickActionConfigFields(config, ACTION_IMAGE_FIELDS);
-  }
-
-  function getActionCursorFeedbackConfig(config) {
-    return pickActionConfigFields(config, ACTION_CURSOR_FEEDBACK_FIELDS);
   }
 
   function normalizeThemePacks(themePacks, fallbackConfig) {

@@ -8,6 +8,9 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.js", "public/**/*.test.js"],
+    deps: {
+      inline: ["**/public/config-runtime/*.js"],
+    },
   },
   resolve: {
     alias: {
