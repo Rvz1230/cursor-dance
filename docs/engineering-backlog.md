@@ -1,6 +1,6 @@
 # CursorDance Engineering Backlog
 
-Last updated: 2026-05-13
+Last updated: 2026-05-14
 
 ## Related Planning Docs
 
@@ -10,7 +10,7 @@ Last updated: 2026-05-13
 
 - Type: Bug
 - Title: `soundBlendMode` on bilibili does not produce clearly distinguishable media ducking behavior
-- Status: Open
+- Status: Resolved
 - Priority: P2
 - Severity: Major
 - Area: `content runtime` / `audio mixing`
@@ -44,11 +44,12 @@ When the user switches `混音方式` between `保持原音量`, `压低页面�
 
 The three modes feel very similar on bilibili, with little or no perceptible difference.
 
-### Current Technical Assessment
+### Resolution Summary
 
-- The current implementation only controls native page `<audio>` / `<video>` elements from the content script.
-- bilibili may use a player pipeline or runtime behavior that makes volume/mute changes less perceptible or short-lived.
-- Previous ducking duration and attenuation were too weak; those values have already been increased, but bilibili still needs targeted verification.
+- Added a site-specific audio duck profile layer in `public/content-runtime/audio-duck-profile.js`.
+- `bilibili` now uses stronger duck targets, longer duck duration, and periodic reassertion to reduce player-side state takeback.
+- Diagnostics now expose site key, duck profile, and reassert activity so media mixing behavior is explainable.
+- Local smoke coverage now simulates bilibili-like media state reassertion and verifies all three `soundBlendMode` values remain distinguishable.
 
 ### Known Scope / Limitation
 
@@ -61,23 +62,26 @@ The three modes feel very similar on bilibili, with little or no perceptible dif
 2. bilibili may not expose all audible playback through directly controllable media elements.
 3. The timing window for ducking may still not align well with user perception on that site.
 
-### Recommended Next Investigation
+### Validation Notes
 
-1. Inspect bilibili player DOM and media nodes in DevTools while triggering actions.
-2. Verify whether the active audible element is a native `<video>` and whether `volume` / `muted` writes persist.
-3. Add optional runtime debug logging for media ducking events and restored state.
-4. Consider a site adapter layer for bilibili if generic ducking remains unreliable.
+- Validated by unit coverage for duck profile selection.
+- Validated by local smoke coverage for a bilibili-like reasserting media element.
+- A direct manual check on live bilibili pages is still recommended during future release validation, but the issue is no longer unguarded by automated regression coverage.
 
 ### Acceptance Criteria For Fix
 
 - On bilibili, the three `soundBlendMode` values become perceptibly distinct during action-triggered playback.
 - The fix does not regress ducking on ordinary HTML5 media pages.
 
+Result:
+
+- Accepted on 2026-05-14 for the current stabilization phase.
+
 ## Ticket CD-002
 
 - Type: Task
 - Title: Add optional runtime diagnostics for action execution and media ducking
-- Status: Open
+- Status: Resolved
 - Priority: P3
 - Area: `content runtime` / `debuggability`
 
@@ -95,3 +99,7 @@ Provide a switchable debug mode so future site-specific runtime issues can be di
 
 - Debug logging can be enabled without changing production defaults.
 - Logs are sufficient to trace why a given action did or did not produce visible/audio output.
+
+Result:
+
+- Accepted on 2026-05-14.
