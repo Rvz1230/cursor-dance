@@ -197,8 +197,8 @@ export function hydrateWorkbenchState(config, site) {
   const selectedThemeId = resolveSelectedThemeId(themeLibrary, draftsByTheme, config.activeThemePackId);
   const workspaceAliasMap = {
     workspace: "workbench",
-    diagnostics: "states",
-    assets: "sites",
+    diagnostics: "diagnostics",
+    assets: "assets",
   };
   const workspaceId = workspaceAliasMap[config.editor?.lastWorkspace] || config.editor?.lastWorkspace || "workbench";
   const selectedActionId = ACTIONS.some((item) => item.id === config.editor?.lastActionId) ? config.editor.lastActionId : "leftClick";

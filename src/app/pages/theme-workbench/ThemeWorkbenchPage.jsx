@@ -1,6 +1,8 @@
 import { formatActionLabel } from "./model/workbenchSchema.js";
 import { useThemeWorkbenchState } from "./hooks/useThemeWorkbenchState.js";
+import { AssetsPanel } from "./components/AssetsPanel.jsx";
 import { BindingsPanel } from "./components/BindingsPanel.jsx";
+import { DiagnosticsPanel } from "./components/DiagnosticsPanel.jsx";
 import { SitesPanel } from "./components/SitesPanel.jsx";
 import { StatesPanel } from "./components/StatesPanel.jsx";
 import { WorkbenchHeader } from "./components/WorkbenchHeader.jsx";
@@ -49,6 +51,7 @@ export default function ThemeWorkbenchPage() {
     clearAllSiteRules,
     clearFilteredSiteRules,
   } = useThemeWorkbenchState();
+  const currentWorkspace = workspaceItems.find((item) => item.id === state.workspaceId);
 
   return (
     <div
@@ -163,6 +166,30 @@ export default function ThemeWorkbenchPage() {
                   siteRulesByHost={state.siteRulesByHost}
                   clearAllSiteRules={clearAllSiteRules}
                   clearFilteredSiteRules={clearFilteredSiteRules}
+                />
+              ) : null}
+
+              {state.workspaceId === "assets" ? (
+                <AssetsPanel
+                  actionId={selected.actionId}
+                  config={currentActionConfig}
+                  cursorStateAssets={draft.cursorStateAssets}
+                  recentCursorAssets={recentCursorAssets}
+                  setWorkspaceId={setWorkspaceId}
+                  setActionId={setActionId}
+                  setCursorStateId={setCursorStateId}
+                />
+              ) : null}
+
+              {state.workspaceId === "diagnostics" ? (
+                <DiagnosticsPanel
+                  workspaceLabel={currentWorkspace?.label || "诊断面板"}
+                  themeName={activeTheme.name}
+                  selectedThemeId={selected.themeId}
+                  actionId={selected.actionId}
+                  site={state.site}
+                  enabled={state.ui.enabled}
+                  unsaved={state.ui.unsaved}
                 />
               ) : null}
             </main>

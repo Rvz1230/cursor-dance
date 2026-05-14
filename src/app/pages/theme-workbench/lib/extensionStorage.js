@@ -4,7 +4,8 @@ import { getDefaultConfig, getRuntimeConfig, normalizeStoredConfig } from "./run
 const CONFIG_STORAGE_KEY = "cursordance.config";
 const LEGACY_ENABLED_STORAGE_KEY = "cursordance.enabled";
 const PREVIEW_MESSAGE_TYPE = "CURSORDANCE_PREVIEW_SCHEME";
-const LOCAL_PREVIEW_CHANNEL_NAME = "cursordance.local-preview";
+export const LOCAL_PREVIEW_CHANNEL_NAME = "cursordance.local-preview";
+export const DIAGNOSTIC_EVENT_MESSAGE_TYPE = "diagnostic-event";
 const LIVE_PREVIEW_CONFIG_STORAGE_KEY = "cursordance.livePreviewConfig";
 const CURSOR_ASSET_STORAGE_KEY_PREFIX = "cursordance.cursorAsset.";
 const RECENT_CURSOR_ASSETS_STORAGE_KEY = "cursordance.cursorAssetRecents";
@@ -411,6 +412,25 @@ export function subscribeLivePreviewConfig(onChange) {
 
   chromeApi.storage.onChanged.addListener(handleChanges);
   return () => chromeApi.storage.onChanged.removeListener(handleChanges);
+}
+
+export function subscribeRuntimeDiagnostics(onChange) {
+  if (typeof window === "undefined" || typeof window.BroadcastChannel !== "function") {
+    return () => {};
+  }
+
+  const channel = new window.BroadcastChannel(LOCAL_PREVIEW_CHANNEL_NAME);
+  const handleMessage = (event) => {
+    const message = event.data || {};
+    if (message.type !== DIAGNOSTIC_EVENT_MESSAGE_TYPE || !message.entry) return;
+    onChange(message.entry);
+  };
+
+  channel.addEventListener("message", handleMessage);
+  return () => {
+    channel.removeEventListener("message", handleMessage);
+    channel.close();
+  };
 }
 
 export async function readRecentCursorAssets() {

@@ -5,8 +5,11 @@
     const { window } = runtime;
     const STORAGE_KEY = "cursordance.debug";
     const EVENT_NAME = "cursordance:diagnostic";
+    const CHANNEL_NAME = "cursordance.local-preview";
+    const CHANNEL_MESSAGE_TYPE = "diagnostic-event";
     const MAX_EVENTS = 200;
     const eventBuffer = [];
+    let diagnosticsChannel = null;
 
     function parseBooleanFlag(value) {
       if (value === true) return true;
@@ -108,6 +111,18 @@
         window.dispatchEvent(new window.CustomEvent(EVENT_NAME, { detail: entry }));
       } catch {
         // Ignore DOM event bridge failures.
+      }
+
+      try {
+        if (typeof window.BroadcastChannel === "function") {
+          diagnosticsChannel ??= new window.BroadcastChannel(CHANNEL_NAME);
+          diagnosticsChannel.postMessage({
+            type: CHANNEL_MESSAGE_TYPE,
+            entry,
+          });
+        }
+      } catch {
+        // Ignore diagnostics bridge failures.
       }
     }
 
