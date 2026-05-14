@@ -49,6 +49,14 @@ async function clickAndExpectImageEffect(page) {
   await expect(page.locator("#cursordance-root .cd-image-effect img").last()).toBeVisible();
 }
 
+async function clickAndExpectAnimationEffect(page) {
+  await page.getByRole("button", { name: "点击我触发特效" }).click();
+  await page.waitForFunction(
+    () => document.querySelectorAll("#cursordance-root .cd-animation-effect").length > 0,
+  );
+  await expect(page.locator("#cursordance-root .cd-animation-effect").last()).toBeVisible();
+}
+
 test("popup theme selection, live preview override, and fallback to saved config stay in sync", async ({ context, page }) => {
   await clearLocalState(page);
 
@@ -132,4 +140,42 @@ test("image effect can preview live, save into config, and render in content run
 
   await page.reload();
   await clickAndExpectImageEffect(page);
+});
+
+test("animation effect can preview live, save into config, and render in content runtime", async ({ context, page }) => {
+  await clearLocalState(page);
+
+  const workbenchPage = await context.newPage();
+  await workbenchPage.goto("/index.html");
+  await expect(workbenchPage.getByRole("button", { name: "保存" })).toBeVisible();
+
+  const animationPanel = workbenchPage.locator("section").filter({
+    has: workbenchPage.getByRole("heading", { name: "基础动画反馈" }),
+  });
+
+  await animationPanel.getByRole("switch", { name: "动画反馈开关" }).click();
+  await animationPanel.getByDisplayValue("聚焦脉冲").selectOption("弹跳徽记");
+
+  await page.waitForFunction((previewKey) => {
+    const raw = window.localStorage.getItem(previewKey);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    const leftClickConfig = parsed.themePacks?.find((themePack) => themePack.id === "woodfish")?.workbenchDraft?.actionConfigs?.leftClick;
+    return Boolean(leftClickConfig?.animationEnabled && leftClickConfig?.animationStyle === "弹跳徽记");
+  }, LIVE_PREVIEW_CONFIG_STORAGE_KEY);
+
+  await page.reload();
+  await clickAndExpectAnimationEffect(page);
+
+  await workbenchPage.getByRole("button", { name: "保存" }).click();
+  await page.waitForFunction((configKey) => {
+    const raw = window.localStorage.getItem(configKey);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    const leftClickConfig = parsed.themePacks?.find((themePack) => themePack.id === "woodfish")?.workbenchDraft?.actionConfigs?.leftClick;
+    return Boolean(leftClickConfig?.animationEnabled && leftClickConfig?.animationStyle === "弹跳徽记");
+  }, CONFIG_STORAGE_KEY);
+
+  await page.reload();
+  await clickAndExpectAnimationEffect(page);
 });

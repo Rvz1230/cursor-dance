@@ -109,16 +109,18 @@
       const particleConfig = configStore.getActionParticleConfig(actionConfig);
       const rippleConfig = configStore.getActionRippleConfig(actionConfig);
       const audioConfig = configStore.getActionAudioConfig(actionConfig);
+      const animationConfig = configStore.getActionAnimationConfig(actionConfig);
       const imageConfig = configStore.getActionImageConfig(actionConfig);
       const outputSummary = {
         textEnabled: Boolean(textConfig.textEnabled),
         particleEnabled: Boolean(particleConfig.particle),
         rippleEnabled: Boolean(rippleConfig.ripple),
         soundEnabled: Boolean(audioConfig.sound),
+        animationEnabled: Boolean(animationConfig.animationEnabled),
         imageEnabled: Boolean(imageConfig.imageEnabled && imageConfig.imageDataUrl),
         cursorOverrideEnabled: Boolean(visualEffects.hasCursorOverride(actionConfig)),
       };
-      if (!outputSummary.textEnabled && !outputSummary.particleEnabled && !outputSummary.rippleEnabled && !outputSummary.soundEnabled && !outputSummary.imageEnabled && !outputSummary.cursorOverrideEnabled) {
+      if (!outputSummary.textEnabled && !outputSummary.particleEnabled && !outputSummary.rippleEnabled && !outputSummary.soundEnabled && !outputSummary.animationEnabled && !outputSummary.imageEnabled && !outputSummary.cursorOverrideEnabled) {
         diagnostics?.log("action.skip", {
           reason: "no-enabled-effects",
           sourceActionId,
@@ -159,6 +161,7 @@
       visualEffects.renderRipple(coords.x, coords.y, actionConfig);
       visualEffects.renderParticles(coords.x, coords.y, actionConfig);
       visualEffects.renderText(coords.x, coords.y, actionConfig, resolvedActionId, runIndex);
+      visualEffects.renderAnimationEffect(coords.x, coords.y, actionConfig);
       visualEffects.renderImageEffect(coords.x, coords.y, actionConfig);
       visualEffects.renderCursorOverride(coords.x, coords.y, actionConfig);
       audioRuntime.playSound(actionConfig, resolvedActionId);

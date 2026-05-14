@@ -5,6 +5,7 @@ import { Switch } from "@/components/ui/switch.jsx";
 import { cn } from "@/components/ui/utils.js";
 import {
   PREVIEW_KEYFRAMES,
+  getPreviewAnimationStyle,
   buildRippleSpecs,
   buildParticleSpecs,
   getAnimationEasingCss,
@@ -22,6 +23,7 @@ import {
 } from "../lib/preview.js";
 import {
   getActionAudioConfig,
+  getActionAnimationConfig,
   getActionImageConfig,
   getActionParticleConfig,
   getActionRippleConfig,
@@ -37,6 +39,7 @@ function CursorPreview({ actionLabel, config, siteMode }) {
   const particleConfig = useMemo(() => getActionParticleConfig(config), [config]);
   const rippleConfig = useMemo(() => getActionRippleConfig(config), [config]);
   const audioConfig = useMemo(() => getActionAudioConfig(config), [config]);
+  const animationConfig = useMemo(() => getActionAnimationConfig(config), [config]);
   const imageConfig = useMemo(() => getActionImageConfig(config), [config]);
   const cursorSize = getPreviewCursorSize(config);
   const accentText = getPreviewText(config, runId);
@@ -166,6 +169,40 @@ function CursorPreview({ actionLabel, config, siteMode }) {
                 >
                   {accentText}
                 </div>
+              </div>
+            ) : null}
+
+            {animationConfig.animationEnabled && !disabledBySite ? (
+              <div
+                className="absolute left-1/2 top-1/2"
+                style={{
+                  ...getPreviewAnimationStyle(config),
+                  animation: `cursorDancePreviewAnimation ${animationConfig.animationDuration}ms cubic-bezier(0.22, 1, 0.36, 1) forwards`,
+                }}
+              >
+                <div
+                  className="h-full w-full"
+                  style={
+                    animationConfig.animationStyle === "斜切闪片"
+                      ? {
+                          borderRadius: "22px",
+                          background: "linear-gradient(135deg, rgba(250,204,21,0.96), rgba(249,115,22,0.92))",
+                          boxShadow: "0 18px 32px rgba(249, 115, 22, 0.22)",
+                          transform: "rotate(-10deg)",
+                        }
+                      : animationConfig.animationStyle === "弹跳徽记"
+                        ? {
+                            borderRadius: "999px",
+                            background: "radial-gradient(circle at 35% 35%, rgba(96,165,250,0.96), rgba(79,70,229,0.94))",
+                            boxShadow: "0 16px 30px rgba(79, 70, 229, 0.2)",
+                          }
+                        : {
+                            borderRadius: "999px",
+                            border: "2px solid rgba(16,185,129,0.42)",
+                            background: "radial-gradient(circle, rgba(52,211,153,0.3) 0%, rgba(16,185,129,0.14) 55%, rgba(16,185,129,0) 100%)",
+                          }
+                  }
+                />
               </div>
             ) : null}
 

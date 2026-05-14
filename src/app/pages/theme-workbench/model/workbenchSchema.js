@@ -16,6 +16,8 @@ import {
 import {
   AUDIO_BLEND_OPTIONS,
   AUDIO_TRIGGER_OPTIONS,
+  ANIMATION_STYLE_OPTIONS,
+  ACTION_ANIMATION_FIELDS,
   CURSOR_HOTSPOT_OPTIONS,
   CURSOR_OVERRIDE_OPTIONS,
   CURSOR_SIZE_OPTIONS,
@@ -47,6 +49,7 @@ import {
   getConflictsForAction,
   getDefaultActionConfigs,
   getActionAudioConfig,
+  getActionAnimationConfig,
   getActionCursorFeedbackConfig,
   getActionImageConfig,
   getActionParticleConfig,
@@ -203,6 +206,9 @@ function buildThemeSummary(themePack) {
   if (actionConfig?.sound) {
     parts.push("声音反馈");
   }
+  if (actionConfig?.animationEnabled) {
+    parts.push("动画反馈");
+  }
   if (actionConfig?.imageEnabled) {
     parts.push("图片贴纸");
   }
@@ -293,6 +299,8 @@ export function buildThemeDrafts(themes = THEMES) {
 export {
   AUDIO_BLEND_OPTIONS,
   AUDIO_TRIGGER_OPTIONS,
+  ANIMATION_STYLE_OPTIONS,
+  ACTION_ANIMATION_FIELDS,
   ACTION_AUDIO_FIELDS,
   ACTION_CONFIG_MODEL_BOUNDARIES,
   ACTION_CURSOR_FEEDBACK_FIELDS,
@@ -322,6 +330,7 @@ export {
   TEXT_WEIGHT_OPTIONS,
   TRIGGER_OPTIONS,
   getActionAudioConfig,
+  getActionAnimationConfig,
   getActionCursorFeedbackConfig,
   getActionImageConfig,
   getActionParticleConfig,

@@ -1,5 +1,6 @@
 import {
   getActionAudioConfig,
+  getActionAnimationConfig,
   getActionCursorFeedbackConfig,
   getActionImageConfig,
   getActionParticleConfig,
@@ -29,6 +30,11 @@ export const PREVIEW_KEYFRAMES = `
     0% { opacity: 0; transform: translate3d(-50%, -30%, 0) scale(0.72) rotate(-8deg); }
     18% { opacity: 1; transform: translate3d(-50%, -50%, 0) scale(1) rotate(0deg); }
     100% { opacity: 0; transform: translate3d(-50%, -92%, 0) scale(1.06) rotate(4deg); }
+  }
+  @keyframes cursorDancePreviewAnimation {
+    0% { opacity: 0; transform: translate3d(-50%, -42%, 0) scale(0.56) rotate(-12deg); }
+    22% { opacity: 1; transform: translate3d(-50%, -50%, 0) scale(1) rotate(0deg); }
+    100% { opacity: 0; transform: translate3d(-50%, -90%, 0) scale(1.18) rotate(8deg); }
   }
   @keyframes cursorDancePreviewPulse {
     0% { transform: scale(0.98); }
@@ -198,6 +204,7 @@ export function buildRippleSpecs(config) {
 
 export function getPreviewLoopDelay(config) {
   const textConfig = getActionTextConfig(config);
+  const animationConfig = getActionAnimationConfig(config);
   const imageConfig = getActionImageConfig(config);
   const particleConfig = getActionParticleConfig(config);
   const rippleConfig = getActionRippleConfig(config);
@@ -206,6 +213,7 @@ export function getPreviewLoopDelay(config) {
   return (
     Math.max(
       textConfig.textEnabled ? textConfig.textDuration : 0,
+      animationConfig.animationEnabled ? animationConfig.animationDuration : 0,
       imageConfig.imageEnabled ? imageConfig.imageDuration : 0,
       particleConfig.particle ? particleConfig.particleDuration : 0,
       rippleConfig.ripple ? rippleConfig.rippleDuration : 0,
@@ -213,6 +221,19 @@ export function getPreviewLoopDelay(config) {
       1400
     ) + 900
   );
+}
+
+export function getPreviewAnimationStyle(config) {
+  const animationConfig = getActionAnimationConfig(config);
+  const scale = Math.max(0.6, (animationConfig.animationScale || 100) / 100);
+  const size = Math.round(56 * scale);
+  return {
+    width: `${size}px`,
+    height: `${size}px`,
+    opacity: Math.max(0.18, (animationConfig.animationOpacity || 100) / 100),
+    marginLeft: `${animationConfig.animationOffsetX || 0}px`,
+    marginTop: `${animationConfig.animationOffsetY || -10}px`,
+  };
 }
 
 export function getPreviewImageStyle(config) {

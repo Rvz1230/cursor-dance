@@ -104,6 +104,16 @@ export const ACTION_AUDIO_FIELDS = [
   "soundBlendMode",
   "soundFile",
 ];
+export const ANIMATION_STYLE_OPTIONS = ["聚焦脉冲", "斜切闪片", "弹跳徽记"];
+export const ACTION_ANIMATION_FIELDS = [
+  "animationEnabled",
+  "animationStyle",
+  "animationDuration",
+  "animationScale",
+  "animationOpacity",
+  "animationOffsetX",
+  "animationOffsetY",
+];
 export const ACTION_IMAGE_FIELDS = [
   "imageEnabled",
   "imageDataUrl",
@@ -121,6 +131,7 @@ export const ACTION_RUNTIME_FIELDS = Array.from(
     ...ACTION_PARTICLE_FIELDS,
     ...ACTION_RIPPLE_FIELDS,
     ...ACTION_AUDIO_FIELDS,
+    ...ACTION_ANIMATION_FIELDS,
     ...ACTION_IMAGE_FIELDS,
     ...ACTION_CURSOR_FEEDBACK_FIELDS,
   ])
@@ -240,6 +251,10 @@ export function getActionAudioConfig(config) {
   return pickActionConfigFields(config, ACTION_AUDIO_FIELDS);
 }
 
+export function getActionAnimationConfig(config) {
+  return pickActionConfigFields(config, ACTION_ANIMATION_FIELDS);
+}
+
 export function getActionImageConfig(config) {
   return pickActionConfigFields(config, ACTION_IMAGE_FIELDS);
 }
@@ -264,6 +279,13 @@ const ACTION_CONFIG_SHARED_DEFAULTS = {
   soundBlendMode: "保持原音量",
   playbackRate: 100,
   soundDelay: 0,
+  animationEnabled: false,
+  animationStyle: "聚焦脉冲",
+  animationDuration: 720,
+  animationScale: 100,
+  animationOpacity: 100,
+  animationOffsetX: 0,
+  animationOffsetY: -10,
   imageEnabled: false,
   imageDataUrl: "",
   imageDuration: 780,
@@ -602,7 +624,7 @@ export function getConflictsForAction(actionId, actionConfigs) {
     conflicts.push("悬停已经带视觉反馈，后续要明确是否覆盖 pointer 状态。");
   }
 
-  if (!current.textEnabled && !current.particle && !current.ripple && !current.sound && !current.imageEnabled) {
+  if (!current.textEnabled && !current.particle && !current.ripple && !current.sound && !current.animationEnabled && !current.imageEnabled) {
     conflicts.push("当前动作没有绑定任何反馈，用户点击时会感觉没效果。");
   }
 

@@ -503,6 +503,15 @@
     "soundBlendMode",
     "soundFile",
   ];
+  const ACTION_ANIMATION_FIELDS = [
+    "animationEnabled",
+    "animationStyle",
+    "animationDuration",
+    "animationScale",
+    "animationOpacity",
+    "animationOffsetX",
+    "animationOffsetY",
+  ];
   const ACTION_IMAGE_FIELDS = [
     "imageEnabled",
     "imageDataUrl",
@@ -536,6 +545,10 @@
 
   function getActionAudioConfig(config) {
     return pickActionConfigFields(config, ACTION_AUDIO_FIELDS);
+  }
+
+  function getActionAnimationConfig(config) {
+    return pickActionConfigFields(config, ACTION_ANIMATION_FIELDS);
   }
 
   function getActionImageConfig(config) {
@@ -665,6 +678,7 @@
     getActionParticleConfig,
     getActionRippleConfig,
     getActionAudioConfig,
+    getActionAnimationConfig,
     getActionImageConfig,
     getActionCursorFeedbackConfig,
     mergeThemePackWithFallback,

@@ -356,4 +356,31 @@ describe("themeDraftAdapter", () => {
       imageDuration: 960,
     });
   });
+
+  it("stores and rehydrates animation effect fields through workbench drafts", () => {
+    const { defaultConfig } = installPublicConfigRuntime();
+    const state = hydrateWorkbenchState(defaultConfig, { host: "example.com" });
+    state.draftsByTheme.woodfish.actionConfigs.leftClick.animationEnabled = true;
+    state.draftsByTheme.woodfish.actionConfigs.leftClick.animationStyle = "弹跳徽记";
+    state.draftsByTheme.woodfish.actionConfigs.leftClick.animationDuration = 880;
+    state.draftsByTheme.woodfish.actionConfigs.leftClick.animationScale = 136;
+
+    const storedConfig = buildStoredConfigFromWorkbench(defaultConfig, state);
+    const storedDraft = storedConfig.themePacks.find((item) => item.id === "woodfish").workbenchDraft.actionConfigs.leftClick;
+
+    expect(storedDraft).toMatchObject({
+      animationEnabled: true,
+      animationStyle: "弹跳徽记",
+      animationDuration: 880,
+      animationScale: 136,
+    });
+
+    const rehydratedState = hydrateWorkbenchState(storedConfig, { host: "example.com" });
+    expect(rehydratedState.draftsByTheme.woodfish.actionConfigs.leftClick).toMatchObject({
+      animationEnabled: true,
+      animationStyle: "弹跳徽记",
+      animationDuration: 880,
+      animationScale: 136,
+    });
+  });
 });

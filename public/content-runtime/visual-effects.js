@@ -128,6 +128,11 @@
           border-radius: 999px;
           box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
         }
+        .cd-animation-effect,
+        .cd-animation-effect::before,
+        .cd-animation-effect::after {
+          box-sizing: border-box;
+        }
         .cd-image-effect img {
           display: block;
           width: 100%;
@@ -378,6 +383,63 @@
       renderLayer({ scaleFrom: 0.18, scaleMid: 0.72, scaleTo: 1 });
     }
 
+    function renderAnimationEffect(x, y, actionConfig) {
+      const animationConfig = configStore.getActionAnimationConfig(actionConfig);
+      if (!animationConfig.animationEnabled) return;
+
+      const node = document.createElement("div");
+      const scale = Math.max(0.6, (animationConfig.animationScale || 100) / 100);
+      const opacity = Math.max(0.18, (animationConfig.animationOpacity || 100) / 100);
+      const style = animationConfig.animationStyle || "聚焦脉冲";
+      const duration = animationConfig.animationDuration || 720;
+      const size = Math.round(56 * scale);
+
+      node.className = "cd-effect cd-animation-effect";
+      node.style.left = `${x + (animationConfig.animationOffsetX || 0)}px`;
+      node.style.top = `${y + (animationConfig.animationOffsetY || -10)}px`;
+      node.style.width = `${size}px`;
+      node.style.height = `${size}px`;
+
+      if (style === "斜切闪片") {
+        node.style.borderRadius = "22px";
+        node.style.background = "linear-gradient(135deg, rgba(250,204,21,0.96), rgba(249,115,22,0.92))";
+        node.style.boxShadow = "0 18px 32px rgba(249, 115, 22, 0.22)";
+      } else if (style === "弹跳徽记") {
+        node.style.borderRadius = "999px";
+        node.style.background = "radial-gradient(circle at 35% 35%, rgba(96,165,250,0.96), rgba(79,70,229,0.94))";
+        node.style.boxShadow = "0 16px 30px rgba(79, 70, 229, 0.2)";
+      } else {
+        node.style.borderRadius = "999px";
+        node.style.background = "radial-gradient(circle, rgba(52,211,153,0.3) 0%, rgba(16,185,129,0.14) 55%, rgba(16,185,129,0) 100%)";
+        node.style.border = "2px solid rgba(16,185,129,0.42)";
+      }
+
+      animateNode(
+        node,
+        style === "斜切闪片"
+          ? [
+              { opacity: 0, transform: "translate3d(-50%, -40%, 0) scale(0.68) rotate(-18deg)" },
+              { opacity, transform: "translate3d(-50%, -50%, 0) scale(1) rotate(-6deg)" },
+              { opacity: 0, transform: "translate3d(calc(-50% + 18px), calc(-50% - 18px), 0) scale(1.08) rotate(12deg)" },
+            ]
+          : style === "弹跳徽记"
+            ? [
+                { opacity: 0, transform: "translate3d(-50%, -24%, 0) scale(0.52)" },
+                { opacity, transform: "translate3d(-50%, -50%, 0) scale(1.04)" },
+                { opacity: 0, transform: "translate3d(-50%, -92%, 0) scale(0.88)" },
+              ]
+            : [
+                { opacity: 0, transform: "translate3d(-50%, -50%, 0) scale(0.42)" },
+                { opacity, transform: "translate3d(-50%, -50%, 0) scale(0.92)" },
+                { opacity: 0, transform: "translate3d(-50%, -50%, 0) scale(1.48)" },
+              ],
+        {
+          duration,
+          easing: style === "聚焦脉冲" ? "cubic-bezier(0.16, 1, 0.3, 1)" : "cubic-bezier(0.22, 1, 0.36, 1)",
+        }
+      );
+    }
+
     function renderImageEffect(x, y, actionConfig) {
       const imageConfig = configStore.getActionImageConfig(actionConfig);
       if (!imageConfig.imageEnabled || !imageConfig.imageDataUrl) return;
@@ -472,6 +534,7 @@
       ensureRoot,
       renderText,
       renderRipple,
+      renderAnimationEffect,
       renderImageEffect,
       renderParticles,
       renderCursorOverride,

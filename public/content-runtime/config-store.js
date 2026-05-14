@@ -90,6 +90,10 @@
       return (runtimeConfig.getActionAudioConfig || ((nextConfig) => nextConfig || {}))(actionConfig || {});
     }
 
+    function getActionAnimationConfig(actionConfig) {
+      return (runtimeConfig.getActionAnimationConfig || ((nextConfig) => nextConfig || {}))(actionConfig || {});
+    }
+
     function getActionImageConfig(actionConfig) {
       return (runtimeConfig.getActionImageConfig || ((nextConfig) => nextConfig || {}))(actionConfig || {});
     }
@@ -218,6 +222,13 @@
             soundFadeOut: 0,
             soundTriggerMode: "每次触发",
             soundBlendMode: "保持原音量",
+            animationEnabled: false,
+            animationStyle: "聚焦脉冲",
+            animationDuration: 720,
+            animationScale: 100,
+            animationOpacity: 100,
+            animationOffsetX: 0,
+            animationOffsetY: -10,
             imageEnabled: false,
             imageDataUrl: "",
             imageDuration: 780,
@@ -423,6 +434,7 @@
       getActionParticleConfig,
       getActionRippleConfig,
       getActionAudioConfig,
+      getActionAnimationConfig,
       getActionImageConfig,
       getActionCursorFeedbackConfig,
       getActiveScheme,
