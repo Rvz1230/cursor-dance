@@ -8,6 +8,7 @@
     <script src="/content-runtime/diagnostics.js"></script>
     <script src="/content-runtime/config-store.js"></script>
     <script src="/content-runtime/visual-effects.js"></script>
+    <script src="/content-runtime/audio-duck-profile.js"></script>
     <script src="/content-runtime/audio.js"></script>
     <script src="/content-runtime/cursor-overlay.js"></script>
     <script src="/content-runtime/trigger-handlers.js"></script>
@@ -99,5 +100,85 @@
         </div>
       </section>
     </main>
+
+    <script>
+      (function setupSmokeMediaProbe() {
+        const media = document.createElement("video");
+        let currentVolume = 0.72;
+        let currentMuted = false;
+        let emulateSiteReassert = false;
+        media.id = "smoke-media";
+        media.setAttribute("aria-hidden", "true");
+        media.style.cssText = "position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;";
+
+        Object.defineProperty(media, "readyState", {
+          configurable: true,
+          get() {
+            return 4;
+          },
+        });
+
+        Object.defineProperty(media, "paused", {
+          configurable: true,
+          get() {
+            return false;
+          },
+        });
+
+        Object.defineProperty(media, "volume", {
+          configurable: true,
+          get() {
+            return currentVolume;
+          },
+          set(nextValue) {
+            const numericValue = Number(nextValue);
+            currentVolume = Number.isFinite(numericValue) ? Math.max(0, Math.min(1, numericValue)) : currentVolume;
+            media.dataset.volume = currentVolume.toFixed(3);
+          },
+        });
+
+        Object.defineProperty(media, "muted", {
+          configurable: true,
+          get() {
+            return currentMuted;
+          },
+          set(nextValue) {
+            currentMuted = Boolean(nextValue);
+            media.dataset.muted = String(currentMuted);
+          },
+        });
+
+        document.body.appendChild(media);
+        media.volume = 0.72;
+        media.muted = false;
+
+        window.__cursorDanceSmokeMedia = {
+          reset() {
+            emulateSiteReassert = false;
+            media.volume = 0.72;
+            media.muted = false;
+          },
+          enableReassert() {
+            emulateSiteReassert = true;
+          },
+          disableReassert() {
+            emulateSiteReassert = false;
+          },
+          getState() {
+            return {
+              volume: currentVolume,
+              muted: currentMuted,
+              emulateSiteReassert,
+            };
+          },
+        };
+
+        window.setInterval(() => {
+          if (!emulateSiteReassert) return;
+          media.volume = 0.72;
+          media.muted = false;
+        }, 60);
+      })();
+    </script>
   </body>
 </html>

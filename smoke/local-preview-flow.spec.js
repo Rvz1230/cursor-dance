@@ -57,6 +57,22 @@ async function clickAndExpectAnimationEffect(page) {
   await expect(page.locator("#cursordance-root .cd-animation-effect").last()).toBeVisible();
 }
 
+async function waitForStoredAudioBlendMode(page, expectedMode) {
+  await page.waitForFunction(
+    ({ configKey, mode }) => {
+      const raw = window.localStorage.getItem(configKey);
+      if (!raw) return false;
+      const parsed = JSON.parse(raw);
+      const leftClickConfig = parsed.themePacks?.find((themePack) => themePack.id === "woodfish")?.workbenchDraft?.actionConfigs?.leftClick;
+      return leftClickConfig?.soundBlendMode === mode;
+    },
+    {
+      configKey: CONFIG_STORAGE_KEY,
+      mode: expectedMode,
+    }
+  );
+}
+
 test("popup theme selection, live preview override, and fallback to saved config stay in sync", async ({ context, page }) => {
   await clearLocalState(page);
 
@@ -178,4 +194,70 @@ test("animation effect can preview live, save into config, and render in content
 
   await page.reload();
   await clickAndExpectAnimationEffect(page);
+});
+
+test("audio blend modes stay distinguishable on bilibili-like media reassertion", async ({ context, page }) => {
+  await clearLocalState(page);
+  await page.evaluate(() => {
+    window.__CURSORDANCE_AUDIO_SITE_KEY__ = "bilibili";
+    window.__cursorDanceSmokeMedia?.reset();
+    window.__cursorDanceSmokeMedia?.enableReassert();
+  });
+
+  const workbenchPage = await context.newPage();
+  await workbenchPage.goto("/index.html");
+  await expect(workbenchPage.getByRole("button", { name: "保存" })).toBeVisible();
+
+  const audioPanel = workbenchPage.locator("section").filter({
+    has: workbenchPage.getByRole("heading", { name: "音频反馈" }),
+  });
+
+  await audioPanel.getByRole("switch", { name: "音效播放开关" }).click();
+  await audioPanel.locator("select").nth(2).selectOption("保持原音量");
+  await workbenchPage.getByRole("button", { name: "保存" }).click();
+  await waitForStoredAudioBlendMode(workbenchPage, "保持原音量");
+
+  await page.evaluate(() => window.__cursorDanceSmokeMedia?.reset());
+  await page.getByRole("button", { name: "点击我触发特效" }).click();
+  await expect.poll(async () => page.evaluate(() => window.__cursorDanceSmokeMedia?.getState())).toMatchObject({
+    muted: false,
+    volume: 0.72,
+  });
+
+  await audioPanel.locator("select").nth(2).selectOption("压低页面音频");
+  await workbenchPage.getByRole("button", { name: "保存" }).click();
+  await waitForStoredAudioBlendMode(workbenchPage, "压低页面音频");
+
+  await page.evaluate(() => {
+    window.__cursorDanceSmokeMedia?.reset();
+    window.__cursorDanceSmokeMedia?.enableReassert();
+  });
+  await page.getByRole("button", { name: "点击我触发特效" }).click();
+  await expect.poll(async () => page.evaluate(() => window.__cursorDanceSmokeMedia?.getState())).toMatchObject({
+    muted: false,
+    volume: 0.035,
+  });
+
+  await audioPanel.locator("select").nth(2).selectOption("仅插件音效");
+  await workbenchPage.getByRole("button", { name: "保存" }).click();
+  await waitForStoredAudioBlendMode(workbenchPage, "仅插件音效");
+
+  await page.evaluate(() => {
+    window.__cursorDanceSmokeMedia?.reset();
+    window.__cursorDanceSmokeMedia?.enableReassert();
+  });
+  await page.getByRole("button", { name: "点击我触发特效" }).click();
+  await expect.poll(async () => page.evaluate(() => window.__cursorDanceSmokeMedia?.getState())).toMatchObject({
+    muted: true,
+    volume: 0,
+  });
+
+  await page.waitForFunction(
+    () => {
+      const state = window.__cursorDanceSmokeMedia?.getState();
+      return state?.muted === false && Math.abs((state?.volume || 0) - 0.72) < 0.001;
+    },
+    null,
+    { timeout: 4000 }
+  );
 });
