@@ -27,6 +27,10 @@ export function TextFeedbackCard({ config, updateActionConfig }) {
       title="飘字反馈"
       icon={PANEL_META.text.icon}
       iconTone={PANEL_META.text.tone}
+      collapsible
+      defaultOpen={config.textEnabled}
+      enabled={config.textEnabled}
+      summary={config.textEnabled ? `${config.textKind} · ${config.fontSize}px · ${config.textColor}` : "关闭飘字反馈"}
       action={<Switch checked={config.textEnabled} onCheckedChange={(next) => updateActionConfig({ textEnabled: next })} aria-label="飘字开关" />}
     >
       <div className="space-y-4">
@@ -95,7 +99,7 @@ export function TextFeedbackCard({ config, updateActionConfig }) {
           <FieldRow
             label="持续时间"
             hint="显示时长。"
-            control={<ControlSlider disabled={!config.textEnabled} value={config.textDuration} min={300} max={1800} onValueChange={(value) => updateActionConfig({ textDuration: value[0], textEnabled: true })} suffix="ms" width="w-16" />}
+            control={<ControlSlider disabled={!config.textEnabled} value={config.textDuration} min={300} max={1800} onValueChange={(value) => updateActionConfig({ textDuration: value[0], textEnabled: true })} suffix="ms" label="持续时间" />}
           />
           <FieldRow
             label="缓动效果"
@@ -105,12 +109,12 @@ export function TextFeedbackCard({ config, updateActionConfig }) {
           <FieldRow
             label="水平偏移"
             hint="左右偏移。"
-            control={<ControlSlider disabled={!config.textEnabled} value={config.textOffsetX} min={-24} max={24} onValueChange={(value) => updateActionConfig({ textOffsetX: value[0] })} suffix="px" width="w-16" />}
+            control={<ControlSlider disabled={!config.textEnabled} value={config.textOffsetX} min={-24} max={24} onValueChange={(value) => updateActionConfig({ textOffsetX: value[0] })} suffix="px" label="水平偏移" />}
           />
           <FieldRow
             label="垂直偏移"
             hint="上下偏移。"
-            control={<ControlSlider disabled={!config.textEnabled} value={config.textOffsetY} min={-48} max={12} onValueChange={(value) => updateActionConfig({ textOffsetY: value[0] })} suffix="px" width="w-16" />}
+            control={<ControlSlider disabled={!config.textEnabled} value={config.textOffsetY} min={-48} max={12} onValueChange={(value) => updateActionConfig({ textOffsetY: value[0] })} suffix="px" label="垂直偏移" />}
           />
         </SettingSection>
 
@@ -125,7 +129,7 @@ export function TextFeedbackCard({ config, updateActionConfig }) {
           <FieldRow
             label="透明度"
             hint="透明度。"
-            control={<ControlSlider disabled={!config.textEnabled} value={config.textOpacity} min={20} max={100} onValueChange={(value) => updateActionConfig({ textOpacity: value[0] })} suffix="%" />}
+            control={<ControlSlider disabled={!config.textEnabled} value={config.textOpacity} min={20} max={100} onValueChange={(value) => updateActionConfig({ textOpacity: value[0] })} suffix="%" label="透明度" />}
           />
           <FieldRow
             label="字重"
@@ -135,7 +139,7 @@ export function TextFeedbackCard({ config, updateActionConfig }) {
           <FieldRow
             label="描边"
             hint="描边宽度。"
-            control={<ControlSlider disabled={!config.textEnabled} value={config.textOutlineWidth} min={0} max={3} onValueChange={(value) => updateActionConfig({ textOutlineWidth: value[0] })} suffix="px" />}
+            control={<ControlSlider disabled={!config.textEnabled} value={config.textOutlineWidth} min={0} max={3} onValueChange={(value) => updateActionConfig({ textOutlineWidth: value[0] })} suffix="px" label="描边" />}
           />
           <FieldRow
             label="阴影效果"

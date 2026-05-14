@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { CheckCircle2, Copy, Download, FileJson, Plus, Trash2, Upload } from "lucide-react";
+import { CheckCircle2, FileJson, Plus, Upload } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Input } from "@/components/ui/input.jsx";
@@ -201,8 +201,7 @@ export function ThemeLibrarySidebar({
   const [query, setQuery] = useState("");
   const [composerMode, setComposerMode] = useState("");
   const [actionError, setActionError] = useState("");
-  const [actionSuccess, setActionSuccess] = useState("");
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [pendingDeleteTheme, setPendingDeleteTheme] = useState(null);
 
   const filteredThemes = useMemo(() => {
     const keyword = query.trim().toLowerCase();
@@ -214,18 +213,12 @@ export function ThemeLibrarySidebar({
     );
   }, [query, themes]);
 
-  const selectedTheme = useMemo(
-    () => themes.find((theme) => theme.id === themeId) ?? themes[0] ?? null,
-    [themeId, themes]
-  );
-
   function runThemeAction(action) {
     try {
       const result = action();
       setActionError("");
       return result;
     } catch (error) {
-      setActionSuccess("");
       const message = error instanceof Error ? error.message : "主题操作失败，请重试。";
       setActionError(message);
       notify?.({ tone: "error", title: "主题操作失败", description: message });
@@ -233,26 +226,23 @@ export function ThemeLibrarySidebar({
     }
   }
 
-  async function handleExportTheme() {
-    const result = runThemeAction(() => exportTheme(themeId));
+  async function handleExportTheme(targetThemeId) {
+    const result = runThemeAction(() => exportTheme(targetThemeId));
     if (!result) return;
-    setActionSuccess(`已导出 ${result.fileName}`);
     notify?.({ tone: "success", title: "已导出主题", description: result.fileName });
   }
 
-  function handleDuplicateTheme() {
-    const duplicatedName = runThemeAction(() => duplicateTheme(themeId));
+  function handleDuplicateTheme(targetThemeId) {
+    const duplicatedName = runThemeAction(() => duplicateTheme(targetThemeId));
     if (!duplicatedName) return;
-    setActionSuccess(`已复制为 ${duplicatedName}`);
     notify?.({ tone: "success", title: "已复制主题", description: duplicatedName });
   }
 
   function handleDeleteTheme() {
-    if (!selectedTheme) return;
-    const deletedName = runThemeAction(() => deleteTheme(themeId));
+    if (!pendingDeleteTheme) return;
+    const deletedName = runThemeAction(() => deleteTheme(pendingDeleteTheme.id));
     if (!deletedName) return;
-    setActionSuccess(`已移除 ${deletedName}，保存后会从配置中删除。`);
-    setDeleteDialogOpen(false);
+    setPendingDeleteTheme(null);
     notify?.({ tone: "success", title: "已移除主题", description: `${deletedName} 将在保存后从配置中删除。` });
   }
 
@@ -294,72 +284,6 @@ export function ThemeLibrarySidebar({
           />
         </div>
 
-        {selectedTheme ? (
-          <div className="px-4 pb-3">
-            <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4 shadow-sm">
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold text-slate-900">{selectedTheme.name}</div>
-                  <div className="mt-1 flex items-center gap-2">
-                    <DataPill tone={selectedTheme.kind === "内置" ? "teal" : "amber"}>{selectedTheme.kind}</DataPill>
-                    <span className="truncate text-xs text-slate-500">{selectedTheme.summary}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <Button variant="outline" className="rounded-2xl px-3" onClick={handleDuplicateTheme}>
-                  <Copy className="mr-2 h-4 w-4" />
-                  复制
-                </Button>
-                <Button variant="outline" className="rounded-2xl px-3" onClick={handleExportTheme}>
-                  <Download className="mr-2 h-4 w-4" />
-                  导出
-                </Button>
-              </div>
-
-              <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                <Button
-                  variant="ghost"
-                  className="mt-2 h-10 w-full rounded-2xl text-rose-600 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:text-slate-400"
-                  onClick={() => setDeleteDialogOpen(true)}
-                  disabled={selectedTheme.kind === "内置" || themes.length <= 1}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  删除当前主题
-                </Button>
-                <AlertDialogContent>
-                  <AlertDialogTitle className="text-base font-semibold text-slate-950">删除主题？</AlertDialogTitle>
-                  <AlertDialogDescription className="mt-2 text-sm leading-6 text-slate-600 text-pretty">
-                    确定删除主题“{selectedTheme.name}”吗？此操作会在下次保存时写入扩展配置。
-                  </AlertDialogDescription>
-                  <div className="mt-5 flex justify-end gap-2">
-                    <AlertDialogCancel className="inline-flex h-10 items-center justify-center rounded-full border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 ring-1 ring-black/5 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2">
-                      取消
-                    </AlertDialogCancel>
-                    <AlertDialogAction
-                      className="inline-flex h-10 items-center justify-center rounded-full bg-rose-600 px-4 text-sm font-medium text-white ring-1 ring-black/5 transition-colors hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600 focus-visible:ring-offset-2"
-                      onClick={handleDeleteTheme}
-                    >
-                      删除主题
-                    </AlertDialogAction>
-                  </div>
-                </AlertDialogContent>
-              </AlertDialog>
-
-              {selectedTheme.kind === "内置" ? (
-                <div className="mt-2 text-xs text-slate-500">内置主题不能直接删除，先复制一份再继续修改会更安全。</div>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
-
-        {actionSuccess ? (
-          <div className="px-4 pb-3">
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">{actionSuccess}</div>
-          </div>
-        ) : null}
-
         {actionError ? (
           <div className="px-4 pb-3">
             <div className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{actionError}</div>
@@ -369,7 +293,16 @@ export function ThemeLibrarySidebar({
         <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 pb-4">
           {filteredThemes.length ? (
             filteredThemes.map((theme) => (
-              <ThemeCard key={theme.id} theme={theme} selected={theme.id === themeId} onClick={() => setThemeId(theme.id)} />
+              <ThemeCard
+                key={theme.id}
+                theme={theme}
+                selected={theme.id === themeId}
+                canDelete={theme.kind !== "内置" && themes.length > 1}
+                onClick={() => setThemeId(theme.id)}
+                onDuplicate={() => handleDuplicateTheme(theme.id)}
+                onExport={() => handleExportTheme(theme.id)}
+                onDelete={() => setPendingDeleteTheme(theme)}
+              />
             ))
           ) : (
             <div className="rounded-[24px] border border-dashed border-slate-300 bg-white px-4 py-5 text-sm text-slate-600">
@@ -395,6 +328,28 @@ export function ThemeLibrarySidebar({
         notify={notify}
         closeComposer={() => setComposerMode("")}
       />
+
+      <AlertDialog open={Boolean(pendingDeleteTheme)} onOpenChange={(open) => {
+        if (!open) setPendingDeleteTheme(null);
+      }}>
+        <AlertDialogContent>
+          <AlertDialogTitle className="text-base font-semibold text-slate-950">删除主题？</AlertDialogTitle>
+          <AlertDialogDescription className="mt-2 text-sm leading-6 text-slate-600 text-pretty">
+            确定删除主题“{pendingDeleteTheme?.name}”吗？此操作会在下次保存时写入扩展配置。
+          </AlertDialogDescription>
+          <div className="mt-5 flex justify-end gap-2">
+            <AlertDialogCancel className="inline-flex h-10 items-center justify-center rounded-full border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 ring-1 ring-black/5 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2">
+              取消
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="inline-flex h-10 items-center justify-center rounded-full bg-rose-600 px-4 text-sm font-medium text-white ring-1 ring-black/5 transition-colors hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600 focus-visible:ring-offset-2"
+              onClick={handleDeleteTheme}
+            >
+              删除主题
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </aside>
   );
 }

@@ -61,6 +61,10 @@ export function ImageFeedbackCard({ config, updateActionConfig }) {
       title="图片贴纸反馈"
       icon={PANEL_META.cursor.icon}
       iconTone="bg-fuchsia-100 text-fuchsia-700"
+      collapsible
+      defaultOpen={config.imageEnabled}
+      enabled={config.imageEnabled}
+      summary={config.imageEnabled ? `${config.imageSize}px · ${config.imageOpacity}%` : "关闭图片贴纸"}
       action={<Switch checked={config.imageEnabled} onCheckedChange={(next) => updateActionConfig({ imageEnabled: next })} aria-label="图片反馈开关" />}
     >
       <div className="space-y-4">
@@ -172,17 +176,17 @@ export function ImageFeedbackCard({ config, updateActionConfig }) {
           <FieldRow
             label="持续时间"
             hint="停留多久。"
-            control={<ControlSlider disabled={!config.imageEnabled} value={config.imageDuration} min={240} max={1600} onValueChange={(value) => updateActionConfig({ imageDuration: value[0] })} suffix="ms" width="w-16" />}
+            control={<ControlSlider disabled={!config.imageEnabled} value={config.imageDuration} min={240} max={1600} onValueChange={(value) => updateActionConfig({ imageDuration: value[0] })} suffix="ms" label="持续时间" />}
           />
           <FieldRow
             label="水平偏移"
             hint="左右位置。"
-            control={<ControlSlider disabled={!config.imageEnabled} value={config.imageOffsetX} min={-36} max={36} onValueChange={(value) => updateActionConfig({ imageOffsetX: value[0] })} suffix="px" width="w-16" />}
+            control={<ControlSlider disabled={!config.imageEnabled} value={config.imageOffsetX} min={-36} max={36} onValueChange={(value) => updateActionConfig({ imageOffsetX: value[0] })} suffix="px" label="水平偏移" />}
           />
           <FieldRow
             label="垂直偏移"
             hint="上下位置。"
-            control={<ControlSlider disabled={!config.imageEnabled} value={config.imageOffsetY} min={-48} max={24} onValueChange={(value) => updateActionConfig({ imageOffsetY: value[0] })} suffix="px" width="w-16" />}
+            control={<ControlSlider disabled={!config.imageEnabled} value={config.imageOffsetY} min={-48} max={24} onValueChange={(value) => updateActionConfig({ imageOffsetY: value[0] })} suffix="px" label="垂直偏移" />}
           />
         </SettingSection>
 
@@ -191,12 +195,12 @@ export function ImageFeedbackCard({ config, updateActionConfig }) {
           <FieldRow
             label="贴纸尺寸"
             hint="图片显示尺寸。"
-            control={<ControlSlider disabled={!config.imageEnabled} value={config.imageSize} min={24} max={120} onValueChange={(value) => updateActionConfig({ imageSize: value[0] })} suffix="px" />}
+            control={<ControlSlider disabled={!config.imageEnabled} value={config.imageSize} min={24} max={120} onValueChange={(value) => updateActionConfig({ imageSize: value[0] })} suffix="px" label="贴纸尺寸" />}
           />
           <FieldRow
             label="透明度"
             hint="整体透明度。"
-            control={<ControlSlider disabled={!config.imageEnabled} value={config.imageOpacity} min={20} max={100} onValueChange={(value) => updateActionConfig({ imageOpacity: value[0] })} suffix="%" />}
+            control={<ControlSlider disabled={!config.imageEnabled} value={config.imageOpacity} min={20} max={100} onValueChange={(value) => updateActionConfig({ imageOpacity: value[0] })} suffix="%" label="透明度" />}
           />
         </SettingSection>
       </div>

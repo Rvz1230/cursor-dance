@@ -1,24 +1,68 @@
 import { useEffect, useState } from "react";
-import { Bell, Plus, X } from "lucide-react";
+import { Check, ChevronDown, Copy, Download, MousePointer2, Plus, Trash2, Wand2, X } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Input } from "@/components/ui/input.jsx";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover.jsx";
 import { Slider } from "@/components/ui/slider.jsx";
 import { Select } from "@/components/ui/select.jsx";
 import { cn } from "@/components/ui/utils.js";
 import { toneClasses } from "../model/workbenchSchema.js";
 
-export function Panel({ title, action, icon: Icon, iconTone = "bg-slate-200 text-slate-700", children, className }) {
-  return (
-    <section className={cn("overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm", className)}>
-      <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3.5">
-        <div className="flex items-center gap-3">
-          {Icon ? (
-            <div className={cn("flex size-9 items-center justify-center rounded-2xl", iconTone)}>
-              <Icon className="h-4 w-4" />
-            </div>
-          ) : null}
-          <h3 className="text-sm font-semibold text-slate-900 text-balance">{title}</h3>
+export function Panel({
+  title,
+  action,
+  icon: Icon,
+  iconTone = "bg-slate-200 text-slate-700",
+  children,
+  className,
+  collapsible = false,
+  defaultOpen = true,
+  summary,
+  enabled,
+}) {
+  const header = (
+    <div className="flex min-w-0 items-center gap-3">
+      {Icon ? (
+        <div className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl", iconTone)}>
+          <Icon className="size-4" />
         </div>
+      ) : null}
+      <div className="min-w-0">
+        <div className="flex min-w-0 items-center gap-2">
+          <h3 className="truncate text-sm font-semibold text-slate-900 text-balance">{title}</h3>
+          {typeof enabled === "boolean" ? (
+            <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", enabled ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500")}>
+              {enabled ? "已启用" : "未启用"}
+            </span>
+          ) : null}
+        </div>
+        {summary ? <div className="mt-0.5 truncate text-xs text-slate-500 text-pretty">{summary}</div> : null}
+      </div>
+    </div>
+  );
+
+  if (collapsible) {
+    return (
+      <Accordion key={defaultOpen ? "open" : "closed"} type="single" collapsible defaultValue={defaultOpen ? "content" : undefined} className={className}>
+        <AccordionItem value="content" className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+            <AccordionTrigger className="group flex min-w-0 flex-1 items-center justify-between gap-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2">
+              {header}
+              <ChevronDown className="size-4 shrink-0 text-slate-400 transition-transform group-data-[state=open]:rotate-180" aria-hidden="true" />
+            </AccordionTrigger>
+            {action ? <div className="ml-3 shrink-0">{action}</div> : null}
+          </div>
+          <AccordionContent className="px-4 py-3.5">{children}</AccordionContent>
+        </AccordionItem>
+      </Accordion>
+    );
+  }
+
+  return (
+    <section className={cn("overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm", className)}>
+      <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3.5">
+        {header}
         {action}
       </div>
       <div className="px-4 py-3.5">{children}</div>
@@ -68,29 +112,34 @@ function clampNumber(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
-export function ControlSlider({ value, min, max, onValueChange, suffix = "", width = "w-14", disabled = false, label = "调整数值" }) {
+export function WorkbenchAccordionPanel(props) {
+  return <Panel collapsible {...props} />;
+}
+
+export function ControlSlider({ value, min, max, onValueChange, suffix = "", disabled = false, label = "数值" }) {
   function commitValue(nextValue) {
     onValueChange?.([clampNumber(nextValue, min, max)]);
   }
 
   return (
-    <div className={cn("flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5", disabled && "opacity-50")}>
+    <div className={cn("grid grid-cols-[minmax(0,1fr)_88px] items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5", disabled && "opacity-50")}>
       <Slider className="flex-1" value={[value]} min={min} max={max} onValueChange={(next) => commitValue(next[0])} disabled={disabled} aria-label={label} />
-      <div className={cn("flex items-center rounded-xl bg-white px-2 py-1 ring-1 ring-slate-200", width)}>
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center rounded-xl bg-white px-2.5 py-1.5 ring-1 ring-slate-200">
         <input
           type="number"
           value={value}
           min={min}
           max={max}
           disabled={disabled}
-          aria-label={`${label}数值`}
+          inputMode="numeric"
+          aria-label={label}
           onChange={(event) => {
             const raw = event.target.value;
             if (raw === "") return;
             commitValue(Number(raw));
           }}
           onBlur={(event) => commitValue(Number(event.target.value))}
-          className="min-w-0 flex-1 bg-transparent text-right text-sm font-medium tabular-nums text-slate-700 outline-none disabled:cursor-not-allowed"
+          className="min-w-0 bg-transparent text-right text-sm font-semibold tabular-nums text-slate-800 outline-none disabled:cursor-not-allowed"
         />
         {suffix ? <span className="ml-0.5 shrink-0 text-xs font-medium text-slate-500">{suffix}</span> : null}
       </div>
@@ -102,6 +151,7 @@ export function ColorOptions({ value, onChange, disabled = false }) {
   const colors = ["#B45309", "#0F766E", "#0284C7", "#7C3AED", "#BE185D"];
   const normalizedValue = /^#[0-9a-f]{6}$/i.test(value || "") ? value.toUpperCase() : "#B45309";
   const [draft, setDraft] = useState(normalizedValue);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     setDraft(normalizedValue);
@@ -111,56 +161,81 @@ export function ColorOptions({ value, onChange, disabled = false }) {
     const normalized = nextColor.trim().startsWith("#") ? nextColor.trim() : `#${nextColor.trim()}`;
     if (!/^#[0-9a-f]{6}$/i.test(normalized)) {
       setDraft(value || normalizedValue);
+      setError("请输入 6 位十六进制颜色值。");
       return;
     }
     const upper = normalized.toUpperCase();
     setDraft(upper);
+    setError("");
     onChange?.(upper);
   }
 
   return (
-    <div className={cn("grid gap-3", disabled && "opacity-50")}>
-      <div className="flex flex-wrap gap-2">
-        {colors.map((color) => (
-          <button
-            key={color}
-            type="button"
-            disabled={disabled}
-            onClick={() => commitColor(color)}
-            className={cn(
-              "flex size-9 items-center justify-center rounded-xl border transition-transform disabled:cursor-not-allowed",
-              value?.toUpperCase() === color ? "border-slate-900 ring-2 ring-slate-200" : "border-slate-200 hover:scale-[1.03]"
-            )}
-            style={{ backgroundColor: color }}
-            aria-label={`选择颜色 ${color}`}
-          >
-            {value?.toUpperCase() === color ? <span className="size-2.5 rounded-full bg-white/95" /> : null}
-          </button>
-        ))}
-      </div>
-      <div className="grid grid-cols-[44px_minmax(0,1fr)] gap-2">
-        <input
-          type="color"
-          value={normalizedValue}
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
           disabled={disabled}
-          aria-label="选择自定义飘字颜色"
-          onChange={(event) => commitColor(event.target.value)}
-          className="h-10 w-11 cursor-pointer rounded-xl border border-slate-200 bg-white p-1 disabled:cursor-not-allowed"
-        />
-        <Input
-          value={draft}
-          disabled={disabled}
-          aria-label="输入飘字颜色十六进制值"
-          onChange={(event) => setDraft(event.target.value)}
-          onBlur={(event) => commitColor(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") commitColor(event.currentTarget.value);
-          }}
-          className="rounded-xl bg-white font-mono uppercase"
-          placeholder="#B45309"
-        />
-      </div>
-    </div>
+          className="grid h-10 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-left text-sm text-slate-800 shadow-sm shadow-slate-100/60 transition-colors hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <span className="size-5 rounded-md border border-slate-200" style={{ backgroundColor: normalizedValue }} />
+          <span className="truncate font-mono text-sm uppercase">{normalizedValue}</span>
+          <ChevronDown className="size-4 text-slate-400" aria-hidden="true" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72">
+        <div className="space-y-3">
+          <div>
+            <div className="text-xs font-medium text-slate-500">推荐颜色</div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {colors.map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => commitColor(color)}
+                  className={cn(
+                    "flex size-9 items-center justify-center rounded-xl border transition-transform disabled:cursor-not-allowed",
+                    value?.toUpperCase() === color ? "border-slate-900 ring-2 ring-slate-200" : "border-slate-200 hover:scale-[1.03]"
+                  )}
+                  style={{ backgroundColor: color }}
+                  aria-label={`选择颜色 ${color}`}
+                >
+                  {value?.toUpperCase() === color ? <Check className="size-4 text-white drop-shadow" aria-hidden="true" /> : null}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="grid grid-cols-[44px_minmax(0,1fr)] gap-2">
+            <input
+              type="color"
+              value={normalizedValue}
+              disabled={disabled}
+              aria-label="选择自定义飘字颜色"
+              onChange={(event) => commitColor(event.target.value)}
+              className="h-10 w-11 cursor-pointer rounded-xl border border-slate-200 bg-white p-1 disabled:cursor-not-allowed"
+            />
+            <Input
+              value={draft}
+              disabled={disabled}
+              aria-label="输入飘字颜色十六进制值"
+              aria-invalid={Boolean(error)}
+              onChange={(event) => {
+                setDraft(event.target.value);
+                setError("");
+              }}
+              onBlur={(event) => commitColor(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") commitColor(event.currentTarget.value);
+              }}
+              className="rounded-xl bg-white font-mono uppercase"
+              placeholder="#B45309"
+            />
+          </div>
+          {error ? <div className="text-xs text-rose-600">{error}</div> : null}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -233,31 +308,60 @@ export function SettingSection({ disabled = false, children }) {
   );
 }
 
-export function ThemeCard({ theme, selected, onClick }) {
+export function ThemeCard({ theme, selected, onClick, onDuplicate, onExport, onDelete, canDelete = true }) {
   const tones = toneClasses(theme.tone);
   return (
-    <button
-      type="button"
-      onClick={onClick}
+    <div
       className={cn(
-        "w-full rounded-[24px] border px-4 py-4 text-left transition-colors",
-        selected ? "border-slate-900 bg-white shadow-sm" : "border-slate-200/80 bg-white/72 hover:border-slate-300 hover:bg-white"
+        "group relative overflow-hidden rounded-2xl border bg-white/80 transition-colors",
+        selected ? "border-emerald-200 bg-emerald-50/55 shadow-sm" : "border-slate-200/80 hover:border-slate-300 hover:bg-white"
       )}
     >
-      <div className="flex items-start gap-3">
-        <div className={cn("mt-0.5 flex h-11 w-11 items-center justify-center rounded-2xl", selected ? "bg-slate-900 text-white" : tones.icon)}>
-          <Bell className="h-5 w-5" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <div className="truncate text-sm font-semibold text-slate-900">{theme.name}</div>
-            <DataPill tone={theme.kind === "内置" ? "teal" : "amber"}>{theme.kind}</DataPill>
-            {selected ? <span className="h-2.5 w-2.5 rounded-full bg-slate-900" aria-hidden="true" /> : null}
+      {selected ? <div className="absolute inset-y-3 left-0 w-1 rounded-r-full bg-emerald-600" aria-hidden="true" /> : null}
+      <button type="button" onClick={onClick} className="w-full px-3.5 py-3.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2">
+        <div className="flex items-start gap-3">
+          <div className={cn("mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl", selected ? "bg-white text-emerald-700 ring-1 ring-emerald-200" : tones.icon)}>
+            <Wand2 className="size-4" />
           </div>
-          <div className={cn("mt-2 text-sm text-pretty", selected ? "text-slate-700" : "text-slate-600")}>{theme.summary}</div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <div className="truncate text-sm font-semibold text-slate-900">{theme.name}</div>
+              <DataPill tone={theme.kind === "内置" ? "teal" : "amber"}>{theme.kind}</DataPill>
+              {selected ? <Check className="size-4 shrink-0 text-emerald-700" aria-label="当前选中" /> : null}
+            </div>
+            <div className={cn("mt-1.5 text-sm text-pretty", selected ? "text-slate-700" : "text-slate-600")}>{theme.summary}</div>
+          </div>
         </div>
+      </button>
+      <div className={cn("grid grid-cols-3 gap-1.5 px-3.5 pb-3 transition-opacity", selected ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100")}>
+        <Button variant="outline" className="h-8 rounded-xl px-2 text-xs" onClick={onDuplicate}>
+          <Copy className="mr-1.5 size-3.5" />
+          复制
+        </Button>
+        <Button variant="outline" className="h-8 rounded-xl px-2 text-xs" onClick={onExport}>
+          <Download className="mr-1.5 size-3.5" />
+          导出
+        </Button>
+        <Button
+          variant="ghost"
+          className="h-8 rounded-xl px-2 text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-700 disabled:cursor-not-allowed disabled:text-slate-400"
+          onClick={onDelete}
+          disabled={!canDelete}
+        >
+          <Trash2 className="mr-1.5 size-3.5" />
+          删除
+        </Button>
       </div>
-    </button>
+    </div>
+  );
+}
+
+export function NativeCursorPreview({ size = 48 }) {
+  return (
+    <div className="relative" style={{ width: `${size}px`, height: `${size}px` }} aria-label="系统原生鼠标指针预览">
+      <MousePointer2 className="absolute left-1 top-1 size-[70%] -rotate-12 fill-white text-slate-950 drop-shadow-sm" />
+      <span className="absolute left-[38%] top-[40%] size-2 rounded-full bg-emerald-500 ring-2 ring-white" aria-hidden="true" />
+    </div>
   );
 }
 

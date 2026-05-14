@@ -6,11 +6,18 @@ import { ControlSlider, FieldRow, Panel, SmallSelect } from "../WorkbenchControl
 
 export function CursorFeedbackCard({ config, updateActionConfig }) {
   return (
-    <Panel title="光标与命中反馈" icon={PANEL_META.cursor.icon} iconTone={PANEL_META.cursor.tone}>
+    <Panel
+      title="光标与命中反馈"
+      icon={PANEL_META.cursor.icon}
+      iconTone={PANEL_META.cursor.tone}
+      collapsible
+      defaultOpen={config.cursorOverride !== "跟随当前状态" || config.shake > 0}
+      summary={`${config.cursorOverride} · ${config.cursorSize}px · 抖动 ${config.shake}%`}
+    >
       <FieldRow
         label="敲击抖动"
         hint="抖动强度。"
-        control={<ControlSlider value={config.shake} min={0} max={80} onValueChange={(value) => updateActionConfig({ shake: value[0] })} suffix="%" />}
+        control={<ControlSlider value={config.shake} min={0} max={80} onValueChange={(value) => updateActionConfig({ shake: value[0] })} suffix="%" label="抖动强度" />}
       />
       <FieldRow
         label="动作光标"
@@ -20,7 +27,7 @@ export function CursorFeedbackCard({ config, updateActionConfig }) {
       <FieldRow
         label="光标尺寸"
         hint="尺寸。"
-        control={<ControlSlider value={config.cursorSize} min={32} max={72} onValueChange={(value) => updateActionConfig({ cursorSize: value[0] })} suffix="px" />}
+        control={<ControlSlider value={config.cursorSize} min={32} max={72} onValueChange={(value) => updateActionConfig({ cursorSize: value[0] })} suffix="px" label="光标尺寸" />}
       />
     </Panel>
   );

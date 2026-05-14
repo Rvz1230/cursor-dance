@@ -19,6 +19,10 @@ export function RippleFeedbackCard({ config, updateActionConfig }) {
       title="波纹反馈"
       icon={PANEL_META.particles.icon}
       iconTone="bg-emerald-100 text-emerald-700"
+      collapsible
+      defaultOpen={config.ripple}
+      enabled={config.ripple}
+      summary={config.ripple ? `${config.rippleStyle} · ${config.rippleSize}px · ${config.rippleDuration}ms` : "关闭波纹反馈"}
       action={<Switch checked={config.ripple} onCheckedChange={(next) => updateActionConfig({ ripple: next })} aria-label="波纹开关" />}
     >
       <div className="space-y-4">
@@ -32,12 +36,12 @@ export function RippleFeedbackCard({ config, updateActionConfig }) {
           <FieldRow
             label="波纹尺寸"
             hint="尺寸。"
-            control={<ControlSlider disabled={!config.ripple} value={config.rippleSize} min={20} max={110} onValueChange={(value) => updateActionConfig({ rippleSize: value[0] })} suffix="px" />}
+            control={<ControlSlider disabled={!config.ripple} value={config.rippleSize} min={20} max={110} onValueChange={(value) => updateActionConfig({ rippleSize: value[0] })} suffix="px" label="波纹尺寸" />}
           />
           <FieldRow
             label="线条粗细"
             hint="粗细。"
-            control={<ControlSlider disabled={!config.ripple} value={config.rippleLineWidth} min={1} max={6} onValueChange={(value) => updateActionConfig({ rippleLineWidth: value[0] })} suffix="px" />}
+            control={<ControlSlider disabled={!config.ripple} value={config.rippleLineWidth} min={1} max={6} onValueChange={(value) => updateActionConfig({ rippleLineWidth: value[0] })} suffix="px" label="线条粗细" />}
           />
         </SettingSection>
 
@@ -46,7 +50,7 @@ export function RippleFeedbackCard({ config, updateActionConfig }) {
           <FieldRow
             label="波纹时长"
             hint="时长。"
-            control={<ControlSlider disabled={!config.ripple} value={config.rippleDuration} min={300} max={1200} onValueChange={(value) => updateActionConfig({ rippleDuration: value[0] })} suffix="ms" width="w-16" />}
+            control={<ControlSlider disabled={!config.ripple} value={config.rippleDuration} min={300} max={1200} onValueChange={(value) => updateActionConfig({ rippleDuration: value[0] })} suffix="ms" label="波纹时长" />}
           />
           <FieldRow
             label="缓动效果"
@@ -56,7 +60,7 @@ export function RippleFeedbackCard({ config, updateActionConfig }) {
           <FieldRow
             label="透明度"
             hint="透明度。"
-            control={<ControlSlider disabled={!config.ripple} value={config.rippleOpacity} min={20} max={100} onValueChange={(value) => updateActionConfig({ rippleOpacity: value[0] })} suffix="%" />}
+            control={<ControlSlider disabled={!config.ripple} value={config.rippleOpacity} min={20} max={100} onValueChange={(value) => updateActionConfig({ rippleOpacity: value[0] })} suffix="%" label="透明度" />}
           />
         </SettingSection>
       </div>

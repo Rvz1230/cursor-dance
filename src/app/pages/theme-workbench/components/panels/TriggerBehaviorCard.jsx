@@ -6,7 +6,14 @@ export function TriggerBehaviorCard({ actionId, config, updateActionConfig }) {
   const timingMeta = getTimingFieldMeta(actionId);
 
   return (
-    <Panel title="触发行为" icon={PANEL_META.trigger.icon} iconTone={PANEL_META.trigger.tone}>
+    <Panel
+      title="触发行为"
+      icon={PANEL_META.trigger.icon}
+      iconTone={PANEL_META.trigger.tone}
+      collapsible
+      defaultOpen
+      summary={`${config.triggerTiming} · ${config.triggerZone}`}
+    >
       <FieldRow
         label="触发时机"
         hint="触发节点。"
@@ -20,7 +27,7 @@ export function TriggerBehaviorCard({ actionId, config, updateActionConfig }) {
       <FieldRow
         label={timingMeta.label}
         hint={timingMeta.hint}
-        control={<ControlSlider value={config.holdMs} min={timingMeta.min} max={timingMeta.max} onValueChange={(value) => updateActionConfig({ holdMs: value[0] })} suffix="ms" width="w-16" />}
+        control={<ControlSlider value={config.holdMs} min={timingMeta.min} max={timingMeta.max} onValueChange={(value) => updateActionConfig({ holdMs: value[0] })} suffix="ms" label={timingMeta.label} />}
       />
     </Panel>
   );

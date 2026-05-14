@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Bell, RotateCcw, Wand2 } from "lucide-react";
+import { RotateCcw, Volume2, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button.jsx";
 import { Switch } from "@/components/ui/switch.jsx";
 import { cn } from "@/components/ui/utils.js";
@@ -29,7 +29,7 @@ import {
   getActionRippleConfig,
   getActionTextConfig,
 } from "../model/workbenchSchema.js";
-import { Panel, PreviewBadge } from "./WorkbenchControls.jsx";
+import { NativeCursorPreview, Panel, PreviewBadge } from "./WorkbenchControls.jsx";
 
 function CursorPreview({ actionLabel, config, siteMode }) {
   const disabledBySite = siteMode === "当前禁用";
@@ -42,6 +42,7 @@ function CursorPreview({ actionLabel, config, siteMode }) {
   const animationConfig = useMemo(() => getActionAnimationConfig(config), [config]);
   const imageConfig = useMemo(() => getActionImageConfig(config), [config]);
   const cursorSize = getPreviewCursorSize(config);
+  const usesCustomCursor = Boolean(config.cursorOverride && config.cursorOverride !== "跟随当前状态");
   const accentText = getPreviewText(config, runId);
   const particleSpecs = useMemo(() => buildParticleSpecs(config, runId), [config, runId]);
   const rippleSpecs = useMemo(() => buildRippleSpecs(config), [config]);
@@ -92,19 +93,15 @@ function CursorPreview({ actionLabel, config, siteMode }) {
         </div>
       </div>
 
-      <div className="rounded-[22px] border border-slate-200 bg-white p-2.5">
+      <div className="rounded-2xl border border-slate-200 bg-white p-2.5">
         <div
-          className="relative h-[228px] overflow-hidden rounded-[18px] border border-slate-200 bg-white"
+          className="relative h-[228px] overflow-hidden rounded-xl border border-slate-200 bg-white"
           style={{
-            backgroundImage:
-              "radial-gradient(circle at 1px 1px, rgba(148,163,184,0.28) 1px, transparent 0), linear-gradient(180deg, rgba(248,250,252,0.84), rgba(241,245,249,0.94))",
-            backgroundSize: "18px 18px, 100% 100%",
+            backgroundImage: "linear-gradient(180deg, rgba(248,250,252,0.96), rgba(241,245,249,0.84))",
           }}
         >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.12),rgba(241,245,249,0.32)_70%)]" />
-
-          <div className="absolute inset-x-8 bottom-9 h-4 rounded-full bg-slate-200/60" />
-          <div className="absolute inset-x-6 bottom-6 h-px bg-slate-300/70" />
+          <div className="absolute inset-x-8 bottom-9 h-4 rounded-full bg-slate-200/45" />
+          <div className="absolute inset-x-6 bottom-6 h-px bg-slate-300/60" />
 
           <div className="absolute left-1/2 top-[56%] h-0 w-0">
             {rippleConfig.ripple && !disabledBySite ? (
@@ -231,23 +228,30 @@ function CursorPreview({ actionLabel, config, siteMode }) {
               }}
             >
               <div
-                className="relative flex items-center justify-center rounded-full border border-amber-300 bg-amber-50 shadow-sm"
+                className={cn(
+                  "relative flex items-center justify-center",
+                  usesCustomCursor ? "rounded-full border border-amber-300 bg-amber-50 shadow-sm" : ""
+                )}
                 style={{ width: `${cursorSize}px`, height: `${cursorSize}px` }}
               >
-                <Bell className="h-5 w-5 text-amber-700" />
-                <div className="absolute inset-2 rounded-full border border-amber-200/80" />
+                {usesCustomCursor ? (
+                  <div className="size-full rounded-full border border-amber-200 bg-amber-50" />
+                ) : (
+                  <NativeCursorPreview size={cursorSize} />
+                )}
               </div>
             </div>
           </div>
 
           {audioConfig.sound && !disabledBySite ? (
-            <div className="absolute right-4 top-4 flex items-center gap-2 rounded-full border border-slate-200 bg-white/94 px-2.5 py-1.5 text-[11px] text-slate-500 shadow-sm">
+            <div className="absolute right-4 top-4 flex items-center gap-2 rounded-full border border-emerald-100 bg-white/94 px-2.5 py-1.5 text-[11px] text-slate-600 shadow-sm">
+              <Volume2 className="size-3.5 text-emerald-700" aria-hidden="true" />
               <span className="max-w-[96px] truncate">{getPreviewSoundFile(config)}</span>
               <div className="flex items-end gap-1">
                 {[0, 1, 2, 3].map((bar) => (
                   <span
                     key={`bar-${runId}-${bar}`}
-                    className="block w-1.5 rounded-full bg-rose-300/90"
+                    className="block w-1 rounded-full bg-emerald-500/70"
                     style={{
                       height: `${8 + bar * 3}px`,
                       animation: `cursorDancePreviewBars 480ms ease-out ${bar * 60}ms 2`,

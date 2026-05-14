@@ -20,6 +20,10 @@ export function ParticleFeedbackCard({ config, updateActionConfig }) {
       title="粒子反馈"
       icon={PANEL_META.particles.icon}
       iconTone={PANEL_META.particles.tone}
+      collapsible
+      defaultOpen={config.particle}
+      enabled={config.particle}
+      summary={config.particle ? `${config.particleStyle} · ${config.particleCount} 个 · ${config.particleDirection}` : "关闭粒子反馈"}
       action={<Switch checked={config.particle} onCheckedChange={(next) => updateActionConfig({ particle: next })} aria-label="粒子开关" />}
     >
       <div className="space-y-4">
@@ -33,12 +37,12 @@ export function ParticleFeedbackCard({ config, updateActionConfig }) {
           <FieldRow
             label="粒子数量"
             hint="数量。"
-            control={<ControlSlider disabled={!config.particle} value={config.particleCount} min={0} max={40} onValueChange={(value) => updateActionConfig({ particleCount: value[0], particle: value[0] > 0 })} />}
+            control={<ControlSlider disabled={!config.particle} value={config.particleCount} min={0} max={40} onValueChange={(value) => updateActionConfig({ particleCount: value[0], particle: value[0] > 0 })} label="粒子数量" />}
           />
           <FieldRow
             label="扩散范围"
             hint="范围。"
-            control={<ControlSlider disabled={!config.particle} value={config.particleSpread} min={0} max={90} onValueChange={(value) => updateActionConfig({ particleSpread: value[0] })} />}
+            control={<ControlSlider disabled={!config.particle} value={config.particleSpread} min={0} max={90} onValueChange={(value) => updateActionConfig({ particleSpread: value[0] })} label="扩散范围" />}
           />
           <FieldRow
             label="扩散方向"
@@ -52,17 +56,17 @@ export function ParticleFeedbackCard({ config, updateActionConfig }) {
           <FieldRow
             label="粒子尺寸"
             hint="尺寸。"
-            control={<ControlSlider disabled={!config.particle} value={config.particleSize} min={6} max={24} onValueChange={(value) => updateActionConfig({ particleSize: value[0] })} suffix="px" />}
+            control={<ControlSlider disabled={!config.particle} value={config.particleSize} min={6} max={24} onValueChange={(value) => updateActionConfig({ particleSize: value[0] })} suffix="px" label="粒子尺寸" />}
           />
           <FieldRow
             label="持续时间"
             hint="时长。"
-            control={<ControlSlider disabled={!config.particle} value={config.particleDuration} min={240} max={1200} onValueChange={(value) => updateActionConfig({ particleDuration: value[0] })} suffix="ms" width="w-16" />}
+            control={<ControlSlider disabled={!config.particle} value={config.particleDuration} min={240} max={1200} onValueChange={(value) => updateActionConfig({ particleDuration: value[0] })} suffix="ms" label="持续时间" />}
           />
           <FieldRow
             label="透明度"
             hint="透明度。"
-            control={<ControlSlider disabled={!config.particle} value={config.particleOpacity} min={20} max={100} onValueChange={(value) => updateActionConfig({ particleOpacity: value[0] })} suffix="%" />}
+            control={<ControlSlider disabled={!config.particle} value={config.particleOpacity} min={20} max={100} onValueChange={(value) => updateActionConfig({ particleOpacity: value[0] })} suffix="%" label="透明度" />}
           />
           <FieldRow
             label="颜色策略"

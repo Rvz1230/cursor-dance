@@ -78,6 +78,10 @@ async function selectRadixOption(page, scope, index, optionName) {
   await page.getByRole("option", { name: optionName }).click();
 }
 
+function panelByName(page, name) {
+  return page.getByRole("button", { name }).locator("xpath=ancestor::*[contains(@class,'rounded-2xl')][1]");
+}
+
 test("popup theme selection, live preview override, and fallback to saved config stay in sync", async ({ context, page }) => {
   await clearLocalState(page);
 
@@ -96,9 +100,7 @@ test("popup theme selection, live preview override, and fallback to saved config
   await workbenchPage.goto("/index.html");
   await expect(workbenchPage.getByRole("button", { name: "保存" })).toBeVisible();
 
-  const textPanel = workbenchPage.locator("section").filter({
-    has: workbenchPage.getByRole("heading", { name: "飘字反馈" }),
-  });
+  const textPanel = panelByName(workbenchPage, /飘字反馈/);
   await textPanel.getByRole("button", { name: "删除标签 Nice!" }).click();
   await textPanel.getByPlaceholder("输入一个文本标签，例如：已命中").fill("临时预览");
   await textPanel.getByRole("button", { name: "添加" }).click();
@@ -132,11 +134,10 @@ test("image effect can preview live, save into config, and render in content run
   await workbenchPage.goto("/index.html");
   await expect(workbenchPage.getByRole("button", { name: "保存" })).toBeVisible();
 
-  const imagePanel = workbenchPage.locator("section").filter({
-    has: workbenchPage.getByRole("heading", { name: "图片贴纸反馈" }),
-  });
+  const imagePanel = panelByName(workbenchPage, /图片贴纸反馈/);
 
   await imagePanel.getByRole("switch", { name: "图片反馈开关" }).click();
+  await workbenchPage.getByRole("button", { name: /图片贴纸反馈/ }).click();
   await imagePanel.getByRole("button", { name: /落章印记/ }).click();
 
   await page.waitForFunction((previewKey) => {
@@ -170,11 +171,10 @@ test("animation effect can preview live, save into config, and render in content
   await workbenchPage.goto("/index.html");
   await expect(workbenchPage.getByRole("button", { name: "保存" })).toBeVisible();
 
-  const animationPanel = workbenchPage.locator("section").filter({
-    has: workbenchPage.getByRole("heading", { name: "基础动画反馈" }),
-  });
+  const animationPanel = panelByName(workbenchPage, /基础动画反馈/);
 
   await animationPanel.getByRole("switch", { name: "动画反馈开关" }).click();
+  await workbenchPage.getByRole("button", { name: /基础动画反馈/ }).click();
   await selectRadixOption(workbenchPage, animationPanel, 0, "弹跳徽记");
 
   await page.waitForFunction((previewKey) => {
@@ -213,9 +213,7 @@ test("audio blend modes stay distinguishable on bilibili-like media reassertion"
   await workbenchPage.goto("/index.html");
   await expect(workbenchPage.getByRole("button", { name: "保存" })).toBeVisible();
 
-  const audioPanel = workbenchPage.locator("section").filter({
-    has: workbenchPage.getByRole("heading", { name: "音频反馈" }),
-  });
+  const audioPanel = panelByName(workbenchPage, /音频反馈/);
 
   await audioPanel.getByRole("switch", { name: "音效播放开关" }).click();
   await selectRadixOption(workbenchPage, audioPanel, 2, "保持原音量");
@@ -286,26 +284,28 @@ test("workbench dialogs, save toast, color picker, and slider controls are usabl
 
   await workbenchPage.getByRole("button", { name: "复制" }).click();
   await expect(workbenchPage.getByText("已复制主题")).toBeVisible();
+  await expect(workbenchPage.getByText(/^已复制为/)).toHaveCount(0);
 
-  await workbenchPage.getByRole("button", { name: "删除当前主题" }).click();
+  await workbenchPage.getByRole("button", { name: "删除" }).first().click();
   await expect(workbenchPage.getByRole("alertdialog", { name: "删除主题？" })).toBeVisible();
   await workbenchPage.getByRole("button", { name: "取消" }).click();
   await expect(workbenchPage.getByRole("alertdialog", { name: "删除主题？" })).toBeHidden();
 
-  await workbenchPage.getByRole("button", { name: "删除当前主题" }).click();
+  await workbenchPage.getByRole("button", { name: "删除" }).first().click();
   await workbenchPage.getByRole("button", { name: "删除主题" }).click();
   await expect(workbenchPage.getByText("已移除主题")).toBeVisible();
 
-  const textPanel = workbenchPage.locator("section").filter({
-    has: workbenchPage.getByRole("heading", { name: "飘字反馈" }),
-  });
+  const textPanel = workbenchPage.getByRole("button", { name: /飘字反馈/ }).locator("xpath=ancestor::*[contains(@class,'rounded-2xl')][1]");
 
-  const colorHexInput = textPanel.getByLabel("输入飘字颜色十六进制值");
+  await workbenchPage.getByRole("button", { name: /飘字反馈/ }).click();
+  await workbenchPage.getByRole("button", { name: /飘字反馈/ }).click();
+  await textPanel.getByRole("button", { name: /#B45309/i }).click();
+  const colorHexInput = workbenchPage.getByLabel("输入飘字颜色十六进制值");
   await colorHexInput.fill("#0284C7");
   await colorHexInput.press("Enter");
   await expect(workbenchPage.getByText("已更新飘字颜色")).toBeVisible();
 
-  const fontSizeInput = textPanel.getByRole("spinbutton", { name: "飘字大小数值" });
+  const fontSizeInput = textPanel.getByRole("spinbutton", { name: "飘字大小" });
   await fontSizeInput.fill("26");
   await fontSizeInput.blur();
 
