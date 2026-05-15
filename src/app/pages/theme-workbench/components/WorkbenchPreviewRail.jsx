@@ -1,37 +1,251 @@
 import { useEffect, useMemo, useState } from "react";
-import { RotateCcw, Volume2, Wand2 } from "lucide-react";
+import { MousePointerClick, Pause, Play, RotateCcw, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button.jsx";
 import { Switch } from "@/components/ui/switch.jsx";
-import { cn } from "@/components/ui/utils.js";
 import {
   PREVIEW_KEYFRAMES,
-  getPreviewAnimationStyle,
-  buildRippleSpecs,
   buildParticleSpecs,
+  buildRippleSpecs,
   getAnimationEasingCss,
-  getPreviewImageStyle,
   getParticleStyleProps,
   getParticleTint,
-  getPreviewCursorSize,
+  getPreviewAnimationStyle,
+  getPreviewImageStyle,
   getPreviewLoopDelay,
   getPreviewSoundFile,
-  getPreviewTriggerSummary,
   getPreviewText,
+  getPreviewTriggerSummary,
   getTextShadowValue,
   getTextWeightValue,
   hexToRgba,
 } from "../lib/preview.js";
 import {
-  getActionAudioConfig,
   getActionAnimationConfig,
+  getActionAudioConfig,
   getActionImageConfig,
   getActionParticleConfig,
   getActionRippleConfig,
   getActionTextConfig,
 } from "../model/workbenchSchema.js";
-import { NativeCursorPreview, Panel, PreviewBadge } from "./WorkbenchControls.jsx";
+import { Panel, PreviewBadge } from "./WorkbenchControls.jsx";
 
-function CursorPreview({ actionLabel, config, siteMode }) {
+function buildOutputNames({ textConfig, particleConfig, rippleConfig, audioConfig, animationConfig, imageConfig, config }) {
+  const outputs = [];
+  if (textConfig.textEnabled) outputs.push("飘字");
+  if (rippleConfig.ripple) outputs.push("波纹");
+  if (particleConfig.particle) outputs.push("粒子");
+  if (audioConfig.sound) outputs.push("音效");
+  if (animationConfig.animationEnabled) outputs.push("动画");
+  if (imageConfig.imageEnabled && imageConfig.imageDataUrl) outputs.push("贴纸");
+  if (config.cursorOverride && config.cursorOverride !== "跟随当前状态") outputs.push("光标");
+  return outputs;
+}
+
+function PreviewEffects({
+  disabledBySite,
+  config,
+  runId,
+  textConfig,
+  particleConfig,
+  rippleConfig,
+  animationConfig,
+  imageConfig,
+}) {
+  const accentText = getPreviewText(config, runId);
+  const particles = useMemo(() => buildParticleSpecs(config, runId), [config, runId]);
+  const ripples = useMemo(() => buildRippleSpecs(config), [config]);
+  const animationStyle = getPreviewAnimationStyle(config);
+  const imageStyle = getPreviewImageStyle(config);
+
+  if (disabledBySite) return null;
+
+  return (
+    <>
+      {rippleConfig.ripple
+        ? ripples.map((ripple, index) => (
+            <div
+              key={`ripple-${runId}-${index}`}
+              className="absolute left-1/2 top-1/2 rounded-full border"
+              style={{
+                width: `${ripple.size}px`,
+                height: `${ripple.size}px`,
+                borderWidth: ripple.filled ? 0 : `${rippleConfig.rippleLineWidth}px`,
+                borderColor: ripple.filled ? "transparent" : hexToRgba("#34D399", ripple.opacity),
+                background: ripple.filled
+                  ? `radial-gradient(circle, ${hexToRgba("#6EE7B7", ripple.opacity * 0.34)} 0%, ${hexToRgba("#34D399", ripple.opacity * 0.16)} 56%, ${hexToRgba("#34D399", 0)} 100%)`
+                  : "transparent",
+                boxShadow: ripple.filled ? `0 0 0 1px ${hexToRgba("#34D399", ripple.opacity * 0.22)} inset` : undefined,
+                animation: `cursorDancePreviewRipple ${rippleConfig.rippleDuration}ms ${getAnimationEasingCss(rippleConfig.rippleEasing)} ${ripple.delay}ms forwards`,
+              }}
+            />
+          ))
+        : null}
+
+      {particleConfig.particle
+        ? particles.map((particle, index) => {
+            const shape = getParticleStyleProps(config, index, particle.size);
+            return (
+              <div
+                key={`particle-${runId}-${index}`}
+                className="absolute left-1/2 top-1/2"
+                style={{
+                  width: `${shape.width}px`,
+                  height: `${shape.height}px`,
+                  borderRadius: shape.borderRadius,
+                  backgroundColor: getParticleTint(config, index),
+                  boxShadow: shape.boxShadow,
+                  "--particle-x": `${particle.x}px`,
+                  "--particle-y": `${particle.y}px`,
+                  animation: `cursorDancePreviewParticle ${particleConfig.particleDuration}ms ease-out ${particle.delay}ms forwards`,
+                  transform: `rotate(${shape.rotation}deg)`,
+                }}
+              />
+            );
+          })
+        : null}
+
+      {textConfig.textEnabled ? (
+        <div className="absolute left-1/2 top-1/2" style={{ marginLeft: `${textConfig.textOffsetX}px`, marginTop: `${textConfig.textOffsetY}px` }}>
+          <div
+            key={`text-${runId}`}
+            className="whitespace-nowrap text-center tabular-nums"
+            style={{
+              color: hexToRgba(textConfig.textColor, textConfig.textOpacity / 100),
+              fontSize: `${textConfig.fontSize}px`,
+              fontWeight: getTextWeightValue(textConfig.textWeight),
+              textShadow: getTextShadowValue(config),
+              WebkitTextStroke: textConfig.textOutlineWidth ? `${textConfig.textOutlineWidth}px ${hexToRgba("#FFFFFF", 0.82)}` : undefined,
+              animation: `cursorDancePreviewFloat ${textConfig.textDuration}ms ${getAnimationEasingCss(textConfig.textEasing)} forwards`,
+            }}
+          >
+            {accentText}
+          </div>
+        </div>
+      ) : null}
+
+      {animationConfig.animationEnabled ? (
+        <div
+          key={`animation-${runId}`}
+          className="absolute left-1/2 top-1/2 rounded-full border border-emerald-300/70 bg-emerald-100/60"
+          style={{
+            ...animationStyle,
+            animation: `cursorDancePreviewAnimation ${animationConfig.animationDuration}ms ${getAnimationEasingCss(animationConfig.animationEasing)} forwards`,
+          }}
+        />
+      ) : null}
+
+      {imageConfig.imageEnabled && imageConfig.imageDataUrl ? (
+        <div
+          key={`image-${runId}`}
+          className="absolute left-1/2 top-1/2"
+          style={{
+            ...imageStyle,
+            animation: `cursorDancePreviewImage ${imageConfig.imageDuration}ms cubic-bezier(0.22, 1, 0.36, 1) forwards`,
+          }}
+        >
+          <img
+            src={imageConfig.imageDataUrl}
+            alt="贴纸预览"
+            className="block h-full w-full object-contain drop-shadow-[0_12px_24px_rgba(15,23,42,0.16)]"
+          />
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function SimplePreviewStage({ config, siteMode, runId, outputs }) {
+  const disabledBySite = siteMode === "当前禁用";
+  const textConfig = useMemo(() => getActionTextConfig(config), [config]);
+  const particleConfig = useMemo(() => getActionParticleConfig(config), [config]);
+  const rippleConfig = useMemo(() => getActionRippleConfig(config), [config]);
+  const audioConfig = useMemo(() => getActionAudioConfig(config), [config]);
+  const animationConfig = useMemo(() => getActionAnimationConfig(config), [config]);
+  const imageConfig = useMemo(() => getActionImageConfig(config), [config]);
+  const previewSummary = disabledBySite
+    ? "当前站点已禁用，这里只保留结构预览。"
+    : outputs.length
+      ? "当前动作会按下面的舞台效果自动重播。"
+      : "当前还没有启用可预览的反馈效果。";
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-3">
+        <div>
+          <div className="text-sm font-semibold text-slate-900">当前配置效果</div>
+          <div className="mt-1 text-xs text-slate-500 text-pretty">{previewSummary}</div>
+        </div>
+        <PreviewBadge tone={disabledBySite ? "amber" : "emerald"}>{siteMode}</PreviewBadge>
+      </div>
+
+      <div
+        className="relative flex-1 overflow-hidden rounded-[20px] border border-slate-200 bg-slate-50"
+        style={{
+          minHeight: 320,
+          backgroundColor: "#f8fafc",
+          backgroundImage: `
+            radial-gradient(circle at 1px 1px, rgba(148, 163, 184, 0.22) 1px, transparent 0),
+            linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.92) 100%)
+          `,
+          backgroundSize: "18px 18px, 100% 100%",
+          backgroundPosition: "0 0, 0 0",
+        }}
+      >
+        <div
+          className="pointer-events-none absolute inset-x-8 bottom-6 top-20 rounded-[18px] border border-white/80"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.16) 100%)",
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.65)",
+          }}
+          aria-hidden="true"
+        />
+        <div className="absolute inset-x-6 top-6 flex items-center justify-between text-xs text-slate-500">
+          <span className="rounded-full border border-slate-200 bg-white px-3 py-1">{getPreviewTriggerSummary(config)}</span>
+          <span className="rounded-full border border-slate-200 bg-white px-3 py-1">仅预览当前配置</span>
+        </div>
+
+        <div className="absolute inset-x-10 bottom-10 h-4 rounded-full bg-slate-200/40" />
+        <div className="absolute inset-x-8 bottom-7 h-px bg-slate-300/80" />
+
+        <div className="absolute left-1/2 top-1/2 h-0 w-0">
+          <PreviewEffects
+            disabledBySite={disabledBySite}
+            config={config}
+            runId={runId}
+            textConfig={textConfig}
+            particleConfig={particleConfig}
+            rippleConfig={rippleConfig}
+            animationConfig={animationConfig}
+            imageConfig={imageConfig}
+          />
+        </div>
+
+        {audioConfig.sound && !disabledBySite ? (
+          <div className="absolute right-4 top-16 flex items-center gap-1.5 rounded-full border border-emerald-100 bg-white/95 px-2 py-1 text-[10px] text-slate-600 shadow-sm">
+            <Volume2 className="size-3 text-emerald-700" aria-hidden="true" />
+            <span className="max-w-[88px] truncate">{getPreviewSoundFile(config)}</span>
+            <div className="flex items-end gap-1" aria-hidden="true">
+              {[0, 1, 2, 3].map((bar) => (
+                <span
+                  key={`bar-${runId}-${bar}`}
+                  className="block w-0.5 rounded-full bg-emerald-500/70"
+                  style={{
+                    height: `${7 + bar * 2}px`,
+                    animation: `cursorDancePreviewBars 480ms ease-out ${bar * 60}ms 2`,
+                    transformOrigin: "bottom",
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+export function WorkbenchPreviewRail({ actionLabel, config, siteMode }) {
   const disabledBySite = siteMode === "当前禁用";
   const [runId, setRunId] = useState(0);
   const [autoPlay, setAutoPlay] = useState(true);
@@ -41,11 +255,10 @@ function CursorPreview({ actionLabel, config, siteMode }) {
   const audioConfig = useMemo(() => getActionAudioConfig(config), [config]);
   const animationConfig = useMemo(() => getActionAnimationConfig(config), [config]);
   const imageConfig = useMemo(() => getActionImageConfig(config), [config]);
-  const cursorSize = getPreviewCursorSize(config);
-  const usesCustomCursor = Boolean(config.cursorOverride && config.cursorOverride !== "跟随当前状态");
-  const accentText = getPreviewText(config, runId);
-  const particleSpecs = useMemo(() => buildParticleSpecs(config, runId), [config, runId]);
-  const rippleSpecs = useMemo(() => buildRippleSpecs(config), [config]);
+  const outputs = useMemo(
+    () => buildOutputNames({ textConfig, particleConfig, rippleConfig, audioConfig, animationConfig, imageConfig, config }),
+    [textConfig, particleConfig, rippleConfig, audioConfig, animationConfig, imageConfig, config]
+  );
   const loopDelay = getPreviewLoopDelay(config);
 
   function replay() {
@@ -68,219 +281,39 @@ function CursorPreview({ actionLabel, config, siteMode }) {
   }, [autoPlay, disabledBySite, loopDelay]);
 
   return (
-    <div className="space-y-3">
+    <div className="min-h-0">
       <style>{PREVIEW_KEYFRAMES}</style>
-
-      <div className="rounded-[18px] border border-slate-200 bg-slate-50/85 px-3 py-2">
-        <div className="flex flex-wrap items-center justify-between gap-2.5">
-          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-            <div className="truncate text-sm font-semibold text-slate-900">{actionLabel} 效果模拟</div>
-            <div className="truncate text-xs text-slate-500">
-              {getPreviewTriggerSummary(config)}
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <PreviewBadge tone={disabledBySite ? "amber" : "emerald"}>{siteMode}</PreviewBadge>
+      <Panel
+        title="实时预览"
+        icon={MousePointerClick}
+        iconTone="bg-slate-900 text-white"
+        className="flex h-full min-h-0 flex-col shadow-sm"
+        contentClassName="flex min-h-0 flex-1 flex-col"
+        summary={`${actionLabel} · ${getPreviewTriggerSummary(config)}`}
+        action={
+          <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
             <label className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-600">
               <span>自动播放</span>
               <Switch checked={autoPlay && !disabledBySite} disabled={disabledBySite} onCheckedChange={setAutoPlay} aria-label="自动播放开关" />
             </label>
-            <Button variant="outline" className="h-8 rounded-2xl px-2.5" onClick={replay} disabled={disabledBySite}>
+            <Button variant="outline" className="h-8 rounded-2xl px-2.5" onClick={replay} disabled={disabledBySite} aria-label="重播预览">
               <RotateCcw className="mr-2 h-4 w-4" />
               重播
             </Button>
-          </div>
-        </div>
-      </div>
-
-      <div className="rounded-2xl border border-slate-200 bg-white p-2.5">
-        <div
-          className="relative h-[228px] overflow-hidden rounded-xl border border-slate-200 bg-white"
-          style={{
-            backgroundImage: "linear-gradient(180deg, rgba(248,250,252,0.96), rgba(241,245,249,0.84))",
-          }}
-        >
-          <div className="absolute inset-x-8 bottom-9 h-4 rounded-full bg-slate-200/45" />
-          <div className="absolute inset-x-6 bottom-6 h-px bg-slate-300/60" />
-
-          <div className="absolute left-1/2 top-[56%] h-0 w-0">
-            {rippleConfig.ripple && !disabledBySite ? (
-              rippleSpecs.map((ripple, index) => (
-                <div
-                  key={`ripple-${runId}-${index}`}
-                  className="absolute left-1/2 top-1/2 rounded-full border"
-                  style={{
-                    width: `${ripple.size}px`,
-                    height: `${ripple.size}px`,
-                    borderWidth: ripple.filled ? 0 : `${rippleConfig.rippleLineWidth}px`,
-                    borderColor: ripple.filled ? "transparent" : hexToRgba("#34D399", ripple.opacity),
-                    background: ripple.filled
-                      ? `radial-gradient(circle, ${hexToRgba("#6EE7B7", ripple.opacity * 0.34)} 0%, ${hexToRgba("#34D399", ripple.opacity * 0.16)} 56%, ${hexToRgba("#34D399", 0)} 100%)`
-                      : "transparent",
-                    boxShadow: ripple.filled ? `0 0 0 1px ${hexToRgba("#34D399", ripple.opacity * 0.22)} inset` : undefined,
-                    animation: `cursorDancePreviewRipple ${rippleConfig.rippleDuration}ms ${getAnimationEasingCss(rippleConfig.rippleEasing)} ${ripple.delay}ms forwards`,
-                  }}
-                />
-              ))
-            ) : null}
-
-            {particleConfig.particle && !disabledBySite
-              ? particleSpecs.map((particle, index) => {
-                  const shape = getParticleStyleProps(config, index, particle.size);
-                  return (
-                  <div
-                    key={`particle-${runId}-${index}`}
-                    className="absolute left-1/2 top-1/2"
-                    style={{
-                      width: `${shape.width}px`,
-                      height: `${shape.height}px`,
-                      borderRadius: shape.borderRadius,
-                      backgroundColor: getParticleTint(config, index),
-                      boxShadow: shape.boxShadow,
-                      "--particle-x": `${particle.x}px`,
-                      "--particle-y": `${particle.y}px`,
-                      animation: `cursorDancePreviewParticle ${particleConfig.particleDuration}ms ${particleConfig.particleStyle === "火花" ? "cubic-bezier(0.22, 1, 0.36, 1)" : "ease-out"} ${particle.delay}ms forwards`,
-                      transform: `rotate(${shape.rotation}deg)`,
-                    }}
-                  />
-                  );
-                })
-              : null}
-
-            {textConfig.textEnabled && !disabledBySite ? (
-              <div
-                className="absolute left-1/2 top-1/2"
-                style={{ marginLeft: `${textConfig.textOffsetX}px`, marginTop: `${textConfig.textOffsetY}px` }}
-              >
-                <div
-                  key={`text-${runId}`}
-                  className="whitespace-nowrap text-center tabular-nums"
-                  style={{
-                    color: hexToRgba(textConfig.textColor, textConfig.textOpacity / 100),
-                    fontSize: `${textConfig.fontSize}px`,
-                    fontWeight: getTextWeightValue(textConfig.textWeight),
-                    textShadow: getTextShadowValue(config),
-                    WebkitTextStroke: textConfig.textOutlineWidth ? `${textConfig.textOutlineWidth}px ${hexToRgba("#FFFFFF", 0.82)}` : undefined,
-                    animation: `cursorDancePreviewFloat ${textConfig.textDuration}ms ${getAnimationEasingCss(textConfig.textEasing)} forwards`,
-                  }}
-                >
-                  {accentText}
-                </div>
-              </div>
-            ) : null}
-
-            {animationConfig.animationEnabled && !disabledBySite ? (
-              <div
-                className="absolute left-1/2 top-1/2"
-                style={{
-                  ...getPreviewAnimationStyle(config),
-                  animation: `cursorDancePreviewAnimation ${animationConfig.animationDuration}ms cubic-bezier(0.22, 1, 0.36, 1) forwards`,
-                }}
-              >
-                <div
-                  className="h-full w-full"
-                  style={
-                    animationConfig.animationStyle === "斜切闪片"
-                      ? {
-                          borderRadius: "22px",
-                          background: "linear-gradient(135deg, rgba(250,204,21,0.96), rgba(249,115,22,0.92))",
-                          boxShadow: "0 18px 32px rgba(249, 115, 22, 0.22)",
-                          transform: "rotate(-10deg)",
-                        }
-                      : animationConfig.animationStyle === "弹跳徽记"
-                        ? {
-                            borderRadius: "999px",
-                            background: "radial-gradient(circle at 35% 35%, rgba(96,165,250,0.96), rgba(79,70,229,0.94))",
-                            boxShadow: "0 16px 30px rgba(79, 70, 229, 0.2)",
-                          }
-                        : {
-                            borderRadius: "999px",
-                            border: "2px solid rgba(16,185,129,0.42)",
-                            background: "radial-gradient(circle, rgba(52,211,153,0.3) 0%, rgba(16,185,129,0.14) 55%, rgba(16,185,129,0) 100%)",
-                          }
-                  }
-                />
-              </div>
-            ) : null}
-
-            {imageConfig.imageEnabled && imageConfig.imageDataUrl && !disabledBySite ? (
-              <div
-                className="absolute left-1/2 top-1/2"
-                style={{
-                  ...getPreviewImageStyle(config),
-                  animation: `cursorDancePreviewImage ${imageConfig.imageDuration}ms cubic-bezier(0.22, 1, 0.36, 1) forwards`,
-                }}
-              >
-                <img
-                  src={imageConfig.imageDataUrl}
-                  alt="贴纸预览"
-                  className="block h-full w-full object-contain drop-shadow-[0_12px_24px_rgba(15,23,42,0.16)]"
-                />
-              </div>
-            ) : null}
-
-            <div
-              key={`target-${runId}`}
-              className="absolute left-1/2 top-1/2"
-              style={{
-                transform: "translate3d(-50%, -50%, 0)",
-                animation: disabledBySite ? undefined : "cursorDancePreviewPulse 180ms ease-out 1",
-              }}
+            <Button
+              variant="outline"
+              className="h-8 rounded-2xl px-2.5"
+              onClick={() => setAutoPlay((value) => !value)}
+              disabled={disabledBySite}
+              aria-label={autoPlay ? "暂停自动播放" : "开启自动播放"}
             >
-              <div
-                className={cn(
-                  "relative flex items-center justify-center",
-                  usesCustomCursor ? "rounded-full border border-amber-300 bg-amber-50 shadow-sm" : ""
-                )}
-                style={{ width: `${cursorSize}px`, height: `${cursorSize}px` }}
-              >
-                {usesCustomCursor ? (
-                  <div className="size-full rounded-full border border-amber-200 bg-amber-50" />
-                ) : (
-                  <NativeCursorPreview size={cursorSize} />
-                )}
-              </div>
-            </div>
+              {autoPlay ? <Pause className="mr-2 h-4 w-4" /> : <Play className="mr-2 h-4 w-4" />}
+              {autoPlay ? "暂停" : "播放"}
+            </Button>
           </div>
-
-          {audioConfig.sound && !disabledBySite ? (
-            <div className="absolute right-4 top-4 flex items-center gap-2 rounded-full border border-emerald-100 bg-white/94 px-2.5 py-1.5 text-[11px] text-slate-600 shadow-sm">
-              <Volume2 className="size-3.5 text-emerald-700" aria-hidden="true" />
-              <span className="max-w-[96px] truncate">{getPreviewSoundFile(config)}</span>
-              <div className="flex items-end gap-1">
-                {[0, 1, 2, 3].map((bar) => (
-                  <span
-                    key={`bar-${runId}-${bar}`}
-                    className="block w-1 rounded-full bg-emerald-500/70"
-                    style={{
-                      height: `${8 + bar * 3}px`,
-                      animation: `cursorDancePreviewBars 480ms ease-out ${bar * 60}ms 2`,
-                      transformOrigin: "bottom",
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-          ) : null}
-        </div>
-      </div>
-
-      <div className={cn("px-1 text-xs", disabledBySite ? "text-amber-700" : "text-slate-500")}>
-        {disabledBySite
-          ? "当前站点已禁用。"
-          : autoPlay
-            ? "按当前参数自动重播。"
-            : "自动播放已关闭。"}
-      </div>
-    </div>
-  );
-}
-
-export function WorkbenchPreviewRail({ actionLabel, config, siteMode }) {
-  return (
-    <div className="min-h-0">
-      <Panel title="实时预览" icon={Wand2} iconTone="bg-slate-900 text-white" className="shadow-sm">
-        <CursorPreview actionLabel={actionLabel} config={config} siteMode={siteMode} />
+        }
+      >
+        <SimplePreviewStage config={config} siteMode={siteMode} runId={runId} outputs={outputs} />
       </Panel>
     </div>
   );

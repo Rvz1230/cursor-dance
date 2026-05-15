@@ -3,7 +3,7 @@ import { CheckCircle2, FileJson, Plus, Upload } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Input } from "@/components/ui/input.jsx";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog.jsx";
+import { Dialog, DialogContent, DialogDescription } from "@/components/ui/dialog.jsx";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -85,10 +85,10 @@ function ThemeComposerModal({
     <Dialog open={open} onOpenChange={(nextOpen) => {
       if (!nextOpen) closeComposer();
     }}>
-      <DialogContent titleId="theme-composer-title">
+      <DialogContent titleId="theme-composer-title" title="主题管理">
         <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-5 py-4">
           <div>
-            <DialogTitle id="theme-composer-title" className="text-base font-semibold text-slate-900">主题管理</DialogTitle>
+            <div id="theme-composer-title" className="text-base font-semibold text-slate-900">主题管理</div>
             <DialogDescription className="mt-1 text-sm text-slate-500">新建一个可编辑主题，或导入现有 JSON 主题包。</DialogDescription>
           </div>
         </div>

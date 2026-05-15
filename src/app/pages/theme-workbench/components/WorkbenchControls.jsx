@@ -16,6 +16,7 @@ export function Panel({
   iconTone = "bg-slate-200 text-slate-700",
   children,
   className,
+  contentClassName,
   collapsible = false,
   defaultOpen = true,
   summary,
@@ -31,11 +32,6 @@ export function Panel({
       <div className="min-w-0">
         <div className="flex min-w-0 items-center gap-2">
           <h3 className="truncate text-sm font-semibold text-slate-900 text-balance">{title}</h3>
-          {typeof enabled === "boolean" ? (
-            <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium", enabled ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-500")}>
-              {enabled ? "已启用" : "未启用"}
-            </span>
-          ) : null}
         </div>
         {summary ? <div className="mt-0.5 truncate text-xs text-slate-500 text-pretty">{summary}</div> : null}
       </div>
@@ -61,17 +57,17 @@ export function Panel({
 
   return (
     <section className={cn("overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm", className)}>
-      <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3.5">
-        {header}
-        {action}
+      <div className="flex flex-wrap items-start gap-3 border-b border-slate-200 px-4 py-3.5">
+        <div className="min-w-0 flex-1">{header}</div>
+        {action ? <div className="flex max-w-full shrink-0 items-center">{action}</div> : null}
       </div>
-      <div className="px-4 py-3.5">{children}</div>
+      <div className={cn("px-4 py-3.5", contentClassName)}>{children}</div>
     </section>
   );
 }
 
 export function SectionTitle({ children }) {
-  return <div className="mb-3 text-xs font-medium uppercase text-slate-500">{children}</div>;
+  return <div className="mb-3 text-sm font-semibold text-slate-900 text-balance">{children}</div>;
 }
 
 export function DataPill({ children, tone = "slate" }) {
@@ -100,7 +96,6 @@ export function FieldRow({ label, hint, control }) {
     <div className="grid gap-1.5 border-b border-slate-100 py-3 last:border-b-0 md:grid-cols-[116px_minmax(0,1fr)] md:items-center md:gap-4">
       <div>
         <div className="text-sm font-medium text-slate-800">{label}</div>
-        {hint ? <div className="mt-0.5 text-[11px] leading-4 text-slate-500">{hint}</div> : null}
       </div>
       <div>{control}</div>
     </div>
@@ -291,9 +286,15 @@ export function TextTagEditor({ tags, onChange, disabled = false }) {
           placeholder="输入一个文本标签，例如：已命中"
           className="rounded-2xl bg-white"
         />
-        <Button variant="outline" className="rounded-2xl px-4" onClick={addTag} disabled={disabled}>
-          <Plus className="mr-2 h-4 w-4" />
-          添加
+        <Button
+          variant="outline"
+          size="icon"
+          className="shrink-0 rounded-2xl"
+          onClick={addTag}
+          disabled={disabled}
+          aria-label="添加标签"
+        >
+          <Plus className="h-4 w-4" />
         </Button>
       </div>
     </div>

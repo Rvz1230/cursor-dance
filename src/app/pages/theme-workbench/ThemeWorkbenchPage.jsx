@@ -1,6 +1,5 @@
 import { formatActionLabel } from "./model/workbenchSchema.js";
 import { useThemeWorkbenchState } from "./hooks/useThemeWorkbenchState.js";
-import { AssetsPanel } from "./components/AssetsPanel.jsx";
 import { BindingsPanel } from "./components/BindingsPanel.jsx";
 import { DiagnosticsPanel } from "./components/DiagnosticsPanel.jsx";
 import { SitesPanel } from "./components/SitesPanel.jsx";
@@ -40,7 +39,6 @@ function ThemeWorkbenchPageContent() {
     setCursorStateId,
     setEnabled,
     saveChanges,
-    previewActiveTheme,
     createTheme,
     duplicateTheme,
     deleteTheme,
@@ -58,6 +56,7 @@ function ThemeWorkbenchPageContent() {
     resetCurrentCursorState,
     resetAllCursorStates,
     setSiteMode,
+    setSiteThemeId,
     clearAllSiteRules,
     clearFilteredSiteRules,
   } = useThemeWorkbenchState();
@@ -69,15 +68,6 @@ function ThemeWorkbenchPageContent() {
       toast({ tone: "success", title: "已保存到扩展配置" });
     } else {
       toast({ tone: "error", title: "保存失败", description: result.error || "请稍后重试。" });
-    }
-  }
-
-  async function handlePreviewActiveTheme() {
-    try {
-      await previewActiveTheme();
-      toast({ tone: "success", title: "已发送网页预览" });
-    } catch (error) {
-      toast({ tone: "error", title: "预览失败", description: error instanceof Error ? error.message : "请检查当前页面连接状态。" });
     }
   }
 
@@ -110,7 +100,6 @@ function ThemeWorkbenchPageContent() {
             isSaving={state.ui.isSaving}
             saveError={state.ui.saveError}
             saveChanges={handleSaveChanges}
-            previewActiveTheme={handlePreviewActiveTheme}
             resetCurrentTheme={handleResetCurrentTheme}
           />
 
@@ -127,9 +116,9 @@ function ThemeWorkbenchPageContent() {
               notify={toast}
             />
 
-            <main className={cn("min-w-0 flex-1 overflow-y-auto bg-[#f6f8fb] px-4 py-4", isWorkbench && "xl:overflow-hidden")}>
+            <main className={cn("min-w-0 flex-1 overflow-y-auto bg-slate-50 px-4 py-4", isWorkbench && "xl:overflow-hidden")}>
               {isWorkbench ? (
-                <div className="flex min-h-0 flex-col gap-3 xl:grid xl:h-full xl:grid-cols-[minmax(0,1fr)_376px]">
+                <div className="flex min-h-0 flex-col gap-4 xl:grid xl:h-full xl:grid-cols-[520px_minmax(0,1fr)] 2xl:grid-cols-[560px_minmax(0,1fr)]">
                   <div className="min-w-0 xl:min-h-0">
                     <div className="flex flex-col gap-3 xl:h-full xl:min-h-0">
                       <div className="shrink-0 rounded-[28px] border border-slate-200 bg-white px-4 py-3 shadow-sm">
@@ -157,7 +146,7 @@ function ThemeWorkbenchPageContent() {
                     </div>
                   </div>
 
-                  <div className="min-w-0 xl:min-h-0 xl:sticky xl:top-4 xl:self-start">
+                  <div className="flex min-w-0 xl:min-h-0">
                     <WorkbenchPreviewRail
                       actionLabel={formatActionLabel(selected.actionId)}
                       config={currentActionConfig}
@@ -201,24 +190,15 @@ function ThemeWorkbenchPageContent() {
                   setFilter={setSiteFilter}
                   siteMode={state.siteMode}
                   setSiteMode={setSiteMode}
+                  siteThemeId={state.siteThemeId}
+                  setSiteThemeId={setSiteThemeId}
+                  themes={themes}
                   activeThemeName={activeTheme.name}
                   activeHost={state.site.host}
                   isSupportedPage={state.site.isSupportedPage}
                   siteRulesByHost={state.siteRulesByHost}
                   clearAllSiteRules={clearAllSiteRules}
                   clearFilteredSiteRules={clearFilteredSiteRules}
-                />
-              ) : null}
-
-              {state.workspaceId === "assets" ? (
-                <AssetsPanel
-                  actionId={selected.actionId}
-                  config={currentActionConfig}
-                  cursorStateAssets={draft.cursorStateAssets}
-                  recentCursorAssets={recentCursorAssets}
-                  setWorkspaceId={setWorkspaceId}
-                  setActionId={setActionId}
-                  setCursorStateId={setCursorStateId}
                 />
               ) : null}
 

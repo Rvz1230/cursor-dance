@@ -1,13 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Copy, ImagePlus, RotateCcw, Upload } from "lucide-react";
+import { Copy, ImagePlus, RotateCcw, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button.jsx";
 import { cn } from "@/components/ui/utils.js";
-import {
-  CURSOR_HOTSPOT_OPTIONS,
-  CURSOR_SIZE_OPTIONS,
-  CURSOR_STATES,
-  formatActionLabel,
-} from "../model/workbenchSchema.js";
+import { CURSOR_HOTSPOT_OPTIONS, CURSOR_SIZE_OPTIONS, CURSOR_STATES, formatActionLabel } from "../model/workbenchSchema.js";
 import { DataPill, Panel, SmallSelect } from "./WorkbenchControls.jsx";
 import { getBuiltinCursorPresetCards, validateCursorAssetFile } from "../lib/cursorAssetPresets.js";
 
@@ -46,6 +41,10 @@ export function StatesPanel({
   const sizeValue = `${currentAsset.size} × ${currentAsset.size}`;
   const hotspotValue = `${currentAsset.hotspotX}, ${currentAsset.hotspotY}`;
   const builtinPresetCards = getBuiltinCursorPresetCards(stateId);
+  const stateOptions = CURSOR_STATES.map((state) => ({
+    value: state.id,
+    label: `${state.label} · ${state.detail}`,
+  }));
   const assetStatusLabel = effectiveAsset.imageDataUrl
     ? currentMode === "继承" && stateId !== "default"
       ? "继承图片"
@@ -103,36 +102,19 @@ export function StatesPanel({
   }
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
-      <Panel title="光标状态列表" action={<Button variant="ghost" className="rounded-2xl px-3 text-xs" onClick={resetAllCursorStates}><RotateCcw className="mr-2 h-4 w-4" />恢复默认状态</Button>}>
-        <div className="grid gap-3 md:grid-cols-2">
-          {CURSOR_STATES.map((state) => {
-            const Icon = state.icon;
-            const active = state.id === stateId;
-            const mode = cursorModes[state.id];
-            return (
-              <button
-                key={state.id}
-                type="button"
-                onClick={() => setStateId(state.id)}
-                className={cn("rounded-3xl border p-4 text-left transition-colors", active ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-slate-50 hover:border-slate-300")}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className={cn("flex h-11 w-11 items-center justify-center rounded-2xl", active ? "bg-white text-emerald-700" : "bg-white text-slate-500")}>
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <DataPill tone={mode === "覆盖" ? "amber" : mode === "源" ? "teal" : "slate"}>{mode}</DataPill>
-                </div>
-                <div className="mt-3 text-sm font-semibold text-slate-900">{state.label}</div>
-                <div className="mt-1 text-xs text-slate-500">{state.detail}</div>
-              </button>
-            );
-          })}
+    <div className="space-y-4">
+      <Panel title="当前状态配置" action={<Button variant="ghost" className="rounded-2xl px-3 text-xs" onClick={resetCurrentCursorState}><RotateCcw className="mr-2 h-4 w-4" />重置当前状态</Button>}>
+        <div className="mb-4 grid gap-3 rounded-3xl border border-slate-200 bg-slate-50 px-4 py-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+          <div>
+            <div className="mb-2 text-sm font-medium text-slate-800">当前状态</div>
+            <SmallSelect value={stateId} options={stateOptions} onChange={setStateId} label="选择光标状态" />
+          </div>
+          <Button variant="ghost" className="rounded-2xl px-3 text-xs" onClick={resetAllCursorStates}>
+            <RotateCcw className="mr-2 h-4 w-4" />
+            恢复默认状态
+          </Button>
         </div>
-      </Panel>
 
-      <div className="space-y-4">
-        <Panel title="当前状态配置" action={<Button variant="ghost" className="rounded-2xl px-3 text-xs" onClick={resetCurrentCursorState}><RotateCcw className="mr-2 h-4 w-4" />重置当前状态</Button>}>
           <div className="grid gap-3 md:grid-cols-3">
             <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3">
               <div className="text-xs text-slate-500">当前模式</div>
@@ -203,39 +185,39 @@ export function StatesPanel({
               </div>
             </div>
           </div>
-        </Panel>
+      </Panel>
 
-        <Panel title="素材上传器">
-          <input ref={fileInputRef} type="file" accept="image/png,image/webp,image/svg+xml" className="hidden" onChange={handleFileChange} />
+      <Panel title="素材上传器">
+        <input ref={fileInputRef} type="file" accept="image/png,image/webp,image/svg+xml" className="hidden" onChange={handleFileChange} />
 
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            onDragOver={(event) => {
-              event.preventDefault();
-              setIsDraggingAsset(true);
-            }}
-            onDragLeave={() => setIsDraggingAsset(false)}
-            onDrop={(event) => {
-              event.preventDefault();
-              setIsDraggingAsset(false);
-              applyAssetFile(event.dataTransfer.files?.[0]);
-            }}
-            className={cn(
-              "w-full rounded-[28px] border border-dashed px-5 py-5 text-left transition-colors",
-              isDraggingAsset ? "border-emerald-300 bg-emerald-50" : "border-slate-300 bg-slate-50 hover:border-emerald-300 hover:bg-emerald-50/60"
-            )}
-          >
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-3xl bg-white text-emerald-700 shadow-sm">
-                <Upload className="h-6 w-6" />
-              </div>
-              <div className="min-w-0">
-                <div className="text-base font-semibold text-slate-900">上传图片或拖拽到这里</div>
-                <div className="mt-1 text-sm text-slate-500">支持 PNG / WebP / SVG，建议 300 KB 以内。</div>
-              </div>
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          onDragOver={(event) => {
+            event.preventDefault();
+            setIsDraggingAsset(true);
+          }}
+          onDragLeave={() => setIsDraggingAsset(false)}
+          onDrop={(event) => {
+            event.preventDefault();
+            setIsDraggingAsset(false);
+            applyAssetFile(event.dataTransfer.files?.[0]);
+          }}
+          className={cn(
+            "w-full rounded-[28px] border border-dashed px-5 py-5 text-left transition-colors",
+            isDraggingAsset ? "border-emerald-300 bg-emerald-50" : "border-slate-300 bg-slate-50 hover:border-emerald-300 hover:bg-emerald-50/60"
+          )}
+        >
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-3xl bg-white text-emerald-700 shadow-sm">
+              <Upload className="h-6 w-6" />
             </div>
-          </button>
+            <div className="min-w-0">
+              <div className="text-base font-semibold text-slate-900">上传图片或拖拽到这里</div>
+              <div className="mt-1 text-sm text-slate-500">支持 PNG / WebP / SVG，建议 300 KB 以内。</div>
+            </div>
+          </div>
+        </button>
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <Button variant="outline" className="rounded-2xl px-4" onClick={() => fileInputRef.current?.click()}>
@@ -393,20 +375,8 @@ export function StatesPanel({
               </div>
             </div>
           </div>
-        </Panel>
+      </Panel>
 
-        <Panel title="继承关系摘要">
-          <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
-            <DataPill tone={cursorModes.default === "源" ? "teal" : "amber"}>default {cursorModes.default} · {formatActionLabel(cursorStateActions?.default || "leftClick")}</DataPill>
-            <ArrowRight className="h-4 w-4 text-slate-300" />
-            {CURSOR_STATES.filter((item) => item.id !== "default").map((item) => (
-              <DataPill key={item.id} tone={cursorModes[item.id] === "覆盖" ? "amber" : "slate"}>
-                {item.id} {cursorModes[item.id]} · {formatActionLabel(cursorModes[item.id] === "覆盖" ? (cursorStateActions?.[item.id] || "leftClick") : (cursorStateActions?.default || "leftClick"))}
-              </DataPill>
-            ))}
-          </div>
-        </Panel>
-      </div>
     </div>
   );
 }

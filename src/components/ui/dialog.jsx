@@ -1,4 +1,5 @@
 import * as DialogPrimitive from '@radix-ui/react-dialog'
+import * as VisuallyHidden from '@radix-ui/react-visually-hidden'
 import { X } from 'lucide-react'
 import { cn } from './utils.js'
 
@@ -6,7 +7,9 @@ export const Dialog = DialogPrimitive.Root
 export const DialogTrigger = DialogPrimitive.Trigger
 export const DialogClose = DialogPrimitive.Close
 
-export function DialogContent({ className, children, titleId, showClose = true, ...props }) {
+export function DialogContent({ className, children, titleId, title, showClose = true, ...props }) {
+  const fallbackTitle = title || '对话框'
+
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-slate-950/55" />
@@ -18,6 +21,9 @@ export function DialogContent({ className, children, titleId, showClose = true, 
         aria-labelledby={titleId}
         {...props}
       >
+        <VisuallyHidden.Root>
+          <DialogPrimitive.Title id={titleId}>{fallbackTitle}</DialogPrimitive.Title>
+        </VisuallyHidden.Root>
         {children}
         {showClose ? (
           <DialogPrimitive.Close className="absolute right-4 top-4 inline-flex size-9 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2" aria-label="关闭弹窗">
