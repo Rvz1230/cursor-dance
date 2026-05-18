@@ -4,8 +4,6 @@ import {
   Clock3,
   Hand,
   HelpCircle,
-  ImageIcon,
-  Layers3,
   Link2,
   MousePointer2,
   Settings2,
@@ -67,10 +65,8 @@ import {
 
 export const WORKSPACES = [
   { id: "workbench", label: "主题工作台", icon: Wand2 },
-  { id: "bindings", label: "动作绑定", icon: Layers3 },
   { id: "states", label: "光标状态", icon: MousePointer2 },
   { id: "sites", label: "站点规则", icon: Link2 },
-  { id: "assets", label: "素材中心", icon: ImageIcon },
   { id: "diagnostics", label: "诊断面板", icon: ActivitySquare },
 ];
 

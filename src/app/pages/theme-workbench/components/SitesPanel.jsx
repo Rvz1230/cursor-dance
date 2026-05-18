@@ -3,13 +3,16 @@ import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { cn } from "@/components/ui/utils.js";
-import { DataPill, Panel, SectionTitle } from "./WorkbenchControls.jsx";
+import { DataPill, Panel, SectionTitle, SmallSelect } from "./WorkbenchControls.jsx";
 
 export function SitesPanel({
   filter,
   setFilter,
   siteMode,
   setSiteMode,
+  siteThemeId,
+  setSiteThemeId,
+  themes,
   activeThemeName,
   activeHost,
   isSupportedPage,
@@ -17,22 +20,42 @@ export function SitesPanel({
   clearAllSiteRules,
   clearFilteredSiteRules,
 }) {
+  const themeNameById = useMemo(
+    () => Object.fromEntries((themes || []).map((theme) => [theme.id, theme.name])),
+    [themes]
+  );
+  const themeOptions = useMemo(
+    () => (themes || []).map((theme) => ({ value: theme.id, label: theme.name })),
+    [themes]
+  );
+
   const rules = useMemo(() => {
+    const currentStoredRule = siteRulesByHost?.[activeHost] || null;
     const currentRule = {
       host: activeHost,
       mode: siteMode,
-      theme: siteMode === "当前禁用" ? "—" : activeThemeName,
+      theme:
+        siteMode === "当前启用"
+          ? (themeNameById[currentStoredRule?.themePackId] || themeNameById[siteThemeId] || activeThemeName)
+          : siteMode === "当前禁用"
+            ? "—"
+            : "跟随全局主题",
       reason: isSupportedPage ? "当前浏览器标签页" : "当前页不可设置，仍可查看规则",
     };
     const storedRules = Object.entries(siteRulesByHost || {}).map(([host, rule]) => ({
       host,
       mode: rule.mode === "enabled" ? "当前启用" : rule.mode === "disabled" ? "当前禁用" : "跟随全局",
-      theme: "跟随当前主题",
+      theme:
+        rule.mode === "enabled"
+          ? (themeNameById[rule.themePackId] || activeThemeName)
+          : rule.mode === "disabled"
+            ? "—"
+            : "跟随全局主题",
       reason: host === activeHost ? "当前浏览器标签页" : "已保存站点规则",
     }));
     const dedupedStoredRules = storedRules.filter((rule) => rule.host !== activeHost);
     return [currentRule, ...dedupedStoredRules];
-  }, [activeHost, activeThemeName, isSupportedPage, siteMode, siteRulesByHost]);
+  }, [activeHost, activeThemeName, isSupportedPage, siteMode, siteRulesByHost, siteThemeId, themeNameById]);
 
   const filteredRules = useMemo(() => {
     const keyword = filter.trim().toLowerCase();
@@ -62,7 +85,11 @@ export function SitesPanel({
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
               <DataPill tone={siteMode === "当前禁用" ? "amber" : "teal"}>{siteMode}</DataPill>
-              <DataPill>{siteMode === "当前禁用" ? "当前主题：未生效" : `当前主题：${activeThemeName}`}</DataPill>
+              <DataPill>
+                {siteMode === "当前禁用"
+                  ? "当前主题：未生效"
+                  : `当前主题：${themeNameById[siteThemeId] || activeThemeName}`}
+              </DataPill>
             </div>
             <div className="mt-5 space-y-2">
               {["跟随全局", "当前启用", "当前禁用"].map((item) => (
@@ -77,6 +104,21 @@ export function SitesPanel({
                   {item === siteMode ? <CheckCircle2 className="h-4 w-4" /> : null}
                 </button>
               ))}
+            </div>
+            <div className="mt-5 border-t border-slate-200 pt-4">
+              <SectionTitle>站点命中时使用的主题</SectionTitle>
+              <div className="mt-3">
+                <SmallSelect
+                  value={siteThemeId}
+                  options={themeOptions}
+                  onChange={isSupportedPage ? setSiteThemeId : undefined}
+                  label="为当前站点选择主题"
+                  disabled={!isSupportedPage}
+                />
+              </div>
+              <div className="mt-2 text-xs text-slate-500">
+                选择主题后，会自动把当前站点切到“当前启用”，并固定使用这个主题。
+              </div>
             </div>
           </div>
 

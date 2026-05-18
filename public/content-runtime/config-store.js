@@ -110,6 +110,15 @@
       return getConfig().schemes.find((scheme) => scheme.id === schemeId) || getConfig().schemes[0] || {};
     }
 
+    function getCurrentHost() {
+      return normalizeHost(window.location.hostname);
+    }
+
+    function getCurrentSiteRule() {
+      const host = getCurrentHost();
+      return (runtimeConfig.getSiteRule || (() => ({ mode: "inherit" })))(getConfig(), host);
+    }
+
     function withResolvedCursorAssets(nextConfig, assetEntries) {
       const assetMap = assetEntries || {};
       const nextThemePacks = (nextConfig.themePacks || []).map((themePack) => ({
@@ -133,12 +142,13 @@
     }
 
     function getActiveScheme() {
-      return getSchemeById(getConfig().activeSchemeId);
+      const currentSiteRule = getCurrentSiteRule();
+      const siteThemePackId = currentSiteRule?.mode === "enabled" ? currentSiteRule.themePackId : "";
+      return getSchemeById(siteThemePackId || getConfig().activeSchemeId);
     }
 
     function getCurrentSiteMode() {
-      const host = normalizeHost(window.location.hostname);
-      return (runtimeConfig.getSiteMode || (() => "inherit"))(getConfig(), host);
+      return getCurrentSiteRule()?.mode || "inherit";
     }
 
     function isCurrentSiteEnabled() {

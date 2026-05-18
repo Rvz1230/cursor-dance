@@ -17,6 +17,7 @@ export const initialState = {
     cursorStateId: "default",
   },
   siteMode: DEFAULT_WORKBENCH_SITE_MODE,
+  siteThemeId: "",
   ui: {
     enabled: true,
     unsaved: true,
@@ -57,7 +58,12 @@ export function reducer(state, action) {
         ui: { ...state.ui, unsaved: true, saveError: "" },
       };
     case "theme/select":
-      return { ...state, selection: { ...state.selection, themeId: action.payload }, ui: { ...state.ui, saveError: "" } };
+      return {
+        ...state,
+        selection: { ...state.selection, themeId: action.payload },
+        siteThemeId: state.siteMode === "当前启用" ? state.siteThemeId : action.payload,
+        ui: { ...state.ui, saveError: "" },
+      };
     case "theme/library-add": {
       const { theme, draft, select = true } = action.payload;
       return {
@@ -68,6 +74,7 @@ export function reducer(state, action) {
           [theme.id]: draft,
         },
         selection: select ? { ...state.selection, themeId: theme.id } : state.selection,
+        siteThemeId: select && state.siteMode !== "当前启用" ? theme.id : state.siteThemeId,
         ui: { ...state.ui, unsaved: true, saveError: "" },
       };
     }
@@ -83,6 +90,7 @@ export function reducer(state, action) {
           ...state.selection,
           themeId: nextSelectedThemeId || state.selection.themeId,
         },
+        siteThemeId: state.siteThemeId === themeId ? (nextSelectedThemeId || state.selection.themeId) : state.siteThemeId,
         ui: { ...state.ui, unsaved: true, saveError: "" },
       };
     }
@@ -112,11 +120,39 @@ export function reducer(state, action) {
             ...(nextRulesByHost[state.site.host] || {}),
             mode: action.payload === "当前启用" ? "enabled" : "disabled",
           };
+          if (action.payload !== "当前启用") {
+            delete nextRulesByHost[state.site.host].themePackId;
+          } else if (!nextRulesByHost[state.site.host].themePackId) {
+            nextRulesByHost[state.site.host].themePackId = state.siteThemeId || state.selection.themeId;
+          }
         }
       }
       return {
         ...state,
         siteMode: action.payload,
+        siteThemeId:
+          action.payload === "当前启用"
+            ? (nextRulesByHost[state.site.host]?.themePackId || state.siteThemeId || state.selection.themeId)
+            : state.selection.themeId,
+        siteRulesByHost: nextRulesByHost,
+        ui: { ...state.ui, unsaved: true, saveError: "" },
+      };
+    }
+    case "site-theme/set": {
+      const nextThemeId = action.payload;
+      const nextRulesByHost = { ...state.siteRulesByHost };
+      if (state.site.host) {
+        const currentRule = nextRulesByHost[state.site.host] || {};
+        nextRulesByHost[state.site.host] = {
+          ...currentRule,
+          mode: currentRule.mode || "enabled",
+          themePackId: nextThemeId,
+        };
+      }
+      return {
+        ...state,
+        siteMode: "当前启用",
+        siteThemeId: nextThemeId,
         siteRulesByHost: nextRulesByHost,
         ui: { ...state.ui, unsaved: true, saveError: "" },
       };
@@ -125,6 +161,7 @@ export function reducer(state, action) {
       return {
         ...state,
         siteMode: DEFAULT_WORKBENCH_SITE_MODE,
+        siteThemeId: state.selection.themeId,
         siteRulesByHost: {},
         ui: { ...state.ui, unsaved: true, saveError: "" },
       };
@@ -136,6 +173,7 @@ export function reducer(state, action) {
         ...state,
         siteRulesByHost: nextRulesByHost,
         siteMode: currentHostRemoved ? DEFAULT_WORKBENCH_SITE_MODE : state.siteMode,
+        siteThemeId: currentHostRemoved ? state.selection.themeId : state.siteThemeId,
         ui: { ...state.ui, unsaved: true, saveError: "" },
       };
     }

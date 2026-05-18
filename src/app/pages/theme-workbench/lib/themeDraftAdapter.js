@@ -182,7 +182,8 @@ function toStoredSiteMode(mode) {
 
 export function hydrateWorkbenchState(config, site) {
   const storedThemePacks = Array.isArray(config?.themePacks) ? config.themePacks : [];
-  const siteMode = getRuntimeConfig().getSiteMode?.(config, site.host) ?? "inherit";
+  const currentSiteRule = getRuntimeConfig().getSiteRule?.(config, site.host) ?? { mode: "inherit" };
+  const siteMode = currentSiteRule.mode ?? "inherit";
   const workbenchSiteMode = toWorkbenchSiteMode(siteMode);
   const themeLibrary = buildThemeLibrary(config);
   const baseThemeState = createWorkbenchThemeState(themeLibrary);
@@ -198,7 +199,7 @@ export function hydrateWorkbenchState(config, site) {
   const workspaceAliasMap = {
     workspace: "workbench",
     diagnostics: "diagnostics",
-    assets: "assets",
+    assets: "workbench",
   };
   const workspaceId = workspaceAliasMap[config.editor?.lastWorkspace] || config.editor?.lastWorkspace || "workbench";
   const selectedActionId = ACTIONS.some((item) => item.id === config.editor?.lastActionId) ? config.editor.lastActionId : "leftClick";
@@ -212,6 +213,7 @@ export function hydrateWorkbenchState(config, site) {
       cursorStateId: selectedCursorStateId,
     },
     siteMode: workbenchSiteMode,
+    siteThemeId: currentSiteRule.themePackId || selectedThemeId,
     themeLibrary,
     siteRulesByHost: {
       ...(config.siteRules?.byHost || {}),
@@ -357,7 +359,11 @@ export function buildStoredConfigFromWorkbench(previousConfig, state) {
   };
 
   if (state.site.host && typeof runtime.setSiteRuleMode === "function") {
-    return normalizeStoredConfig(runtime.setSiteRuleMode(nextConfig, state.site.host, siteMode));
+    const nextConfigWithMode = runtime.setSiteRuleMode(nextConfig, state.site.host, siteMode);
+    if (siteMode === "enabled" && typeof runtime.setSiteRuleThemePackId === "function") {
+      return normalizeStoredConfig(runtime.setSiteRuleThemePackId(nextConfigWithMode, state.site.host, state.siteThemeId || state.selection.themeId));
+    }
+    return normalizeStoredConfig(nextConfigWithMode);
   }
 
   return normalizeStoredConfig(nextConfig);

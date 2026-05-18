@@ -323,7 +323,7 @@
     }
     return {
       mode: typeof rule.mode === "string" ? rule.mode : "inherit",
-      themePackId: typeof rule.themePackId === "string" ? rule.themePackId : undefined,
+      themePackId: typeof rule.themePackId === "string" ? normalizeThemePackId(rule.themePackId) : undefined,
     };
   }
 
@@ -410,6 +410,10 @@
     return getSiteRule(config, host).mode;
   }
 
+  function getSiteThemePackId(config, host) {
+    return getSiteRule(config, host).themePackId;
+  }
+
   function setSiteRuleMode(config, host, mode) {
     const nextByHost = {
       ...(config?.siteRules?.byHost || {}),
@@ -423,6 +427,36 @@
         mode,
       };
     }
+    return {
+      ...config,
+      siteRules: {
+        ...(config?.siteRules || {}),
+        byHost: nextByHost,
+      },
+    };
+  }
+
+  function setSiteRuleThemePackId(config, host, themePackId) {
+    const nextByHost = {
+      ...(config?.siteRules?.byHost || {}),
+    };
+    if (!host) {
+      return {
+        ...config,
+        siteRules: {
+          ...(config?.siteRules || {}),
+          byHost: nextByHost,
+        },
+      };
+    }
+
+    const currentRule = normalizeSiteRule(nextByHost[host]);
+    nextByHost[host] = {
+      ...currentRule,
+      mode: currentRule.mode === "disabled" ? "enabled" : currentRule.mode,
+      themePackId: normalizeThemePackId(themePackId),
+    };
+
     return {
       ...config,
       siteRules: {
@@ -480,6 +514,8 @@
     needsMigration,
     getSiteRule,
     getSiteMode,
+    getSiteThemePackId,
     setSiteRuleMode,
+    setSiteRuleThemePackId,
   };
 })();

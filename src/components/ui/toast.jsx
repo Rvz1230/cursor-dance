@@ -8,15 +8,15 @@ const ToastContext = createContext(null)
 const toneMap = {
   success: {
     icon: CheckCircle2,
-    className: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    iconClassName: 'bg-emerald-50 text-emerald-700 ring-emerald-100',
   },
   error: {
     icon: XCircle,
-    className: 'border-rose-200 bg-rose-50 text-rose-800',
+    iconClassName: 'bg-rose-50 text-rose-700 ring-rose-100',
   },
   info: {
     icon: Info,
-    className: 'border-slate-200 bg-white text-slate-800',
+    iconClassName: 'bg-sky-50 text-sky-700 ring-sky-100',
   },
 }
 
@@ -50,19 +50,26 @@ export function ToastProvider({ children }) {
                 if (!open) closeToast(item.id)
               }}
               className={cn(
-                'grid w-[min(360px,calc(100vw-2rem))] grid-cols-[auto_minmax(0,1fr)] gap-x-3 rounded-2xl border px-4 py-3 shadow-lg',
-                tone.className
+                'grid w-[min(340px,calc(100vw-2rem))] grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 rounded-2xl border border-slate-200 bg-white/98 px-3.5 py-3 text-slate-900 shadow-[0_14px_40px_rgba(15,23,42,0.12)] backdrop-blur-sm'
               )}
             >
-              <Icon className="mt-0.5 size-4" aria-hidden="true" />
+              <div className={cn('mt-0.5 flex size-8 items-center justify-center rounded-full ring-1', tone.iconClassName)}>
+                <Icon className="size-4" aria-hidden="true" />
+              </div>
               <div className="min-w-0">
-                <ToastPrimitive.Title className="text-sm font-semibold text-pretty">{item.title}</ToastPrimitive.Title>
-                {item.description ? <ToastPrimitive.Description className="mt-0.5 text-xs opacity-80 text-pretty">{item.description}</ToastPrimitive.Description> : null}
+                <ToastPrimitive.Title className="text-sm font-semibold leading-5 text-pretty text-slate-900">
+                  {item.title}
+                </ToastPrimitive.Title>
+                {item.description ? (
+                  <ToastPrimitive.Description className="mt-1 text-xs leading-5 text-slate-500 text-pretty">
+                    {item.description}
+                  </ToastPrimitive.Description>
+                ) : null}
               </div>
             </ToastPrimitive.Root>
           )
         })}
-        <ToastPrimitive.Viewport className="fixed right-4 top-4 z-50 flex max-h-dvh flex-col gap-2 outline-none" />
+        <ToastPrimitive.Viewport className="fixed right-4 top-4 z-50 flex max-h-dvh flex-col gap-2.5 outline-none" />
       </ToastPrimitive.Provider>
     </ToastContext.Provider>
   )

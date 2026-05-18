@@ -57,9 +57,9 @@ export function Panel({
 
   return (
     <section className={cn("overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm", className)}>
-      <div className="flex flex-wrap items-start gap-3 border-b border-slate-200 px-4 py-3.5">
+      <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 px-4 py-3.5">
         <div className="min-w-0 flex-1">{header}</div>
-        {action ? <div className="flex max-w-full shrink-0 items-center">{action}</div> : null}
+        {action ? <div className="flex max-w-full shrink-0 items-center self-center">{action}</div> : null}
       </div>
       <div className={cn("px-4 py-3.5", contentClassName)}>{children}</div>
     </section>

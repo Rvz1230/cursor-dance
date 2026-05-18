@@ -1,7 +1,7 @@
-import { Bell, Play, RotateCcw } from "lucide-react";
+import { Bell, Bot, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button.jsx";
 import { Switch } from "@/components/ui/switch.jsx";
-import { DataPill, WorkspaceItem } from "./WorkbenchControls.jsx";
+import { WorkspaceItem } from "./WorkbenchControls.jsx";
 
 export function WorkbenchHeader({
   workspaceItems,
@@ -13,8 +13,9 @@ export function WorkbenchHeader({
   isSaving,
   saveError,
   saveChanges,
-  previewActiveTheme,
   resetCurrentTheme,
+  aiPanelOpen,
+  setAiPanelOpen,
 }) {
   return (
     <header className="border-b border-slate-200 bg-white px-5 py-3.5">
@@ -36,15 +37,20 @@ export function WorkbenchHeader({
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          <DataPill tone={unsaved ? "amber" : "teal"}>{unsaved ? "待保存" : "已保存"}</DataPill>
+          {workspaceId === "workbench" ? (
+            <Button
+              variant={aiPanelOpen ? "default" : "outline"}
+              className="rounded-2xl px-4"
+              onClick={() => setAiPanelOpen?.(!aiPanelOpen)}
+            >
+              <Bot className="mr-2 h-4 w-4" />
+              AI 助手
+            </Button>
+          ) : null}
           <div className="hidden items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 xl:flex">
             <Switch checked={enabled} onCheckedChange={setEnabled} aria-label="全局启用开关" />
             <span>全局启用</span>
           </div>
-          <Button variant="outline" className="rounded-2xl px-4" onClick={previewActiveTheme}>
-            <Play className="mr-2 h-4 w-4" />
-            网页预览
-          </Button>
           <Button className="rounded-2xl bg-emerald-700 px-4 text-white hover:bg-emerald-800" onClick={saveChanges}>
             {isSaving ? "保存中..." : "保存"}
           </Button>

@@ -1,10 +1,12 @@
 import { formatActionLabel } from "./model/workbenchSchema.js";
+import { useState } from "react";
 import { useThemeWorkbenchState } from "./hooks/useThemeWorkbenchState.js";
 import { BindingsPanel } from "./components/BindingsPanel.jsx";
 import { DiagnosticsPanel } from "./components/DiagnosticsPanel.jsx";
 import { SitesPanel } from "./components/SitesPanel.jsx";
 import { StatesPanel } from "./components/StatesPanel.jsx";
 import { WorkbenchHeader } from "./components/WorkbenchHeader.jsx";
+import { AiSchemePanel } from "./components/AiSchemePanel.jsx";
 import { ActionTab } from "./components/WorkbenchControls.jsx";
 import { WorkbenchPanel } from "./components/WorkbenchPanel.jsx";
 import { WorkbenchPreviewRail } from "./components/WorkbenchPreviewRail.jsx";
@@ -22,6 +24,7 @@ export default function ThemeWorkbenchPage() {
 
 function ThemeWorkbenchPageContent() {
   const toast = useToast();
+  const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const {
     state,
     selected,
@@ -102,6 +105,8 @@ function ThemeWorkbenchPageContent() {
             saveError={state.ui.saveError}
             saveChanges={handleSaveChanges}
             resetCurrentTheme={handleResetCurrentTheme}
+            aiPanelOpen={aiPanelOpen}
+            setAiPanelOpen={setAiPanelOpen}
           />
 
           <div className="flex min-h-0 flex-1">
@@ -119,7 +124,14 @@ function ThemeWorkbenchPageContent() {
 
             <main className={cn("min-w-0 flex-1 overflow-y-auto bg-slate-50 px-4 py-4", isWorkbench && "xl:overflow-hidden")}>
               {isWorkbench ? (
-                <div className="flex min-h-0 flex-col gap-4 xl:grid xl:h-full xl:grid-cols-[520px_minmax(0,1fr)] 2xl:grid-cols-[560px_minmax(0,1fr)]">
+                <div
+                  className={cn(
+                    "flex min-h-0 flex-col gap-4 xl:grid xl:h-full",
+                    aiPanelOpen
+                      ? "xl:grid-cols-[minmax(460px,1fr)_400px] 2xl:grid-cols-[minmax(560px,1fr)_440px]"
+                      : "xl:grid-cols-[520px_minmax(0,1fr)] 2xl:grid-cols-[560px_minmax(0,1fr)]"
+                  )}
+                >
                   <div className="min-w-0 xl:min-h-0">
                     <div className="flex flex-col gap-3 xl:h-full xl:min-h-0">
                       <div className="shrink-0 rounded-[28px] border border-slate-200 bg-white px-4 py-3 shadow-sm">
@@ -136,7 +148,7 @@ function ThemeWorkbenchPageContent() {
                         ) : null}
                       </div>
 
-                      <div className="xl:min-h-0 xl:overflow-y-auto xl:pr-1">
+                      <div className={cn("xl:min-h-0 xl:overflow-y-auto xl:pr-1", aiPanelOpen && "xl:flex-[1_1_0]")}>
                         <WorkbenchPanel
                           actionId={selected.actionId}
                           config={currentActionConfig}
@@ -144,16 +156,49 @@ function ThemeWorkbenchPageContent() {
                           conflicts={currentConflicts}
                         />
                       </div>
+                      {aiPanelOpen ? (
+                        <div className="min-h-[300px] shrink-0 xl:h-[38%]">
+                          <WorkbenchPreviewRail
+                            actionLabel={formatActionLabel(selected.actionId)}
+                            config={currentActionConfig}
+                            siteMode={state.siteMode}
+                          />
+                        </div>
+                      ) : null}
                     </div>
                   </div>
 
-                  <div className="flex min-w-0 xl:min-h-0">
-                    <WorkbenchPreviewRail
-                      actionLabel={formatActionLabel(selected.actionId)}
-                      config={currentActionConfig}
-                      siteMode={state.siteMode}
-                    />
-                  </div>
+                  {!aiPanelOpen ? (
+                    <div className="hidden min-w-0 xl:flex xl:h-full xl:min-h-0">
+                      <WorkbenchPreviewRail
+                        actionLabel={formatActionLabel(selected.actionId)}
+                        config={currentActionConfig}
+                        siteMode={state.siteMode}
+                      />
+                    </div>
+                  ) : null}
+
+                  {aiPanelOpen ? (
+                    <div className="flex min-w-0 xl:h-full xl:min-h-0">
+                      <AiSchemePanel
+                        actionLabel={formatActionLabel(selected.actionId)}
+                        currentConfig={currentActionConfig}
+                        applyActionConfig={handleUpdateActionConfig}
+                        notify={toast}
+                        variant="full"
+                      />
+                    </div>
+                  ) : null}
+
+                  {!aiPanelOpen ? (
+                    <div className="flex min-w-0 xl:hidden">
+                      <WorkbenchPreviewRail
+                        actionLabel={formatActionLabel(selected.actionId)}
+                        config={currentActionConfig}
+                        siteMode={state.siteMode}
+                      />
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
 

@@ -287,6 +287,7 @@ export function useThemeWorkbenchState() {
         cursorStateAssets: buildDefaultCursorStateAssets(),
       })),
     setSiteMode: (mode) => dispatch({ type: "site-mode/set", payload: mode }),
+    setSiteThemeId: (themeId) => dispatch({ type: "site-theme/set", payload: themeId }),
     clearAllSiteRules: () => dispatch({ type: "site-rules/clear-all" }),
     clearFilteredSiteRules: (hosts) => dispatch({ type: "site-rules/remove-hosts", payload: hosts }),
   };

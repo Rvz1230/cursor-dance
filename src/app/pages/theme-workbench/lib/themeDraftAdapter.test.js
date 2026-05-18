@@ -54,7 +54,7 @@ describe("themeDraftAdapter", () => {
   it("hydrates workbench state through runtime site mode and editor aliases", () => {
     installWindowStub({
       CursorDanceConfigRuntime: {
-        getSiteMode: vi.fn(() => "enabled"),
+        getSiteRule: vi.fn(() => ({ mode: "enabled", themePackId: "woodfish" })),
       },
     });
 
@@ -91,6 +91,7 @@ describe("themeDraftAdapter", () => {
 
     expect(state.workspaceId).toBe("workbench");
     expect(state.siteMode).toBe("当前启用");
+    expect(state.siteThemeId).toBe("woodfish");
     expect(state.selection).toEqual({
       themeId: "woodfish",
       actionId: "doubleClick",
@@ -146,6 +147,19 @@ describe("themeDraftAdapter", () => {
         },
       },
     }));
+    const setSiteRuleThemePackId = vi.fn((config, host, themePackId) => ({
+      ...config,
+      siteRules: {
+        ...(config.siteRules || {}),
+        byHost: {
+          ...(config.siteRules?.byHost || {}),
+          [host]: {
+            ...(config.siteRules?.byHost?.[host] || {}),
+            themePackId,
+          },
+        },
+      },
+    }));
     const normalizeConfig = vi.fn((config) => ({
       ...config,
       normalized: true,
@@ -154,6 +168,7 @@ describe("themeDraftAdapter", () => {
     installWindowStub({
       CursorDanceConfigRuntime: {
         setSiteRuleMode,
+        setSiteRuleThemePackId,
         normalizeConfig,
       },
     });
@@ -171,6 +186,7 @@ describe("themeDraftAdapter", () => {
       {
         workspaceId: "workbench",
         siteMode: "当前禁用",
+        siteThemeId: "woodfish",
         themeLibrary: [createThemeLibraryEntry()],
         draftsByTheme: { woodfish: draft },
         selection: {
@@ -196,6 +212,76 @@ describe("themeDraftAdapter", () => {
     expect(storedConfig.schemes).toEqual(storedConfig.themePacks);
     expect(storedConfig.siteRules.byHost["example.com"]).toEqual({ mode: "disabled" });
     expect(storedConfig.themePacks[0].cursorStates.wait.mode).toBe("override");
+    expect(setSiteRuleThemePackId).not.toHaveBeenCalled();
+  });
+
+  it("writes enabled site rules with a dedicated theme binding", () => {
+    const setSiteRuleMode = vi.fn((config, host, mode) => ({
+      ...config,
+      siteRules: {
+        ...(config.siteRules || {}),
+        byHost: {
+          ...(config.siteRules?.byHost || {}),
+          [host]: { mode },
+        },
+      },
+    }));
+    const setSiteRuleThemePackId = vi.fn((config, host, themePackId) => ({
+      ...config,
+      siteRules: {
+        ...(config.siteRules || {}),
+        byHost: {
+          ...(config.siteRules?.byHost || {}),
+          [host]: {
+            ...(config.siteRules?.byHost?.[host] || {}),
+            themePackId,
+          },
+        },
+      },
+    }));
+
+    installWindowStub({
+      CursorDanceConfigRuntime: {
+        setSiteRuleMode,
+        setSiteRuleThemePackId,
+        normalizeConfig: (config) => config,
+      },
+    });
+
+    const draft = createThemeDraft("woodfish");
+
+    const storedConfig = buildStoredConfigFromWorkbench(
+      {
+        enabled: true,
+        themePacks: [],
+        editor: {},
+      },
+      {
+        workspaceId: "sites",
+        siteMode: "当前启用",
+        siteThemeId: "petal",
+        themeLibrary: [
+          createThemeLibraryEntry(),
+          createThemeLibraryEntry({ id: "petal", name: "花瓣流光", tone: "rose" }),
+        ],
+        draftsByTheme: {
+          woodfish: draft,
+          petal: createThemeDraft("petal"),
+        },
+        selection: {
+          themeId: "woodfish",
+          actionId: "leftClick",
+          cursorStateId: "default",
+        },
+        siteRulesByHost: {},
+        ui: { enabled: true },
+        site: { host: "example.com" },
+      }
+    );
+
+    expect(setSiteRuleMode).toHaveBeenCalledWith(expect.any(Object), "example.com", "enabled");
+    expect(setSiteRuleThemePackId).toHaveBeenCalledWith(expect.any(Object), "example.com", "petal");
+    expect(storedConfig.siteRules.byHost["example.com"]).toEqual({ mode: "enabled", themePackId: "petal" });
   });
 
   it("preserves woodfish number semantics across themePack to draft to stored themePack", () => {

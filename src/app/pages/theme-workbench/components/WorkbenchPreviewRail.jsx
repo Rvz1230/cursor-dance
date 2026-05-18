@@ -162,22 +162,9 @@ function SimplePreviewStage({ config, siteMode, runId, outputs }) {
   const audioConfig = useMemo(() => getActionAudioConfig(config), [config]);
   const animationConfig = useMemo(() => getActionAnimationConfig(config), [config]);
   const imageConfig = useMemo(() => getActionImageConfig(config), [config]);
-  const previewSummary = disabledBySite
-    ? "当前站点已禁用，这里只保留结构预览。"
-    : outputs.length
-      ? "当前动作会按下面的舞台效果自动重播。"
-      : "当前还没有启用可预览的反馈效果。";
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[18px] border border-slate-200 bg-slate-50 px-4 py-3">
-        <div>
-          <div className="text-sm font-semibold text-slate-900">当前配置效果</div>
-          <div className="mt-1 text-xs text-slate-500 text-pretty">{previewSummary}</div>
-        </div>
-        <PreviewBadge tone={disabledBySite ? "amber" : "emerald"}>{siteMode}</PreviewBadge>
-      </div>
-
+    <div className="flex min-h-0 flex-1 flex-col">
       <div
         className="relative flex-1 overflow-hidden rounded-[20px] border border-slate-200 bg-slate-50"
         style={{
@@ -281,7 +268,7 @@ export function WorkbenchPreviewRail({ actionLabel, config, siteMode }) {
   }, [autoPlay, disabledBySite, loopDelay]);
 
   return (
-    <div className="min-h-0">
+    <div className="min-h-0 flex-1">
       <style>{PREVIEW_KEYFRAMES}</style>
       <Panel
         title="实时预览"
@@ -291,24 +278,24 @@ export function WorkbenchPreviewRail({ actionLabel, config, siteMode }) {
         contentClassName="flex min-h-0 flex-1 flex-col"
         summary={`${actionLabel} · ${getPreviewTriggerSummary(config)}`}
         action={
-          <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
-            <label className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-600">
-              <span>自动播放</span>
+          <div className="flex items-center justify-end gap-1.5">
+            <label className="inline-flex h-8 items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 text-xs text-slate-600">
+              <span className="hidden 2xl:inline">自动播放</span>
               <Switch checked={autoPlay && !disabledBySite} disabled={disabledBySite} onCheckedChange={setAutoPlay} aria-label="自动播放开关" />
             </label>
-            <Button variant="outline" className="h-8 rounded-2xl px-2.5" onClick={replay} disabled={disabledBySite} aria-label="重播预览">
-              <RotateCcw className="mr-2 h-4 w-4" />
-              重播
+            <Button variant="outline" size="icon" className="size-8 rounded-2xl" onClick={replay} disabled={disabledBySite} aria-label="重播预览" title="重播">
+              <RotateCcw className="h-4 w-4" />
             </Button>
             <Button
               variant="outline"
-              className="h-8 rounded-2xl px-2.5"
+              size="icon"
+              className="size-8 rounded-2xl"
               onClick={() => setAutoPlay((value) => !value)}
               disabled={disabledBySite}
               aria-label={autoPlay ? "暂停自动播放" : "开启自动播放"}
+              title={autoPlay ? "暂停" : "播放"}
             >
-              {autoPlay ? <Pause className="mr-2 h-4 w-4" /> : <Play className="mr-2 h-4 w-4" />}
-              {autoPlay ? "暂停" : "播放"}
+              {autoPlay ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
             </Button>
           </div>
         }
