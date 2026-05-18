@@ -1,5 +1,3 @@
-import { mergeActionConfig } from "../model/workbenchSchema.js";
-
 const HEX_COLOR_BY_INTENT = {
   cyber: "#0284C7",
   minimal: "#0F766E",
@@ -31,6 +29,86 @@ const NUMERIC_LIMITS = {
   holdMs: [0, 900],
 };
 
+const ENUM_OPTIONS = {
+  textKind: ["数字飘字", "文本飘字"],
+  textStyle: ["阿拉伯数字 (1, 2, 3)", "中文数字 (一, 二, 三)", "英文单词 (one, two, three)"],
+  textMode: ["默认模式 (+1)", "模板模式"],
+  textTagPlayMode: ["按顺序显示", "随机显示"],
+  textEasing: ["线性", "缓入", "缓出", "缓入缓出", "弹跳", "弹性"],
+  textWeight: ["常规", "中等", "加粗"],
+  textShadow: ["无", "柔和", "清晰"],
+  particleStyle: ["点状粒子", "碎屑粒子", "火花"],
+  particleDirection: ["四周扩散", "向上喷发", "沿点击方向"],
+  particleColorMode: ["跟随主题", "跟随飘字色", "随机轻变化"],
+  rippleStyle: ["单环", "双环", "柔和面波"],
+  rippleEasing: ["线性", "缓出", "缓入缓出", "弹性"],
+  soundTriggerMode: ["每次触发", "连击叠加", "节流播放"],
+  soundBlendMode: ["保持原音量", "压低页面音频", "仅插件音效"],
+  soundFile: ["woodfish-soft.wav", "woodfish-deep.wav", "tick-light.wav"],
+  cursorOverride: ["跟随当前状态", "木鱼（继承默认）", "木鱼（增强态）", "木鱼（按压态）", "切换到 pointer"],
+};
+
+const BOOLEAN_FIELDS = new Set([
+  "textEnabled",
+  "comboEnabled",
+  "particle",
+  "ripple",
+  "sound",
+  "animationEnabled",
+  "imageEnabled",
+]);
+
+const STRING_FIELDS = new Set([
+  "textTemplate",
+  "textContent",
+  "textColor",
+  "imageDataUrl",
+]);
+
+const ARRAY_FIELDS = new Set(["textTags"]);
+
+const AI_SCHEME_PATCH_FIELDS = new Set([
+  ...Object.keys(NUMERIC_LIMITS),
+  ...Object.keys(ENUM_OPTIONS),
+  ...BOOLEAN_FIELDS,
+  ...STRING_FIELDS,
+  ...ARRAY_FIELDS,
+]);
+
+const DEFAULT_API_ENDPOINT = "/api/ai/modify-scheme";
+
+const FIELD_LABELS = {
+  textEnabled: "飘字",
+  textKind: "飘字类型",
+  textContent: "飘字文案",
+  textTags: "候选文案",
+  textColor: "主色",
+  fontSize: "字号",
+  textDuration: "飘字时长",
+  textOpacity: "飘字透明度",
+  particle: "粒子",
+  particleCount: "粒子数量",
+  particleSpread: "粒子范围",
+  particleDuration: "粒子时长",
+  particleSize: "粒子尺寸",
+  particleOpacity: "粒子透明度",
+  particleStyle: "粒子样式",
+  particleDirection: "粒子方向",
+  particleColorMode: "粒子颜色",
+  ripple: "波纹",
+  rippleSize: "波纹尺寸",
+  rippleDuration: "波纹时长",
+  rippleOpacity: "波纹透明度",
+  rippleStyle: "波纹样式",
+  sound: "音效",
+  volume: "音量",
+  soundFile: "音效文件",
+  shake: "震动强度",
+  cursorOverride: "光标反馈",
+  cursorSize: "光标尺寸",
+  holdMs: "触发延迟",
+};
+
 function normalizePrompt(prompt) {
   return String(prompt || "").trim().toLowerCase();
 }
@@ -47,13 +125,88 @@ function clampNumber(fieldName, value) {
   return Math.min(limits[1], Math.max(limits[0], Math.round(numericValue)));
 }
 
-function sanitizePatch(patch) {
-  return Object.fromEntries(
-    Object.entries(patch).map(([fieldName, value]) => [
-      fieldName,
-      Object.prototype.hasOwnProperty.call(NUMERIC_LIMITS, fieldName) ? clampNumber(fieldName, value) : value,
-    ])
+function mergeActionConfig(baseConfig = {}, ...overlays) {
+  return overlays.reduce(
+    (mergedConfig, overlay) => ({
+      ...mergedConfig,
+      ...(overlay || {}),
+      textTags: Array.isArray(overlay?.textTags)
+        ? [...overlay.textTags]
+        : mergedConfig.textTags,
+    }),
+    {
+      ...baseConfig,
+      textTags: Array.isArray(baseConfig?.textTags) ? [...baseConfig.textTags] : [],
+    }
   );
+}
+
+function normalizeHexColor(value) {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim().startsWith("#") ? value.trim() : `#${value.trim()}`;
+  return /^#[0-9a-f]{6}$/i.test(normalized) ? normalized.toUpperCase() : null;
+}
+
+function sanitizePatchValue(fieldName, value) {
+  if (Object.prototype.hasOwnProperty.call(NUMERIC_LIMITS, fieldName)) {
+    return clampNumber(fieldName, value);
+  }
+  if (Object.prototype.hasOwnProperty.call(ENUM_OPTIONS, fieldName)) {
+    return ENUM_OPTIONS[fieldName].includes(value) ? value : undefined;
+  }
+  if (BOOLEAN_FIELDS.has(fieldName)) {
+    return typeof value === "boolean" ? value : undefined;
+  }
+  if (fieldName === "textColor") {
+    return normalizeHexColor(value) ?? undefined;
+  }
+  if (STRING_FIELDS.has(fieldName)) {
+    return typeof value === "string" ? value.slice(0, 500) : undefined;
+  }
+  if (ARRAY_FIELDS.has(fieldName)) {
+    if (!Array.isArray(value)) return undefined;
+    return value
+      .filter((item) => typeof item === "string")
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .slice(0, 8);
+  }
+  return undefined;
+}
+
+export function sanitizeAiSchemePatch(patch) {
+  if (!patch || typeof patch !== "object" || Array.isArray(patch)) return {};
+  return Object.fromEntries(
+    Object.entries(patch)
+      .filter(([fieldName]) => AI_SCHEME_PATCH_FIELDS.has(fieldName))
+      .map(([fieldName, value]) => [fieldName, sanitizePatchValue(fieldName, value)])
+      .filter(([, value]) => value !== undefined)
+  );
+}
+
+export function validateAiSchemeRequest(payload) {
+  const errors = [];
+  const prompt = typeof payload?.prompt === "string" ? payload.prompt.trim() : "";
+  const actionId = typeof payload?.actionId === "string" ? payload.actionId : "leftClick";
+  const actionLabel = typeof payload?.actionLabel === "string" ? payload.actionLabel : "";
+  const currentConfig =
+    payload?.currentConfig && typeof payload.currentConfig === "object" && !Array.isArray(payload.currentConfig)
+      ? payload.currentConfig
+      : {};
+
+  if (!prompt) errors.push("prompt is required");
+  if (prompt.length > 1200) errors.push("prompt is too long");
+
+  return {
+    ok: errors.length === 0,
+    errors,
+    value: {
+      prompt,
+      actionId,
+      actionLabel,
+      currentConfig,
+    },
+  };
 }
 
 function describeDiff(patch) {
@@ -70,6 +223,26 @@ function describeDiff(patch) {
   if (patch.shake === 0) summary.push("关闭光标震动");
   if (patch.shake > 0) summary.push(`设置光标震动强度 ${patch.shake}`);
   return summary.slice(0, 5);
+}
+
+function formatDiffValue(value) {
+  if (typeof value === "boolean") return value ? "开启" : "关闭";
+  if (Array.isArray(value)) return value.join("、") || "空";
+  if (value === undefined || value === null || value === "") return "空";
+  return String(value);
+}
+
+export function buildAiSchemeDiffItems(currentConfig = {}, patch = {}) {
+  return Object.entries(sanitizeAiSchemePatch(patch))
+    .filter(([fieldName, nextValue]) => currentConfig?.[fieldName] !== nextValue)
+    .map(([fieldName, nextValue]) => ({
+      fieldName,
+      label: FIELD_LABELS[fieldName] || fieldName,
+      before: currentConfig?.[fieldName],
+      after: nextValue,
+      beforeLabel: formatDiffValue(currentConfig?.[fieldName]),
+      afterLabel: formatDiffValue(nextValue),
+    }));
 }
 
 function buildBasePatch(prompt, currentConfig) {
@@ -234,13 +407,14 @@ function buildBasePatch(prompt, currentConfig) {
     });
   }
 
-  return sanitizePatch(patch);
+  return sanitizeAiSchemePatch(patch);
 }
 
 export function createLocalAiSchemeResponse({ prompt, currentConfig, actionLabel }) {
   const normalizedPrompt = normalizePrompt(prompt);
   const patch = buildBasePatch(normalizedPrompt, currentConfig || {});
   const nextConfig = mergeActionConfig(currentConfig || {}, patch);
+  const diffItems = buildAiSchemeDiffItems(currentConfig || {}, patch);
   const diffSummary = describeDiff(patch);
   const reply = [
     `我已按「${actionLabel || "当前动作"}」生成一版可执行配置。`,
@@ -253,11 +427,53 @@ export function createLocalAiSchemeResponse({ prompt, currentConfig, actionLabel
     reply,
     patch,
     nextConfig,
+    diffItems,
     diffSummary,
   };
 }
 
-export async function requestAiSchemeEdit({ prompt, currentConfig, actionLabel }) {
+async function requestRemoteAiSchemeEdit({ prompt, currentConfig, actionLabel, actionId }) {
+  if (typeof window === "undefined" || typeof window.fetch !== "function") {
+    throw new Error("Browser fetch is unavailable.");
+  }
+
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), 3500);
+
+  try {
+    const response = await window.fetch(DEFAULT_API_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, currentConfig, actionLabel, actionId }),
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      throw new Error(`AI API responded with ${response.status}`);
+    }
+    const payload = await response.json();
+    const patch = sanitizeAiSchemePatch(payload.patch);
+    const diffItems = buildAiSchemeDiffItems(currentConfig || {}, patch);
+    return {
+      source: payload.source || "api",
+      intent: payload.intent || "generate_or_modify_scheme",
+      reply: typeof payload.reply === "string" ? payload.reply : "已生成一版可执行配置。",
+      patch,
+      nextConfig: mergeActionConfig(currentConfig || {}, patch),
+      diffItems,
+      diffSummary: Array.isArray(payload.diffSummary) ? payload.diffSummary.filter(Boolean).slice(0, 5) : describeDiff(patch),
+    };
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
+export async function requestAiSchemeEdit({ prompt, currentConfig, actionLabel, actionId }) {
+  try {
+    return await requestRemoteAiSchemeEdit({ prompt, currentConfig, actionLabel, actionId });
+  } catch {
+    // Keep the product usable while the AI backend is not running yet.
+  }
+
   await new Promise((resolve) => window.setTimeout(resolve, 360));
   return createLocalAiSchemeResponse({ prompt, currentConfig, actionLabel });
 }

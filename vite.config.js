@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: "node",
-    include: ["src/**/*.test.js", "public/**/*.test.js"],
+    include: ["src/**/*.test.js", "public/**/*.test.js", "scripts/**/*.test.js"],
     deps: {
       inline: ["**/public/config-runtime/*.js"],
     },
@@ -15,6 +15,14 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+    },
+  },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8787',
+        changeOrigin: true,
+      },
     },
   },
   build: {

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Bot, CheckCircle2, Loader2, Send, Sparkles } from "lucide-react";
+import { Bot, Check, CheckCircle2, Loader2, RotateCcw, Send, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button.jsx";
 import { cn } from "@/components/ui/utils.js";
 import { requestAiSchemeEdit } from "../lib/aiSchemeAssistant.js";
@@ -46,7 +46,43 @@ function ChangeSummary({ items }) {
   );
 }
 
-export function AiSchemePanel({ actionLabel, currentConfig, applyActionConfig, notify, variant = "dock" }) {
+function SourceBadge({ source }) {
+  const label = source?.startsWith("model") ? "模型建议" : source?.includes("api") ? "本地 API" : "本地原型";
+  const tone = source?.startsWith("model")
+    ? "border-sky-100 bg-sky-50 text-sky-700"
+    : source?.includes("api")
+      ? "border-emerald-100 bg-emerald-50 text-emerald-700"
+      : "border-slate-200 bg-slate-50 text-slate-600";
+  return <span className={cn("rounded-full border px-2 py-0.5 text-[11px] font-medium", tone)}>{label}</span>;
+}
+
+function DiffPreview({ result }) {
+  const diffItems = result?.diffItems || [];
+  if (!diffItems.length) return null;
+
+  return (
+    <div className="min-h-0 rounded-2xl border border-slate-200 bg-white p-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="text-xs font-semibold text-slate-900">待应用改动</div>
+        <SourceBadge source={result.source} />
+      </div>
+      <div className="max-h-[148px] space-y-1.5 overflow-y-auto pr-1">
+        {diffItems.slice(0, 8).map((item) => (
+          <div key={item.fieldName} className="grid grid-cols-[82px_minmax(0,1fr)] gap-2 rounded-xl border border-slate-100 bg-slate-50 px-2.5 py-2 text-xs">
+            <div className="truncate font-medium text-slate-700">{item.label}</div>
+            <div className="min-w-0 text-slate-500">
+              <span className="truncate align-middle">{item.beforeLabel}</span>
+              <span className="mx-1 text-slate-400">-&gt;</span>
+              <span className="truncate font-semibold text-slate-900 align-middle">{item.afterLabel}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function AiSchemePanel({ actionId, actionLabel, currentConfig, applyActionConfig, notify, variant = "dock" }) {
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState([
     {
@@ -56,7 +92,8 @@ export function AiSchemePanel({ actionLabel, currentConfig, applyActionConfig, n
   ]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
-  const [lastResult, setLastResult] = useState(null);
+  const [pendingResult, setPendingResult] = useState(null);
+  const [lastPrompt, setLastPrompt] = useState("");
 
   const canSubmit = useMemo(() => prompt.trim().length > 0 && !isGenerating, [prompt, isGenerating]);
 
@@ -67,6 +104,8 @@ export function AiSchemePanel({ actionLabel, currentConfig, applyActionConfig, n
     setPrompt("");
     setError("");
     setIsGenerating(true);
+    setPendingResult(null);
+    setLastPrompt(trimmedPrompt);
     setMessages((current) => [...current, { role: "user", content: trimmedPrompt }]);
 
     try {
@@ -74,15 +113,15 @@ export function AiSchemePanel({ actionLabel, currentConfig, applyActionConfig, n
         prompt: trimmedPrompt,
         currentConfig,
         actionLabel,
+        actionId,
       });
 
-      applyActionConfig(result.patch);
-      setLastResult(result);
+      setPendingResult(result);
       setMessages((current) => [...current, { role: "assistant", content: result.reply }]);
       notify?.({
-        tone: "success",
-        title: "AI 已应用到当前动作",
-        description: result.diffSummary?.[0] || "配置已更新，可在右侧预览查看。",
+        tone: "info",
+        title: "AI 已生成改动建议",
+        description: result.diffSummary?.[0] || "请确认后再应用到当前动作。",
       });
     } catch (caughtError) {
       const message = caughtError instanceof Error ? caughtError.message : "生成失败，请稍后重试。";
@@ -96,6 +135,24 @@ export function AiSchemePanel({ actionLabel, currentConfig, applyActionConfig, n
   function handleSubmit(event) {
     event.preventDefault();
     submitPrompt();
+  }
+
+  function applyPendingResult() {
+    if (!pendingResult) return;
+    applyActionConfig(pendingResult.patch);
+    setMessages((current) => [...current, { role: "assistant", content: "已应用这次改动到当前动作配置。" }]);
+    notify?.({
+      tone: "success",
+      title: "已应用 AI 改动",
+      description: pendingResult.diffSummary?.[0] || "配置已更新，可在预览区查看效果。",
+    });
+    setPendingResult(null);
+  }
+
+  function discardPendingResult() {
+    if (!pendingResult) return;
+    setPendingResult(null);
+    setMessages((current) => [...current, { role: "assistant", content: "已放弃这次改动，当前配置保持不变。" }]);
   }
 
   return (
@@ -122,11 +179,13 @@ export function AiSchemePanel({ actionLabel, currentConfig, applyActionConfig, n
             <div className="flex justify-start">
               <div className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
                 <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-                正在生成并应用配置
+                正在生成配置建议
               </div>
             </div>
           ) : null}
         </div>
+
+        <DiffPreview result={pendingResult} />
 
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {PROMPT_EXAMPLES.map((example) => (
@@ -160,7 +219,22 @@ export function AiSchemePanel({ actionLabel, currentConfig, applyActionConfig, n
           {error ? <div className="rounded-xl border border-rose-100 bg-rose-50 px-3 py-2 text-xs text-rose-700">{error}</div> : null}
         </form>
 
-        <ChangeSummary items={lastResult?.diffSummary} />
+        {pendingResult ? (
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-2">
+            <Button className="rounded-2xl bg-emerald-700 hover:bg-emerald-800" onClick={applyPendingResult}>
+              <Check className="mr-2 size-4" aria-hidden="true" />
+              应用改动
+            </Button>
+            <Button variant="outline" size="icon" className="size-10 rounded-2xl" onClick={() => submitPrompt(lastPrompt)} disabled={!lastPrompt || isGenerating} aria-label="重新生成">
+              <RotateCcw className="size-4" aria-hidden="true" />
+            </Button>
+            <Button variant="outline" size="icon" className="size-10 rounded-2xl text-rose-600" onClick={discardPendingResult} aria-label="放弃改动">
+              <X className="size-4" aria-hidden="true" />
+            </Button>
+          </div>
+        ) : null}
+
+        <ChangeSummary items={pendingResult?.diffSummary} />
       </div>
     </Panel>
   );

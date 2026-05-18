@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { createThemeDraft } from "../model/workbenchSchema.js";
-import { createLocalAiSchemeResponse } from "./aiSchemeAssistant.js";
+import {
+  buildAiSchemeDiffItems,
+  createLocalAiSchemeResponse,
+  sanitizeAiSchemePatch,
+  validateAiSchemeRequest,
+} from "./aiSchemeAssistant.js";
 
 function getBaseConfig() {
   return createThemeDraft("woodfish").actionConfigs.leftClick;
@@ -52,5 +57,50 @@ describe("aiSchemeAssistant", () => {
     expect(result.patch.particleCount).toBe(0);
     expect(result.patch.ripple).toBe(true);
     expect(result.nextConfig.textEnabled).toBe(false);
+  });
+
+  it("sanitizes AI patches before they can touch workbench config", () => {
+    const patch = sanitizeAiSchemePatch({
+      textColor: "0284c7",
+      particleCount: 999,
+      sound: "false",
+      soundFile: "unknown.wav",
+      textTags: ["focus", "", 42, "ship"],
+      unsafeField: "ignore me",
+    });
+
+    expect(patch).toEqual({
+      textColor: "#0284C7",
+      particleCount: 40,
+      textTags: ["focus", "ship"],
+    });
+  });
+
+  it("validates required AI request shape", () => {
+    const invalid = validateAiSchemeRequest({ prompt: "" });
+    const valid = validateAiSchemeRequest({
+      prompt: "帮我做一个低调的蓝色效果",
+      actionId: "leftClick",
+      currentConfig: getBaseConfig(),
+    });
+
+    expect(invalid.ok).toBe(false);
+    expect(invalid.errors).toContain("prompt is required");
+    expect(valid.ok).toBe(true);
+    expect(valid.value.actionId).toBe("leftClick");
+  });
+
+  it("builds readable diff items for pending AI changes", () => {
+    const diffItems = buildAiSchemeDiffItems(
+      { sound: true, volume: 78, textColor: "#B45309", particleCount: 18 },
+      { sound: false, volume: 0, textColor: "#0284C7", particleCount: 8 }
+    );
+
+    expect(diffItems).toEqual([
+      expect.objectContaining({ fieldName: "sound", label: "音效", beforeLabel: "开启", afterLabel: "关闭" }),
+      expect.objectContaining({ fieldName: "volume", label: "音量", beforeLabel: "78", afterLabel: "0" }),
+      expect.objectContaining({ fieldName: "textColor", label: "主色", beforeLabel: "#B45309", afterLabel: "#0284C7" }),
+      expect.objectContaining({ fieldName: "particleCount", label: "粒子数量", beforeLabel: "18", afterLabel: "8" }),
+    ]);
   });
 });

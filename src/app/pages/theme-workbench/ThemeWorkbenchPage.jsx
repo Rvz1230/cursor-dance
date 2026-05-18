@@ -89,10 +89,10 @@ function ThemeWorkbenchPageContent() {
 
   return (
     <div
-      className="min-h-dvh bg-[#edf1f5] p-4 text-slate-900"
+      className="min-h-dvh bg-slate-100 p-3 text-slate-900"
       style={{ fontFamily: '"SF Pro Display","SF Pro Text","PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif' }}
     >
-      <div className="mx-auto flex h-[calc(100dvh-2rem)] max-w-[1580px] overflow-hidden rounded-[32px] border border-slate-200/90 bg-[#f8fafc] shadow-sm">
+      <div className="mx-auto flex h-[calc(100dvh-1.5rem)] max-w-[1600px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="flex min-w-0 flex-1 flex-col">
           <WorkbenchHeader
             workspaceItems={workspaceItems}
@@ -122,11 +122,11 @@ function ThemeWorkbenchPageContent() {
               notify={toast}
             />
 
-            <main className={cn("min-w-0 flex-1 overflow-y-auto bg-slate-50 px-4 py-4", isWorkbench && "xl:overflow-hidden")}>
+            <main className={cn("min-w-0 flex-1 overflow-y-auto bg-slate-50 px-3 py-3", isWorkbench && "xl:overflow-hidden")}>
               {isWorkbench ? (
                 <div
                   className={cn(
-                    "flex min-h-0 flex-col gap-4 xl:grid xl:h-full",
+                    "flex min-h-0 flex-col gap-3 xl:grid xl:h-full",
                     aiPanelOpen
                       ? "xl:grid-cols-[minmax(460px,1fr)_400px] 2xl:grid-cols-[minmax(560px,1fr)_440px]"
                       : "xl:grid-cols-[520px_minmax(0,1fr)] 2xl:grid-cols-[560px_minmax(0,1fr)]"
@@ -134,7 +134,7 @@ function ThemeWorkbenchPageContent() {
                 >
                   <div className="min-w-0 xl:min-h-0">
                     <div className="flex flex-col gap-3 xl:h-full xl:min-h-0">
-                      <div className="shrink-0 rounded-[28px] border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                      <div className="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-sm">
                         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
                           {actionItems.map((action) => (
                             <ActionTab key={action.id} item={action} active={action.id === selected.actionId} onClick={() => setActionId(action.id)} />
@@ -181,6 +181,7 @@ function ThemeWorkbenchPageContent() {
                   {aiPanelOpen ? (
                     <div className="flex min-w-0 xl:h-full xl:min-h-0">
                       <AiSchemePanel
+                        actionId={selected.actionId}
                         actionLabel={formatActionLabel(selected.actionId)}
                         currentConfig={currentActionConfig}
                         applyActionConfig={handleUpdateActionConfig}
