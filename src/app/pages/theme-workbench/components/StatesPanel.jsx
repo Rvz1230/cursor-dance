@@ -1,12 +1,112 @@
-import { useEffect, useRef, useState } from "react";
-import { Copy, ImagePlus, RotateCcw, Upload } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  CheckCircle2,
+  Copy,
+  Crosshair,
+  ImagePlus,
+  MousePointer2,
+  RotateCcw,
+  Upload,
+  Wand2,
+  XCircle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button.jsx";
 import { cn } from "@/components/ui/utils.js";
-import { CURSOR_HOTSPOT_OPTIONS, CURSOR_SIZE_OPTIONS, CURSOR_STATES, formatActionLabel } from "../model/workbenchSchema.js";
-import { DataPill, Panel, SmallSelect } from "./WorkbenchControls.jsx";
-import { getBuiltinCursorPresetCards, validateCursorAssetFile } from "../lib/cursorAssetPresets.js";
+import { CURSOR_STATES, formatActionLabel } from "../model/workbenchSchema.js";
+import { DataPill, Panel } from "./WorkbenchControls.jsx";
+import { validateCursorAssetFile } from "../lib/cursorAssetPresets.js";
 
 const MAX_CURSOR_UPLOAD_BYTES = 300 * 1024;
+const TARGET_CURSOR_SIZE = 48;
+
+const MATCH_RULES = [
+  { stateId: "default", patterns: ["normal", "default", "arrow", "cursor", "base"] },
+  { stateId: "pointer", patterns: ["pointer", "hand", "link", "hover"] },
+  { stateId: "text", patterns: ["text", "ibeam", "i-beam", "input"] },
+  { stateId: "help", patterns: ["help", "question", "ask"] },
+  { stateId: "wait", patterns: ["wait", "busy", "loading", "progress"] },
+  { stateId: "notAllowed", patterns: ["disabled", "disable", "notallowed", "not-allowed", "ban", "forbidden"] },
+];
+
+function clamp(value, min, max) {
+  if (!Number.isFinite(value)) return min;
+  return Math.min(max, Math.max(min, value));
+}
+
+function getAssetDimensions(dataUrl) {
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => resolve({ width: image.naturalWidth || TARGET_CURSOR_SIZE, height: image.naturalHeight || TARGET_CURSOR_SIZE });
+    image.onerror = () => resolve({ width: TARGET_CURSOR_SIZE, height: TARGET_CURSOR_SIZE });
+    image.src = dataUrl;
+  });
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => (typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("文件读取失败")));
+    reader.onerror = () => reject(new Error("文件读取失败"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function matchStateId(fileName) {
+  const normalized = fileName.toLowerCase().replace(/\.[^.]+$/, "");
+  const matched = MATCH_RULES.find((rule) => rule.patterns.some((pattern) => normalized.includes(pattern)));
+  return matched?.stateId || "";
+}
+
+function getStateStatus({ stateId, mode, asset, effectiveAsset }) {
+  if (stateId !== "default" && mode === "继承") return { label: "继承", tone: "slate" };
+  if (!effectiveAsset?.imageDataUrl) return { label: "缺失", tone: "rose" };
+  if ((asset?.sourceWidth && asset.sourceWidth !== TARGET_CURSOR_SIZE) || (asset?.sourceHeight && asset.sourceHeight !== TARGET_CURSOR_SIZE)) {
+    return { label: "尺寸异常", tone: "amber" };
+  }
+  return { label: "正常", tone: "teal" };
+}
+
+function CursorPreview({ asset, size = 40, emptyClassName = "" }) {
+  return (
+    <div className="flex shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50" style={{ width: size + 16, height: size + 16 }}>
+      {asset?.imageDataUrl ? (
+        <img
+          src={asset.imageDataUrl}
+          alt=""
+          className="object-contain"
+          style={{ width: Math.min(asset.size || TARGET_CURSOR_SIZE, size), height: Math.min(asset.size || TARGET_CURSOR_SIZE, size) }}
+        />
+      ) : (
+        <ImagePlus className={cn("h-5 w-5 text-slate-300", emptyClassName)} />
+      )}
+    </div>
+  );
+}
+
+function NumberStepper({ label, value, max, onChange }) {
+  return (
+    <label className="grid gap-1 text-xs font-medium text-slate-500">
+      {label}
+      <div className="grid grid-cols-[32px_minmax(0,1fr)_32px] overflow-hidden rounded-xl border border-slate-200 bg-white">
+        <button type="button" className="text-slate-500 hover:bg-slate-50" onClick={() => onChange(clamp(value - 1, 0, max))} aria-label={`${label} 减 1`}>
+          -
+        </button>
+        <input
+          type="number"
+          min={0}
+          max={max}
+          value={value}
+          onChange={(event) => onChange(clamp(Number(event.target.value), 0, max))}
+          className="min-w-0 border-x border-slate-200 px-2 py-2 text-center text-sm font-semibold tabular-nums text-slate-900 outline-none"
+          aria-label={label}
+        />
+        <button type="button" className="text-slate-500 hover:bg-slate-50" onClick={() => onChange(clamp(value + 1, 0, max))} aria-label={`${label} 加 1`}>
+          +
+        </button>
+      </div>
+    </label>
+  );
+}
 
 export function StatesPanel({
   stateId,
@@ -19,38 +119,41 @@ export function StatesPanel({
   updateCursorMode,
   updateCursorStateAction,
   updateCursorStateAsset,
+  updateCursorStateAssetForState,
   rememberRecentCursorAsset,
   copyDefaultCursorStateAsset,
   resetCurrentCursorState,
   resetAllCursorStates,
 }) {
   const fileInputRef = useRef(null);
+  const singleFileInputRef = useRef(null);
+  const hotspotStageRef = useRef(null);
   const [assetMessage, setAssetMessage] = useState("");
   const [assetMessageTone, setAssetMessageTone] = useState("slate");
   const [isDraggingAsset, setIsDraggingAsset] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState([]);
   const currentMode = cursorModes[stateId];
   const currentActionId = cursorStateActions?.[stateId] || "leftClick";
-  const currentAsset = cursorStateAssets?.[stateId] || { imageDataUrl: "", hotspotX: 16, hotspotY: 32, size: 48 };
-  const effectiveActionId = stateId !== "default" && currentMode === "继承"
-    ? (cursorStateActions?.default || "leftClick")
-    : currentActionId;
+  const currentAsset = cursorStateAssets?.[stateId] || { imageDataUrl: "", hotspotX: 16, hotspotY: 32, size: TARGET_CURSOR_SIZE };
   const effectiveAsset = stateId !== "default" && currentMode === "继承"
     ? (cursorStateAssets?.default || currentAsset)
     : currentAsset;
-  const actionOptions = actionItems.map((item) => ({ value: item.id, label: item.label }));
-  const sizeValue = `${currentAsset.size} × ${currentAsset.size}`;
-  const hotspotValue = `${currentAsset.hotspotX}, ${currentAsset.hotspotY}`;
-  const builtinPresetCards = getBuiltinCursorPresetCards(stateId);
-  const stateOptions = CURSOR_STATES.map((state) => ({
-    value: state.id,
-    label: `${state.label} · ${state.detail}`,
-  }));
-  const assetStatusLabel = effectiveAsset.imageDataUrl
-    ? currentMode === "继承" && stateId !== "default"
-      ? "继承图片"
-      : "已配置图片"
-    : "未配置";
-  const modeTone = currentMode === "覆盖" ? "amber" : currentMode === "源" ? "teal" : "slate";
+  const stateMeta = CURSOR_STATES.find((item) => item.id === stateId);
+  const defaultAsset = cursorStateAssets?.default || {};
+  const maxHotspotX = Math.max(0, (currentAsset.size || TARGET_CURSOR_SIZE) - 1);
+  const maxHotspotY = Math.max(0, (currentAsset.size || TARGET_CURSOR_SIZE) - 1);
+  const stateCards = useMemo(() => {
+    return CURSOR_STATES.map((state) => {
+      const mode = cursorModes[state.id];
+      const asset = cursorStateAssets?.[state.id] || {};
+      const inheritedAsset = state.id !== "default" && mode === "继承" ? defaultAsset : asset;
+      const status = getStateStatus({ stateId: state.id, mode, asset, effectiveAsset: inheritedAsset });
+      return { ...state, mode, asset, effectiveAsset: inheritedAsset, status };
+    });
+  }, [cursorModes, cursorStateAssets, defaultAsset]);
+  const matchedCount = stateCards.filter((state) => state.status.label === "正常").length;
+  const warningCount = stateCards.filter((state) => state.status.label === "尺寸异常").length + pendingFiles.length;
+  const missingCount = stateCards.filter((state) => state.status.label === "缺失").length;
 
   useEffect(() => {
     setAssetMessage("");
@@ -58,325 +161,420 @@ export function StatesPanel({
     setIsDraggingAsset(false);
   }, [stateId]);
 
-  function applyAssetFile(file) {
-    if (!file) return;
+  async function buildAssetFromFile(file) {
     const validationMessage = validateCursorAssetFile(file, MAX_CURSOR_UPLOAD_BYTES);
-    if (validationMessage) {
-      setAssetMessage(validationMessage);
+    if (validationMessage) throw new Error(validationMessage);
+    const imageDataUrl = await readFileAsDataUrl(file);
+    const dimensions = await getAssetDimensions(imageDataUrl);
+    return {
+      imageDataUrl,
+      hotspotX: Math.min(6, Math.max(0, dimensions.width - 1)),
+      hotspotY: Math.min(4, Math.max(0, dimensions.height - 1)),
+      size: TARGET_CURSOR_SIZE,
+      sourceWidth: dimensions.width,
+      sourceHeight: dimensions.height,
+      name: file.name,
+      mimeType: file.type,
+    };
+  }
+
+  async function applySingleFile(file, targetStateId = stateId) {
+    if (!file) return;
+    try {
+      const asset = await buildAssetFromFile(file);
+      const patch = {
+        imageDataUrl: asset.imageDataUrl,
+        hotspotX: asset.hotspotX,
+        hotspotY: asset.hotspotY,
+        size: asset.size,
+        sourceWidth: asset.sourceWidth,
+        sourceHeight: asset.sourceHeight,
+        name: asset.name,
+      };
+      if (targetStateId === stateId) updateCursorStateAsset(patch);
+      else updateCursorStateAssetForState(targetStateId, patch);
+      void rememberRecentCursorAsset(asset);
+      setAssetMessage(`已绑定 ${file.name}。`);
+      setAssetMessageTone("teal");
+    } catch (error) {
+      setAssetMessage(error instanceof Error ? error.message : "素材读取失败。");
       setAssetMessageTone("rose");
-      return;
+    }
+  }
+
+  async function applyBatchFiles(fileList) {
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
+    const occupiedTargets = new Set();
+    const unresolved = [];
+    let applied = 0;
+
+    for (const file of files) {
+      try {
+        const asset = await buildAssetFromFile(file);
+        const matchedStateId = matchStateId(file.name);
+        const hasConflict = !matchedStateId || occupiedTargets.has(matchedStateId);
+        if (hasConflict) {
+          unresolved.push({ id: `${file.name}-${file.lastModified}`, fileName: file.name, asset, reason: matchedStateId ? "命名冲突" : "未识别状态" });
+          continue;
+        }
+
+        occupiedTargets.add(matchedStateId);
+        updateCursorStateAssetForState(matchedStateId, {
+          imageDataUrl: asset.imageDataUrl,
+          hotspotX: asset.hotspotX,
+          hotspotY: asset.hotspotY,
+          size: asset.size,
+          sourceWidth: asset.sourceWidth,
+          sourceHeight: asset.sourceHeight,
+          name: asset.name,
+        });
+        void rememberRecentCursorAsset(asset);
+        applied += 1;
+      } catch (error) {
+        unresolved.push({
+          id: `${file.name}-${file.lastModified}`,
+          fileName: file.name,
+          asset: null,
+          reason: error instanceof Error ? error.message : "读取失败",
+        });
+      }
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result !== "string") return;
-
-      const nextAsset = {
-        imageDataUrl: reader.result,
-        hotspotX: currentAsset.hotspotX,
-        hotspotY: currentAsset.hotspotY,
-        size: currentAsset.size,
-      };
-
-      updateCursorStateAsset(nextAsset);
-      void rememberRecentCursorAsset({
-        ...nextAsset,
-        name: file.name,
-        mimeType: file.type,
-      });
-      setAssetMessage(`已载入 ${file.name}。`);
-      setAssetMessageTone("teal");
-    };
-    reader.readAsDataURL(file);
+    setPendingFiles((current) => [...unresolved, ...current].slice(0, 8));
+    setAssetMessage(`批量上传完成：已自动匹配 ${applied} 个，需确认 ${unresolved.length} 个。`);
+    setAssetMessageTone(unresolved.length ? "amber" : "teal");
   }
 
-  function handleFileChange(event) {
-    applyAssetFile(event.target.files?.[0]);
-    event.target.value = "";
+  function updateHotspot(nextPatch) {
+    updateCursorStateAsset({
+      hotspotX: clamp(nextPatch.hotspotX ?? currentAsset.hotspotX, 0, maxHotspotX),
+      hotspotY: clamp(nextPatch.hotspotY ?? currentAsset.hotspotY, 0, maxHotspotY),
+    });
   }
 
-  function applyBuiltinPreset(presetAsset, presetLabel) {
-    updateCursorStateAsset(presetAsset);
-    setAssetMessage(`已应用${presetLabel}。`);
-    setAssetMessageTone("teal");
+  function handleHotspotPointer(event) {
+    if (!hotspotStageRef.current) return;
+    const rect = hotspotStageRef.current.getBoundingClientRect();
+    const x = clamp(Math.round(((event.clientX - rect.left) / rect.width) * (currentAsset.size || TARGET_CURSOR_SIZE)), 0, maxHotspotX);
+    const y = clamp(Math.round(((event.clientY - rect.top) / rect.height) * (currentAsset.size || TARGET_CURSOR_SIZE)), 0, maxHotspotY);
+    updateHotspot({ hotspotX: x, hotspotY: y });
+  }
+
+  function bindPendingFile(pendingFile, targetStateId) {
+    if (!pendingFile.asset) return;
+    updateCursorStateAssetForState(targetStateId, {
+      imageDataUrl: pendingFile.asset.imageDataUrl,
+      hotspotX: pendingFile.asset.hotspotX,
+      hotspotY: pendingFile.asset.hotspotY,
+      size: pendingFile.asset.size,
+      sourceWidth: pendingFile.asset.sourceWidth,
+      sourceHeight: pendingFile.asset.sourceHeight,
+      name: pendingFile.asset.name,
+    });
+    setPendingFiles((current) => current.filter((item) => item.id !== pendingFile.id));
+    setStateId(targetStateId);
   }
 
   return (
-    <div className="space-y-4">
-      <Panel title="当前状态配置" action={<Button variant="ghost" className="rounded-2xl px-3 text-xs" onClick={resetCurrentCursorState}><RotateCcw className="mr-2 h-4 w-4" />重置当前状态</Button>}>
-        <div className="mb-4 grid gap-3 rounded-3xl border border-slate-200 bg-slate-50 px-4 py-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-          <div>
-            <div className="mb-2 text-sm font-medium text-slate-800">当前状态</div>
-            <SmallSelect value={stateId} options={stateOptions} onChange={setStateId} label="选择光标状态" />
-          </div>
-          <Button variant="ghost" className="rounded-2xl px-3 text-xs" onClick={resetAllCursorStates}>
-            <RotateCcw className="mr-2 h-4 w-4" />
-            恢复默认状态
-          </Button>
-        </div>
-
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <div className="text-xs text-slate-500">当前模式</div>
-              <div className="mt-2 flex items-center gap-2">
-                <DataPill tone={modeTone}>{currentMode}</DataPill>
-                <span className="text-sm text-slate-500">{stateId === "default" ? "默认源" : "继承链"}</span>
-              </div>
-            </div>
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <div className="text-xs text-slate-500">动作模板</div>
-              <div className="mt-2 text-base font-semibold text-slate-900">{formatActionLabel(effectiveActionId)}</div>
-              <div className="mt-1 text-xs text-slate-500">{stateId === "default" ? "默认模板" : currentMode === "覆盖" ? "独立模板" : "跟随 default"}</div>
-            </div>
-            <div className="rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <div className="text-xs text-slate-500">素材状态</div>
-              <div className="mt-2 text-base font-semibold text-slate-900">{assetStatusLabel}</div>
-              <div className="mt-1 text-xs text-slate-500">{effectiveAsset.imageDataUrl ? `${effectiveAsset.hotspotX}, ${effectiveAsset.hotspotY} · ${effectiveAsset.size}px` : "未绑定图片"}</div>
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-            <div className="space-y-4 rounded-3xl border border-slate-200 bg-slate-50/70 px-4 py-4">
-              <div>
-                <div className="text-sm font-semibold text-slate-900">模式切换</div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {["源", "继承", "覆盖"].map((mode) => (
-                    <button
-                      key={mode}
-                      type="button"
-                      onClick={() => updateCursorMode(mode)}
-                      className={cn("rounded-full px-4 py-2.5 text-sm ring-1 transition-colors", currentMode === mode ? "bg-emerald-700 text-white ring-emerald-700" : "bg-white text-slate-600 ring-slate-200 hover:bg-slate-50")}
-                    >
-                      {mode}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="border-t border-slate-200 pt-4">
-                <div className="text-sm font-semibold text-slate-900">动作模板</div>
-                <div className="mt-3">
-                  <SmallSelect value={currentActionId} options={actionOptions} onChange={updateCursorStateAction} />
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-slate-200 bg-slate-50/70 px-4 py-4">
-              <div className="text-sm font-semibold text-slate-900">预览</div>
-              <div className="mt-4 flex items-center gap-4">
-                <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-[28px] border border-slate-200 bg-[radial-gradient(circle_at_top,#ffffff,#dbeafe)] shadow-sm">
-                  {effectiveAsset.imageDataUrl ? (
-                    <img
-                      src={effectiveAsset.imageDataUrl}
-                      alt={`${stateId} cursor preview`}
-                      className="object-contain"
-                      style={{ width: `${Math.min(effectiveAsset.size, 72)}px`, height: `${Math.min(effectiveAsset.size, 72)}px` }}
-                    />
-                  ) : (
-                    <ImagePlus className="h-8 w-8 text-slate-300" />
-                  )}
-                </div>
-                <div className="space-y-2 text-sm text-slate-600">
-                  <div className="font-medium text-slate-900">{effectiveAsset.imageDataUrl ? "已配置" : "未配置"}</div>
-                  <div>热点：{effectiveAsset.hotspotX}, {effectiveAsset.hotspotY}</div>
-                  <div>尺寸：{effectiveAsset.size}px</div>
-                  <div>状态：{assetStatusLabel}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-      </Panel>
-
-      <Panel title="素材上传器">
-        <input ref={fileInputRef} type="file" accept="image/png,image/webp,image/svg+xml" className="hidden" onChange={handleFileChange} />
-
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          onDragOver={(event) => {
-            event.preventDefault();
-            setIsDraggingAsset(true);
-          }}
-          onDragLeave={() => setIsDraggingAsset(false)}
-          onDrop={(event) => {
-            event.preventDefault();
-            setIsDraggingAsset(false);
-            applyAssetFile(event.dataTransfer.files?.[0]);
-          }}
-          className={cn(
-            "w-full rounded-[28px] border border-dashed px-5 py-5 text-left transition-colors",
-            isDraggingAsset ? "border-emerald-300 bg-emerald-50" : "border-slate-300 bg-slate-50 hover:border-emerald-300 hover:bg-emerald-50/60"
-          )}
+    <div className="grid gap-4 xl:h-[calc(100dvh-9.5rem)] xl:grid-cols-[minmax(0,1fr)_390px] xl:overflow-hidden">
+      <div className="min-h-0 space-y-4 overflow-y-auto">
+        <Panel
+          title="状态素材总览"
+          summary="批量上传后自动匹配状态，只处理缺失、冲突和尺寸异常"
+          action={<Button variant="ghost" className="rounded-2xl px-3 text-xs" onClick={resetAllCursorStates}><RotateCcw className="mr-2 h-4 w-4" />恢复全部状态</Button>}
         >
-          <div className="flex items-center gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-3xl bg-white text-emerald-700 shadow-sm">
-              <Upload className="h-6 w-6" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-base font-semibold text-slate-900">上传图片或拖拽到这里</div>
-              <div className="mt-1 text-sm text-slate-500">支持 PNG / WebP / SVG，建议 300 KB 以内。</div>
-            </div>
-          </div>
-        </button>
+          <input ref={fileInputRef} type="file" accept="image/png,image/webp,image/svg+xml" multiple className="hidden" onChange={(event) => {
+            void applyBatchFiles(event.target.files);
+            event.target.value = "";
+          }} />
 
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <Button variant="outline" className="rounded-2xl px-4" onClick={() => fileInputRef.current?.click()}>
-              <Upload className="mr-2 h-4 w-4" />
-              选择图片
-            </Button>
-            <Button variant="ghost" className="rounded-2xl px-4" onClick={copyDefaultCursorStateAsset}>
-              <Copy className="mr-2 h-4 w-4" />
-              复制默认态
-            </Button>
-            <Button
-              variant="ghost"
-              className="rounded-2xl px-4"
-              onClick={() => {
-                updateCursorStateAsset({ imageDataUrl: "" });
-                setAssetMessage("已清空当前状态图片。");
-                setAssetMessageTone("slate");
-              }}
-            >
-              清空图片
-            </Button>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            onDragOver={(event) => {
+              event.preventDefault();
+              setIsDraggingAsset(true);
+            }}
+            onDragLeave={() => setIsDraggingAsset(false)}
+            onDrop={(event) => {
+              event.preventDefault();
+              setIsDraggingAsset(false);
+              void applyBatchFiles(event.dataTransfer.files);
+            }}
+            className={cn(
+              "grid w-full gap-3 rounded-2xl border border-dashed px-4 py-4 text-left transition-colors md:grid-cols-[minmax(0,1fr)_auto] md:items-center",
+              isDraggingAsset ? "border-emerald-300 bg-emerald-50" : "border-slate-300 bg-slate-50 hover:border-emerald-300 hover:bg-emerald-50/60"
+            )}
+          >
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-emerald-700 shadow-sm">
+                <Upload className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-slate-900">拖入或批量上传光标素材</div>
+                <div className="mt-1 text-xs text-slate-500">按文件名自动匹配 default / pointer / text / help / wait / disabled。</div>
+              </div>
+            </div>
+            <span className="inline-flex justify-center rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">批量上传</span>
+          </button>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <DataPill tone="teal">已匹配 {matchedCount}</DataPill>
+            <DataPill tone={warningCount ? "amber" : "slate"}>需确认 {warningCount}</DataPill>
+            <DataPill tone={missingCount ? "rose" : "slate"}>缺失 {missingCount}</DataPill>
+            {assetMessage ? <span className={cn("rounded-full px-2.5 py-1 text-xs", assetMessageTone === "rose" ? "bg-rose-50 text-rose-700" : assetMessageTone === "amber" ? "bg-amber-50 text-amber-700" : "bg-teal-50 text-teal-700")}>{assetMessage}</span> : null}
           </div>
 
-          {assetMessage ? (
-            <div
-              className={cn(
-                "mt-3 rounded-2xl px-3 py-2 text-sm",
-                assetMessageTone === "rose"
-                  ? "bg-rose-50 text-rose-700"
-                  : assetMessageTone === "teal"
-                    ? "bg-teal-50 text-teal-700"
-                    : "bg-slate-100 text-slate-600"
-              )}
-            >
-              {assetMessage}
+          <div className="mt-4 grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
+            {stateCards.map((state) => {
+              const active = state.id === stateId;
+              const Icon = state.icon;
+              return (
+                <button
+                  key={state.id}
+                  type="button"
+                  onClick={() => setStateId(state.id)}
+                  className={cn(
+                    "min-w-0 rounded-2xl border bg-white p-3 text-left transition-colors",
+                    active ? "border-emerald-300 bg-emerald-50/80 ring-2 ring-emerald-100" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                  )}
+                >
+                  <div className="flex items-start gap-3">
+                    <CursorPreview asset={state.effectiveAsset} size={34} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex min-w-0 items-center justify-between gap-2">
+                        <div className="flex min-w-0 items-center gap-1.5">
+                          <Icon className="h-3.5 w-3.5 shrink-0 text-slate-500" />
+                          <div className="truncate text-sm font-semibold text-slate-900">{state.label}</div>
+                        </div>
+                        <DataPill tone={state.status.tone}>{state.status.label}</DataPill>
+                      </div>
+                      <div className="mt-2 truncate text-xs text-slate-500">
+                        {state.status.label === "继承" ? "继承默认状态" : state.asset?.name || (state.effectiveAsset?.imageDataUrl ? "已绑定素材" : "未绑定素材")}
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-slate-500">
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5">热点 {state.effectiveAsset?.hotspotX ?? 0},{state.effectiveAsset?.hotspotY ?? 0}</span>
+                        <span className="rounded-full bg-slate-100 px-2 py-0.5">{state.asset?.sourceWidth || TARGET_CURSOR_SIZE} x {state.asset?.sourceHeight || TARGET_CURSOR_SIZE}</span>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {pendingFiles.length ? (
+            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/60 p-3">
+              <div className="mb-2 text-sm font-semibold text-amber-900">需要确认</div>
+              <div className="grid gap-2">
+                {pendingFiles.map((pendingFile) => (
+                  <div key={pendingFile.id} className="grid gap-2 rounded-xl bg-white px-3 py-2 md:grid-cols-[minmax(0,1fr)_170px_auto] md:items-center">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <CursorPreview asset={pendingFile.asset} size={28} />
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-medium text-slate-900">{pendingFile.fileName}</div>
+                        <div className="text-xs text-slate-500">{pendingFile.reason}</div>
+                      </div>
+                    </div>
+                    <select
+                      className="h-9 rounded-xl border border-slate-200 bg-white px-2 text-sm text-slate-700 outline-none"
+                      defaultValue=""
+                      onChange={(event) => event.target.value && bindPendingFile(pendingFile, event.target.value)}
+                    >
+                      <option value="">选择绑定状态</option>
+                      {CURSOR_STATES.map((state) => <option key={state.id} value={state.id}>{state.label}</option>)}
+                    </select>
+                    <button type="button" className="text-xs font-medium text-slate-500 hover:text-slate-900" onClick={() => setPendingFiles((current) => current.filter((item) => item.id !== pendingFile.id))}>
+                      忽略
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : null}
+        </Panel>
+      </div>
 
-          <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
-            <div className="space-y-5">
-              <div>
-                <div className="text-sm font-semibold text-slate-900">内置样例</div>
-                <div className="mt-3 grid gap-3 md:grid-cols-2">
-                  {builtinPresetCards.map((preset) => (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      onClick={() => applyBuiltinPreset(preset.asset, preset.label)}
-                      className="flex items-center gap-3 rounded-[24px] border border-slate-200 bg-white px-4 py-3 text-left transition-colors hover:border-emerald-300 hover:bg-emerald-50/40"
-                    >
-                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-[radial-gradient(circle_at_top,#ffffff,#e2e8f0)]">
-                        <img
-                          src={preset.asset.imageDataUrl}
-                          alt={`${preset.label} preview`}
-                          className="object-contain"
-                          style={{ width: `${Math.min(preset.asset.size, 40)}px`, height: `${Math.min(preset.asset.size, 40)}px` }}
-                        />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-sm font-semibold text-slate-800">{preset.label}</div>
-                        <div className="mt-1 text-xs leading-5 text-slate-500">{preset.hint}</div>
-                      </div>
-                    </button>
-                  ))}
+      <Panel
+        title={`${stateMeta?.label || "当前"} 状态详情`}
+        summary={`${formatActionLabel(currentActionId)} · ${currentMode}`}
+        className="flex min-h-0 flex-col"
+        contentClassName="min-h-0 flex-1 overflow-y-auto"
+        action={<Button variant="ghost" className="rounded-2xl px-3 text-xs" onClick={resetCurrentCursorState}><RotateCcw className="mr-2 h-4 w-4" />恢复此状态</Button>}
+      >
+        <input ref={singleFileInputRef} type="file" accept="image/png,image/webp,image/svg+xml" className="hidden" onChange={(event) => {
+          void applySingleFile(event.target.files?.[0]);
+          event.target.value = "";
+        }} />
+
+        <div className="space-y-4">
+          <section className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+            <div className="mb-3 text-sm font-semibold text-slate-900">当前素材</div>
+            <div className="flex items-center gap-3">
+              <CursorPreview asset={effectiveAsset} size={56} />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-semibold text-slate-900">{currentAsset.name || (effectiveAsset.imageDataUrl ? "已绑定素材" : "未绑定素材")}</div>
+                <div className="mt-1 text-xs text-slate-500">
+                  {(currentAsset.sourceWidth || TARGET_CURSOR_SIZE)} x {(currentAsset.sourceHeight || TARGET_CURSOR_SIZE)} · PNG / WebP / SVG
                 </div>
               </div>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button variant="outline" className="rounded-xl px-3 text-xs" onClick={() => singleFileInputRef.current?.click()}>
+                <Upload className="mr-1.5 h-3.5 w-3.5" />替换
+              </Button>
+              <Button variant="ghost" className="rounded-xl px-3 text-xs" onClick={copyDefaultCursorStateAsset}>
+                <Copy className="mr-1.5 h-3.5 w-3.5" />复制默认态
+              </Button>
+              <Button variant="ghost" className="rounded-xl px-3 text-xs text-rose-600 hover:text-rose-700" onClick={() => updateCursorStateAsset({ imageDataUrl: "", name: "", sourceWidth: undefined, sourceHeight: undefined })}>
+                移除
+              </Button>
+            </div>
+          </section>
 
-              <div>
-                <div className="text-sm font-semibold text-slate-900">最近上传素材</div>
-                {recentCursorAssets?.length ? (
-                  <div className="mt-3 grid gap-3 md:grid-cols-2">
-                    {recentCursorAssets.map((asset) => (
-                      <button
-                        key={asset.id}
-                        type="button"
-                        onClick={() => {
-                          updateCursorStateAsset({
-                            imageDataUrl: asset.imageDataUrl,
-                            hotspotX: asset.hotspotX,
-                            hotspotY: asset.hotspotY,
-                            size: asset.size,
-                          });
-                          setAssetMessage(`已应用最近素材：${asset.name}。`);
-                          setAssetMessageTone("teal");
-                        }}
-                        className="flex items-center gap-3 rounded-[24px] border border-slate-200 bg-white px-4 py-3 text-left transition-colors hover:border-emerald-300 hover:bg-emerald-50/40"
-                      >
-                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-[radial-gradient(circle_at_top,#ffffff,#e2e8f0)]">
-                          <img
-                            src={asset.imageDataUrl}
-                            alt={`${asset.name} preview`}
-                            className="object-contain"
-                            style={{ width: `${Math.min(asset.size || 48, 40)}px`, height: `${Math.min(asset.size || 48, 40)}px` }}
-                          />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-semibold text-slate-800">{asset.name}</div>
-                          <div className="mt-1 text-xs leading-5 text-slate-500">
-                            {asset.hotspotX}, {asset.hotspotY} · {asset.size}px
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="mt-3 rounded-[24px] border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
-                    暂无最近素材。
-                  </div>
-                )}
+          <section>
+            <div className="mb-2 text-sm font-semibold text-slate-900">来源策略</div>
+            <div className="grid grid-cols-3 gap-1 rounded-2xl bg-slate-100 p-1">
+              {["源", "继承", "覆盖"].map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => updateCursorMode(mode)}
+                  className={cn("rounded-xl px-2 py-2 text-xs font-semibold transition-colors", currentMode === mode ? "bg-emerald-700 text-white shadow-sm" : "text-slate-600 hover:bg-white")}
+                >
+                  {mode === "源" ? "当前素材" : mode === "继承" ? "继承默认" : "单独覆盖"}
+                </button>
+              ))}
+            </div>
+            <div className="mt-2 text-xs text-slate-500">
+              {currentMode === "继承" && stateId !== "default" ? "此状态沿用默认状态素材与热点。" : "此状态使用自己的绑定素材。"}
+            </div>
+          </section>
+
+          <section>
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <div className="text-sm font-semibold text-slate-900">热点编辑器</div>
+              <DataPill tone="slate">{currentAsset.hotspotX}, {currentAsset.hotspotY}</DataPill>
+            </div>
+            <div
+              ref={hotspotStageRef}
+              role="slider"
+              tabIndex={0}
+              aria-label="热点坐标"
+              aria-valuetext={`${currentAsset.hotspotX},${currentAsset.hotspotY}`}
+              onPointerDown={(event) => {
+                event.currentTarget.setPointerCapture(event.pointerId);
+                handleHotspotPointer(event);
+              }}
+              onPointerMove={(event) => {
+                if (event.buttons === 1) handleHotspotPointer(event);
+              }}
+              onKeyDown={(event) => {
+                if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+                event.preventDefault();
+                if (event.key === "ArrowLeft") updateHotspot({ hotspotX: currentAsset.hotspotX - 1 });
+                if (event.key === "ArrowRight") updateHotspot({ hotspotX: currentAsset.hotspotX + 1 });
+                if (event.key === "ArrowUp") updateHotspot({ hotspotY: currentAsset.hotspotY - 1 });
+                if (event.key === "ArrowDown") updateHotspot({ hotspotY: currentAsset.hotspotY + 1 });
+              }}
+              className="relative flex aspect-square w-full cursor-crosshair items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white outline-none focus-visible:ring-2 focus-visible:ring-slate-950"
+              style={{
+                backgroundImage: "linear-gradient(#e2e8f0 1px, transparent 1px), linear-gradient(90deg, #e2e8f0 1px, transparent 1px)",
+                backgroundSize: "16px 16px",
+              }}
+            >
+              {effectiveAsset.imageDataUrl ? (
+                <img src={effectiveAsset.imageDataUrl} alt="" className="h-4/5 w-4/5 object-contain opacity-95" />
+              ) : (
+                <MousePointer2 className="h-16 w-16 text-slate-200" />
+              )}
+              <div
+                className="pointer-events-none absolute flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-emerald-700 bg-white/80 shadow-sm"
+                style={{
+                  left: `${((currentAsset.hotspotX || 0) / Math.max(1, currentAsset.size || TARGET_CURSOR_SIZE)) * 100}%`,
+                  top: `${((currentAsset.hotspotY || 0) / Math.max(1, currentAsset.size || TARGET_CURSOR_SIZE)) * 100}%`,
+                }}
+              >
+                <Crosshair className="h-4 w-4 text-emerald-700" />
               </div>
             </div>
 
-            <div className="space-y-4 rounded-3xl border border-slate-200 bg-slate-50/70 px-4 py-4">
-              <div className="text-sm font-semibold text-slate-900">预览与定位</div>
-              <div className="flex items-center gap-4 rounded-3xl border border-slate-200 bg-white px-4 py-4">
-                <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-[28px] border border-slate-200 bg-[radial-gradient(circle_at_top,#ffffff,#dbeafe)] shadow-sm">
-                  {effectiveAsset.imageDataUrl ? (
-                    <img
-                      src={effectiveAsset.imageDataUrl}
-                      alt={`${stateId} cursor preview`}
-                      className="object-contain"
-                      style={{ width: `${Math.min(effectiveAsset.size, 72)}px`, height: `${Math.min(effectiveAsset.size, 72)}px` }}
-                    />
-                  ) : (
-                    <ImagePlus className="h-8 w-8 text-slate-300" />
-                  )}
-                </div>
-                <div className="space-y-2 text-sm text-slate-600">
-                  <div className="font-medium text-slate-900">{effectiveAsset.imageDataUrl ? "已配置图片素材" : "等待上传或选择样例"}</div>
-                  <div>热点：{effectiveAsset.hotspotX}, {effectiveAsset.hotspotY}</div>
-                  <div>尺寸：{effectiveAsset.size}px</div>
-                </div>
-              </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <NumberStepper label="X" value={currentAsset.hotspotX || 0} max={maxHotspotX} onChange={(value) => updateHotspot({ hotspotX: value })} />
+              <NumberStepper label="Y" value={currentAsset.hotspotY || 0} max={maxHotspotY} onChange={(value) => updateHotspot({ hotspotY: value })} />
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button type="button" className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200" onClick={() => updateHotspot({ hotspotX: 0, hotspotY: 0 })}>左上</button>
+              <button type="button" className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200" onClick={() => updateHotspot({ hotspotX: Math.floor(maxHotspotX / 2), hotspotY: Math.floor(maxHotspotY / 2) })}>中心</button>
+              <button type="button" className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200" onClick={() => updateHotspot({ hotspotX: defaultAsset.hotspotX ?? 16, hotspotY: defaultAsset.hotspotY ?? 32 })}>沿用默认</button>
+            </div>
+          </section>
 
-              <div className="space-y-3">
-                <div>
-                  <div className="mb-2 text-sm font-medium text-slate-800">热点坐标</div>
-                  <SmallSelect
-                    value={hotspotValue}
-                    options={CURSOR_HOTSPOT_OPTIONS}
-                    onChange={(value) => {
-                      const [hotspotX, hotspotY] = value.split(",").map((item) => Number.parseInt(item.trim(), 10));
-                      updateCursorStateAsset({ hotspotX, hotspotY });
+          <section>
+            <div className="mb-2 text-sm font-semibold text-slate-900">尺寸策略</div>
+            <div className="grid grid-cols-3 gap-1 rounded-2xl bg-slate-100 p-1">
+              {["保持原图", "自动缩放", "手动裁剪"].map((mode, index) => (
+                <button key={mode} type="button" className={cn("rounded-xl px-2 py-2 text-xs font-semibold", index === 0 ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:bg-white")}>
+                  {mode}
+                </button>
+              ))}
+            </div>
+            <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
+              {(currentAsset.sourceWidth || TARGET_CURSOR_SIZE) === TARGET_CURSOR_SIZE && (currentAsset.sourceHeight || TARGET_CURSOR_SIZE) === TARGET_CURSOR_SIZE ? (
+                <CheckCircle2 className="h-4 w-4 text-teal-600" />
+              ) : (
+                <XCircle className="h-4 w-4 text-amber-600" />
+              )}
+              <span>{(currentAsset.sourceWidth || TARGET_CURSOR_SIZE) === TARGET_CURSOR_SIZE && (currentAsset.sourceHeight || TARGET_CURSOR_SIZE) === TARGET_CURSOR_SIZE ? "尺寸符合 48 x 48" : "尺寸与 48 x 48 不一致，保存前建议确认缩放策略"}</span>
+            </div>
+          </section>
+
+          <section>
+            <div className="mb-2 text-sm font-semibold text-slate-900">动作模板</div>
+            <select
+              value={currentActionId}
+              onChange={(event) => updateCursorStateAction(event.target.value)}
+              className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus-visible:ring-2 focus-visible:ring-slate-950"
+            >
+              {actionItems.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+            </select>
+          </section>
+
+          <section className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-3">
+            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-900">
+              <Wand2 className="h-4 w-4 text-emerald-700" />最近素材
+            </div>
+            {recentCursorAssets?.length ? (
+              <div className="grid grid-cols-3 gap-2">
+                {recentCursorAssets.slice(0, 6).map((asset) => (
+                  <button
+                    key={asset.id}
+                    type="button"
+                    onClick={() => {
+                      updateCursorStateAsset({
+                        imageDataUrl: asset.imageDataUrl,
+                        hotspotX: asset.hotspotX,
+                        hotspotY: asset.hotspotY,
+                        size: asset.size,
+                        name: asset.name,
+                      });
+                      setAssetMessage(`已应用最近素材：${asset.name}。`);
+                      setAssetMessageTone("teal");
                     }}
-                  />
-                </div>
-                <div>
-                  <div className="mb-2 text-sm font-medium text-slate-800">尺寸</div>
-                  <SmallSelect
-                    value={sizeValue}
-                    options={CURSOR_SIZE_OPTIONS}
-                    onChange={(value) => updateCursorStateAsset({ size: Number.parseInt(value, 10) })}
-                  />
-                </div>
+                    className="rounded-xl border border-slate-200 bg-white p-2 hover:border-emerald-300"
+                    title={asset.name}
+                  >
+                    <CursorPreview asset={asset} size={28} />
+                  </button>
+                ))}
               </div>
-            </div>
-          </div>
+            ) : (
+              <div className="text-xs text-slate-500">当前主题包还没有最近素材。</div>
+            )}
+          </section>
+        </div>
       </Panel>
-
     </div>
   );
 }

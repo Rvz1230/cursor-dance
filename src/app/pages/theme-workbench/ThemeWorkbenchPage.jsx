@@ -50,6 +50,7 @@ function ThemeWorkbenchPageContent() {
     updateCursorMode,
     updateCursorStateAction,
     updateCursorStateAsset,
+    updateCursorStateAssetForState,
     recentCursorAssets,
     rememberRecentCursorAsset,
     copyDefaultCursorStateAsset,
@@ -177,6 +178,7 @@ function ThemeWorkbenchPageContent() {
                   updateCursorMode={updateCursorMode}
                   updateCursorStateAction={updateCursorStateAction}
                   updateCursorStateAsset={updateCursorStateAsset}
+                  updateCursorStateAssetForState={updateCursorStateAssetForState}
                   rememberRecentCursorAsset={rememberRecentCursorAsset}
                   copyDefaultCursorStateAsset={copyDefaultCursorStateAsset}
                   resetCurrentCursorState={resetCurrentCursorState}

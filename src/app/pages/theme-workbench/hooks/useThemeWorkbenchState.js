@@ -224,6 +224,24 @@ export function useThemeWorkbenchState() {
           },
         },
       })),
+    updateCursorStateAssetForState: (targetStateId, patch) =>
+      updateCurrentTheme((current) => ({
+        ...current,
+        cursorModes:
+          targetStateId !== "default"
+            ? {
+                ...current.cursorModes,
+                [targetStateId]: "覆盖",
+              }
+            : current.cursorModes,
+        cursorStateAssets: {
+          ...current.cursorStateAssets,
+          [targetStateId]: {
+            ...current.cursorStateAssets[targetStateId],
+            ...patch,
+          },
+        },
+      })),
     rememberRecentCursorAsset,
     copyDefaultCursorStateAsset: () =>
       updateCurrentTheme((current) => ({
