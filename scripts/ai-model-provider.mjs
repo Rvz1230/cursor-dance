@@ -7,8 +7,22 @@ const DEFAULT_CHAT_MODEL = "gpt-4.1-mini";
 const RESPONSE_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["reply", "patch", "diffSummary"],
+  required: ["intent", "target", "reply", "patch", "diffSummary", "riskLevel", "warnings"],
   properties: {
+    intent: {
+      type: "string",
+      description: "One of modify_action, generate_action, explain_config.",
+    },
+    target: {
+      type: "object",
+      additionalProperties: false,
+      required: ["type", "actionId", "label"],
+      properties: {
+        type: { type: "string" },
+        actionId: { type: "string" },
+        label: { type: "string" },
+      },
+    },
     reply: {
       type: "string",
       description: "A concise Chinese explanation of the generated CursorDance configuration changes.",
@@ -21,6 +35,14 @@ const RESPONSE_SCHEMA = {
     diffSummary: {
       type: "array",
       description: "Short Chinese bullet summaries of the most important config changes.",
+      items: { type: "string" },
+    },
+    riskLevel: {
+      type: "string",
+      description: "low, medium, or high. Use high for destructive or broad changes.",
+    },
+    warnings: {
+      type: "array",
       items: { type: "string" },
     },
   },
@@ -36,20 +58,25 @@ function buildSystemPrompt() {
     "你的任务是把用户的自然语言需求转换成可执行的鼠标特效配置 patch。",
     "只输出 JSON，不要 Markdown，不要解释 JSON 之外的内容。",
     "patch 只能表达需要修改的字段，不能返回 CSS、HTML、代码或未知字段。",
+    "返回的是配置变更提案 proposal，不是最终写入结果。",
+    "intent 必须是 modify_action、generate_action 或 explain_config。",
+    "target.type 当前只能是 action。",
+    "riskLevel 必须是 low、medium 或 high。",
     "优先保持低干扰、可预览、可撤销；如果用户要求低调，就降低粒子、声音和震动。",
     "所有回复字段使用中文。",
   ].join("\n");
 }
 
-function buildUserPrompt({ prompt, actionId, actionLabel, currentConfig }) {
+function buildUserPrompt({ prompt, actionId, actionLabel, currentConfig, taskMode }) {
   return [
+    `任务模式：${taskMode || "modify_action"}`,
     `当前动作 ID：${actionId || "leftClick"}`,
     `当前动作名称：${actionLabel || "当前动作"}`,
     "当前配置 JSON：",
     JSON.stringify(currentConfig || {}, null, 2),
     "用户需求：",
     prompt,
-    "请返回 JSON：{ \"reply\": string, \"patch\": object, \"diffSummary\": string[] }",
+    "请返回 JSON：{ \"intent\": string, \"target\": { \"type\": \"action\", \"actionId\": string, \"label\": string }, \"reply\": string, \"patch\": object, \"diffSummary\": string[], \"riskLevel\": \"low\" | \"medium\" | \"high\", \"warnings\": string[] }",
   ].join("\n");
 }
 
@@ -85,7 +112,10 @@ function normalizeModelPayload(payload, source) {
   const patch = sanitizeAiSchemePatch(payload?.patch);
   return {
     source,
-    intent: "generate_or_modify_scheme",
+    intent: payload?.intent || "modify_action",
+    target: payload?.target,
+    riskLevel: payload?.riskLevel,
+    warnings: payload?.warnings,
     reply: typeof payload?.reply === "string" && payload.reply.trim()
       ? payload.reply.trim()
       : "我已生成一版可执行配置。",

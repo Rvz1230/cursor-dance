@@ -109,6 +109,19 @@ const FIELD_LABELS = {
   holdMs: "触发延迟",
 };
 
+const AI_TASK_MODES = {
+  modify_action: "修改当前动作",
+  generate_action: "生成动作方案",
+  explain_config: "解释配置",
+};
+
+function createProposalId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `proposal-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 function normalizePrompt(prompt) {
   return String(prompt || "").trim().toLowerCase();
 }
@@ -184,11 +197,25 @@ export function sanitizeAiSchemePatch(patch) {
   );
 }
 
+export function getAiPatchSanitizeMeta(rawPatch, sanitizedPatch = sanitizeAiSchemePatch(rawPatch)) {
+  const rawKeys = rawPatch && typeof rawPatch === "object" && !Array.isArray(rawPatch) ? Object.keys(rawPatch) : [];
+  const sanitizedKeys = Object.keys(sanitizedPatch || {});
+  return {
+    rawFieldCount: rawKeys.length,
+    acceptedFieldCount: sanitizedKeys.length,
+    droppedFieldCount: Math.max(0, rawKeys.length - sanitizedKeys.length),
+    droppedFields: rawKeys.filter((fieldName) => !sanitizedKeys.includes(fieldName)),
+  };
+}
+
 export function validateAiSchemeRequest(payload) {
   const errors = [];
   const prompt = typeof payload?.prompt === "string" ? payload.prompt.trim() : "";
   const actionId = typeof payload?.actionId === "string" ? payload.actionId : "leftClick";
   const actionLabel = typeof payload?.actionLabel === "string" ? payload.actionLabel : "";
+  const taskMode = Object.prototype.hasOwnProperty.call(AI_TASK_MODES, payload?.taskMode)
+    ? payload.taskMode
+    : "modify_action";
   const currentConfig =
     payload?.currentConfig && typeof payload.currentConfig === "object" && !Array.isArray(payload.currentConfig)
       ? payload.currentConfig
@@ -204,6 +231,7 @@ export function validateAiSchemeRequest(payload) {
       prompt,
       actionId,
       actionLabel,
+      taskMode,
       currentConfig,
     },
   };
@@ -243,6 +271,43 @@ export function buildAiSchemeDiffItems(currentConfig = {}, patch = {}) {
       beforeLabel: formatDiffValue(currentConfig?.[fieldName]),
       afterLabel: formatDiffValue(nextValue),
     }));
+}
+
+export function normalizeAiSchemeProposal(payload = {}, requestState = {}) {
+  const patch = sanitizeAiSchemePatch(payload.patch);
+  const currentConfig = requestState.currentConfig || {};
+  const target = payload.target && typeof payload.target === "object"
+    ? payload.target
+    : {
+        type: "action",
+        actionId: requestState.actionId || "leftClick",
+        label: requestState.actionLabel || "当前动作",
+      };
+  const riskLevel = ["low", "medium", "high"].includes(payload.riskLevel) ? payload.riskLevel : "low";
+  const warnings = Array.isArray(payload.warnings)
+    ? payload.warnings.filter((item) => typeof item === "string" && item.trim()).slice(0, 5)
+    : [];
+
+  return {
+    proposalId: typeof payload.proposalId === "string" && payload.proposalId ? payload.proposalId : createProposalId(),
+    intent: payload.intent || requestState.taskMode || "modify_action",
+    target: {
+      type: target.type || "action",
+      actionId: target.actionId || requestState.actionId || "leftClick",
+      label: target.label || requestState.actionLabel || "当前动作",
+    },
+    riskLevel,
+    warnings,
+    source: payload.source || "local-prototype",
+    reply: typeof payload.reply === "string" && payload.reply.trim() ? payload.reply.trim() : "我已生成一版可执行配置。",
+    patch,
+    sanitizeMeta: payload.sanitizeMeta || getAiPatchSanitizeMeta(payload.patch, patch),
+    nextConfig: mergeActionConfig(currentConfig, patch),
+    diffItems: buildAiSchemeDiffItems(currentConfig, patch),
+    diffSummary: Array.isArray(payload.diffSummary)
+      ? payload.diffSummary.filter((item) => typeof item === "string" && item.trim()).slice(0, 5)
+      : describeDiff(patch),
+  };
 }
 
 function buildBasePatch(prompt, currentConfig) {
@@ -421,15 +486,13 @@ export function createLocalAiSchemeResponse({ prompt, currentConfig, actionLabel
     diffSummary.length ? `重点调整：${diffSummary.join("、")}。` : "这次主要做了整体风格收敛。",
   ].join("");
 
-  return {
+  return normalizeAiSchemeProposal({
     source: "local-prototype",
-    intent: "generate_or_modify_scheme",
+    intent: "modify_action",
     reply,
     patch,
-    nextConfig,
-    diffItems,
     diffSummary,
-  };
+  }, { currentConfig, actionLabel, actionId: "leftClick", taskMode: "modify_action" });
 }
 
 async function requestRemoteAiSchemeEdit({ prompt, currentConfig, actionLabel, actionId }) {
@@ -451,17 +514,13 @@ async function requestRemoteAiSchemeEdit({ prompt, currentConfig, actionLabel, a
       throw new Error(`AI API responded with ${response.status}`);
     }
     const payload = await response.json();
-    const patch = sanitizeAiSchemePatch(payload.patch);
-    const diffItems = buildAiSchemeDiffItems(currentConfig || {}, patch);
-    return {
-      source: payload.source || "api",
-      intent: payload.intent || "generate_or_modify_scheme",
-      reply: typeof payload.reply === "string" ? payload.reply : "已生成一版可执行配置。",
-      patch,
-      nextConfig: mergeActionConfig(currentConfig || {}, patch),
-      diffItems,
-      diffSummary: Array.isArray(payload.diffSummary) ? payload.diffSummary.filter(Boolean).slice(0, 5) : describeDiff(patch),
-    };
+    return normalizeAiSchemeProposal(
+      {
+        ...payload,
+        source: payload.source || "api",
+      },
+      { currentConfig, actionLabel, actionId }
+    );
   } finally {
     window.clearTimeout(timer);
   }

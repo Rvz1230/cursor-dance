@@ -26,7 +26,7 @@ Use this mode for providers that expose an OpenAI-compatible `/chat/completions`
 
 ```bash
 export CURSORDANCE_AI_API_KEY="your_provider_key"
-export CURSORDANCE_AI_API_BASE_URL="https://api.deepseek.com/v1"
+export CURSORDANCE_AI_API_BASE_URL="https://api.deepseek.com"
 export CURSORDANCE_AI_API_MODE="chat_completions"
 export CURSORDANCE_AI_MODEL="deepseek-chat"
 npm run ai:dev

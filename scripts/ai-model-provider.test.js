@@ -28,6 +28,8 @@ describe("ai-model-provider", () => {
       ok: true,
       text: async () => JSON.stringify({
         output_text: JSON.stringify({
+          intent: "modify_action",
+          target: { type: "action", actionId: "leftClick", label: "左键单击" },
           reply: "已调整为低干扰方案。",
           patch: {
             textColor: "0284c7",
@@ -35,6 +37,8 @@ describe("ai-model-provider", () => {
             unsafeField: "nope",
           },
           diffSummary: ["主色调整为蓝色"],
+          riskLevel: "low",
+          warnings: [],
         }),
       }),
     }));
@@ -50,6 +54,8 @@ describe("ai-model-provider", () => {
       expect.objectContaining({ method: "POST" })
     );
     expect(result.source).toBe("model-responses-api");
+    expect(result.target).toEqual({ type: "action", actionId: "leftClick", label: "左键单击" });
+    expect(result.riskLevel).toBe("low");
     expect(result.patch).toEqual({
       textColor: "#0284C7",
       particleCount: 40,
@@ -67,9 +73,13 @@ describe("ai-model-provider", () => {
           {
             message: {
               content: JSON.stringify({
+                intent: "modify_action",
+                target: { type: "action", actionId: "leftClick", label: "左键单击" },
                 reply: "已关闭声音。",
                 patch: { sound: false, volume: 0 },
                 diffSummary: ["关闭音效"],
+                riskLevel: "low",
+                warnings: [],
               }),
             },
           },

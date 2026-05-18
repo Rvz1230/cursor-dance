@@ -4,6 +4,8 @@ import { createThemeDraft } from "../model/workbenchSchema.js";
 import {
   buildAiSchemeDiffItems,
   createLocalAiSchemeResponse,
+  getAiPatchSanitizeMeta,
+  normalizeAiSchemeProposal,
   sanitizeAiSchemePatch,
   validateAiSchemeRequest,
 } from "./aiSchemeAssistant.js";
@@ -20,7 +22,7 @@ describe("aiSchemeAssistant", () => {
       actionLabel: "左键单击",
     });
 
-    expect(result.intent).toBe("generate_or_modify_scheme");
+    expect(result.intent).toBe("modify_action");
     expect(result.patch.sound).toBe(false);
     expect(result.patch.volume).toBe(0);
     expect(result.patch.textColor).toBe("#0284C7");
@@ -60,19 +62,26 @@ describe("aiSchemeAssistant", () => {
   });
 
   it("sanitizes AI patches before they can touch workbench config", () => {
-    const patch = sanitizeAiSchemePatch({
+    const rawPatch = {
       textColor: "0284c7",
       particleCount: 999,
       sound: "false",
       soundFile: "unknown.wav",
       textTags: ["focus", "", 42, "ship"],
       unsafeField: "ignore me",
-    });
+    };
+    const patch = sanitizeAiSchemePatch(rawPatch);
 
     expect(patch).toEqual({
       textColor: "#0284C7",
       particleCount: 40,
       textTags: ["focus", "ship"],
+    });
+    expect(getAiPatchSanitizeMeta(rawPatch, patch)).toMatchObject({
+      rawFieldCount: 6,
+      acceptedFieldCount: 3,
+      droppedFieldCount: 3,
+      droppedFields: ["sound", "soundFile", "unsafeField"],
     });
   });
 
@@ -88,6 +97,33 @@ describe("aiSchemeAssistant", () => {
     expect(invalid.errors).toContain("prompt is required");
     expect(valid.ok).toBe(true);
     expect(valid.value.actionId).toBe("leftClick");
+  });
+
+  it("normalizes AI responses into proposal contract", () => {
+    const proposal = normalizeAiSchemeProposal(
+      {
+        intent: "modify_action",
+        target: { type: "action", actionId: "leftClick", label: "左键单击" },
+        riskLevel: "medium",
+        warnings: ["音效将被关闭"],
+        patch: { sound: false, volume: 0 },
+        reply: "建议关闭音效。",
+      },
+      {
+        actionId: "leftClick",
+        actionLabel: "左键单击",
+        currentConfig: { sound: true, volume: 78 },
+      }
+    );
+
+    expect(proposal.proposalId).toBeTruthy();
+    expect(proposal.target).toEqual({ type: "action", actionId: "leftClick", label: "左键单击" });
+    expect(proposal.riskLevel).toBe("medium");
+    expect(proposal.warnings).toEqual(["音效将被关闭"]);
+    expect(proposal.diffItems).toEqual([
+      expect.objectContaining({ fieldName: "sound", beforeLabel: "开启", afterLabel: "关闭" }),
+      expect.objectContaining({ fieldName: "volume", beforeLabel: "78", afterLabel: "0" }),
+    ]);
   });
 
   it("builds readable diff items for pending AI changes", () => {

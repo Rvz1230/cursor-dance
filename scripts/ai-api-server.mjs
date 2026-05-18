@@ -1,6 +1,9 @@
 import { createServer } from "node:http";
+import { loadLocalEnv } from "./load-local-env.mjs";
 import {
   createLocalAiSchemeResponse,
+  getAiPatchSanitizeMeta,
+  normalizeAiSchemeProposal,
   sanitizeAiSchemePatch,
   validateAiSchemeRequest,
 } from "../src/app/pages/theme-workbench/lib/aiSchemeAssistant.js";
@@ -8,6 +11,8 @@ import {
   generateSchemePatchWithModel,
   hasConfiguredModelProvider,
 } from "./ai-model-provider.mjs";
+
+loadLocalEnv();
 
 const PORT = Number.parseInt(process.env.CURSORDANCE_AI_API_PORT || "8787", 10);
 const HOST = process.env.CURSORDANCE_AI_API_HOST || "127.0.0.1";
@@ -63,12 +68,27 @@ async function handleAiSchemeRequest(request, response) {
     });
   }
 
+  const sanitizedPatch = sanitizeAiSchemePatch(result.patch);
+  const proposal = normalizeAiSchemeProposal(
+    {
+      ...result,
+      patch: sanitizedPatch,
+      sanitizeMeta: getAiPatchSanitizeMeta(result.patch, sanitizedPatch),
+    },
+    requestState.value
+  );
+
   sendJson(response, 200, {
-    source: result.source || "local-api-prototype",
-    intent: "generate_or_modify_scheme",
-    reply: result.reply,
-    patch: sanitizeAiSchemePatch(result.patch),
-    diffSummary: result.diffSummary,
+    proposalId: proposal.proposalId,
+    source: proposal.source || "local-api-prototype",
+    intent: proposal.intent,
+    target: proposal.target,
+    riskLevel: proposal.riskLevel,
+    warnings: proposal.warnings,
+    reply: proposal.reply,
+    patch: proposal.patch,
+    sanitizeMeta: proposal.sanitizeMeta,
+    diffSummary: proposal.diffSummary,
   });
 }
 

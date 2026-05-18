@@ -166,34 +166,44 @@ function SimplePreviewStage({ config, siteMode, runId, outputs }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div
-        className="relative flex-1 overflow-hidden rounded-[20px] border border-slate-200 bg-slate-50"
+        className="relative flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white"
         style={{
           minHeight: 320,
-          backgroundColor: "#f8fafc",
+          backgroundColor: "#fbfcfe",
           backgroundImage: `
-            radial-gradient(circle at 1px 1px, rgba(148, 163, 184, 0.22) 1px, transparent 0),
-            linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.92) 100%)
+            radial-gradient(circle at 1px 1px, rgba(100, 116, 139, 0.18) 1px, transparent 0),
+            linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.96) 100%)
           `,
-          backgroundSize: "18px 18px, 100% 100%",
+          backgroundSize: "20px 20px, 100% 100%",
           backgroundPosition: "0 0, 0 0",
         }}
       >
         <div
-          className="pointer-events-none absolute inset-x-8 bottom-6 top-20 rounded-[18px] border border-white/80"
+          className="pointer-events-none absolute inset-x-8 bottom-8 top-20 rounded-xl border border-slate-200/80"
           style={{
             background:
-              "linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.16) 100%)",
-            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.65)",
+              "linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.24) 100%)",
           }}
           aria-hidden="true"
         />
-        <div className="absolute inset-x-6 top-6 flex items-center justify-between text-xs text-slate-500">
-          <span className="rounded-full border border-slate-200 bg-white px-3 py-1">{getPreviewTriggerSummary(config)}</span>
-          <span className="rounded-full border border-slate-200 bg-white px-3 py-1">仅预览当前配置</span>
+        <div className="absolute inset-x-5 top-5 flex items-start justify-between gap-3 text-xs text-slate-500">
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-slate-900 text-balance">效果舞台</div>
+            <div className="mt-1 text-xs text-slate-500 text-pretty">{getPreviewTriggerSummary(config)}</div>
+          </div>
+          <div className="flex max-w-[55%] flex-wrap justify-end gap-1.5">
+            {outputs.length ? outputs.map((output) => (
+              <span key={output} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-600">
+                {output}
+              </span>
+            )) : (
+              <span className="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700">暂无输出</span>
+            )}
+          </div>
         </div>
 
-        <div className="absolute inset-x-10 bottom-10 h-4 rounded-full bg-slate-200/40" />
-        <div className="absolute inset-x-8 bottom-7 h-px bg-slate-300/80" />
+        <div className="absolute inset-x-10 bottom-12 h-4 rounded-full bg-slate-200/45" />
+        <div className="absolute inset-x-8 bottom-9 h-px bg-slate-300/80" />
 
         <div className="absolute left-1/2 top-1/2 h-0 w-0">
           <PreviewEffects
@@ -209,7 +219,7 @@ function SimplePreviewStage({ config, siteMode, runId, outputs }) {
         </div>
 
         {audioConfig.sound && !disabledBySite ? (
-          <div className="absolute right-4 top-16 flex items-center gap-1.5 rounded-full border border-emerald-100 bg-white/95 px-2 py-1 text-[10px] text-slate-600 shadow-sm">
+          <div className="absolute right-5 top-20 flex items-center gap-1.5 rounded-lg border border-emerald-100 bg-white/95 px-2 py-1 text-[10px] text-slate-600 shadow-sm">
             <Volume2 className="size-3 text-emerald-700" aria-hidden="true" />
             <span className="max-w-[88px] truncate">{getPreviewSoundFile(config)}</span>
             <div className="flex items-end gap-1" aria-hidden="true">
@@ -232,7 +242,7 @@ function SimplePreviewStage({ config, siteMode, runId, outputs }) {
   );
 }
 
-export function WorkbenchPreviewRail({ actionLabel, config, siteMode }) {
+export function WorkbenchPreviewRail({ actionLabel, config, siteMode, previewMode = false }) {
   const disabledBySite = siteMode === "当前禁用";
   const [runId, setRunId] = useState(0);
   const [autoPlay, setAutoPlay] = useState(true);
@@ -273,23 +283,23 @@ export function WorkbenchPreviewRail({ actionLabel, config, siteMode }) {
       <Panel
         title="实时预览"
         icon={MousePointerClick}
-        iconTone="bg-slate-900 text-white"
+        iconTone={previewMode ? "bg-sky-100 text-sky-700" : "bg-slate-950 text-white"}
         className="flex h-full min-h-0 flex-col shadow-sm"
         contentClassName="flex min-h-0 flex-1 flex-col"
-        summary={`${actionLabel} · ${getPreviewTriggerSummary(config)}`}
+        summary={previewMode ? `正在预览 AI 建议 · ${actionLabel}` : `${actionLabel} · ${getPreviewTriggerSummary(config)}`}
         action={
           <div className="flex items-center justify-end gap-1.5">
-            <label className="inline-flex h-8 items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 text-xs text-slate-600">
+            <label className="inline-flex h-8 items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-600">
               <span className="hidden 2xl:inline">自动播放</span>
               <Switch checked={autoPlay && !disabledBySite} disabled={disabledBySite} onCheckedChange={setAutoPlay} aria-label="自动播放开关" />
             </label>
-            <Button variant="outline" size="icon" className="size-8 rounded-2xl" onClick={replay} disabled={disabledBySite} aria-label="重播预览" title="重播">
+            <Button variant="outline" size="icon" className="size-8 rounded-lg" onClick={replay} disabled={disabledBySite} aria-label="重播预览" title="重播">
               <RotateCcw className="h-4 w-4" />
             </Button>
             <Button
               variant="outline"
               size="icon"
-              className="size-8 rounded-2xl"
+              className="size-8 rounded-lg"
               onClick={() => setAutoPlay((value) => !value)}
               disabled={disabledBySite}
               aria-label={autoPlay ? "暂停自动播放" : "开启自动播放"}

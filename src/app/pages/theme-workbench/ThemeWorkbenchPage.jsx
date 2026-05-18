@@ -1,5 +1,5 @@
 import { formatActionLabel } from "./model/workbenchSchema.js";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useThemeWorkbenchState } from "./hooks/useThemeWorkbenchState.js";
 import { BindingsPanel } from "./components/BindingsPanel.jsx";
 import { DiagnosticsPanel } from "./components/DiagnosticsPanel.jsx";
@@ -25,6 +25,7 @@ export default function ThemeWorkbenchPage() {
 function ThemeWorkbenchPageContent() {
   const toast = useToast();
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
+  const [previewProposal, setPreviewProposal] = useState(null);
   const {
     state,
     selected,
@@ -65,6 +66,13 @@ function ThemeWorkbenchPageContent() {
     clearFilteredSiteRules,
   } = useThemeWorkbenchState();
   const currentWorkspace = workspaceItems.find((item) => item.id === state.workspaceId);
+  const previewActionConfig = previewProposal?.actionId === selected.actionId
+    ? previewProposal.nextConfig
+    : null;
+
+  useEffect(() => {
+    setPreviewProposal(null);
+  }, [selected.actionId, selected.themeId]);
 
   async function handleSaveChanges() {
     const result = await saveChanges();
@@ -81,6 +89,7 @@ function ThemeWorkbenchPageContent() {
   }
 
   function handleUpdateActionConfig(patch) {
+    setPreviewProposal(null);
     updateActionConfig(patch);
     if (patch && Object.prototype.hasOwnProperty.call(patch, "textColor")) {
       toast({ tone: "info", title: "已更新飘字颜色", description: patch.textColor });
@@ -160,8 +169,9 @@ function ThemeWorkbenchPageContent() {
                         <div className="min-h-[300px] shrink-0 xl:h-[38%]">
                           <WorkbenchPreviewRail
                             actionLabel={formatActionLabel(selected.actionId)}
-                            config={currentActionConfig}
+                            config={previewActionConfig || currentActionConfig}
                             siteMode={state.siteMode}
+                            previewMode={Boolean(previewActionConfig)}
                           />
                         </div>
                       ) : null}
@@ -172,8 +182,9 @@ function ThemeWorkbenchPageContent() {
                     <div className="hidden min-w-0 xl:flex xl:h-full xl:min-h-0">
                       <WorkbenchPreviewRail
                         actionLabel={formatActionLabel(selected.actionId)}
-                        config={currentActionConfig}
+                        config={previewActionConfig || currentActionConfig}
                         siteMode={state.siteMode}
+                        previewMode={Boolean(previewActionConfig)}
                       />
                     </div>
                   ) : null}
@@ -185,6 +196,9 @@ function ThemeWorkbenchPageContent() {
                         actionLabel={formatActionLabel(selected.actionId)}
                         currentConfig={currentActionConfig}
                         applyActionConfig={handleUpdateActionConfig}
+                        previewProposal={previewProposal}
+                        onPreviewProposal={setPreviewProposal}
+                        onClearPreview={() => setPreviewProposal(null)}
                         notify={toast}
                         variant="full"
                       />
@@ -195,8 +209,9 @@ function ThemeWorkbenchPageContent() {
                     <div className="flex min-w-0 xl:hidden">
                       <WorkbenchPreviewRail
                         actionLabel={formatActionLabel(selected.actionId)}
-                        config={currentActionConfig}
+                        config={previewActionConfig || currentActionConfig}
                         siteMode={state.siteMode}
+                        previewMode={Boolean(previewActionConfig)}
                       />
                     </div>
                   ) : null}
