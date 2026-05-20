@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "ai:dev": "node scripts/ai-api-server.mjs",
+    "ai:check": "node scripts/check-ai-api.mjs",
     "build": "vite build",
+    "extension:prepare-manifest": "node scripts/prepare-extension-manifest.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest --watch",

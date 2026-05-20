@@ -1,8 +1,10 @@
 {
   "manifest_version": 3,
   "name": "CursorDance",
-  "description": "A minimal mouse click effect prototype.",
+  "short_name": "CursorDance",
+  "description": "Customize cursor states, click feedback, particles, ripples, and optional AI-assisted effect proposals.",
   "version": "0.6.0",
+  "minimum_chrome_version": "114",
   "action": {
     "default_popup": "popup.html",
     "default_title": "CursorDance"

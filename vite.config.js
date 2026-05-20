@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: "node",
-    include: ["src/**/*.test.js", "public/**/*.test.js", "scripts/**/*.test.js"],
+    include: ["src/**/*.test.js", "public/**/*.test.js", "scripts/**/*.test.js", "server/**/*.test.js"],
     deps: {
       inline: ["**/public/config-runtime/*.js"],
     },
