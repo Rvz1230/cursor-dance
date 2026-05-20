@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
-import { Bot, Check, CheckCircle2, Eye, Loader2, RotateCcw, Send, X } from "lucide-react";
+import { Bot, Check, CheckCircle2, Eye, Loader2, RotateCcw, Send, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button.jsx";
 import { cn } from "@/components/ui/utils.js";
-import { requestAiSchemeEdit } from "../lib/aiSchemeAssistant.js";
+import { getAiRequestErrorMessage, requestAiSchemeEdit } from "../lib/aiSchemeAssistant.js";
 import { Panel } from "./WorkbenchControls.jsx";
 
 const PROMPT_EXAMPLES = [
@@ -27,6 +27,15 @@ function MessageBubble({ message }) {
       </div>
     </div>
   );
+}
+
+function getInitialMessages() {
+  return [
+    {
+      role: "assistant",
+      content: "描述你想要的鼠标反馈，我会直接生成或修改当前动作配置。",
+    },
+  ];
 }
 
 function ChangeSummary({ items }) {
@@ -172,12 +181,7 @@ export function AiSchemePanel({
   variant = "dock",
 }) {
   const [prompt, setPrompt] = useState("");
-  const [messages, setMessages] = useState([
-    {
-      role: "assistant",
-      content: "描述你想要的鼠标反馈，我会直接生成或修改当前动作配置。",
-    },
-  ]);
+  const [messages, setMessages] = useState(getInitialMessages);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
   const [pendingResult, setPendingResult] = useState(null);
@@ -224,9 +228,9 @@ export function AiSchemePanel({
         description: result.scheme?.summary || result.diffSummary?.[0] || "请确认后再应用。",
       });
     } catch (caughtError) {
-      const message = caughtError instanceof Error ? caughtError.message : "生成失败，请稍后重试。";
+      const message = getAiRequestErrorMessage(caughtError);
       setError(message);
-      setMessages((current) => [...current, { role: "assistant", content: "这次没有成功应用配置，请调整描述后再试一次。" }]);
+      setMessages((current) => [...current, { role: "assistant", content: message }]);
     } finally {
       setIsGenerating(false);
     }
@@ -261,6 +265,20 @@ export function AiSchemePanel({
     setMessages((current) => [...current, { role: "assistant", content: "已放弃这次改动，当前配置保持不变。" }]);
   }
 
+  function clearConversation() {
+    setPrompt("");
+    setError("");
+    setPendingResult(null);
+    setLastPrompt("");
+    setMessages(getInitialMessages());
+    onClearPreview?.();
+    notify?.({
+      tone: "info",
+      title: "已清空 AI 对话",
+      description: "当前动作配置保持不变。",
+    });
+  }
+
   function previewPendingResult() {
     if (!pendingResult) return;
     onPreviewProposal?.(pendingResult);
@@ -279,6 +297,20 @@ export function AiSchemePanel({
       summary={`${actionLabel} · 内嵌对话`}
       className={cn("shadow-sm", variant === "full" ? "flex h-full min-h-0 flex-col" : "max-h-[380px] shrink-0")}
       contentClassName={cn("min-h-0 overflow-hidden !p-0", variant === "full" && "flex flex-1 flex-col")}
+      action={(
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          className="size-8 rounded-xl"
+          onClick={clearConversation}
+          disabled={isGenerating}
+          aria-label="清空 AI 对话"
+          title="清空 AI 对话"
+        >
+          <Trash2 className="size-4" aria-hidden="true" />
+        </Button>
+      )}
     >
       <div className={cn("flex min-h-0 flex-col bg-white", variant === "full" && "flex-1")}>
         <div className={cn("min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3", variant === "full" ? "h-full" : "max-h-[220px]")}>

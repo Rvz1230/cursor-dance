@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import { createThemeDraft } from "../model/workbenchSchema.js";
 import {
+  AI_EXTENSION_VERSION,
+  AI_SCHEMA_VERSION,
+  buildAiProposalContext,
   buildAiSchemeDiffItems,
+  getAiRequestErrorMessage,
   getAiProposalPatchForAction,
   getAiPatchSanitizeMeta,
   normalizeAiSchemeProposal,
@@ -89,6 +93,54 @@ describe("aiSchemeAssistant", () => {
     globalThis.window = originalWindow;
   });
 
+  it("sends only slim request context to the remote AI API", async () => {
+    const originalWindow = globalThis.window;
+    let requestBody = null;
+    globalThis.window = {
+      fetch: async (_url, options) => {
+        requestBody = JSON.parse(options.body);
+        return {
+          ok: true,
+          json: async () => ({
+            schemaVersion: AI_SCHEMA_VERSION,
+            mode: "tune_proposal",
+            targets: [{ type: "action", actionId: "leftClick", label: "左键单击", patch: { sound: false } }],
+            reply: "已微调。",
+          }),
+        };
+      },
+      setTimeout,
+      clearTimeout,
+    };
+
+    await requestAiSchemeEdit({
+      prompt: "再低调一点",
+      actionId: "leftClick",
+      actionLabel: "左键单击",
+      currentConfig: getBaseConfig(),
+      taskMode: "tune_proposal",
+      proposalContext: {
+        proposalId: "proposal-1",
+        messages: [{ role: "user", content: "不应该发送完整聊天记录" }],
+        targets: [{ type: "action", actionId: "leftClick", label: "左键单击", patch: { sound: true, unsafe: true } }],
+        diffItems: [{ before: "large" }],
+      },
+    });
+
+    expect(requestBody).toMatchObject({
+      prompt: "再低调一点",
+      extensionVersion: AI_EXTENSION_VERSION,
+      schemaVersion: AI_SCHEMA_VERSION,
+      taskMode: "tune_proposal",
+    });
+    expect(requestBody.messages).toBeUndefined();
+    expect(requestBody.proposalContext.messages).toBeUndefined();
+    expect(requestBody.proposalContext.diffItems).toBeUndefined();
+    expect(requestBody.proposalContext.targets[0].patch).toEqual({ sound: true });
+
+    globalThis.window = originalWindow;
+  });
+
   it("normalizes AI responses into proposal contract", () => {
     const proposal = normalizeAiSchemeProposal(
       {
@@ -159,6 +211,92 @@ describe("aiSchemeAssistant", () => {
     });
     expect(proposal.nextConfig.textKind).toBe("数字飘字");
     expect(proposal.nextConfig.textMode).toBe("默认模式 (+1)");
+  });
+
+  it("repairs core user intents when the model misses required patch fields", () => {
+    const cases = [
+      {
+        prompt: "改成文本飘字",
+        patch: {},
+        expected: { textEnabled: true, textKind: "文本飘字", comboEnabled: false },
+      },
+      {
+        prompt: "关闭声音",
+        patch: {},
+        expected: { sound: false, volume: 0 },
+      },
+      {
+        prompt: "粒子少一点",
+        patch: {},
+        currentConfig: { particle: true, particleCount: 24, particleOpacity: 80 },
+        expected: { particle: true, particleCount: 12, particleOpacity: 55 },
+      },
+      {
+        prompt: "关闭粒子",
+        patch: {},
+        expected: { particle: false, particleCount: 0 },
+      },
+      {
+        prompt: "只保留波纹",
+        patch: {},
+        expected: {
+          textEnabled: false,
+          particle: false,
+          particleCount: 0,
+          ripple: true,
+          sound: false,
+          volume: 0,
+          animationEnabled: false,
+          imageEnabled: false,
+        },
+      },
+    ];
+
+    for (const item of cases) {
+      const proposal = normalizeAiSchemeProposal(
+        {
+          mode: "modify_action",
+          targets: [{ type: "action", actionId: "leftClick", label: "左键单击", patch: item.patch }],
+          reply: "已调整。",
+        },
+        {
+          prompt: item.prompt,
+          actionId: "leftClick",
+          actionLabel: "左键单击",
+          currentConfig: item.currentConfig || getBaseConfig(),
+        }
+      );
+
+      expect(proposal.patch).toMatchObject(item.expected);
+    }
+  });
+
+  it("classifies user-facing AI request errors", () => {
+    expect(getAiRequestErrorMessage({ code: "network" })).toContain("后端未连接");
+    expect(getAiRequestErrorMessage({ code: "timeout" })).toContain("超时");
+    expect(getAiRequestErrorMessage({ status: 401 })).toContain("权限");
+    expect(getAiRequestErrorMessage({ status: 422 })).toContain("结构无效");
+    expect(getAiRequestErrorMessage({ status: 502, message: "DeepSeek failed" })).toContain("DeepSeek");
+  });
+
+  it("builds a bounded proposal context without chat history", () => {
+    const context = buildAiProposalContext({
+      proposalId: "proposal-1",
+      schemaVersion: AI_SCHEMA_VERSION,
+      mode: "modify_action",
+      messages: [{ role: "user", content: "full chat" }],
+      targets: [{ type: "action", actionId: "leftClick", label: "左键单击", patch: { sound: false, unknown: true } }],
+      diffSummary: ["关闭音效"],
+    });
+
+    expect(context).toEqual({
+      proposalId: "proposal-1",
+      schemaVersion: AI_SCHEMA_VERSION,
+      mode: "modify_action",
+      scheme: undefined,
+      targets: [{ type: "action", actionId: "leftClick", label: "左键单击", patch: { sound: false } }],
+      diffSummary: ["关闭音效"],
+    });
   });
 
   it("builds readable diff items for pending AI changes", () => {

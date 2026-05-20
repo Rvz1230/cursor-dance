@@ -84,6 +84,9 @@ const AI_SCHEME_PATCH_FIELDS = new Set([
 
 const DEFAULT_API_ENDPOINT = "/api/ai/scheme-proposals";
 const VALID_PROPOSAL_MODES = new Set(["modify_action", "generate_theme", "explain_config", "tune_proposal"]);
+export const AI_EXTENSION_VERSION = "0.1.0";
+export const AI_SCHEMA_VERSION = "2026-05-20";
+const MAX_PROPOSAL_CONTEXT_BYTES = 8 * 1024;
 
 const FIELD_LABELS = {
   textEnabled: "飘字",
@@ -213,8 +216,34 @@ function wantsTemplateNumberMode(prompt) {
   return normalized.includes("模板") && (normalized.includes("数字") || normalized.includes("${number}") || normalized.includes("number"));
 }
 
+function wantsTextFloatMode(prompt) {
+  const normalized = normalizeIntentText(prompt);
+  return normalized.includes("文本飘字") || normalized.includes("文字飘字") || normalized.includes("文案飘字");
+}
+
+function wantsSoundOff(prompt) {
+  const normalized = normalizeIntentText(prompt);
+  return normalized.includes("不要声音") || normalized.includes("关闭声音") || normalized.includes("关掉声音") || normalized.includes("静音") || normalized.includes("无声音") || normalized.includes("不要音效") || normalized.includes("关闭音效");
+}
+
+function wantsParticleReduction(prompt) {
+  const normalized = normalizeIntentText(prompt);
+  return (normalized.includes("粒子") || normalized.includes("颗粒")) && (normalized.includes("少一点") || normalized.includes("减少") || normalized.includes("降低") || normalized.includes("低调"));
+}
+
+function wantsParticleOff(prompt) {
+  const normalized = normalizeIntentText(prompt);
+  return normalized.includes("关闭粒子") || normalized.includes("关掉粒子") || normalized.includes("不要粒子") || normalized.includes("无粒子");
+}
+
+function wantsRippleOnly(prompt) {
+  const normalized = normalizeIntentText(prompt);
+  return normalized.includes("只保留波纹") || normalized.includes("仅保留波纹") || normalized.includes("只要波纹") || normalized.includes("仅要波纹");
+}
+
 function repairPatchForUserIntent(patch, requestState = {}) {
   const prompt = requestState.prompt || "";
+  const currentConfig = requestState.currentConfig || {};
   const repairedPatch = { ...patch };
 
   if (wantsDefaultNumberPlusOneMode(prompt)) {
@@ -255,7 +284,61 @@ function repairPatchForUserIntent(patch, requestState = {}) {
   }
 
   if (repairedPatch.textKind === "文本飘字") {
+    repairedPatch.textEnabled = true;
     repairedPatch.comboEnabled = false;
+    repairedPatch.textContent = typeof repairedPatch.textContent === "string" && repairedPatch.textContent.trim()
+      ? repairedPatch.textContent
+      : (typeof currentConfig.textContent === "string" && currentConfig.textContent.trim() ? currentConfig.textContent : "Nice");
+    repairedPatch.textTags = Array.isArray(repairedPatch.textTags) ? repairedPatch.textTags : [];
+  }
+
+  if (wantsTextFloatMode(prompt)) {
+    Object.assign(repairedPatch, {
+      textEnabled: true,
+      textKind: "文本飘字",
+      textMode: "模板模式",
+      textContent: typeof repairedPatch.textContent === "string" && repairedPatch.textContent.trim()
+        ? repairedPatch.textContent
+        : (typeof currentConfig.textContent === "string" && currentConfig.textContent.trim() ? currentConfig.textContent : "Nice"),
+      textTags: Array.isArray(repairedPatch.textTags) ? repairedPatch.textTags : [],
+      comboEnabled: false,
+    });
+  }
+
+  if (wantsSoundOff(prompt)) {
+    Object.assign(repairedPatch, {
+      sound: false,
+      volume: 0,
+    });
+  }
+
+  if (wantsParticleReduction(prompt) && !wantsParticleOff(prompt)) {
+    const currentCount = Number.isFinite(Number(currentConfig.particleCount)) ? Number(currentConfig.particleCount) : 18;
+    Object.assign(repairedPatch, {
+      particle: true,
+      particleCount: Math.max(1, Math.min(12, Math.round(currentCount * 0.5))),
+      particleOpacity: repairedPatch.particleOpacity ?? Math.min(55, Number(currentConfig.particleOpacity) || 55),
+    });
+  }
+
+  if (wantsParticleOff(prompt)) {
+    Object.assign(repairedPatch, {
+      particle: false,
+      particleCount: 0,
+    });
+  }
+
+  if (wantsRippleOnly(prompt)) {
+    Object.assign(repairedPatch, {
+      textEnabled: false,
+      particle: false,
+      particleCount: 0,
+      ripple: true,
+      sound: false,
+      volume: 0,
+      animationEnabled: false,
+      imageEnabled: false,
+    });
   }
 
   return sanitizeAiSchemePatch(repairedPatch);
@@ -298,9 +381,14 @@ export function validateAiSchemeRequest(payload) {
     payload?.proposalContext && typeof payload.proposalContext === "object" && !Array.isArray(payload.proposalContext)
       ? payload.proposalContext
       : null;
+  const extensionVersion = typeof payload?.extensionVersion === "string" ? payload.extensionVersion.slice(0, 32) : "";
+  const schemaVersion = typeof payload?.schemaVersion === "string" ? payload.schemaVersion.slice(0, 32) : "";
 
   if (!prompt) errors.push("prompt is required");
   if (prompt.length > 1200) errors.push("prompt is too long");
+  if (proposalContext && JSON.stringify(proposalContext).length > MAX_PROPOSAL_CONTEXT_BYTES) {
+    errors.push("proposalContext is too large");
+  }
 
   return {
     ok: errors.length === 0,
@@ -312,6 +400,8 @@ export function validateAiSchemeRequest(payload) {
       taskMode,
       currentConfig,
       proposalContext,
+      extensionVersion,
+      schemaVersion,
     },
   };
 }
@@ -423,6 +513,7 @@ export function normalizeAiSchemeProposal(payload = {}, requestState = {}) {
 
   return {
     proposalId: typeof payload.proposalId === "string" && payload.proposalId ? payload.proposalId : createProposalId(),
+    schemaVersion: typeof payload.schemaVersion === "string" && payload.schemaVersion ? payload.schemaVersion : requestState.schemaVersion || AI_SCHEMA_VERSION,
     mode,
     intent: payload.intent || mode,
     scheme: normalizeAiSchemeInfo(payload.scheme, requestState),
@@ -449,6 +540,54 @@ export function normalizeAiSchemeProposal(payload = {}, requestState = {}) {
   };
 }
 
+export function buildAiProposalContext(proposal) {
+  if (!proposal) return null;
+  const context = {
+    proposalId: proposal.proposalId,
+    schemaVersion: proposal.schemaVersion || AI_SCHEMA_VERSION,
+    mode: proposal.mode,
+    scheme: proposal.scheme
+      ? {
+          name: proposal.scheme.name,
+          summary: proposal.scheme.summary,
+          styleTags: proposal.scheme.styleTags,
+        }
+      : undefined,
+    targets: Array.isArray(proposal.targets)
+      ? proposal.targets.slice(0, 6).map((target) => ({
+          type: target.type,
+          actionId: target.actionId,
+          label: target.label,
+          patch: sanitizeAiSchemePatch(target.patch),
+        }))
+      : [],
+    diffSummary: Array.isArray(proposal.diffSummary) ? proposal.diffSummary.slice(0, 5) : [],
+  };
+
+  return JSON.stringify(context).length <= MAX_PROPOSAL_CONTEXT_BYTES ? context : {
+    proposalId: context.proposalId,
+    schemaVersion: context.schemaVersion,
+    mode: context.mode,
+    targets: context.targets.slice(0, 3),
+  };
+}
+
+export function getAiRequestErrorMessage(error) {
+  const code = error?.code || "";
+  const status = error?.status;
+  const message = error instanceof Error
+    ? error.message
+    : (typeof error?.message === "string" ? error.message : String(error || ""));
+
+  if (code === "timeout") return "AI 请求超时，请稍后重试。";
+  if (code === "network") return "后端未连接，请确认 AI API 服务已启动。";
+  if (status === 401 || status === 403) return "AI API 权限校验失败，请检查访问 token。";
+  if (status === 400 || status === 413 || code === "invalid_request") return message || "请求内容超出限制，请缩短描述后重试。";
+  if (status === 422 || code === "invalid_schema") return "AI 返回结构无效，已拒绝应用，请重新生成。";
+  if (status === 502 || status === 503 || code === "provider_failed") return message || "DeepSeek 服务暂时失败，请稍后重试。";
+  return message || "生成失败，请稍后重试。";
+}
+
 async function requestRemoteAiSchemeEdit({ prompt, currentConfig, actionLabel, actionId, taskMode, proposalContext }) {
   if (typeof window === "undefined" || typeof window.fetch !== "function") {
     throw new Error("Browser fetch is unavailable.");
@@ -457,16 +596,31 @@ async function requestRemoteAiSchemeEdit({ prompt, currentConfig, actionLabel, a
   const controller = new AbortController();
   const timer = window.setTimeout(() => controller.abort(), 12000);
   const endpoint = import.meta.env?.VITE_CURSORDANCE_AI_API_ENDPOINT || DEFAULT_API_ENDPOINT;
+  const accessToken = import.meta.env?.VITE_CURSORDANCE_AI_API_ACCESS_TOKEN || "";
+  const headers = {
+    "Content-Type": "application/json",
+    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+  };
 
   try {
     const response = await window.fetch(endpoint, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, currentConfig, actionLabel, actionId, taskMode, proposalContext }),
+      headers,
+      body: JSON.stringify({
+        prompt,
+        currentConfig,
+        proposalContext: buildAiProposalContext(proposalContext),
+        actionLabel,
+        actionId,
+        taskMode,
+        extensionVersion: AI_EXTENSION_VERSION,
+        schemaVersion: AI_SCHEMA_VERSION,
+      }),
       signal: controller.signal,
     });
     if (!response.ok) {
       let errorMessage = `AI API responded with ${response.status}`;
+      let errorCode = response.status === 401 || response.status === 403 ? "permission_denied" : "api_failed";
       try {
         const errorPayload = await response.json();
         if (typeof errorPayload?.error === "string" && errorPayload.error.trim()) {
@@ -475,10 +629,16 @@ async function requestRemoteAiSchemeEdit({ prompt, currentConfig, actionLabel, a
         if (typeof errorPayload?.details === "string" && errorPayload.details.trim()) {
           errorMessage = `${errorMessage}: ${errorPayload.details.trim()}`;
         }
+        if (typeof errorPayload?.code === "string" && errorPayload.code.trim()) {
+          errorCode = errorPayload.code.trim();
+        }
       } catch {
         // Keep the original status-based error when the backend does not return JSON.
       }
-      throw new Error(errorMessage);
+      const requestError = new Error(errorMessage);
+      requestError.status = response.status;
+      requestError.code = errorCode;
+      throw requestError;
     }
     const payload = await response.json();
     return normalizeAiSchemeProposal(
@@ -486,11 +646,18 @@ async function requestRemoteAiSchemeEdit({ prompt, currentConfig, actionLabel, a
         ...payload,
         source: payload.source || "api",
       },
-      { currentConfig, actionLabel, actionId, taskMode }
+      { currentConfig, actionLabel, actionId, taskMode, schemaVersion: payload.schemaVersion || AI_SCHEMA_VERSION }
     );
   } catch (error) {
     if (error?.name === "AbortError") {
-      throw new Error("AI 请求超时，请确认模型服务可用后重试。");
+      const timeoutError = new Error("AI 请求超时，请确认模型服务可用后重试。");
+      timeoutError.code = "timeout";
+      throw timeoutError;
+    }
+    if (error instanceof TypeError) {
+      const networkError = new Error("后端未连接，请确认 AI API 服务已启动。");
+      networkError.code = "network";
+      throw networkError;
     }
     throw error;
   } finally {

@@ -26,7 +26,7 @@ export default function ThemeWorkbenchPage() {
 function ThemeWorkbenchPageContent() {
   const toast = useToast();
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
-  const [aiPanelWidth, setAiPanelWidth] = useState(420);
+  const [columnWeights, setColumnWeights] = useState({ config: 1.05, preview: 1.25, ai: 1 });
   const [previewProposal, setPreviewProposal] = useState(null);
   const {
     state,
@@ -75,14 +75,24 @@ function ThemeWorkbenchPageContent() {
     setPreviewProposal(null);
   }, [selected.actionId, selected.themeId]);
 
-  function startResizeAiPanel(event) {
+  function startResizeColumns(event, column) {
     event.preventDefault();
     const startX = event.clientX;
-    const startWidth = aiPanelWidth;
+    const startWeights = columnWeights;
 
     function handlePointerMove(moveEvent) {
-      const nextWidth = Math.min(620, Math.max(360, startWidth + moveEvent.clientX - startX));
-      setAiPanelWidth(nextWidth);
+      const deltaX = moveEvent.clientX - startX;
+      const deltaWeight = deltaX / 180;
+      if (column === "config") {
+        const nextConfig = Math.min(1.8, Math.max(0.78, startWeights.config + deltaWeight));
+        const nextPreview = Math.min(1.9, Math.max(0.78, startWeights.preview - (nextConfig - startWeights.config)));
+        setColumnWeights((current) => ({ ...current, config: nextConfig, preview: nextPreview }));
+        return;
+      }
+
+      const nextAi = Math.min(1.9, Math.max(0.8, startWeights.ai - deltaWeight));
+      const nextPreview = Math.min(1.9, Math.max(0.78, startWeights.preview - (nextAi - startWeights.ai)));
+      setColumnWeights((current) => ({ ...current, preview: nextPreview, ai: nextAi }));
     }
 
     function handlePointerUp() {
@@ -161,17 +171,16 @@ function ThemeWorkbenchPageContent() {
               notify={toast}
             />
 
-            <main className={cn("min-w-0 flex-1 overflow-y-auto bg-slate-50 px-2.5 py-2.5", isWorkbench && "overflow-auto")}>
+            <main className={cn("min-w-0 flex-1 overflow-hidden bg-slate-50 px-2.5 py-2.5", isWorkbench && "overflow-hidden")}>
               {isWorkbench ? (
                 <div
                   className={cn(
-                    "grid h-full min-h-[680px] gap-2.5",
-                    aiPanelOpen ? "min-w-[1120px]" : "min-w-[920px]"
+                    "grid h-full min-h-0 w-full gap-1"
                   )}
                   style={{
                     gridTemplateColumns: aiPanelOpen
-                      ? `minmax(380px, 480px) minmax(420px, 1fr) ${aiPanelWidth}px`
-                      : "minmax(460px, 560px) minmax(420px, 1fr)",
+                      ? `minmax(0,${columnWeights.config}fr) 4px minmax(0,${columnWeights.preview}fr) 4px minmax(0,${columnWeights.ai}fr)`
+                      : `minmax(0,${columnWeights.config}fr) 4px minmax(0,${columnWeights.preview}fr)`,
                   }}
                 >
                   <div className="min-w-0 min-h-0">
@@ -201,6 +210,13 @@ function ThemeWorkbenchPageContent() {
                     </div>
                   </div>
 
+                  <button
+                    type="button"
+                    className="my-3 w-1 justify-self-center cursor-col-resize rounded-full bg-slate-200/70 transition-colors hover:bg-slate-400/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
+                    aria-label="调整配置列宽度"
+                    onPointerDown={(event) => startResizeColumns(event, "config")}
+                  />
+
                   {!aiPanelOpen ? (
                     <div className="flex min-w-0 h-full min-h-0">
                       <WorkbenchPreviewRail
@@ -222,13 +238,16 @@ function ThemeWorkbenchPageContent() {
                   )}
 
                   {aiPanelOpen ? (
+                    <button
+                      type="button"
+                      className="my-3 w-1 justify-self-center cursor-col-resize rounded-full bg-slate-200/70 transition-colors hover:bg-slate-400/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
+                      aria-label="调整实时预览和 AI 助手宽度"
+                      onPointerDown={(event) => startResizeColumns(event, "ai")}
+                    />
+                  ) : null}
+
+                  {aiPanelOpen ? (
                     <div className="relative flex min-w-0 h-full min-h-0">
-                      <button
-                        type="button"
-                        className="absolute -left-1.5 top-3 z-10 h-12 w-3 cursor-col-resize rounded-full bg-slate-200/80 transition-colors hover:bg-slate-400/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
-                        aria-label="调整 AI 助手宽度"
-                        onPointerDown={startResizeAiPanel}
-                      />
                       <AiSchemePanel
                         actionId={selected.actionId}
                         actionLabel={formatActionLabel(selected.actionId)}

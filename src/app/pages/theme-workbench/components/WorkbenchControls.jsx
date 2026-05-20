@@ -93,11 +93,11 @@ export function SmallSelect({ value, options, onChange, label }) {
 
 export function FieldRow({ label, hint, control }) {
   return (
-    <div className="grid gap-1.5 border-b border-slate-100 py-3 last:border-b-0 md:grid-cols-[116px_minmax(0,1fr)] md:items-center md:gap-4">
+    <div className="grid min-w-0 gap-1.5 border-b border-slate-100 py-3 last:border-b-0 md:grid-cols-[104px_minmax(0,1fr)] md:items-center md:gap-3">
       <div>
         <div className="text-sm font-medium text-slate-800">{label}</div>
       </div>
-      <div>{control}</div>
+      <div className="min-w-0">{control}</div>
     </div>
   );
 }
@@ -117,9 +117,9 @@ export function ControlSlider({ value, min, max, onValueChange, suffix = "", dis
   }
 
   return (
-    <div className={cn("grid grid-cols-[minmax(0,1fr)_88px] items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2", disabled && "opacity-50")}>
+    <div className={cn("grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(64px,76px)] items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-2 py-2", disabled && "opacity-50")}>
       <Slider className="flex-1" value={[value]} min={min} max={max} onValueChange={(next) => commitValue(next[0])} disabled={disabled} aria-label={label} />
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5 rounded-xl bg-white px-2.5 py-1.5 ring-1 ring-slate-200">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1 rounded-xl bg-white px-2 py-1.5 ring-1 ring-slate-200">
         <input
           type="number"
           value={value}
@@ -134,7 +134,7 @@ export function ControlSlider({ value, min, max, onValueChange, suffix = "", dis
             commitValue(Number(raw));
           }}
           onBlur={(event) => commitValue(Number(event.target.value))}
-          className="min-w-0 bg-transparent pr-2 text-right text-sm font-semibold tabular-nums text-slate-800 outline-none disabled:cursor-not-allowed"
+          className="min-w-0 bg-transparent pr-1 text-right text-sm font-semibold tabular-nums text-slate-800 outline-none disabled:cursor-not-allowed"
         />
         {suffix ? <span className="ml-0.5 shrink-0 text-xs font-medium text-slate-500">{suffix}</span> : null}
       </div>

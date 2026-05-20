@@ -315,10 +315,10 @@ export function ThemeLibrarySidebar({
               />
             ))
           ) : (
-            <div className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-5 text-sm text-slate-600">
-              <div className="font-medium text-slate-900">没有找到匹配的主题</div>
-              <div className="mt-1 text-pretty text-slate-500">换个关键词，或者直接创建一个新主题继续编辑。</div>
-              <Button variant="outline" className="mt-4" onClick={() => setComposerMode("create")}>
+            <div className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-4 text-sm text-slate-600">
+              <div className="text-sm font-semibold text-slate-900">没有找到匹配的主题</div>
+              <div className="mt-1.5 max-w-[220px] text-xs leading-5 text-pretty text-slate-500">换个关键词，或者新建一个主题继续编辑。</div>
+              <Button variant="outline" className="mt-4 h-8 rounded-xl px-3 text-xs" onClick={() => setComposerMode("create")}>
                 <Plus className="mr-2 h-4 w-4" />
                 新建一个主题
               </Button>
