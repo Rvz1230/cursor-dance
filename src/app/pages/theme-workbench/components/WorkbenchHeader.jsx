@@ -18,14 +18,14 @@ export function WorkbenchHeader({
   setAiPanelOpen,
 }) {
   return (
-    <header className="border-b border-slate-200 bg-white px-5 py-3.5">
-      <div className="flex min-w-0 items-center gap-4">
-        <div className="flex shrink-0 items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-2xl bg-emerald-700 text-white">
-            <Bell className="h-5 w-5" />
+    <header className="border-b border-slate-200 bg-white px-3 py-2.5">
+      <div className="flex min-w-0 items-center gap-2.5">
+        <div className="flex shrink-0 items-center gap-2.5">
+          <div className="flex size-8 items-center justify-center rounded-xl bg-slate-950 text-white">
+            <Bell className="h-4 w-4" />
           </div>
           <div className="min-w-0">
-            <div className="text-lg font-semibold text-slate-950 text-balance">CursorDance</div>
+            <div className="text-sm font-semibold text-slate-950 text-balance">CursorDance</div>
             <div className="text-xs text-slate-500 text-pretty">主题工作台</div>
           </div>
         </div>
@@ -40,21 +40,20 @@ export function WorkbenchHeader({
           {workspaceId === "workbench" ? (
             <Button
               variant={aiPanelOpen ? "default" : "outline"}
-              className="rounded-2xl px-4"
               onClick={() => setAiPanelOpen?.(!aiPanelOpen)}
             >
               <Bot className="mr-2 h-4 w-4" />
               AI 助手
             </Button>
           ) : null}
-          <div className="hidden items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600 xl:flex">
+          <div className="hidden h-8 items-center gap-2 rounded-xl bg-slate-50 px-2.5 text-[13px] text-slate-600 xl:flex">
             <Switch checked={enabled} onCheckedChange={setEnabled} aria-label="全局启用开关" />
             <span>全局启用</span>
           </div>
-          <Button className="rounded-2xl bg-emerald-700 px-4 text-white hover:bg-emerald-800" onClick={saveChanges}>
+          <Button className="bg-slate-950 text-white hover:bg-slate-800" onClick={saveChanges}>
             {isSaving ? "保存中..." : "保存"}
           </Button>
-          <Button variant="outline" className="rounded-2xl px-4" onClick={resetCurrentTheme}>
+          <Button variant="outline" onClick={resetCurrentTheme}>
             <RotateCcw className="mr-2 h-4 w-4" />
             恢复默认
           </Button>

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { MousePointerClick, Pause, Play, RotateCcw, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button.jsx";
-import { Switch } from "@/components/ui/switch.jsx";
 import {
   PREVIEW_KEYFRAMES,
   buildParticleSpecs,
@@ -205,17 +204,19 @@ function SimplePreviewStage({ config, siteMode, runId, outputs }) {
         <div className="absolute inset-x-10 bottom-12 h-4 rounded-full bg-slate-200/45" />
         <div className="absolute inset-x-8 bottom-9 h-px bg-slate-300/80" />
 
-        <div className="absolute left-1/2 top-1/2 h-0 w-0">
-          <PreviewEffects
-            disabledBySite={disabledBySite}
-            config={config}
-            runId={runId}
-            textConfig={textConfig}
-            particleConfig={particleConfig}
-            rippleConfig={rippleConfig}
-            animationConfig={animationConfig}
-            imageConfig={imageConfig}
-          />
+        <div className="absolute inset-x-8 bottom-9 top-20 flex items-center justify-center">
+          <div className="relative h-0 w-0">
+            <PreviewEffects
+              disabledBySite={disabledBySite}
+              config={config}
+              runId={runId}
+              textConfig={textConfig}
+              particleConfig={particleConfig}
+              rippleConfig={rippleConfig}
+              animationConfig={animationConfig}
+              imageConfig={imageConfig}
+            />
+          </div>
         </div>
 
         {audioConfig.sound && !disabledBySite ? (
@@ -289,10 +290,6 @@ export function WorkbenchPreviewRail({ actionLabel, config, siteMode, previewMod
         summary={previewMode ? `正在预览 AI 建议 · ${actionLabel}` : `${actionLabel} · ${getPreviewTriggerSummary(config)}`}
         action={
           <div className="flex items-center justify-end gap-1.5">
-            <label className="inline-flex h-8 items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-600">
-              <span className="hidden 2xl:inline">自动播放</span>
-              <Switch checked={autoPlay && !disabledBySite} disabled={disabledBySite} onCheckedChange={setAutoPlay} aria-label="自动播放开关" />
-            </label>
             <Button variant="outline" size="icon" className="size-8 rounded-lg" onClick={replay} disabled={disabledBySite} aria-label="重播预览" title="重播">
               <RotateCcw className="h-4 w-4" />
             </Button>

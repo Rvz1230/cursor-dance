@@ -1,8 +1,9 @@
 import { useMemo, useRef, useState } from "react";
-import { CheckCircle2, FileJson, Plus, Upload } from "lucide-react";
+import { CheckCircle2, FileJson, PanelLeftClose, PanelLeftOpen, Plus, Upload } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Input } from "@/components/ui/input.jsx";
+import { cn } from "@/components/ui/utils.js";
 import { Dialog, DialogContent, DialogDescription } from "@/components/ui/dialog.jsx";
 import {
   AlertDialog,
@@ -202,6 +203,7 @@ export function ThemeLibrarySidebar({
   const [composerMode, setComposerMode] = useState("");
   const [actionError, setActionError] = useState("");
   const [pendingDeleteTheme, setPendingDeleteTheme] = useState(null);
+  const [collapsed, setCollapsed] = useState(false);
 
   const filteredThemes = useMemo(() => {
     const keyword = query.trim().toLowerCase();
@@ -247,50 +249,57 @@ export function ThemeLibrarySidebar({
   }
 
   return (
-    <aside className="flex w-[304px] flex-col border-r border-slate-200 bg-[#f3f6f8]">
+    <aside className={cn("flex shrink-0 flex-col border-r border-slate-200 bg-slate-100 transition-[width] duration-200", collapsed ? "w-[76px]" : "w-[304px]")}>
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="flex items-center justify-between px-4 py-4">
-          <div>
-            <div className="text-xs font-medium uppercase text-slate-500">主题包</div>
-            <div className="mt-1 text-xs text-slate-500">{themes.length} 个主题可管理</div>
-          </div>
-          <div className="flex items-center gap-2">
+        <div className={cn("px-3 py-2.5", collapsed && "flex justify-center")}>
+          <div className={cn(collapsed ? "flex flex-col items-center gap-2" : "grid grid-cols-[36px_36px_minmax(0,1fr)] items-center gap-2 rounded-2xl border border-slate-200/70 bg-white/70 p-1 shadow-sm")}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-9 rounded-xl"
+              aria-label={collapsed ? "展开主题库" : "收起主题库"}
+              title={collapsed ? "展开主题库" : "收起主题库"}
+              onClick={() => setCollapsed((value) => !value)}
+            >
+              {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+            </Button>
             <Button
               variant={composerMode === "import" ? "default" : "ghost"}
               size="icon"
+              className="size-9 rounded-xl"
               aria-label="导入主题包"
-              className="h-9 w-9 rounded-2xl"
               onClick={() => setComposerMode((current) => (current === "import" ? "" : "import"))}
             >
               <Upload className="h-4 w-4" />
             </Button>
             <Button
               variant={composerMode === "create" ? "default" : "outline"}
-              className="h-9 rounded-2xl px-3 text-xs"
+              size={collapsed ? "icon" : undefined}
+              className={cn(collapsed ? "size-9 rounded-xl" : "h-9 justify-center rounded-xl px-3 text-xs shadow-sm")}
+              aria-label="新建主题"
               onClick={() => setComposerMode((current) => (current === "create" ? "" : "create"))}
             >
-              <Plus className="mr-2 h-4 w-4" />
-              新建
+              <Plus className={cn("h-4 w-4", !collapsed && "mr-2")} />
+              {collapsed ? null : "新建"}
             </Button>
           </div>
         </div>
 
-        <div className="px-4 pb-3">
+        <div className={cn("px-3 pb-2.5", collapsed && "hidden")}>
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="搜索主题包"
-            className="rounded-2xl bg-white"
           />
         </div>
 
         {actionError ? (
-          <div className="px-4 pb-3">
-            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{actionError}</div>
+          <div className="px-3 pb-2.5">
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{actionError}</div>
           </div>
         ) : null}
 
-        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 pb-4">
+        <div className={cn("min-h-0 flex-1 space-y-2 overflow-y-auto px-3 pb-3 pt-2", collapsed && "space-y-3")}>
           {filteredThemes.length ? (
             filteredThemes.map((theme) => (
               <ThemeCard
@@ -302,13 +311,14 @@ export function ThemeLibrarySidebar({
                 onDuplicate={() => handleDuplicateTheme(theme.id)}
                 onExport={() => handleExportTheme(theme.id)}
                 onDelete={() => setPendingDeleteTheme(theme)}
+                collapsed={collapsed}
               />
             ))
           ) : (
-            <div className="rounded-[24px] border border-dashed border-slate-300 bg-white px-4 py-5 text-sm text-slate-600">
+            <div className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-5 text-sm text-slate-600">
               <div className="font-medium text-slate-900">没有找到匹配的主题</div>
               <div className="mt-1 text-pretty text-slate-500">换个关键词，或者直接创建一个新主题继续编辑。</div>
-              <Button variant="outline" className="mt-4 rounded-full px-4" onClick={() => setComposerMode("create")}>
+              <Button variant="outline" className="mt-4" onClick={() => setComposerMode("create")}>
                 <Plus className="mr-2 h-4 w-4" />
                 新建一个主题
               </Button>
@@ -338,11 +348,11 @@ export function ThemeLibrarySidebar({
             确定删除主题“{pendingDeleteTheme?.name}”吗？此操作会在下次保存时写入扩展配置。
           </AlertDialogDescription>
           <div className="mt-5 flex justify-end gap-2">
-            <AlertDialogCancel className="inline-flex h-10 items-center justify-center rounded-full border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 ring-1 ring-black/5 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2">
+            <AlertDialogCancel className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2">
               取消
             </AlertDialogCancel>
             <AlertDialogAction
-              className="inline-flex h-10 items-center justify-center rounded-full bg-rose-600 px-4 text-sm font-medium text-white ring-1 ring-black/5 transition-colors hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600 focus-visible:ring-offset-2"
+              className="inline-flex h-9 items-center justify-center rounded-xl bg-rose-600 px-4 text-sm font-medium text-white transition-colors hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-600 focus-visible:ring-offset-2"
               onClick={handleDeleteTheme}
             >
               删除主题

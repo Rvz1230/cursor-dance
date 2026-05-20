@@ -7,6 +7,7 @@ import { SitesPanel } from "./components/SitesPanel.jsx";
 import { StatesPanel } from "./components/StatesPanel.jsx";
 import { WorkbenchHeader } from "./components/WorkbenchHeader.jsx";
 import { AiSchemePanel } from "./components/AiSchemePanel.jsx";
+import { getAiProposalNextConfigForAction } from "./lib/aiSchemeAssistant.js";
 import { ActionTab } from "./components/WorkbenchControls.jsx";
 import { WorkbenchPanel } from "./components/WorkbenchPanel.jsx";
 import { WorkbenchPreviewRail } from "./components/WorkbenchPreviewRail.jsx";
@@ -25,6 +26,7 @@ export default function ThemeWorkbenchPage() {
 function ThemeWorkbenchPageContent() {
   const toast = useToast();
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
+  const [aiPanelWidth, setAiPanelWidth] = useState(420);
   const [previewProposal, setPreviewProposal] = useState(null);
   const {
     state,
@@ -51,6 +53,7 @@ function ThemeWorkbenchPageContent() {
     resetCurrentTheme,
     setSiteFilter,
     updateActionConfig,
+    updateActionConfigs,
     updateCursorMode,
     updateCursorStateAction,
     updateCursorStateAsset,
@@ -66,13 +69,30 @@ function ThemeWorkbenchPageContent() {
     clearFilteredSiteRules,
   } = useThemeWorkbenchState();
   const currentWorkspace = workspaceItems.find((item) => item.id === state.workspaceId);
-  const previewActionConfig = previewProposal?.actionId === selected.actionId
-    ? previewProposal.nextConfig
-    : null;
+  const previewActionConfig = getAiProposalNextConfigForAction(previewProposal, selected.actionId, currentActionConfig);
 
   useEffect(() => {
     setPreviewProposal(null);
   }, [selected.actionId, selected.themeId]);
+
+  function startResizeAiPanel(event) {
+    event.preventDefault();
+    const startX = event.clientX;
+    const startWidth = aiPanelWidth;
+
+    function handlePointerMove(moveEvent) {
+      const nextWidth = Math.min(620, Math.max(360, startWidth + moveEvent.clientX - startX));
+      setAiPanelWidth(nextWidth);
+    }
+
+    function handlePointerUp() {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    }
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+  }
 
   async function handleSaveChanges() {
     const result = await saveChanges();
@@ -96,12 +116,22 @@ function ThemeWorkbenchPageContent() {
     }
   }
 
+  function handleApplyAiProposal(proposal) {
+    const patchesByActionId = Object.fromEntries(
+      (proposal?.targets || [])
+        .filter((target) => target.type === "action" && target.actionId && Object.keys(target.patch || {}).length)
+        .map((target) => [target.actionId, target.patch])
+    );
+    setPreviewProposal(null);
+    updateActionConfigs(patchesByActionId);
+  }
+
   return (
     <div
-      className="min-h-dvh bg-slate-100 p-3 text-slate-900"
+      className="h-dvh bg-slate-100 text-slate-900"
       style={{ fontFamily: '"SF Pro Display","SF Pro Text","PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif' }}
     >
-      <div className="mx-auto flex h-[calc(100dvh-1.5rem)] max-w-[1600px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex h-dvh overflow-hidden border border-slate-200 bg-white text-[13px] shadow-sm">
         <div className="flex min-w-0 flex-1 flex-col">
           <WorkbenchHeader
             workspaceItems={workspaceItems}
@@ -131,19 +161,22 @@ function ThemeWorkbenchPageContent() {
               notify={toast}
             />
 
-            <main className={cn("min-w-0 flex-1 overflow-y-auto bg-slate-50 px-3 py-3", isWorkbench && "xl:overflow-hidden")}>
+            <main className={cn("min-w-0 flex-1 overflow-y-auto bg-slate-50 px-2.5 py-2.5", isWorkbench && "overflow-auto")}>
               {isWorkbench ? (
                 <div
                   className={cn(
-                    "flex min-h-0 flex-col gap-3 xl:grid xl:h-full",
-                    aiPanelOpen
-                      ? "xl:grid-cols-[minmax(460px,1fr)_400px] 2xl:grid-cols-[minmax(560px,1fr)_440px]"
-                      : "xl:grid-cols-[520px_minmax(0,1fr)] 2xl:grid-cols-[560px_minmax(0,1fr)]"
+                    "grid h-full min-h-[680px] gap-2.5",
+                    aiPanelOpen ? "min-w-[1120px]" : "min-w-[920px]"
                   )}
+                  style={{
+                    gridTemplateColumns: aiPanelOpen
+                      ? `minmax(380px, 480px) minmax(420px, 1fr) ${aiPanelWidth}px`
+                      : "minmax(460px, 560px) minmax(420px, 1fr)",
+                  }}
                 >
-                  <div className="min-w-0 xl:min-h-0">
-                    <div className="flex flex-col gap-3 xl:h-full xl:min-h-0">
-                      <div className="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-3 shadow-sm">
+                  <div className="min-w-0 min-h-0">
+                    <div className="flex h-full min-h-0 flex-col gap-2.5">
+                      <div className="shrink-0 rounded-xl border border-slate-200 bg-white px-2.5 py-2.5 shadow-sm">
                         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
                           {actionItems.map((action) => (
                             <ActionTab key={action.id} item={action} active={action.id === selected.actionId} onClick={() => setActionId(action.id)} />
@@ -157,7 +190,7 @@ function ThemeWorkbenchPageContent() {
                         ) : null}
                       </div>
 
-                      <div className={cn("xl:min-h-0 xl:overflow-y-auto xl:pr-1", aiPanelOpen && "xl:flex-[1_1_0]")}>
+                      <div className="min-h-0 overflow-y-auto pr-1">
                         <WorkbenchPanel
                           actionId={selected.actionId}
                           config={currentActionConfig}
@@ -165,21 +198,11 @@ function ThemeWorkbenchPageContent() {
                           conflicts={currentConflicts}
                         />
                       </div>
-                      {aiPanelOpen ? (
-                        <div className="min-h-[300px] shrink-0 xl:h-[38%]">
-                          <WorkbenchPreviewRail
-                            actionLabel={formatActionLabel(selected.actionId)}
-                            config={previewActionConfig || currentActionConfig}
-                            siteMode={state.siteMode}
-                            previewMode={Boolean(previewActionConfig)}
-                          />
-                        </div>
-                      ) : null}
                     </div>
                   </div>
 
                   {!aiPanelOpen ? (
-                    <div className="hidden min-w-0 xl:flex xl:h-full xl:min-h-0">
+                    <div className="flex min-w-0 h-full min-h-0">
                       <WorkbenchPreviewRail
                         actionLabel={formatActionLabel(selected.actionId)}
                         config={previewActionConfig || currentActionConfig}
@@ -187,15 +210,31 @@ function ThemeWorkbenchPageContent() {
                         previewMode={Boolean(previewActionConfig)}
                       />
                     </div>
-                  ) : null}
+                  ) : (
+                    <div className="flex min-w-0 h-full min-h-0">
+                      <WorkbenchPreviewRail
+                        actionLabel={formatActionLabel(selected.actionId)}
+                        config={previewActionConfig || currentActionConfig}
+                        siteMode={state.siteMode}
+                        previewMode={Boolean(previewActionConfig)}
+                      />
+                    </div>
+                  )}
 
                   {aiPanelOpen ? (
-                    <div className="flex min-w-0 xl:h-full xl:min-h-0">
+                    <div className="relative flex min-w-0 h-full min-h-0">
+                      <button
+                        type="button"
+                        className="absolute -left-1.5 top-3 z-10 h-12 w-3 cursor-col-resize rounded-full bg-slate-200/80 transition-colors hover:bg-slate-400/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
+                        aria-label="调整 AI 助手宽度"
+                        onPointerDown={startResizeAiPanel}
+                      />
                       <AiSchemePanel
                         actionId={selected.actionId}
                         actionLabel={formatActionLabel(selected.actionId)}
                         currentConfig={currentActionConfig}
                         applyActionConfig={handleUpdateActionConfig}
+                        applyProposal={handleApplyAiProposal}
                         previewProposal={previewProposal}
                         onPreviewProposal={setPreviewProposal}
                         onClearPreview={() => setPreviewProposal(null)}
@@ -205,16 +244,6 @@ function ThemeWorkbenchPageContent() {
                     </div>
                   ) : null}
 
-                  {!aiPanelOpen ? (
-                    <div className="flex min-w-0 xl:hidden">
-                      <WorkbenchPreviewRail
-                        actionLabel={formatActionLabel(selected.actionId)}
-                        config={previewActionConfig || currentActionConfig}
-                        siteMode={state.siteMode}
-                        previewMode={Boolean(previewActionConfig)}
-                      />
-                    </div>
-                  ) : null}
                 </div>
               ) : null}
 

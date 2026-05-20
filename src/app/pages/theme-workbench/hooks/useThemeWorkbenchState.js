@@ -190,6 +190,20 @@ export function useThemeWorkbenchState() {
           },
         },
       })),
+    updateActionConfigs: (patchesByActionId) =>
+      updateCurrentTheme((current) => ({
+        ...current,
+        actionConfigs: Object.entries(patchesByActionId || {}).reduce(
+          (nextActionConfigs, [actionId, patch]) => ({
+            ...nextActionConfigs,
+            [actionId]: {
+              ...nextActionConfigs[actionId],
+              ...patch,
+            },
+          }),
+          current.actionConfigs
+        ),
+      })),
     updateCursorMode: (mode) =>
       updateCurrentTheme((current) => ({
         ...current,

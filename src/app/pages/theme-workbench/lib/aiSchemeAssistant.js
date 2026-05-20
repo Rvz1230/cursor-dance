@@ -1,16 +1,10 @@
-const HEX_COLOR_BY_INTENT = {
-  cyber: "#0284C7",
-  minimal: "#0F766E",
-  warm: "#B45309",
-  petal: "#BE185D",
-  focus: "#475569",
-};
-
 const NUMERIC_LIMITS = {
   fontSize: [12, 36],
   textDuration: [240, 1800],
   textOpacity: [20, 100],
+  textOffsetX: [-72, 72],
   textOffsetY: [-72, 24],
+  textOutlineWidth: [0, 3],
   particleCount: [0, 40],
   particleSpread: [8, 120],
   particleDuration: [180, 1600],
@@ -27,9 +21,21 @@ const NUMERIC_LIMITS = {
   shake: [0, 90],
   cursorSize: [32, 64],
   holdMs: [0, 900],
+  animationDuration: [120, 1800],
+  animationScale: [50, 180],
+  animationOpacity: [10, 100],
+  animationOffsetX: [-72, 72],
+  animationOffsetY: [-72, 72],
+  imageDuration: [120, 1800],
+  imageSize: [24, 180],
+  imageOpacity: [10, 100],
+  imageOffsetX: [-120, 120],
+  imageOffsetY: [-120, 120],
 };
 
 const ENUM_OPTIONS = {
+  triggerTiming: ["按下时", "抬起时", "菜单弹出前", "第二次按下时", "第二次抬起后", "按住达到阈值", "松开后触发", "滚动开始时", "连续滚动中", "进入时", "停留后"],
+  triggerZone: ["当前页面可点击区域", "仅按钮和链接", "全部可交互元素", "右键菜单前", "可交互元素", "空白区域", "双击命中区域", "主操作按钮", "内容卡片", "按住后释放", "长按可交互元素", "全局长按区", "向上 / 向下滚轮", "仅向上滚动", "仅向下滚动", "进入可交互元素", "全页面 hover"],
   textKind: ["数字飘字", "文本飘字"],
   textStyle: ["阿拉伯数字 (1, 2, 3)", "中文数字 (一, 二, 三)", "英文单词 (one, two, three)"],
   textMode: ["默认模式 (+1)", "模板模式"],
@@ -46,6 +52,7 @@ const ENUM_OPTIONS = {
   soundBlendMode: ["保持原音量", "压低页面音频", "仅插件音效"],
   soundFile: ["woodfish-soft.wav", "woodfish-deep.wav", "tick-light.wav"],
   cursorOverride: ["跟随当前状态", "木鱼（继承默认）", "木鱼（增强态）", "木鱼（按压态）", "切换到 pointer"],
+  animationStyle: ["聚焦脉冲", "斜切闪片", "弹跳徽记"],
 };
 
 const BOOLEAN_FIELDS = new Set([
@@ -75,7 +82,8 @@ const AI_SCHEME_PATCH_FIELDS = new Set([
   ...ARRAY_FIELDS,
 ]);
 
-const DEFAULT_API_ENDPOINT = "/api/ai/modify-scheme";
+const DEFAULT_API_ENDPOINT = "/api/ai/scheme-proposals";
+const VALID_PROPOSAL_MODES = new Set(["modify_action", "generate_theme", "explain_config", "tune_proposal"]);
 
 const FIELD_LABELS = {
   textEnabled: "飘字",
@@ -111,8 +119,9 @@ const FIELD_LABELS = {
 
 const AI_TASK_MODES = {
   modify_action: "修改当前动作",
-  generate_action: "生成动作方案",
   explain_config: "解释配置",
+  generate_theme: "生成主题方案",
+  tune_proposal: "微调上一版方案",
 };
 
 function createProposalId() {
@@ -120,14 +129,6 @@ function createProposalId() {
     return crypto.randomUUID();
   }
   return `proposal-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
-function normalizePrompt(prompt) {
-  return String(prompt || "").trim().toLowerCase();
-}
-
-function hasAny(prompt, terms) {
-  return terms.some((term) => prompt.includes(term));
 }
 
 function clampNumber(fieldName, value) {
@@ -187,6 +188,79 @@ function sanitizePatchValue(fieldName, value) {
   return undefined;
 }
 
+function normalizeIntentText(text) {
+  return String(text || "").trim().toLowerCase().replace(/\s+/g, "");
+}
+
+function wantsDefaultNumberPlusOneMode(prompt) {
+  const normalized = normalizeIntentText(prompt);
+  return (
+    (normalized.includes("数字") || normalized.includes("+1") || normalized.includes("加1"))
+    && (
+      normalized.includes("+1模式")
+      || normalized.includes("数字+1")
+      || normalized.includes("数字加1")
+      || normalized.includes("默认模式")
+      || normalized.includes("换成数字")
+      || normalized.includes("改成数字")
+      || normalized.includes("数字飘字")
+    )
+  );
+}
+
+function wantsTemplateNumberMode(prompt) {
+  const normalized = normalizeIntentText(prompt);
+  return normalized.includes("模板") && (normalized.includes("数字") || normalized.includes("${number}") || normalized.includes("number"));
+}
+
+function repairPatchForUserIntent(patch, requestState = {}) {
+  const prompt = requestState.prompt || "";
+  const repairedPatch = { ...patch };
+
+  if (wantsDefaultNumberPlusOneMode(prompt)) {
+    Object.assign(repairedPatch, {
+      textEnabled: true,
+      textKind: "数字飘字",
+      textStyle: repairedPatch.textStyle || "阿拉伯数字 (1, 2, 3)",
+      textMode: "默认模式 (+1)",
+      textContent: "+1",
+      textTemplate: repairedPatch.textTemplate || "${number}",
+      textTags: [],
+      comboEnabled: Boolean(repairedPatch.comboEnabled),
+    });
+  }
+
+  if (wantsTemplateNumberMode(prompt)) {
+    Object.assign(repairedPatch, {
+      textEnabled: true,
+      textKind: "数字飘字",
+      textStyle: repairedPatch.textStyle || "阿拉伯数字 (1, 2, 3)",
+      textMode: "模板模式",
+      textTemplate: typeof repairedPatch.textTemplate === "string" && repairedPatch.textTemplate.includes("${number}")
+        ? repairedPatch.textTemplate
+        : "你当前点击了${number}次",
+      textContent: "",
+    });
+  }
+
+  if (repairedPatch.textKind === "数字飘字") {
+    repairedPatch.textEnabled = true;
+    repairedPatch.textTags = Array.isArray(repairedPatch.textTags) ? repairedPatch.textTags : [];
+    repairedPatch.textStyle = repairedPatch.textStyle || "阿拉伯数字 (1, 2, 3)";
+    repairedPatch.textMode = repairedPatch.textMode || "默认模式 (+1)";
+    repairedPatch.textTemplate = repairedPatch.textTemplate || "${number}";
+    if (repairedPatch.textMode === "默认模式 (+1)") {
+      repairedPatch.textContent = "+1";
+    }
+  }
+
+  if (repairedPatch.textKind === "文本飘字") {
+    repairedPatch.comboEnabled = false;
+  }
+
+  return sanitizeAiSchemePatch(repairedPatch);
+}
+
 export function sanitizeAiSchemePatch(patch) {
   if (!patch || typeof patch !== "object" || Array.isArray(patch)) return {};
   return Object.fromEntries(
@@ -220,6 +294,10 @@ export function validateAiSchemeRequest(payload) {
     payload?.currentConfig && typeof payload.currentConfig === "object" && !Array.isArray(payload.currentConfig)
       ? payload.currentConfig
       : {};
+  const proposalContext =
+    payload?.proposalContext && typeof payload.proposalContext === "object" && !Array.isArray(payload.proposalContext)
+      ? payload.proposalContext
+      : null;
 
   if (!prompt) errors.push("prompt is required");
   if (prompt.length > 1200) errors.push("prompt is too long");
@@ -233,6 +311,7 @@ export function validateAiSchemeRequest(payload) {
       actionLabel,
       taskMode,
       currentConfig,
+      proposalContext,
     },
   };
 }
@@ -273,16 +352,70 @@ export function buildAiSchemeDiffItems(currentConfig = {}, patch = {}) {
     }));
 }
 
+function normalizeAiSchemeInfo(scheme = {}, requestState = {}) {
+  const modeLabel = AI_TASK_MODES[requestState.taskMode] || "AI 方案";
+  return {
+    name: typeof scheme?.name === "string" && scheme.name.trim() ? scheme.name.trim().slice(0, 48) : modeLabel,
+    summary: typeof scheme?.summary === "string" && scheme.summary.trim() ? scheme.summary.trim().slice(0, 160) : "基于当前配置生成的 AI 方案。",
+    styleTags: Array.isArray(scheme?.styleTags)
+      ? scheme.styleTags.filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim()).slice(0, 6)
+      : [],
+    rationale: typeof scheme?.rationale === "string" && scheme.rationale.trim() ? scheme.rationale.trim().slice(0, 500) : "",
+  };
+}
+
+function normalizeAiSchemeTarget(target = {}, requestState = {}) {
+  const rawPatch = target.patch && typeof target.patch === "object" ? target.patch : {};
+  const patch = repairPatchForUserIntent(sanitizeAiSchemePatch(rawPatch), requestState);
+  return {
+    type: target.type || "action",
+    actionId: typeof target.actionId === "string" && target.actionId ? target.actionId : requestState.actionId || "leftClick",
+    label: typeof target.label === "string" && target.label ? target.label : requestState.actionLabel || "当前动作",
+    patch,
+    sanitizeMeta: getAiPatchSanitizeMeta(rawPatch, patch),
+  };
+}
+
+function normalizeAiSchemeTargets(payload = {}, requestState = {}) {
+  const rawTargets = Array.isArray(payload.targets) && payload.targets.length
+    ? payload.targets
+    : [{
+        type: payload.target?.type || "action",
+        actionId: payload.target?.actionId || requestState.actionId,
+        label: payload.target?.label || requestState.actionLabel,
+        patch: payload.patch,
+      }];
+  return rawTargets
+    .map((target) => normalizeAiSchemeTarget(target, requestState))
+    .filter((target) => target.type === "action");
+}
+
+function getPrimaryTarget(targets, requestState = {}) {
+  return targets.find((target) => target.actionId === requestState.actionId) || targets[0] || normalizeAiSchemeTarget({}, requestState);
+}
+
+export function getAiProposalPatchForAction(proposal, actionId) {
+  const target = proposal?.targets?.find((item) => item.type === "action" && item.actionId === actionId);
+  return target?.patch || null;
+}
+
+export function getAiProposalNextConfigForAction(proposal, actionId, currentConfig = {}) {
+  const patch = getAiProposalPatchForAction(proposal, actionId);
+  return patch ? mergeActionConfig(currentConfig, patch) : null;
+}
+
+function normalizeProposalMode(payload = {}, requestState = {}) {
+  const candidate = payload.mode || payload.intent || requestState.taskMode || "modify_action";
+  if (candidate === "generate_action") return "generate_theme";
+  return VALID_PROPOSAL_MODES.has(candidate) ? candidate : "modify_action";
+}
+
 export function normalizeAiSchemeProposal(payload = {}, requestState = {}) {
-  const patch = sanitizeAiSchemePatch(payload.patch);
+  const targets = normalizeAiSchemeTargets(payload, requestState);
+  const primaryTarget = getPrimaryTarget(targets, requestState);
+  const patch = primaryTarget.patch;
   const currentConfig = requestState.currentConfig || {};
-  const target = payload.target && typeof payload.target === "object"
-    ? payload.target
-    : {
-        type: "action",
-        actionId: requestState.actionId || "leftClick",
-        label: requestState.actionLabel || "当前动作",
-      };
+  const mode = normalizeProposalMode(payload, requestState);
   const riskLevel = ["low", "medium", "high"].includes(payload.riskLevel) ? payload.riskLevel : "low";
   const warnings = Array.isArray(payload.warnings)
     ? payload.warnings.filter((item) => typeof item === "string" && item.trim()).slice(0, 5)
@@ -290,228 +423,62 @@ export function normalizeAiSchemeProposal(payload = {}, requestState = {}) {
 
   return {
     proposalId: typeof payload.proposalId === "string" && payload.proposalId ? payload.proposalId : createProposalId(),
-    intent: payload.intent || requestState.taskMode || "modify_action",
+    mode,
+    intent: payload.intent || mode,
+    scheme: normalizeAiSchemeInfo(payload.scheme, requestState),
     target: {
-      type: target.type || "action",
-      actionId: target.actionId || requestState.actionId || "leftClick",
-      label: target.label || requestState.actionLabel || "当前动作",
+      type: primaryTarget.type,
+      actionId: primaryTarget.actionId,
+      label: primaryTarget.label,
     },
+    targets,
     riskLevel,
     warnings,
-    source: payload.source || "local-prototype",
+    source: payload.source || "api",
     reply: typeof payload.reply === "string" && payload.reply.trim() ? payload.reply.trim() : "我已生成一版可执行配置。",
     patch,
-    sanitizeMeta: payload.sanitizeMeta || getAiPatchSanitizeMeta(payload.patch, patch),
+    sanitizeMeta: payload.sanitizeMeta || primaryTarget.sanitizeMeta,
     nextConfig: mergeActionConfig(currentConfig, patch),
     diffItems: buildAiSchemeDiffItems(currentConfig, patch),
     diffSummary: Array.isArray(payload.diffSummary)
       ? payload.diffSummary.filter((item) => typeof item === "string" && item.trim()).slice(0, 5)
       : describeDiff(patch),
+    tuningOptions: Array.isArray(payload.tuningOptions)
+      ? payload.tuningOptions.filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim()).slice(0, 6)
+      : [],
   };
 }
 
-function buildBasePatch(prompt, currentConfig) {
-  const patch = {};
-  const wantsMinimal = hasAny(prompt, ["简约", "低调", "不要太花", "办公", "写代码", "轻量", "安静", "克制"]);
-  const wantsCyber = hasAny(prompt, ["科技", "赛博", "cyber", "蓝", "霓虹", "程序员", "代码"]);
-  const wantsWarm = hasAny(prompt, ["木鱼", "功德", "温暖", "暖色", "橙"]);
-  const wantsPetal = hasAny(prompt, ["花", "粉", "可爱", "柔和"]);
-  const wantsStrong = hasAny(prompt, ["夸张", "强烈", "明显", "炫", "炸裂", "高亮", "录屏"]);
-  const wantsNoSound = hasAny(prompt, ["不要声音", "关闭声音", "静音", "无声", "不要音效"]);
-  const wantsSound = hasAny(prompt, ["加声音", "有声音", "音效", "提示音"]);
-  const wantsNoText = hasAny(prompt, ["不要文字", "不要飘字", "关闭飘字", "无文字"]);
-  const wantsText = hasAny(prompt, ["文字", "飘字", "文案", "显示"]);
-  const wantsNoParticle = hasAny(prompt, ["不要粒子", "关闭粒子", "无粒子"]);
-  const wantsParticle = hasAny(prompt, ["粒子", "火花", "碎屑", "星星"]);
-  const wantsRipple = hasAny(prompt, ["波纹", "涟漪", "扩散"]);
-  const wantsLess = hasAny(prompt, ["少一点", "小一点", "暗一点", "再低调", "降低", "减弱"]);
-  const wantsMore = hasAny(prompt, ["多一点", "亮一点", "增强", "更明显", "更强"]);
-
-  if (wantsCyber) {
-    Object.assign(patch, {
-      textColor: HEX_COLOR_BY_INTENT.cyber,
-      particle: true,
-      particleStyle: "火花",
-      particleColorMode: "跟随飘字色",
-      particleDirection: "四周扩散",
-      ripple: true,
-      rippleStyle: "双环",
-      cursorOverride: "切换到 pointer",
-    });
-  }
-
-  if (wantsMinimal) {
-    Object.assign(patch, {
-      textColor: wantsCyber ? HEX_COLOR_BY_INTENT.cyber : HEX_COLOR_BY_INTENT.minimal,
-      textEnabled: false,
-      particle: true,
-      particleCount: 8,
-      particleSpread: 30,
-      particleDuration: 520,
-      particleSize: 8,
-      particleOpacity: 58,
-      ripple: true,
-      rippleSize: 42,
-      rippleDuration: 520,
-      rippleOpacity: 36,
-      sound: false,
-      volume: 0,
-      shake: 8,
-      cursorOverride: "跟随当前状态",
-    });
-  }
-
-  if (wantsWarm) {
-    Object.assign(patch, {
-      textColor: HEX_COLOR_BY_INTENT.warm,
-      textEnabled: true,
-      textKind: "数字飘字",
-      textContent: "+1",
-      textTags: ["功德 +1", "继续点击", "已触发"],
-      particle: true,
-      ripple: true,
-      sound: !wantsNoSound,
-      soundFile: "woodfish-soft.wav",
-    });
-  }
-
-  if (wantsPetal) {
-    Object.assign(patch, {
-      textColor: HEX_COLOR_BY_INTENT.petal,
-      textEnabled: true,
-      textKind: "文本飘字",
-      textContent: "nice",
-      textTags: ["nice", "轻轻点亮", "完成"],
-      particle: true,
-      particleStyle: "碎屑粒子",
-      particleDirection: "向上喷发",
-      ripple: true,
-      sound: false,
-    });
-  }
-
-  if (wantsStrong) {
-    Object.assign(patch, {
-      textEnabled: true,
-      fontSize: 26,
-      textDuration: 1100,
-      textOpacity: 100,
-      textWeight: "加粗",
-      textShadow: "柔和",
-      particle: true,
-      particleCount: 28,
-      particleSpread: 82,
-      particleDuration: 980,
-      particleSize: 16,
-      particleOpacity: 96,
-      ripple: true,
-      rippleSize: 92,
-      rippleDuration: 900,
-      rippleOpacity: 82,
-      sound: !wantsNoSound,
-      volume: wantsNoSound ? 0 : 76,
-      shake: 54,
-    });
-  }
-
-  if (wantsLess) {
-    Object.assign(patch, {
-      fontSize: Math.max(14, (currentConfig.fontSize || 18) - 4),
-      particleCount: Math.max(4, Math.round((patch.particleCount ?? currentConfig.particleCount ?? 12) * 0.6)),
-      particleSpread: Math.max(18, Math.round((patch.particleSpread ?? currentConfig.particleSpread ?? 40) * 0.7)),
-      particleOpacity: Math.max(30, Math.round((patch.particleOpacity ?? currentConfig.particleOpacity ?? 70) * 0.72)),
-      rippleOpacity: Math.max(20, Math.round((patch.rippleOpacity ?? currentConfig.rippleOpacity ?? 50) * 0.72)),
-      volume: Math.max(0, Math.round((patch.volume ?? currentConfig.volume ?? 60) * 0.55)),
-      shake: Math.max(0, Math.round((patch.shake ?? currentConfig.shake ?? 20) * 0.45)),
-    });
-  }
-
-  if (wantsMore) {
-    Object.assign(patch, {
-      textEnabled: currentConfig.textEnabled !== false,
-      particle: true,
-      particleCount: Math.min(36, Math.round((currentConfig.particleCount || 12) * 1.45)),
-      particleSpread: Math.min(110, Math.round((currentConfig.particleSpread || 44) * 1.25)),
-      particleOpacity: Math.min(100, Math.round((currentConfig.particleOpacity || 70) * 1.18)),
-      ripple: true,
-      rippleSize: Math.min(120, Math.round((currentConfig.rippleSize || 52) * 1.22)),
-      rippleOpacity: Math.min(100, Math.round((currentConfig.rippleOpacity || 56) * 1.14)),
-      shake: Math.min(80, Math.round((currentConfig.shake || 18) * 1.35)),
-    });
-  }
-
-  if (wantsNoSound) Object.assign(patch, { sound: false, volume: 0 });
-  if (wantsSound && !wantsNoSound) Object.assign(patch, { sound: true, volume: Math.max(currentConfig.volume || 0, 58), soundFile: "tick-light.wav" });
-  if (wantsNoText) Object.assign(patch, { textEnabled: false });
-  if (wantsText && !wantsNoText) {
-    Object.assign(patch, {
-      textEnabled: true,
-      textKind: "文本飘字",
-      textContent: wantsCyber ? "focus" : "nice",
-      textTags: wantsCyber ? ["focus", "build", "ship"] : ["nice", "done", "继续"],
-    });
-  }
-  if (wantsNoParticle) Object.assign(patch, { particle: false, particleCount: 0 });
-  if (wantsParticle && !wantsNoParticle) Object.assign(patch, { particle: true, particleCount: patch.particleCount ?? 18 });
-  if (wantsRipple) Object.assign(patch, { ripple: true, rippleSize: patch.rippleSize ?? 68 });
-
-  if (!Object.keys(patch).length) {
-    Object.assign(patch, {
-      textEnabled: false,
-      textColor: HEX_COLOR_BY_INTENT.focus,
-      particle: true,
-      particleCount: 12,
-      particleSpread: 44,
-      particleDuration: 640,
-      particleSize: 10,
-      ripple: true,
-      rippleSize: 54,
-      rippleDuration: 640,
-      sound: false,
-      shake: 12,
-    });
-  }
-
-  return sanitizeAiSchemePatch(patch);
-}
-
-export function createLocalAiSchemeResponse({ prompt, currentConfig, actionLabel }) {
-  const normalizedPrompt = normalizePrompt(prompt);
-  const patch = buildBasePatch(normalizedPrompt, currentConfig || {});
-  const nextConfig = mergeActionConfig(currentConfig || {}, patch);
-  const diffItems = buildAiSchemeDiffItems(currentConfig || {}, patch);
-  const diffSummary = describeDiff(patch);
-  const reply = [
-    `我已按「${actionLabel || "当前动作"}」生成一版可执行配置。`,
-    diffSummary.length ? `重点调整：${diffSummary.join("、")}。` : "这次主要做了整体风格收敛。",
-  ].join("");
-
-  return normalizeAiSchemeProposal({
-    source: "local-prototype",
-    intent: "modify_action",
-    reply,
-    patch,
-    diffSummary,
-  }, { currentConfig, actionLabel, actionId: "leftClick", taskMode: "modify_action" });
-}
-
-async function requestRemoteAiSchemeEdit({ prompt, currentConfig, actionLabel, actionId }) {
+async function requestRemoteAiSchemeEdit({ prompt, currentConfig, actionLabel, actionId, taskMode, proposalContext }) {
   if (typeof window === "undefined" || typeof window.fetch !== "function") {
     throw new Error("Browser fetch is unavailable.");
   }
 
   const controller = new AbortController();
-  const timer = window.setTimeout(() => controller.abort(), 3500);
+  const timer = window.setTimeout(() => controller.abort(), 12000);
+  const endpoint = import.meta.env?.VITE_CURSORDANCE_AI_API_ENDPOINT || DEFAULT_API_ENDPOINT;
 
   try {
-    const response = await window.fetch(DEFAULT_API_ENDPOINT, {
+    const response = await window.fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt, currentConfig, actionLabel, actionId }),
+      body: JSON.stringify({ prompt, currentConfig, actionLabel, actionId, taskMode, proposalContext }),
       signal: controller.signal,
     });
     if (!response.ok) {
-      throw new Error(`AI API responded with ${response.status}`);
+      let errorMessage = `AI API responded with ${response.status}`;
+      try {
+        const errorPayload = await response.json();
+        if (typeof errorPayload?.error === "string" && errorPayload.error.trim()) {
+          errorMessage = errorPayload.error.trim();
+        }
+        if (typeof errorPayload?.details === "string" && errorPayload.details.trim()) {
+          errorMessage = `${errorMessage}: ${errorPayload.details.trim()}`;
+        }
+      } catch {
+        // Keep the original status-based error when the backend does not return JSON.
+      }
+      throw new Error(errorMessage);
     }
     const payload = await response.json();
     return normalizeAiSchemeProposal(
@@ -519,20 +486,18 @@ async function requestRemoteAiSchemeEdit({ prompt, currentConfig, actionLabel, a
         ...payload,
         source: payload.source || "api",
       },
-      { currentConfig, actionLabel, actionId }
+      { currentConfig, actionLabel, actionId, taskMode }
     );
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error("AI 请求超时，请确认模型服务可用后重试。");
+    }
+    throw error;
   } finally {
     window.clearTimeout(timer);
   }
 }
 
-export async function requestAiSchemeEdit({ prompt, currentConfig, actionLabel, actionId }) {
-  try {
-    return await requestRemoteAiSchemeEdit({ prompt, currentConfig, actionLabel, actionId });
-  } catch {
-    // Keep the product usable while the AI backend is not running yet.
-  }
-
-  await new Promise((resolve) => window.setTimeout(resolve, 360));
-  return createLocalAiSchemeResponse({ prompt, currentConfig, actionLabel });
+export async function requestAiSchemeEdit({ prompt, currentConfig, actionLabel, actionId, taskMode, proposalContext }) {
+  return requestRemoteAiSchemeEdit({ prompt, currentConfig, actionLabel, actionId, taskMode, proposalContext });
 }
