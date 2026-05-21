@@ -4,6 +4,7 @@ import {
   NUMBER_STYLE_OPTIONS,
   PANEL_META,
   TEXT_EASING_OPTIONS,
+  TEXT_FONT_PRESETS,
   TEXT_KIND_OPTIONS,
   TEXT_MODE_OPTIONS,
   TEXT_SHADOW_OPTIONS,
@@ -21,7 +22,13 @@ import {
   TextTagEditor,
 } from "../WorkbenchControls.jsx";
 
+function getFontPresetValue(value) {
+  return TEXT_FONT_PRESETS.includes(value) ? value : "自定义";
+}
+
 export function TextFeedbackCard({ config, updateActionConfig }) {
+  const fontPresetValue = getFontPresetValue(config.textFontFamily || "系统默认");
+
   return (
     <Panel
       title="飘字反馈"
@@ -125,6 +132,27 @@ export function TextFeedbackCard({ config, updateActionConfig }) {
             hint="字号。"
             control={<ControlSlider disabled={!config.textEnabled} value={config.fontSize} min={14} max={30} onValueChange={(value) => updateActionConfig({ fontSize: value[0] })} suffix="px" label="飘字大小" />}
           />
+          <FieldRow
+            label="飘字字体"
+            hint="字体。"
+            control={<SmallSelect value={fontPresetValue} options={TEXT_FONT_PRESETS} onChange={config.textEnabled ? (value) => updateActionConfig({ textFontFamily: value }) : undefined} label="飘字字体" />}
+          />
+          {fontPresetValue === "自定义" ? (
+            <FieldRow
+              label="字体名称"
+              hint="本机字体。"
+              control={
+                <Input
+                  disabled={!config.textEnabled}
+                  value={config.textFontFamily || ""}
+                  onChange={(event) => updateActionConfig({ textFontFamily: event.target.value })}
+                  className="rounded-2xl bg-white"
+                  placeholder='例如 "霞鹜文楷", serif'
+                  aria-label="输入自定义飘字字体"
+                />
+              }
+            />
+          ) : null}
           <FieldRow label="飘字颜色" hint="颜色。" control={<ColorOptions disabled={!config.textEnabled} value={config.textColor} onChange={(color) => updateActionConfig({ textColor: color })} />} />
           <FieldRow
             label="透明度"

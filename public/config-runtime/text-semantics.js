@@ -87,6 +87,7 @@
         textContent: orderedTags[0] ?? "",
         textTags: orderedTags,
         textTagPlayMode: textEffect?.tagPlayMode || baseActionConfig.textTagPlayMode,
+        textFontFamily: textEffect?.fontFamily || baseActionConfig.textFontFamily,
         comboEnabled: false,
       };
     }
@@ -104,6 +105,7 @@
       textContent: "",
       textTags: Array.isArray(baseActionConfig.textTags) ? baseActionConfig.textTags : [],
       textTagPlayMode: baseActionConfig.textTagPlayMode,
+      textFontFamily: textEffect?.fontFamily || baseActionConfig.textFontFamily,
       comboEnabled: textEffect?.comboEnabled ?? baseActionConfig.comboEnabled,
     };
   }
@@ -123,6 +125,7 @@
       template: actionConfig.textTemplate,
       tags: orderedTextTags,
       tagPlayMode: actionConfig.textTagPlayMode,
+      fontFamily: actionConfig.textFontFamily,
       comboEnabled: actionConfig.comboEnabled,
       content: textContent,
     };

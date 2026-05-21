@@ -20,6 +20,7 @@
     config: null,
     lastTriggerAtByAction: Object.create(null),
     actionRunCounts: Object.create(null),
+    actionComboStates: Object.create(null),
     lastSoundAtByAction: Object.create(null),
     mediaDuckState: new WeakMap(),
     activeEffects: 0,

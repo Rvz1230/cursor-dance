@@ -213,7 +213,7 @@
       };
     }
 
-    function playSound(actionConfig, actionId) {
+    function playSound(actionConfig, actionId, runContext = {}) {
       const audioConfig = configStore.getActionAudioConfig(actionConfig);
       const triggerConfig = configStore.getActionTriggerConfig(actionConfig);
       if (!audioConfig.sound || (audioConfig.volume || 0) <= 0) {
@@ -272,10 +272,12 @@
         const gainNode = context.createGain();
         const baseGain = Math.min(1, Math.max(0, (audioConfig.volume || 0) / 100) * 0.22);
         const playbackRate = Math.max(0.5, (audioConfig.playbackRate || 100) / 100);
-        const stackBoost = mode === "连击叠加" ? Math.min(1.18, 1 + ((state.actionRunCounts[actionId] || 1) - 1) * 0.06) : 1;
+        const comboIndex = runContext.comboIndex || 1;
+        const stackBoost = mode === "连击叠加" ? Math.min(1.18, 1 + (comboIndex - 1) * 0.06) : 1;
         diagnostics?.log("audio.play", {
           actionId,
           mode,
+          comboIndex,
           playbackRate,
           baseGain: Number(baseGain.toFixed(3)),
           startDelayMs: audioConfig.soundDelay || 0,

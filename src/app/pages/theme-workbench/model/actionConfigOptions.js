@@ -42,6 +42,7 @@ export const TEXT_TAG_PLAY_OPTIONS = ["按顺序显示", "随机显示"];
 export const TEXT_EASING_OPTIONS = ["线性", "缓入", "缓出", "缓入缓出", "弹跳", "弹性"];
 export const TEXT_WEIGHT_OPTIONS = ["常规", "中等", "加粗"];
 export const TEXT_SHADOW_OPTIONS = ["无", "柔和", "清晰"];
+export const TEXT_FONT_PRESETS = ["系统默认", "苹方 / 微软雅黑", "宋体", "黑体", "楷体", "等宽字体", "自定义"];
 export const PARTICLE_STYLE_OPTIONS = ["点状粒子", "碎屑粒子", "火花"];
 export const PARTICLE_DIRECTION_OPTIONS = ["四周扩散", "向上喷发", "沿点击方向"];
 export const PARTICLE_COLOR_MODE_OPTIONS = ["跟随主题", "跟随飘字色", "随机轻变化"];
@@ -67,6 +68,7 @@ export const ACTION_TEXT_FIELDS = [
   "textDuration",
   "textEasing",
   "textOpacity",
+  "textFontFamily",
   "textWeight",
   "textOutlineWidth",
   "textShadow",
@@ -148,6 +150,7 @@ export const LEFT_CLICK_BEHAVIOR_CANONICAL_FIELDS = [
   "textTagPlayMode",
   "textColor",
   "textDuration",
+  "textFontFamily",
   "textWeight",
   "comboEnabled",
   "textOffsetX",

@@ -79,6 +79,22 @@ export function getTextWeightValue(weight) {
   return 500;
 }
 
+const TEXT_FONT_FAMILY_VALUES = {
+  系统默认: '"SF Pro Text","PingFang SC","Microsoft YaHei",system-ui,sans-serif',
+  "苹方 / 微软雅黑": '"PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif',
+  宋体: 'SimSun,"Songti SC",serif',
+  黑体: 'SimHei,"Heiti SC",sans-serif',
+  楷体: 'KaiTi,"Kaiti SC",serif',
+  等宽字体: '"SFMono-Regular",Consolas,"Liberation Mono",monospace',
+};
+
+export function getTextFontFamilyValue(value) {
+  const textFontFamily = typeof value === "string" ? value.trim() : "";
+  if (!textFontFamily || textFontFamily === "自定义") return TEXT_FONT_FAMILY_VALUES.系统默认;
+  if (TEXT_FONT_FAMILY_VALUES[textFontFamily]) return TEXT_FONT_FAMILY_VALUES[textFontFamily];
+  return textFontFamily.replace(/[;\n\r]/g, "").slice(0, 120) || TEXT_FONT_FAMILY_VALUES.系统默认;
+}
+
 export function hexToRgba(hex, alpha) {
   const normalized = hex.replace("#", "");
   const value =

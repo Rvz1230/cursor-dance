@@ -202,6 +202,7 @@
             textColor: textEffect.color || "#ec4899",
             textDuration: textEffect.durationMs || 950,
             textOpacity: 100,
+            textFontFamily: textEffect.fontFamily || "系统默认",
             textWeight: (textEffect.fontWeight || 800) >= 700 ? "加粗" : (textEffect.fontWeight || 800) >= 600 ? "中等" : "常规",
             textOutlineWidth: 0,
             textShadow: "无",

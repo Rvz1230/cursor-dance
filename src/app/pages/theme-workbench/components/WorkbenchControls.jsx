@@ -112,13 +112,49 @@ export function WorkbenchAccordionPanel(props) {
 }
 
 export function ControlSlider({ value, min, max, onValueChange, suffix = "", disabled = false, label = "数值" }) {
+  const [isInteracting, setIsInteracting] = useState(false);
+  const percent = max === min ? 0 : ((clampNumber(value, min, max) - min) / (max - min)) * 100;
+
+  useEffect(() => {
+    if (!isInteracting) return undefined;
+    const stopInteracting = () => setIsInteracting(false);
+    window.addEventListener("pointerup", stopInteracting);
+    window.addEventListener("pointercancel", stopInteracting);
+    return () => {
+      window.removeEventListener("pointerup", stopInteracting);
+      window.removeEventListener("pointercancel", stopInteracting);
+    };
+  }, [isInteracting]);
+
   function commitValue(nextValue) {
     onValueChange?.([clampNumber(nextValue, min, max)]);
   }
 
   return (
     <div className={cn("grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(64px,76px)] items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-2 py-2", disabled && "opacity-50")}>
-      <Slider className="flex-1" value={[value]} min={min} max={max} onValueChange={(next) => commitValue(next[0])} disabled={disabled} aria-label={label} />
+      <div
+        className="relative min-w-0 py-2"
+        onPointerDown={() => {
+          if (!disabled) setIsInteracting(true);
+        }}
+        onFocusCapture={() => {
+          if (!disabled) setIsInteracting(true);
+        }}
+        onBlurCapture={() => setIsInteracting(false)}
+      >
+        <Slider className="flex-1" value={[value]} min={min} max={max} onValueChange={(next) => commitValue(next[0])} disabled={disabled} aria-label={label} />
+        <div
+          className={cn(
+            "pointer-events-none absolute -top-7 z-10 -translate-x-1/2 rounded-lg bg-slate-950 px-2 py-1 text-[11px] font-semibold tabular-nums text-white shadow-md transition-opacity",
+            isInteracting ? "opacity-100" : "opacity-0"
+          )}
+          style={{ left: `${percent}%` }}
+          aria-hidden="true"
+        >
+          {value}{suffix}
+          <span className="absolute left-1/2 top-full size-2 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-slate-950" />
+        </div>
+      </div>
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1 rounded-xl bg-white px-2 py-1.5 ring-1 ring-slate-200">
         <input
           type="number"

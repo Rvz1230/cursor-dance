@@ -40,6 +40,22 @@
       return 500;
     }
 
+    const TEXT_FONT_FAMILY_VALUES = {
+      系统默认: '"SF Pro Text","PingFang SC","Microsoft YaHei",system-ui,sans-serif',
+      "苹方 / 微软雅黑": '"PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif',
+      宋体: 'SimSun,"Songti SC",serif',
+      黑体: 'SimHei,"Heiti SC",sans-serif',
+      楷体: 'KaiTi,"Kaiti SC",serif',
+      等宽字体: '"SFMono-Regular",Consolas,"Liberation Mono",monospace',
+    };
+
+    function getTextFontFamily(value) {
+      const textFontFamily = typeof value === "string" ? value.trim() : "";
+      if (!textFontFamily || textFontFamily === "自定义") return TEXT_FONT_FAMILY_VALUES.系统默认;
+      if (TEXT_FONT_FAMILY_VALUES[textFontFamily]) return TEXT_FONT_FAMILY_VALUES[textFontFamily];
+      return textFontFamily.replace(/[;\n\r]/g, "").slice(0, 120) || TEXT_FONT_FAMILY_VALUES.系统默认;
+    }
+
     function formatNumber(style, number) {
       if (style?.includes("中文")) {
         const values = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
@@ -292,6 +308,7 @@
       node.style.left = `${x + (textConfig.textOffsetX || 0)}px`;
       node.style.top = `${y + (textConfig.textOffsetY || -48)}px`;
       node.style.color = hexToRgba(textConfig.textColor || "#ec4899", (textConfig.textOpacity || 100) / 100);
+      node.style.fontFamily = getTextFontFamily(textConfig.textFontFamily);
       node.style.fontSize = `${textConfig.fontSize || 22}px`;
       node.style.fontWeight = String(getTextWeight(textConfig));
       node.style.webkitTextStroke = textConfig.textOutlineWidth

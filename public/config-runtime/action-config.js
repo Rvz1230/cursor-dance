@@ -15,6 +15,7 @@
     "textDuration",
     "textEasing",
     "textOpacity",
+    "textFontFamily",
     "textWeight",
     "textOutlineWidth",
     "textShadow",

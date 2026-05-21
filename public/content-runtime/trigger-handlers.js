@@ -35,6 +35,13 @@
       return Math.max(0, value);
     }
 
+    function getComboWindowMs(actionConfig) {
+      const rawValue = Number(actionConfig?.comboWindowMs);
+      return Number.isFinite(rawValue)
+        ? Math.max(120, Math.min(3000, rawValue))
+        : 900;
+    }
+
     function makeCoordsFromEvent(event) {
       return {
         x: event.clientX,
@@ -149,22 +156,33 @@
 
       const runIndex = (state.actionRunCounts[resolvedActionId] || 0) + 1;
       state.actionRunCounts[resolvedActionId] = runIndex;
+      const comboWindowMs = getComboWindowMs(actionConfig);
+      const previousComboState = state.actionComboStates[resolvedActionId] || { count: 0, lastAt: 0 };
+      const comboIndex = now - previousComboState.lastAt <= comboWindowMs
+        ? previousComboState.count + 1
+        : 1;
+      state.actionComboStates[resolvedActionId] = {
+        count: comboIndex,
+        lastAt: now,
+      };
       diagnostics?.log("action.fire", {
         sourceActionId,
         resolvedActionId,
         triggerSource,
         runIndex,
+        comboIndex,
+        comboWindowMs,
         force: Boolean(options.force),
         outputs: outputSummary,
         target: diagnostics?.describeTarget(coords.target),
       });
       visualEffects.renderRipple(coords.x, coords.y, actionConfig);
       visualEffects.renderParticles(coords.x, coords.y, actionConfig);
-      visualEffects.renderText(coords.x, coords.y, actionConfig, resolvedActionId, runIndex);
+      visualEffects.renderText(coords.x, coords.y, actionConfig, resolvedActionId, comboIndex);
       visualEffects.renderAnimationEffect(coords.x, coords.y, actionConfig);
       visualEffects.renderImageEffect(coords.x, coords.y, actionConfig);
       visualEffects.renderCursorOverride(coords.x, coords.y, actionConfig);
-      audioRuntime.playSound(actionConfig, resolvedActionId);
+      audioRuntime.playSound(actionConfig, resolvedActionId, { comboIndex, comboWindowMs, runIndex });
     }
 
     function scheduleActionTrigger(actionId, coords, scheme, delayMs, options = {}) {

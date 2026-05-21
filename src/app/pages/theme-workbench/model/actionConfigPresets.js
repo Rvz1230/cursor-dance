@@ -4,6 +4,7 @@ const ACTION_CONFIG_SHARED_DEFAULTS = {
   textTemplate: "你当前点击了${number}次",
   textTagPlayMode: "按顺序显示",
   textOpacity: 100,
+  textFontFamily: "系统默认",
   textOutlineWidth: 0,
   comboEnabled: false,
   textOffsetX: 0,

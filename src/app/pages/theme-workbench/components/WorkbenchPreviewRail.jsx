@@ -14,6 +14,7 @@ import {
   getPreviewLoopDelay,
   getPreviewSoundFile,
   getPreviewText,
+  getTextFontFamilyValue,
   getPreviewTriggerSummary,
   getTextShadowValue,
   getTextWeightValue,
@@ -120,6 +121,7 @@ function PreviewEffects({
             className="whitespace-nowrap text-center tabular-nums"
             style={{
               color: hexToRgba(textConfig.textColor, textConfig.textOpacity / 100),
+              fontFamily: getTextFontFamilyValue(textConfig.textFontFamily),
               fontSize: `${textConfig.fontSize}px`,
               fontWeight: getTextWeightValue(textConfig.textWeight),
               textShadow: getTextShadowValue(config),
