@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Bot, Check, CheckCircle2, Eye, Loader2, RotateCcw, Send, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button.jsx";
 import { cn } from "@/components/ui/utils.js";
@@ -62,7 +62,7 @@ function SourceBadge({ source }) {
     : source?.includes("api")
       ? "border-emerald-100 bg-emerald-50 text-emerald-700"
       : "border-slate-200 bg-slate-50 text-slate-600";
-  return <span className={cn("rounded-full border px-2 py-0.5 text-[11px] font-medium", tone)}>{label}</span>;
+  return <span className={cn("rounded-full border px-2 py-0.5 text-xs font-medium", tone)}>{label}</span>;
 }
 
 function SanitizeHint({ meta }) {
@@ -87,7 +87,7 @@ function SchemeOverview({ scheme }) {
       {scheme.styleTags?.length ? (
         <div className="mt-2 flex flex-wrap gap-1.5">
           {scheme.styleTags.map((tag) => (
-            <span key={tag} className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600">{tag}</span>
+            <span key={tag} className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-600">{tag}</span>
           ))}
         </div>
       ) : null}
@@ -130,8 +130,8 @@ function ProposalCard({ result, previewActive }) {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
-          {previewActive ? <span className="rounded-full border border-sky-100 bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-700">预览中</span> : null}
-          <span className={cn("rounded-full border px-2 py-0.5 text-[11px] font-medium", riskTone)}>{riskLabel}</span>
+          {previewActive ? <span className="rounded-full border border-sky-100 bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-700">预览中</span> : null}
+          <span className={cn("rounded-full border px-2 py-0.5 text-xs font-medium", riskTone)}>{riskLabel}</span>
           <SourceBadge source={result.source} />
         </div>
       </div>
@@ -190,6 +190,13 @@ export function AiSchemePanel({
 
   const canSubmit = useMemo(() => prompt.trim().length > 0 && !isGenerating, [prompt, isGenerating]);
   const previewActive = Boolean(pendingResult && previewProposal === pendingResult);
+  const scrollRef = useRef(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages, isGenerating]);
 
   async function submitPrompt(nextPrompt = prompt, modeOverride = taskMode) {
     const trimmedPrompt = nextPrompt.trim();
@@ -313,8 +320,8 @@ export function AiSchemePanel({
       )}
     >
       <div className={cn("flex min-h-0 flex-col bg-white", variant === "full" && "flex-1")}>
-        <div className={cn("min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3", variant === "full" ? "h-full" : "max-h-[220px]")}>
-          {messages.slice(-5).map((message, index) => (
+        <div ref={scrollRef} className={cn("min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3", variant === "full" ? "h-full" : "max-h-[220px]")}>
+          {messages.map((message, index) => (
             <MessageBubble key={`${message.role}-${index}-${message.content}`} message={message} />
           ))}
           {isGenerating ? (
@@ -336,7 +343,7 @@ export function AiSchemePanel({
                 <button
                   key={option}
                   type="button"
-                  className="rounded-full border border-sky-100 bg-sky-50 px-3 py-1.5 text-xs font-medium text-sky-700 transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
+                  className="rounded-full border border-sky-100 bg-sky-50 px-3 py-1.5 text-xs font-medium text-sky-700 transition-all hover:bg-white active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
                   onClick={() => {
                     setTaskMode("tune_proposal");
                     submitPrompt(option, "tune_proposal");
@@ -347,13 +354,13 @@ export function AiSchemePanel({
                 </button>
               ))}
             </div>
-          ) : (
+          ) : messages.length <= 1 ? (
             <div className="flex flex-wrap gap-2">
               {PROMPT_EXAMPLES.map((example) => (
                 <button
                   key={example}
                   type="button"
-                  className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600 transition-colors hover:border-slate-300 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
+                  className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600 transition-all hover:border-slate-300 hover:bg-white active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
                   onClick={() => submitPrompt(example)}
                   disabled={isGenerating}
                 >
@@ -361,7 +368,7 @@ export function AiSchemePanel({
                 </button>
               ))}
             </div>
-          )}
+          ) : null}
         </div>
 
         {pendingResult ? (

@@ -1,5 +1,6 @@
 import { formatActionLabel } from "./model/workbenchSchema.js";
 import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useThemeWorkbenchState } from "./hooks/useThemeWorkbenchState.js";
 import { BindingsPanel } from "./components/BindingsPanel.jsx";
 import { DiagnosticsPanel } from "./components/DiagnosticsPanel.jsx";
@@ -141,7 +142,7 @@ function ThemeWorkbenchPageContent() {
       className="h-dvh bg-slate-100 text-slate-900"
       style={{ fontFamily: '"SF Pro Display","SF Pro Text","PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif' }}
     >
-      <div className="flex h-dvh overflow-hidden border border-slate-200 bg-white text-[13px] shadow-sm">
+      <div className="flex h-dvh overflow-hidden border border-slate-200 bg-white text-sm shadow-sm">
         <div className="flex min-w-0 flex-1 flex-col">
           <WorkbenchHeader
             workspaceItems={workspaceItems}
@@ -212,10 +213,13 @@ function ThemeWorkbenchPageContent() {
 
                   <button
                     type="button"
-                    className="my-3 w-1 justify-self-center cursor-col-resize rounded-full bg-slate-200/70 transition-colors hover:bg-slate-400/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
+                    className="group relative my-3 w-1 justify-self-center cursor-col-resize rounded-full bg-slate-300 transition-colors hover:bg-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
                     aria-label="调整配置列宽度"
                     onPointerDown={(event) => startResizeColumns(event, "config")}
-                  />
+                  >
+                    <span className="absolute -left-1 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-full bg-slate-300 transition-colors group-hover:bg-slate-500" />
+                    <span className="absolute -right-1 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-full bg-slate-300 transition-colors group-hover:bg-slate-500" />
+                  </button>
 
                   {!aiPanelOpen ? (
                     <div className="flex min-w-0 h-full min-h-0">
@@ -240,27 +244,38 @@ function ThemeWorkbenchPageContent() {
                   {aiPanelOpen ? (
                     <button
                       type="button"
-                      className="my-3 w-1 justify-self-center cursor-col-resize rounded-full bg-slate-200/70 transition-colors hover:bg-slate-400/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
+                      className="group relative my-3 w-1 justify-self-center cursor-col-resize rounded-full bg-slate-300 transition-colors hover:bg-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
                       aria-label="调整实时预览和 AI 助手宽度"
                       onPointerDown={(event) => startResizeColumns(event, "ai")}
-                    />
+                    >
+                      <span className="absolute -left-1 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-full bg-slate-300 transition-colors group-hover:bg-slate-500" />
+                      <span className="absolute -right-1 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-full bg-slate-300 transition-colors group-hover:bg-slate-500" />
+                    </button>
                   ) : null}
 
                   {aiPanelOpen ? (
-                    <div className="relative flex min-w-0 h-full min-h-0">
-                      <AiSchemePanel
-                        actionId={selected.actionId}
-                        actionLabel={formatActionLabel(selected.actionId)}
-                        currentConfig={currentActionConfig}
-                        applyActionConfig={handleUpdateActionConfig}
-                        applyProposal={handleApplyAiProposal}
-                        previewProposal={previewProposal}
-                        onPreviewProposal={setPreviewProposal}
-                        onClearPreview={() => setPreviewProposal(null)}
-                        notify={toast}
-                        variant="full"
-                      />
-                    </div>
+                    <AnimatePresence>
+                      <motion.div
+                        className="relative flex min-w-0 h-full min-h-0"
+                        initial={{ width: 0, opacity: 0 }}
+                        animate={{ width: "auto", opacity: 1 }}
+                        exit={{ width: 0, opacity: 0 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
+                      >
+                        <AiSchemePanel
+                          actionId={selected.actionId}
+                          actionLabel={formatActionLabel(selected.actionId)}
+                          currentConfig={currentActionConfig}
+                          applyActionConfig={handleUpdateActionConfig}
+                          applyProposal={handleApplyAiProposal}
+                          previewProposal={previewProposal}
+                          onPreviewProposal={setPreviewProposal}
+                          onClearPreview={() => setPreviewProposal(null)}
+                          notify={toast}
+                          variant="full"
+                        />
+                      </motion.div>
+                    </AnimatePresence>
                   ) : null}
 
                 </div>

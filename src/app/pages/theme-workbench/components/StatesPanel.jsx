@@ -353,7 +353,7 @@ export function StatesPanel({
                       <div className="mt-2 truncate text-xs text-slate-500">
                         {state.status.label === "继承" ? "继承默认状态" : state.asset?.name || (state.effectiveAsset?.imageDataUrl ? "已绑定素材" : "未绑定素材")}
                       </div>
-                      <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] text-slate-500">
+                      <div className="mt-2 flex flex-wrap gap-1.5 text-xs text-slate-500">
                         <span className="rounded-full bg-slate-100 px-2 py-0.5">热点 {state.effectiveAsset?.hotspotX ?? 0},{state.effectiveAsset?.hotspotY ?? 0}</span>
                         <span className="rounded-full bg-slate-100 px-2 py-0.5">{state.asset?.sourceWidth || TARGET_CURSOR_SIZE} x {state.asset?.sourceHeight || TARGET_CURSOR_SIZE}</span>
                       </div>

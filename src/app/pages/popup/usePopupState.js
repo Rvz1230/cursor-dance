@@ -181,7 +181,7 @@ export function usePopupState() {
   }
 
   async function setThemeId(themeId) {
-    await commitConfig(
+    const savedConfig = await commitConfig(
       "theme",
       async (currentConfig) => ({
         ...currentConfig,
@@ -197,6 +197,9 @@ export function usePopupState() {
         message: "当前主题已切换。",
       }
     );
+    if (savedConfig && savedConfig.enabled === false) {
+      setNotice({ tone: "amber", message: "全局特效已暂停。切换的主题将在开启后生效。" });
+    }
   }
 
   async function previewCurrentTheme() {

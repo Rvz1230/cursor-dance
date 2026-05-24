@@ -198,14 +198,14 @@ function PreviewTimeline({ tracks, totalMs, playbackSpeed }) {
 
   return (
     <div className="mt-3 rounded-xl border border-slate-200 bg-white/85 px-3 py-3 shadow-sm">
-      <div className="mb-2 flex items-center justify-between gap-3 text-[11px] font-medium text-slate-500">
+      <div className="mb-2 flex items-center justify-between gap-3 text-xs font-medium text-slate-500">
         <span>动画时间轴</span>
         <span>{formatPlaybackSpeed(playbackSpeed)} 播放 · 原始 {totalMs}ms</span>
       </div>
       <div className="relative mb-3 h-5">
         <div className="absolute inset-x-0 top-2 h-px bg-slate-200" />
         {ticks.map((tick) => (
-          <div key={tick} className="absolute top-0 text-[10px] text-slate-500" style={{ left: `${(tick / totalMs) * 100}%`, transform: tick === 0 ? "none" : "translateX(-50%)" }}>
+          <div key={tick} className="absolute top-0 text-xs text-slate-500" style={{ left: `${(tick / totalMs) * 100}%`, transform: tick === 0 ? "none" : "translateX(-50%)" }}>
             <span className="block h-2 w-px bg-slate-300" />
             <span className="mt-1 block">{tick}ms</span>
           </div>
@@ -218,7 +218,7 @@ function PreviewTimeline({ tracks, totalMs, playbackSpeed }) {
           const width = `${Math.max(1.5, ((track.end - track.start) / totalMs) * 100)}%`;
           return (
             <div key={track.id} className="grid grid-cols-[42px_minmax(0,1fr)] items-center gap-2">
-              <div className={cn("text-[11px] font-semibold", toneClass.split(" ")[1])}>{track.label}</div>
+              <div className={cn("text-xs font-semibold", toneClass.split(" ")[1])}>{track.label}</div>
               <div className="relative h-6 rounded-full bg-slate-100">
                 <div className={cn("absolute top-1 h-4 rounded-full opacity-80", toneClass.split(" ")[0])} style={{ left, width }} />
                 {track.markers.map((marker) => (
@@ -234,7 +234,7 @@ function PreviewTimeline({ tracks, totalMs, playbackSpeed }) {
           );
         }) : (
           <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
-            当前动作没有开启可播放的视觉效果。
+            当前动作没有开启可播放的视觉效果，在左侧配置面板中开启至少一项效果。
           </div>
         )}
       </div>
@@ -314,7 +314,7 @@ function SimplePreviewStage({ config, siteMode, runId, outputs, playbackSpeed })
         </div>
 
         {audioConfig.sound && !disabledBySite ? (
-          <div className="absolute right-5 top-20 flex items-center gap-1.5 rounded-lg border border-emerald-100 bg-white/95 px-2 py-1 text-[10px] text-slate-600 shadow-sm">
+          <div className="absolute right-5 top-20 flex items-center gap-1.5 rounded-lg border border-emerald-100 bg-white/95 px-2 py-1 text-xs text-slate-600 shadow-sm">
             <Volume2 className="size-3 text-emerald-700" aria-hidden="true" />
             <span className="max-w-[88px] truncate">{getPreviewSoundFile(config)}</span>
             <div className="flex items-end gap-1" aria-hidden="true">
@@ -401,7 +401,7 @@ export function WorkbenchPreviewRail({ actionLabel, config, siteMode, previewMod
               {autoPlay ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
             </Button>
             <div className="ml-1 grid h-8 grid-cols-[auto_72px_auto] items-center gap-2 rounded-lg border border-slate-200 bg-white px-2" aria-label="播放速度">
-              <span className="text-[11px] font-medium text-slate-500">速度</span>
+              <span className="text-xs font-medium text-slate-500">速度</span>
               <input
                 type="range"
                 min="0.25"

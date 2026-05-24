@@ -4,6 +4,7 @@ import path from 'path'
 
 export default defineConfig({
   base: './',
+  appType: 'mpa',
   plugins: [react()],
   test: {
     environment: "node",

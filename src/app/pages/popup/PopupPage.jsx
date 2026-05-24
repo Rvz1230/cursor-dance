@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, ExternalLink, Eye, Globe2 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Eye, Globe2, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button.jsx";
 import { Switch } from "@/components/ui/switch.jsx";
 import { cn } from "@/components/ui/utils.js";
@@ -26,44 +27,21 @@ const POPUP_PREVIEW_KEYFRAMES = `
 
 const FALLBACK_DEFAULT_CURSOR = createBuiltinCursorAsset("default", "system");
 const FALLBACK_POINTER_CURSOR = createBuiltinCursorAsset("pointer", "system");
-const POPUP_WIDTH = 408;
-const POPUP_HEIGHT = 600;
+const POPUP_WIDTH = 360;
+const POPUP_HEIGHT = 540;
 
-function BrandMark() {
-  return (
-    <div className="relative flex size-12 items-center justify-center">
-      <div className="size-10 rounded-full border-[6px] border-emerald-600 border-r-transparent" />
-      <div className="absolute right-1 top-2 h-3.5 w-3.5 text-amber-400">
-        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-          <path d="M8 0.8 9.4 5.1 13.7 6.5 9.4 7.9 8 12.2 6.6 7.9 2.3 6.5 6.6 5.1 8 0.8Z" />
-        </svg>
-      </div>
-    </div>
-  );
-}
+// ── helpers ───────────────────────────────────────────────────
 
 function countEnabledEffects(actionConfig) {
   if (!actionConfig) return 0;
-  return [
-    actionConfig.textEnabled,
-    actionConfig.particle,
-    actionConfig.ripple,
-    actionConfig.sound,
-  ].filter(Boolean).length;
+  return [actionConfig.textEnabled, actionConfig.particle, actionConfig.ripple, actionConfig.sound].filter(Boolean).length;
 }
 
 function resolveThemeCursorAsset(themePack, stateId = "default") {
   const cursorState = themePack?.cursorStates?.[stateId];
-  if (cursorState?.imageDataUrl) {
-    return {
-      imageDataUrl: cursorState.imageDataUrl,
-    };
-  }
-
-  const fallbackAsset = stateId === "pointer" ? FALLBACK_POINTER_CURSOR : FALLBACK_DEFAULT_CURSOR;
-  return {
-    imageDataUrl: fallbackAsset.imageDataUrl,
-  };
+  if (cursorState?.imageDataUrl) return { imageDataUrl: cursorState.imageDataUrl };
+  const fallback = stateId === "pointer" ? FALLBACK_POINTER_CURSOR : FALLBACK_DEFAULT_CURSOR;
+  return { imageDataUrl: fallback.imageDataUrl };
 }
 
 function buildParticleDots(actionConfig) {
@@ -78,15 +56,13 @@ function buildParticleDots(actionConfig) {
 
 function useReducedMotion() {
   const [reducedMotion, setReducedMotion] = useState(false);
-
   useEffect(() => {
-    const mediaQuery = window.matchMedia?.("(prefers-reduced-motion: reduce)");
-    const updatePreference = () => setReducedMotion(Boolean(mediaQuery?.matches));
-    updatePreference();
-    mediaQuery?.addEventListener?.("change", updatePreference);
-    return () => mediaQuery?.removeEventListener?.("change", updatePreference);
+    const mq = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+    const update = () => setReducedMotion(Boolean(mq?.matches));
+    update();
+    mq?.addEventListener?.("change", update);
+    return () => mq?.removeEventListener?.("change", update);
   }, []);
-
   return reducedMotion;
 }
 
@@ -96,241 +72,206 @@ function usePreviewTick(themeId, actionConfig) {
   const effectCount = countEnabledEffects(actionConfig);
 
   useEffect(() => {
-    if (!themeId) return undefined;
-
-    function handlePreview(event) {
-      if (event.detail?.themeId !== themeId) return;
-      setTick((value) => value + 1);
-    }
-
-    window.addEventListener("CURSORDANCE_POPUP_PREVIEW", handlePreview);
-    return () => window.removeEventListener("CURSORDANCE_POPUP_PREVIEW", handlePreview);
+    if (!themeId) return;
+    function handle(event) { if (event.detail?.themeId === themeId) setTick((v) => v + 1); }
+    window.addEventListener("CURSORDANCE_POPUP_PREVIEW", handle);
+    return () => window.removeEventListener("CURSORDANCE_POPUP_PREVIEW", handle);
   }, [themeId]);
 
   useEffect(() => {
-    if (!themeId || reducedMotion || effectCount === 0) return undefined;
-    setTick((value) => value + 1);
-    const timer = window.setInterval(() => {
-      setTick((value) => value + 1);
-    }, 2600);
+    if (!themeId || reducedMotion || effectCount === 0) return;
+    setTick((v) => v + 1);
+    const timer = window.setInterval(() => setTick((v) => v + 1), 2600);
     return () => window.clearInterval(timer);
   }, [effectCount, reducedMotion, themeId]);
 
   return { tick, reducedMotion };
 }
 
+// ── HeroPreview ───────────────────────────────────────────────
+
 function HeroPreview({ themePack, actionConfig, themeId }) {
   const defaultCursor = resolveThemeCursorAsset(themePack, "default");
-  const pointerCursor = resolveThemeCursorAsset(themePack, "pointer");
   const particles = useMemo(() => buildParticleDots(actionConfig), [actionConfig]);
   const { tick, reducedMotion } = usePreviewTick(themeId, actionConfig);
 
   return (
-    <div className="relative flex h-[118px] items-center justify-center rounded-[18px] border border-slate-200/90 bg-[#fbfbf8]">
+    <div className="relative flex h-[80px] items-center justify-center rounded-xl bg-[#f8fafb]">
       <style>{POPUP_PREVIEW_KEYFRAMES}</style>
-
-      <div className="absolute inset-4 rounded-full border border-slate-200/75" />
-      <div className="absolute inset-[27px] rounded-full border border-slate-100" />
-
-      <span className="absolute left-[24%] top-[27%] size-1.5 rounded-full bg-slate-200" />
-      <span className="absolute right-[21%] top-[30%] size-1.5 rounded-full bg-slate-300" />
-      <span className="absolute left-[22%] bottom-[31%] size-1.5 rounded-full bg-slate-200" />
-      <span className="absolute right-[28%] bottom-[24%] size-1 rounded-full bg-slate-300" />
 
       {actionConfig?.ripple ? (
         <>
-          <div
-            key={`ripple-a-${tick}`}
-            className="absolute left-1/2 top-1/2 size-[82px] rounded-full border border-emerald-300/55"
-            style={{
-              animation: reducedMotion ? undefined : "cursorDancePopupRipple 1100ms ease-out forwards",
-            }}
-          />
-          <div
-            key={`ripple-b-${tick}`}
-            className="absolute left-1/2 top-1/2 size-[94px] rounded-full border border-emerald-200/50"
-            style={{
-              animation: reducedMotion ? undefined : "cursorDancePopupRipple 1100ms ease-out 110ms forwards",
-            }}
-          />
+          <div key={`ra-${tick}`} className="absolute left-1/2 top-1/2 size-[56px] rounded-full border border-emerald-300/50" style={{ animation: reducedMotion ? undefined : "cursorDancePopupRipple 1100ms ease-out forwards" }} />
+          <div key={`rb-${tick}`} className="absolute left-1/2 top-1/2 size-[64px] rounded-full border border-emerald-200/45" style={{ animation: reducedMotion ? undefined : "cursorDancePopupRipple 1100ms ease-out 110ms forwards" }} />
         </>
       ) : null}
 
       {actionConfig?.particle
-        ? particles.map((particle, index) => (
-          <span
-            key={`particle-${tick}-${index}`}
-            className="absolute left-1/2 top-1/2 size-2 rounded-full bg-emerald-400/80"
-            style={{
-              "--particle-x": `${particle.x}px`,
-              "--particle-y": `${particle.y}px`,
-              animation: reducedMotion ? undefined : `cursorDancePopupParticle 920ms ease-out ${particle.delay}ms forwards`,
-            }}
-          />
+        ? particles.map((p, i) => (
+          <span key={`pt-${tick}-${i}`} className="absolute left-1/2 top-1/2 size-2 rounded-full bg-emerald-400/80" style={{ "--particle-x": `${p.x}px`, "--particle-y": `${p.y}px`, animation: reducedMotion ? undefined : `cursorDancePopupParticle 920ms ease-out ${p.delay}ms forwards` }} />
         ))
         : null}
 
-      <div
-        className="relative z-10 flex size-[72px] items-center justify-center rounded-full border border-white bg-white shadow-sm"
-        style={{
-          animation: reducedMotion ? undefined : "cursorDancePopupPulse 1800ms ease-in-out infinite",
-        }}
-      >
-        <img
-          src={defaultCursor.imageDataUrl}
-          alt={`${themePack?.name || "当前主题"} 默认光标`}
-          className="max-h-[50px] max-w-[50px] object-contain"
-        />
-      </div>
-
-      <div className="absolute bottom-4 right-4 flex size-[28px] items-center justify-center rounded-full border border-slate-200 bg-white">
-        <img
-          src={pointerCursor.imageDataUrl}
-          alt="指针预览"
-          className="max-h-4 max-w-4 object-contain"
-        />
+      <div className="relative z-10 flex size-[44px] items-center justify-center rounded-full border border-white bg-white shadow-sm" style={{ animation: reducedMotion ? undefined : "cursorDancePopupPulse 1800ms ease-in-out infinite" }}>
+        <img src={defaultCursor.imageDataUrl} alt="光标预览" className="max-h-[30px] max-w-[30px] object-contain" />
       </div>
     </div>
   );
 }
 
-function CurrentThemeHero({ theme, themePack, actionConfig, actionLabel }) {
+// ── Header ────────────────────────────────────────────────────
+
+function Header({ enabled, siteHost, busyKey, setEnabled }) {
   return (
-    <section className="rounded-[18px] border border-slate-200/90 bg-[#fcfcfa] p-3">
-      <div className="grid grid-cols-[minmax(0,1fr)_118px] items-center gap-3">
-        <div className="min-w-0">
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-medium text-emerald-700">
-            <span className="size-1.5 rounded-full bg-emerald-500" />
-            当前主题
-          </div>
-
-          <h2 className="mt-2 text-[18px] font-semibold leading-tight text-slate-900 text-balance">
-            {theme?.name || "未选择主题"}
-          </h2>
-          <p className="mt-1.5 max-w-[168px] text-[11px] leading-[1.45] text-slate-500 text-pretty">
-            {theme?.summary || theme?.description || "切换后会立即使用当前主题的默认光标与点击反馈。"}
-          </p>
-
-          <div className="mt-2 inline-flex items-center rounded-full border border-slate-200 bg-white px-2 py-1 text-[10px] text-slate-500">
-            当前预览动作：{actionLabel}
+    <header className="flex items-center justify-between gap-2">
+      <div className="flex min-w-0 items-center gap-2">
+        <div className="relative flex size-8 items-center justify-center">
+          <div className="size-7 rounded-full border-[4px] border-emerald-600 border-r-transparent" />
+          <div className="absolute right-0.5 top-1 h-2.5 w-2.5 text-amber-400">
+            <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0.8 9.4 5.1 13.7 6.5 9.4 7.9 8 12.2 6.6 7.9 2.3 6.5 6.6 5.1 8 0.8Z" /></svg>
           </div>
         </div>
-
-        <HeroPreview themePack={themePack} actionConfig={actionConfig} themeId={theme?.id} />
+        <div className="min-w-0">
+          <h1 className="text-sm font-semibold leading-tight text-slate-800 text-balance">CursorDance</h1>
+          <p className="mt-0.5 flex items-center gap-1 text-[11px] text-slate-500 truncate">
+            {siteHost ? <Globe2 className="size-3 shrink-0" /> : null}
+            <span className="truncate">{siteHost || "主题切换器"}</span>
+          </p>
+        </div>
       </div>
-    </section>
+      <div className="flex shrink-0 items-center">
+        <Switch checked={enabled} disabled={busyKey === "enabled"} onCheckedChange={setEnabled} aria-label="全局启用开关" />
+      </div>
+    </header>
   );
 }
 
-function ThemeListCard({ theme, themePack, selected, onSelect, disabled }) {
+// ── CurrentThemeHero ──────────────────────────────────────────
+
+function CurrentThemeHero({ theme, themePack, actionConfig, actionLabel }) {
+  const effectCount = countEnabledEffects(actionConfig);
+
+  return (
+    <AnimatePresence mode="wait">
+      <motion.section
+        key={theme?.id || "empty"}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.15, ease: "easeOut" }}
+        className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm"
+      >
+        <div className="flex items-center gap-2.5 p-2.5">
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white">
+            <img
+              src={resolveThemeCursorAsset(themePack, "default").imageDataUrl}
+              alt={`${theme?.name || "当前"} 光标`}
+              className="max-h-[22px] max-w-[22px] object-contain"
+            />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-sm font-semibold text-slate-800 text-balance">{theme?.name || "未选择主题"}</h2>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">{actionLabel}</span>
+              {effectCount > 0 ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                  <span className="size-1.5 rounded-full bg-emerald-500" />
+                  {effectCount} 个特效
+                </span>
+              ) : null}
+            </div>
+          </div>
+        </div>
+        <HeroPreview themePack={themePack} actionConfig={actionConfig} themeId={theme?.id} />
+      </motion.section>
+    </AnimatePresence>
+  );
+}
+
+// ── ThemeListCard ─────────────────────────────────────────────
+
+function ThemeListCard({ theme, themePack, actionConfig, selected, onSelect, disabled }) {
   const cursorAsset = resolveThemeCursorAsset(themePack, "default");
 
   return (
-    <button
+    <motion.button
       type="button"
       onClick={onSelect}
       disabled={disabled}
       aria-pressed={selected}
+      layout
+      whileTap={{ scale: 0.985 }}
       className={cn(
-        "w-full rounded-[16px] border px-2.5 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/60 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60",
+        "relative w-full overflow-hidden rounded-xl text-left transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60",
         selected
-          ? "border-emerald-400 bg-emerald-50/60"
-          : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/80"
+          ? "border border-emerald-200/70 bg-emerald-50/50 shadow-sm"
+          : "border border-slate-200/60 bg-white hover:border-slate-300 hover:shadow-sm"
       )}
     >
-      <div className="flex items-center gap-2.5">
-        <div
-          className={cn(
-            "flex size-[34px] items-center justify-center rounded-[10px] border",
-            selected ? "border-emerald-100 bg-white" : "border-slate-200 bg-slate-50"
-          )}
-        >
-          <img
-            src={cursorAsset.imageDataUrl}
-            alt={`${theme.name} 默认光标`}
-            className="max-h-[22px] max-w-[22px] object-contain"
-          />
+      {selected ? <div className="absolute inset-y-2 left-0 w-[3px] rounded-r-full bg-emerald-500" aria-hidden="true" /> : null}
+      <div className={cn("flex items-center gap-2.5 py-2.5", selected ? "pl-3.5 pr-2.5" : "px-2.5")}>
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white">
+          <img src={cursorAsset.imageDataUrl} alt={`${theme.name} 光标`} className="max-h-[22px] max-w-[22px] object-contain" />
         </div>
-
         <div className="min-w-0 flex-1">
-          <div className="truncate text-[13px] font-medium text-slate-900">{theme.name}</div>
-          <div className="mt-0.5 truncate text-[11px] text-slate-500">{theme.summary}</div>
-        </div>
-
-        <div
-          className={cn(
-            "flex size-6 items-center justify-center rounded-full border transition-colors",
-            selected ? "border-emerald-500 bg-emerald-500 text-white" : "border-slate-300 bg-white text-transparent"
-          )}
-          aria-hidden="true"
-        >
-          <Check className="h-3.5 w-3.5" />
+          <div className="truncate text-[13px] font-semibold text-slate-800">{theme.name}</div>
+          <div className="mt-0.5 truncate text-xs text-slate-500">{theme.summary}</div>
         </div>
       </div>
-    </button>
+    </motion.button>
   );
 }
+
+// ── ThemeListSection ──────────────────────────────────────────
 
 function ThemeListSection({ items, activeThemeId, setThemeId, busyKey }) {
   return (
     <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="mb-2 flex items-end justify-between gap-3">
-        <div>
-          <h3 className="text-[15px] font-semibold text-slate-950">快速切换主题</h3>
-        </div>
+      <div className="mb-1.5 flex items-center justify-between gap-3 px-0.5">
+        <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+          主题列表
+          <span className="ml-1 font-normal normal-case text-slate-350">{items.length} 个</span>
+        </h3>
       </div>
-
       <div className="h-0 min-h-0 flex-1 overflow-y-auto pr-1 pb-2">
-        <div className="space-y-1.5">
-        {items.map(({ theme, themePack }) => (
-          <ThemeListCard
-            key={theme.id}
-            theme={theme}
-            themePack={themePack}
-            selected={theme.id === activeThemeId}
-            onSelect={() => setThemeId(theme.id)}
-            disabled={busyKey === "theme"}
-          />
-        ))}
+        <div className="space-y-1">
+          {items.map(({ theme, themePack, actionConfig }) => (
+            <ThemeListCard key={theme.id} theme={theme} themePack={themePack} actionConfig={actionConfig} selected={theme.id === activeThemeId} onSelect={() => setThemeId(theme.id)} disabled={busyKey === "theme"} />
+          ))}
         </div>
       </div>
     </section>
   );
 }
+
+// ── FooterActions ─────────────────────────────────────────────
 
 function FooterActions({ notice, canPreview, busyKey, previewCurrentTheme, openOptionsPage }) {
   const showNotice = notice.tone !== "slate";
   return (
     <footer className="mt-auto shrink-0">
-      {showNotice ? (
-        <div
-          className={cn(
-            "mb-3 rounded-2xl border px-3 py-2 text-[11px]",
-            notice.tone === "rose"
-              ? "border-rose-200 bg-rose-50 text-rose-700"
-              : "border-amber-200 bg-amber-50 text-amber-700"
-          )}
-        >
-          {notice.message}
-        </div>
-      ) : null}
+      <AnimatePresence>
+        {showNotice ? (
+          <motion.div
+            key={notice.message}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className={cn("mb-2 rounded-xl border px-3 py-2 text-xs", notice.tone === "rose" ? "border-rose-200 bg-rose-50 text-rose-700" : "border-amber-200 bg-amber-50 text-amber-700")}
+          >
+            {notice.message}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
       <div className="grid grid-cols-2 gap-2">
-        <Button
-          className="h-[38px] rounded-[14px] bg-emerald-600 text-[13px] font-semibold text-white hover:bg-emerald-700"
-          disabled={!canPreview || busyKey === "preview"}
-          onClick={previewCurrentTheme}
-        >
-          <Eye className="mr-2 h-4.5 w-4.5" />
+        <Button className="h-9 rounded-xl bg-emerald-600 text-[13px] font-semibold text-white shadow-sm hover:bg-emerald-700" disabled={!canPreview || busyKey === "preview"} onClick={previewCurrentTheme}>
+          <Eye className="mr-1.5 size-4" />
           立即预览
         </Button>
-        <Button
-          variant="outline"
-          className="h-[38px] rounded-[14px] border-slate-200 bg-white text-[13px] font-semibold text-slate-900 hover:bg-slate-50"
-          disabled={busyKey === "options"}
-          onClick={openOptionsPage}
-        >
-          <ExternalLink className="mr-2 h-4.5 w-4.5" />
+        <Button variant="outline" className="h-9 rounded-xl border-slate-200 bg-white text-[13px] font-semibold text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50" disabled={busyKey === "options"} onClick={openOptionsPage}>
+          <Settings className="mr-1.5 size-4" />
           打开工作台
         </Button>
       </div>
@@ -338,105 +279,56 @@ function FooterActions({ notice, canPreview, busyKey, previewCurrentTheme, openO
   );
 }
 
-function Header({ enabled, busyKey, setEnabled }) {
-  return (
-    <header className="flex items-center justify-between gap-4">
-      <div className="flex min-w-0 items-center gap-2.5">
-        <BrandMark />
-        <div className="min-w-0">
-          <h1 className="text-[22px] font-semibold leading-none text-slate-900 text-balance">CursorDance</h1>
-          <p className="mt-1 text-[11px] text-slate-500 text-pretty">主题切换器</p>
-        </div>
-      </div>
-
-      <div className="flex shrink-0 items-center gap-2 rounded-full bg-emerald-600 px-2 py-1.5 text-white">
-        <div className="flex size-[22px] items-center justify-center rounded-full bg-white/18">
-          <Globe2 className="h-4 w-4" />
-        </div>
-        <Switch
-          checked={enabled}
-          disabled={busyKey === "enabled"}
-          onCheckedChange={setEnabled}
-          aria-label="全局启用开关"
-          className={enabled ? "bg-white/30" : "bg-emerald-500/60"}
-        />
-      </div>
-    </header>
-  );
-}
+// ── LoadingShell ──────────────────────────────────────────────
 
 function LoadingShell() {
   return (
-    <div className="flex items-center justify-center bg-white" style={{ width: POPUP_WIDTH, height: POPUP_HEIGHT }}>
-      <div className="h-full w-full rounded-none border-0 bg-white p-3.5 shadow-none">
-        <div className="animate-pulse space-y-4">
-          <div className="h-10 rounded-[16px] bg-slate-100" />
-          <div className="h-32 rounded-[18px] bg-slate-100" />
-          <div className="h-40 rounded-[18px] bg-slate-100" />
-          <div className="h-10 rounded-[16px] bg-slate-100" />
+    <div className="flex items-center justify-center" style={{ width: POPUP_WIDTH, height: POPUP_HEIGHT }}>
+      <div className="h-full w-full bg-white p-3">
+        <div className="animate-pulse space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="size-8 rounded-lg bg-slate-100" />
+            <div className="space-y-1.5">
+              <div className="h-3.5 w-20 rounded-md bg-slate-100" />
+              <div className="h-2.5 w-28 rounded-md bg-slate-100" />
+            </div>
+          </div>
+          <div className="h-[168px] rounded-2xl bg-slate-100" />
+          <div className="space-y-1">
+            <div className="h-[46px] rounded-xl bg-slate-100" />
+            <div className="h-[46px] rounded-xl bg-slate-100" />
+            <div className="h-[46px] rounded-xl bg-slate-100" />
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-export default function PopupPage() {
-  const {
-    ready,
-    site,
-    enabled,
-    busyKey,
-    notice,
-    activeAction,
-    activeThemeChoice,
-    themeChoices,
-    setEnabled,
-    setThemeId,
-    previewCurrentTheme,
-    openOptionsPage,
-  } = usePopupState();
+// ── PopupPage ─────────────────────────────────────────────────
 
+export default function PopupPage() {
+  const { ready, site, enabled, busyKey, notice, activeAction, activeThemeChoice, themeChoices, setEnabled, setThemeId, previewCurrentTheme, openOptionsPage } = usePopupState();
   if (!ready) return <LoadingShell />;
 
   return (
     <div
-      className="overflow-hidden bg-white text-slate-900"
-      style={{
-        width: POPUP_WIDTH,
-        height: POPUP_HEIGHT,
-        fontFamily: '"SF Pro Display","SF Pro Text","PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif',
-      }}
+      className="overflow-hidden text-slate-800"
+      style={{ width: POPUP_WIDTH, height: POPUP_HEIGHT, fontFamily: '"SF Pro Display","SF Pro Text","PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif' }}
     >
-      <div className="flex h-full w-full flex-col rounded-[24px] border border-slate-200 bg-white p-3.5">
-        <Header enabled={enabled} busyKey={busyKey} setEnabled={setEnabled} />
+      <div className="flex h-full w-full flex-col gap-2.5 bg-white p-3">
+        <Header enabled={enabled} siteHost={site.host} busyKey={busyKey} setEnabled={setEnabled} />
 
-        <div className="mt-2.5 shrink-0">
-          <CurrentThemeHero
-            theme={activeThemeChoice?.theme}
-            themePack={activeThemeChoice?.themePack}
-            actionConfig={activeThemeChoice?.actionConfig}
-            actionLabel={activeAction?.label || "左键单击"}
-          />
-        </div>
+        <CurrentThemeHero
+          theme={activeThemeChoice?.theme}
+          themePack={activeThemeChoice?.themePack}
+          actionConfig={activeThemeChoice?.actionConfig}
+          actionLabel={activeAction?.label || "左键单击"}
+        />
 
-        <div className="mt-2.5 min-h-0 flex-1 overflow-hidden">
-          <ThemeListSection
-            items={themeChoices}
-            activeThemeId={activeThemeChoice?.theme?.id}
-            setThemeId={setThemeId}
-            busyKey={busyKey}
-          />
-        </div>
+        <ThemeListSection items={themeChoices} activeThemeId={activeThemeChoice?.theme?.id} setThemeId={setThemeId} busyKey={busyKey} />
 
-        <div className="mt-2 shrink-0 border-t border-slate-100 pt-2.5">
-          <FooterActions
-            notice={notice}
-            canPreview={site.isSupportedPage}
-            busyKey={busyKey}
-            previewCurrentTheme={previewCurrentTheme}
-            openOptionsPage={openOptionsPage}
-          />
-        </div>
+        <FooterActions notice={notice} canPreview={site.isSupportedPage} busyKey={busyKey} previewCurrentTheme={previewCurrentTheme} openOptionsPage={openOptionsPage} />
       </div>
     </div>
   );

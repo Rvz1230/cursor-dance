@@ -145,7 +145,7 @@ export function ControlSlider({ value, min, max, onValueChange, suffix = "", dis
         <Slider className="flex-1" value={[value]} min={min} max={max} onValueChange={(next) => commitValue(next[0])} disabled={disabled} aria-label={label} />
         <div
           className={cn(
-            "pointer-events-none absolute -top-7 z-10 -translate-x-1/2 rounded-lg bg-slate-950 px-2 py-1 text-[11px] font-semibold tabular-nums text-white shadow-md transition-opacity",
+            "pointer-events-none absolute -top-7 z-10 -translate-x-1/2 rounded-lg bg-slate-950 px-2 py-1 text-xs font-semibold tabular-nums text-white shadow-md transition-opacity",
             isInteracting ? "opacity-100" : "opacity-0"
           )}
           style={{ left: `${percent}%` }}
@@ -419,7 +419,7 @@ export function ThemeCard({ theme, selected, onClick, onDuplicate, onExport, onD
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <div className="truncate text-[13px] font-semibold text-slate-900">{theme.name}</div>
+              <div className="truncate text-sm font-semibold text-slate-900">{theme.name}</div>
               <DataPill tone={theme.kind === "内置" ? "teal" : "amber"}>{theme.kind}</DataPill>
               {selected ? <Check className="size-4 shrink-0 text-slate-900" aria-label="当前选中" /> : null}
             </div>
@@ -480,7 +480,7 @@ export function WorkspaceItem({ item, active, onClick, compact = false }) {
       onClick={onClick}
       className={cn(
         compact
-          ? "inline-flex whitespace-nowrap items-center gap-2 rounded-xl border px-2.5 py-1.5 text-[13px] transition-colors"
+          ? "inline-flex whitespace-nowrap items-center gap-2 rounded-xl border px-2.5 py-1.5 text-sm transition-all active:scale-[0.97]"
           : "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors",
         compact
           ? active
@@ -503,7 +503,7 @@ export function ActionTab({ item, active, onClick }) {
       type="button"
       onClick={onClick}
       className={cn(
-        "min-w-fit rounded-xl border px-3 py-1.5 text-[13px] font-medium transition-colors",
+        "min-w-fit rounded-xl border px-3 py-1.5 text-sm font-medium transition-all active:scale-[0.97]",
         active ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900"
       )}
     >
