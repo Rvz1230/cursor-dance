@@ -29,7 +29,7 @@ export function Slider({ className, value, onValueChange, min = 0, max = 100, st
   )
 }
 
-export function NativeRangeInput({ className, value, onChange, min = 0, max = 100, step = 1, disabled = false, ...props }) {
+function NativeRangeInput({ className, value, onChange, min = 0, max = 100, step = 1, disabled = false, ...props }) {
   return (
     <input
       type="range"

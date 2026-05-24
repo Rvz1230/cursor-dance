@@ -4,8 +4,6 @@ import { X } from 'lucide-react'
 import { cn } from './utils.js'
 
 export const Dialog = DialogPrimitive.Root
-export const DialogTrigger = DialogPrimitive.Trigger
-export const DialogClose = DialogPrimitive.Close
 
 export function DialogContent({ className, children, titleId, title, showClose = true, ...props }) {
   const fallbackTitle = title || '对话框'
@@ -35,5 +33,4 @@ export function DialogContent({ className, children, titleId, title, showClose =
   )
 }
 
-export const DialogTitle = DialogPrimitive.Title
 export const DialogDescription = DialogPrimitive.Description
