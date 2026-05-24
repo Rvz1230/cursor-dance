@@ -48,7 +48,6 @@ import {
   TEXT_WEIGHT_OPTIONS,
   TRIGGER_OPTIONS,
   getConflictsForAction,
-  getDefaultActionConfigs,
   getActionAudioConfig,
   getActionAnimationConfig,
   getActionCursorFeedbackConfig,
@@ -63,6 +62,7 @@ import {
   pickStoredWorkbenchActionConfig,
   pickStoredWorkbenchActionConfigs,
 } from "./actionConfigSchema.js";
+import { getDefaultActionConfigs } from "./actionConfigPresets.js";
 
 export const WORKSPACES = [
   { id: "workbench", label: "主题工作台", icon: Wand2 },
@@ -313,7 +313,6 @@ export {
   getActionTextConfig,
   getActionTriggerConfig,
   getConflictsForAction,
-  getDefaultActionConfigs,
   getTimingFieldMeta,
   mergeActionConfig,
   pickStoredWorkbenchActionConfig,

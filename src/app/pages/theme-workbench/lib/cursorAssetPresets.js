@@ -137,12 +137,12 @@ function getWoodfishPreset(stateId) {
   };
 }
 
-export const CURSOR_BUILTIN_PRESET_OPTIONS = [
+const CURSOR_BUILTIN_PRESET_OPTIONS = [
   { value: "system", label: "系统样例" },
   { value: "woodfish", label: "木鱼样例" },
 ];
 
-export function getBuiltinCursorPresetCards(stateId) {
+function getBuiltinCursorPresetCards(stateId) {
   return [
     {
       id: "system",

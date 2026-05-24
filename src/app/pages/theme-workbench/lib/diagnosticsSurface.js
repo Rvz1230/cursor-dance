@@ -1,4 +1,4 @@
-export const MAX_DIAGNOSTIC_ENTRIES = 80;
+const MAX_DIAGNOSTIC_ENTRIES = 80;
 
 export function appendDiagnosticEntry(entries, entry, maxEntries = MAX_DIAGNOSTIC_ENTRIES) {
   const currentEntries = Array.isArray(entries) ? entries : [];
