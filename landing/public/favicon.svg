@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <defs>
+    <linearGradient id="g" x1="2" y1="2" x2="30" y2="30" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#a78bfa"/>
+      <stop offset="1" stop-color="#3b82f6"/>
+    </linearGradient>
+  </defs>
+  <!-- Cursor arrow -->
+  <path d="M5 3L6 27L13 19L20 26L22 25L15 17L26 12L5 3Z" fill="url(#g)"/>
+  <!-- Particle dots -->
+  <circle cx="26" cy="8" r="2" fill="#c084fc" opacity="0.9"/>
+  <circle cx="24" cy="5" r="1.5" fill="#818cf8" opacity="0.7"/>
+  <circle cx="28" cy="11" r="1" fill="#22d3ee" opacity="0.6"/>
+</svg>
