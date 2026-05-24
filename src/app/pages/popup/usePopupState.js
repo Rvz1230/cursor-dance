@@ -10,9 +10,9 @@ import {
   readLivePreviewConfig,
   subscribeExtensionConfig,
   subscribeLivePreviewConfig,
-  writeLivePreviewConfig,
   writeExtensionConfig,
 } from "../theme-workbench/lib/extensionConfig.js";
+import { getRuntimeConfig } from "../theme-workbench/lib/runtimeConfig.js";
 import { ACTIONS } from "../theme-workbench/model/workbenchSchema.js";
 
 const EMPTY_SITE = {
@@ -116,6 +116,16 @@ export function usePopupState() {
   }, [effectiveConfig, site]);
 
   const activeThemeId = hydrated.selection.themeId;
+  const siteRule = (() => {
+    const runtime = getRuntimeConfig();
+    if (typeof runtime.getSiteRule === "function") {
+      return runtime.getSiteRule(effectiveConfig, site.host);
+    }
+    return { mode: "inherit" };
+  })();
+  const effectiveActiveThemeId = siteRule.mode === "enabled" && siteRule.themePackId
+    ? siteRule.themePackId
+    : activeThemeId;
   const previewActionId = getPreviewActionId(effectiveConfig);
   const activeAction = ACTIONS.find((item) => item.id === previewActionId) ?? ACTIONS[0];
 
@@ -132,7 +142,7 @@ export function usePopupState() {
     [effectiveConfig?.themePacks, hydrated.draftsByTheme, hydrated.themeLibrary, previewActionId]
   );
 
-  const activeThemeChoice = themeChoices.find((item) => item.theme.id === activeThemeId) ?? themeChoices[0] ?? null;
+  const activeThemeChoice = themeChoices.find((item) => item.theme.id === effectiveActiveThemeId) ?? themeChoices[0] ?? null;
   const enabled = effectiveConfig?.enabled !== false;
 
   async function commitConfig(key, updater, nextNotice) {
@@ -142,17 +152,18 @@ export function usePopupState() {
       const currentLivePreviewConfig = await readLivePreviewConfig();
       const nextConfig = normalizeStoredConfig(await updater(currentConfig));
       const savedConfig = await writeExtensionConfig(nextConfig);
-      const nextLivePreviewConfig = currentLivePreviewConfig
-        ? normalizeStoredConfig(await updater(currentLivePreviewConfig))
-        : null;
       setConfig(savedConfig);
-      if (nextLivePreviewConfig) {
-        await writeLivePreviewConfig(nextLivePreviewConfig);
-        setLivePreviewConfig(nextLivePreviewConfig);
-      } else {
+
+      if (currentLivePreviewConfig) {
         await clearLivePreviewConfig();
         setLivePreviewConfig(null);
+        setNotice({
+          tone: "amber",
+          message: "本地预览已结束，当前配置已保存。",
+        });
+        return savedConfig;
       }
+
       if (nextNotice) setNotice(nextNotice);
       return savedConfig;
     } catch (error) {
@@ -183,15 +194,32 @@ export function usePopupState() {
   async function setThemeId(themeId) {
     const savedConfig = await commitConfig(
       "theme",
-      async (currentConfig) => ({
-        ...currentConfig,
-        activeThemePackId: themeId,
-        activeSchemeId: themeId,
-        editor: {
-          ...(currentConfig.editor || {}),
-          lastActionId: previewActionId,
-        },
-      }),
+      async (currentConfig) => {
+        const runtime = getRuntimeConfig();
+        const currentSiteRule = typeof runtime.getSiteRule === "function"
+          ? runtime.getSiteRule(currentConfig, site.host)
+          : { mode: "inherit" };
+
+        if (currentSiteRule.mode === "enabled" && site.host && typeof runtime.setSiteRuleThemePackId === "function") {
+          return runtime.setSiteRuleThemePackId(currentConfig, site.host, themeId);
+        }
+        if (currentSiteRule.mode === "disabled" && site.host && typeof runtime.setSiteRuleMode === "function") {
+          const enabledConfig = runtime.setSiteRuleMode(currentConfig, site.host, "enabled");
+          if (typeof runtime.setSiteRuleThemePackId === "function") {
+            return runtime.setSiteRuleThemePackId(enabledConfig, site.host, themeId);
+          }
+          return enabledConfig;
+        }
+        return {
+          ...currentConfig,
+          activeThemePackId: themeId,
+          activeSchemeId: themeId,
+          editor: {
+            ...(currentConfig.editor || {}),
+            lastActionId: previewActionId,
+          },
+        };
+      },
       {
         tone: "slate",
         message: "当前主题已切换。",
@@ -213,11 +241,11 @@ export function usePopupState() {
         success
           ? {
             tone: "slate",
-            message: site.isPreviewMode ? "已触发本地预览动画。" : "已向当前网页发送预览。",
+            message: site.isPreviewMode ? "已触发本地测试效果。" : "已向当前网页发送测试效果。",
           }
           : {
             tone: "amber",
-            message: "当前页面无法预览，请刷新目标网页后重试。",
+            message: "当前页面无法发送效果，请刷新目标网页后重试。",
           }
       );
     } catch (error) {
@@ -261,6 +289,7 @@ export function usePopupState() {
     activeAction,
     activeThemeChoice,
     themeChoices,
+    siteRule,
     setEnabled,
     setThemeId,
     previewCurrentTheme,

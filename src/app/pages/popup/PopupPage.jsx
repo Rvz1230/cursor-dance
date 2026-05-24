@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Eye, Globe2, Settings } from "lucide-react";
+import { AlertTriangle, Globe2, Play, Settings, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button.jsx";
 import { Switch } from "@/components/ui/switch.jsx";
 import { cn } from "@/components/ui/utils.js";
@@ -121,7 +121,8 @@ function HeroPreview({ themePack, actionConfig, themeId }) {
 
 // ── Header ────────────────────────────────────────────────────
 
-function Header({ enabled, siteHost, busyKey, setEnabled }) {
+function Header({ enabled, siteHost, siteRule, busyKey, setEnabled }) {
+  const siteRuleActive = siteRule?.mode === "enabled" || siteRule?.mode === "disabled";
   return (
     <header className="flex items-center justify-between gap-2">
       <div className="flex min-w-0 items-center gap-2">
@@ -136,6 +137,20 @@ function Header({ enabled, siteHost, busyKey, setEnabled }) {
           <p className="mt-0.5 flex items-center gap-1 text-[11px] text-slate-500 truncate">
             {siteHost ? <Globe2 className="size-3 shrink-0" /> : null}
             <span className="truncate">{siteHost || "主题切换器"}</span>
+            {siteRuleActive ? (
+              <span className={cn(
+                "ml-0.5 inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-px text-[10px] font-medium",
+                siteRule.mode === "disabled"
+                  ? "bg-rose-100 text-rose-600"
+                  : "bg-amber-100 text-amber-700"
+              )}>
+                {siteRule.mode === "disabled" ? (
+                  <><AlertTriangle className="size-2.5" />站点已禁用</>
+                ) : (
+                  <><Zap className="size-2.5" />站点专属</>
+                )}
+              </span>
+            ) : null}
           </p>
         </div>
       </div>
@@ -224,7 +239,9 @@ function ThemeListCard({ theme, themePack, actionConfig, selected, onSelect, dis
 
 // ── ThemeListSection ──────────────────────────────────────────
 
-function ThemeListSection({ items, activeThemeId, setThemeId, busyKey }) {
+function ThemeListSection({ items, activeThemeId, siteRule, busyKey, setThemeId }) {
+  const siteRuleActive = siteRule?.mode === "enabled";
+  const siteRuleDisabled = siteRule?.mode === "disabled";
   return (
     <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div className="mb-1.5 flex items-center justify-between gap-3 px-0.5">
@@ -233,6 +250,16 @@ function ThemeListSection({ items, activeThemeId, setThemeId, busyKey }) {
           <span className="ml-1 font-normal normal-case text-slate-350">{items.length} 个</span>
         </h3>
       </div>
+      {siteRuleActive ? (
+        <div className="mb-1.5 rounded-lg border border-amber-200/60 bg-amber-50/70 px-2.5 py-1.5 text-[11px] text-amber-700">
+          此站点已绑定专属主题，切换将更新站点规则。
+        </div>
+      ) : null}
+      {siteRuleDisabled ? (
+        <div className="mb-1.5 rounded-lg border border-rose-200/60 bg-rose-50/70 px-2.5 py-1.5 text-[11px] text-rose-700">
+          此站点的特效已禁用，切换主题将重新启用。
+        </div>
+      ) : null}
       <div className="h-0 min-h-0 flex-1 overflow-y-auto pr-1 pb-2">
         <div className="space-y-1">
           {items.map(({ theme, themePack, actionConfig }) => (
@@ -267,8 +294,8 @@ function FooterActions({ notice, canPreview, busyKey, previewCurrentTheme, openO
 
       <div className="grid grid-cols-2 gap-2">
         <Button className="h-9 rounded-xl bg-emerald-600 text-[13px] font-semibold text-white shadow-sm hover:bg-emerald-700" disabled={!canPreview || busyKey === "preview"} onClick={previewCurrentTheme}>
-          <Eye className="mr-1.5 size-4" />
-          立即预览
+          <Play className="mr-1.5 size-4" />
+          测试效果
         </Button>
         <Button variant="outline" className="h-9 rounded-xl border-slate-200 bg-white text-[13px] font-semibold text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50" disabled={busyKey === "options"} onClick={openOptionsPage}>
           <Settings className="mr-1.5 size-4" />
@@ -308,7 +335,7 @@ function LoadingShell() {
 // ── PopupPage ─────────────────────────────────────────────────
 
 export default function PopupPage() {
-  const { ready, site, enabled, busyKey, notice, activeAction, activeThemeChoice, themeChoices, setEnabled, setThemeId, previewCurrentTheme, openOptionsPage } = usePopupState();
+  const { ready, site, enabled, busyKey, notice, activeAction, activeThemeChoice, themeChoices, siteRule, setEnabled, setThemeId, previewCurrentTheme, openOptionsPage } = usePopupState();
   if (!ready) return <LoadingShell />;
 
   return (
@@ -317,7 +344,7 @@ export default function PopupPage() {
       style={{ width: POPUP_WIDTH, height: POPUP_HEIGHT, fontFamily: '"SF Pro Display","SF Pro Text","PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif' }}
     >
       <div className="flex h-full w-full flex-col gap-2.5 bg-white p-3">
-        <Header enabled={enabled} siteHost={site.host} busyKey={busyKey} setEnabled={setEnabled} />
+        <Header enabled={enabled} siteHost={site.host} siteRule={siteRule} busyKey={busyKey} setEnabled={setEnabled} />
 
         <CurrentThemeHero
           theme={activeThemeChoice?.theme}
@@ -326,7 +353,7 @@ export default function PopupPage() {
           actionLabel={activeAction?.label || "左键单击"}
         />
 
-        <ThemeListSection items={themeChoices} activeThemeId={activeThemeChoice?.theme?.id} setThemeId={setThemeId} busyKey={busyKey} />
+        <ThemeListSection items={themeChoices} activeThemeId={activeThemeChoice?.theme?.id} siteRule={siteRule} busyKey={busyKey} setThemeId={setThemeId} />
 
         <FooterActions notice={notice} canPreview={site.isSupportedPage} busyKey={busyKey} previewCurrentTheme={previewCurrentTheme} openOptionsPage={openOptionsPage} />
       </div>

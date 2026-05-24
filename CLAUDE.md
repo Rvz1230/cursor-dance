@@ -7,7 +7,7 @@ CursorDance is a Chrome extension (Manifest V3) that adds customizable mouse int
 ```
 npm run dev           # Vite dev server (workbench + popup)
 npm run build         # Production build → dist/
-npm run test          # Vitest unit tests (50 tests)
+npm run test          # Vitest unit tests (51 tests)
 npm run test:smoke    # Playwright E2E smoke tests
 npm run ai:dev        # AI API server (scripts/ai-api-server.mjs)
 ```
@@ -16,7 +16,9 @@ npm run ai:dev        # AI API server (scripts/ai-api-server.mjs)
 
 ### Three entrypoints
 - `index.html` + `main.jsx` → **Workbench** (extension options page, full React app)
-- `popup.html` + `popup-main.jsx` → **Popup** (toolbar popup, 408×600px fixed)
+- `popup.html` + `popup-main.jsx` → **Popup** (toolbar popup, 360×540px fixed)
+  - Reads global config and live preview config, resolves active theme respecting per-site rules
+  - Popup theme switches update site rule if one exists for current host, otherwise update global active theme
 - `public/content.js` → **Content script runtime** (injected into every page)
 
 ### Content script module system
@@ -54,7 +56,7 @@ Default action configs live in two places:
 - **Runtime**: `config-store.js` → `getBaseActionConfigs()` (hardcoded for content script)
 - **Workbench**: `actionConfigPresets.js` → `getDefaultActionConfigs(themeId)` (importable)
 
-These must stay in sync.
+These must stay in sync. A test at `actionConfigSync.test.js` validates this automatically by comparing both outputs.
 
 ### AI Scheme Assistant
 Workbench panel that calls `/api/ai/scheme-proposals` → `scripts/ai-model-provider.mjs` (OpenAI Responses API format, DeepSeek model). Full sanitize pipeline in `aiSchemeAssistant.js`: numeric clamping, enum whitelisting, hex color normalization, user intent repair (e.g., "不要声音" → forces `sound: false, volume: 0`).

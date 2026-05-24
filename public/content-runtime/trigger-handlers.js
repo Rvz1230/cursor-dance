@@ -57,6 +57,14 @@
 
     function triggerAction(sourceActionId, coords, scheme, options = {}) {
       const triggerSource = getTriggerSource(options);
+      if (!state.ready) {
+        diagnostics?.log("action.skip", {
+          reason: "not-ready",
+          sourceActionId,
+          triggerSource,
+        });
+        return;
+      }
       if (!configStore.isCurrentSiteEnabled()) {
         diagnostics?.log("action.skip", {
           reason: "site-disabled",

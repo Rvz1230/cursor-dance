@@ -1,7 +1,7 @@
 const ACTION_CONFIG_SHARED_DEFAULTS = {
   textStyle: "阿拉伯数字 (1, 2, 3)",
   textMode: "默认模式 (+1)",
-  textTemplate: "你当前点击了${number}次",
+  textTemplate: "${number}",
   textTagPlayMode: "按顺序显示",
   textOpacity: 100,
   textFontFamily: "系统默认",
@@ -111,7 +111,6 @@ const ACTION_CONFIG_PRESETS = {
     sound: false,
     fontSize: 18,
     volume: 60,
-    playbackRate: 96,
     soundFadeOut: 40,
     soundTriggerMode: "节流播放",
     shake: 18,

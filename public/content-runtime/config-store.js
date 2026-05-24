@@ -256,7 +256,6 @@
           sound: false,
           fontSize: 18,
           volume: 60,
-          playbackRate: 96,
           soundFadeOut: 40,
           soundTriggerMode: "节流播放",
           shake: 18,
@@ -362,7 +361,6 @@
           imageOffsetX: 0,
           imageOffsetY: -18,
           soundDelay: 0,
-          particleStyle: "火花",
         },
         longPress: {
           textKind: "文本飘字",

@@ -18,6 +18,7 @@
 
   const state = {
     config: null,
+    ready: false,
     lastTriggerAtByAction: Object.create(null),
     actionRunCounts: Object.create(null),
     actionComboStates: Object.create(null),
@@ -86,8 +87,10 @@
     host: window.location.host || null,
     localPreviewHost: configStore.isLocalPreviewHost(),
   });
-  void configStore.syncConfigFromStorage({
+  configStore.syncConfigFromStorage({
     clearStateCursorOverlay: cursorOverlay.clearStateCursorOverlay,
+  }).finally(() => {
+    state.ready = true;
   });
 
   if (configStore.isLocalPreviewHost()) {
