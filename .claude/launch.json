@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "cursor-dance-dev",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "--port", "5199", "--host", "0.0.0.0"],
+      "port": 5199
+    }
+  ]
+}

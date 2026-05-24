@@ -161,35 +161,7 @@ function getThemeSummaryActionConfig(themePack) {
   if (themePack?.workbenchDraft?.actionConfigs?.leftClick) {
     const baseActionConfig = createThemeDraft(themePack?.id).actionConfigs.leftClick;
     const storedActionConfig = themePack.workbenchDraft.actionConfigs.leftClick;
-    if (!themePack?.behavior?.click) {
-      return mergeActionConfig(baseActionConfig, storedActionConfig);
-    }
-    const textEffect = themePack?.behavior?.click?.effects?.text ?? {};
-    const rippleEffect = themePack?.behavior?.click?.effects?.ripple ?? {};
-    const particleEffect = themePack?.behavior?.click?.effects?.particle ?? {};
-    const runtimeConfig = typeof window === "undefined" ? null : window.CursorDanceConfigRuntime;
-    const inferredTextConfig = runtimeConfig?.resolveActionTextConfigFromEffect?.(baseActionConfig, textEffect) ?? baseActionConfig;
-    const behaviorBackedActionConfig = {
-      ...inferredTextConfig,
-      textEnabled: textEffect.enabled !== false,
-      textColor: textEffect.color ?? baseActionConfig.textColor,
-      fontSize: textEffect.fontSize ?? baseActionConfig.fontSize,
-      textFontFamily: textEffect.fontFamily ?? baseActionConfig.textFontFamily,
-      textWeight: (textEffect.fontWeight ?? 800) >= 700 ? "加粗" : (textEffect.fontWeight ?? 800) >= 600 ? "中等" : "常规",
-      textOffsetX: textEffect.offsetX ?? baseActionConfig.textOffsetX,
-      textOffsetY: textEffect.offsetY ?? baseActionConfig.textOffsetY,
-      textDuration: textEffect.durationMs ?? baseActionConfig.textDuration,
-      ripple: rippleEffect.enabled !== false,
-      rippleSize: rippleEffect.size ?? baseActionConfig.rippleSize,
-      rippleDuration: rippleEffect.durationMs ?? baseActionConfig.rippleDuration,
-      particle: particleEffect.enabled !== false,
-      particleCount: particleEffect.count ?? baseActionConfig.particleCount,
-      particleSize: particleEffect.size ?? baseActionConfig.particleSize,
-      particleSpread: particleEffect.baseDistance ?? baseActionConfig.particleSpread,
-      particleDuration: particleEffect.durationMs ?? baseActionConfig.particleDuration,
-      holdMs: themePack?.behavior?.click?.trigger?.cooldownMs ?? baseActionConfig.holdMs,
-    };
-    return mergeActionConfig(baseActionConfig, storedActionConfig, behaviorBackedActionConfig);
+    return mergeActionConfig(baseActionConfig, storedActionConfig);
   }
   if (themePack?.id && THEME_TONE_BY_ID[themePack.id]) {
     return createThemeDraft(themePack.id).actionConfigs.leftClick;
@@ -199,10 +171,9 @@ function getThemeSummaryActionConfig(themePack) {
 
 function buildThemeSummary(themePack) {
   const actionConfig = getThemeSummaryActionConfig(themePack);
-  const effects = themePack?.behavior?.click?.effects ?? {};
   const parts = [];
 
-  if (actionConfig?.textEnabled || effects.text?.enabled !== false) {
+  if (actionConfig?.textEnabled) {
     parts.push(actionConfig?.textKind === "文本飘字" ? "文本飘字" : "数字飘字");
   }
   if (actionConfig?.sound) {
@@ -214,10 +185,10 @@ function buildThemeSummary(themePack) {
   if (actionConfig?.imageEnabled) {
     parts.push("图片贴纸");
   }
-  if (actionConfig?.ripple || effects.ripple?.enabled !== false) {
+  if (actionConfig?.ripple) {
     parts.push("轻波纹");
   }
-  if (actionConfig?.particle || effects.particle?.enabled !== false) {
+  if (actionConfig?.particle) {
     parts.push("粒子反馈");
   }
 

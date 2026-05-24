@@ -99,39 +99,32 @@
       description: "功德 +1、声音反馈和轻波纹，适合默认工作流。",
       kind: "custom",
       cursorStates: createDefaultCursorStates(),
-      behavior: {
-        click: {
-          enabled: true,
-          trigger: {
-            button: "left",
-            cooldownMs: 80,
-          },
-          effects: {
-            text: {
-              enabled: true,
-              content: "功德 +1",
-              color: "#b45309",
-              fontSize: 24,
-              fontWeight: 800,
-              offsetX: 0,
-              offsetY: -52,
-              durationMs: 1000,
-            },
-            ripple: {
-              enabled: true,
-              color: "#fbbf24",
-              size: 104,
-              durationMs: 820,
-            },
-            particle: {
-              enabled: true,
-              color: "#f59e0b",
-              count: 18,
-              size: 9,
-              baseDistance: 56,
-              distanceStep: 10,
-              durationMs: 760,
-            },
+      workbenchDraft: {
+        actionConfigs: {
+          leftClick: {
+            textEnabled: true,
+            textContent: "+1",
+            textTags: ["功德 +1", "继续点击", "已触发"],
+            textColor: "#B45309",
+            fontSize: 24,
+            textWeight: "加粗",
+            textOffsetY: -52,
+            textDuration: 1000,
+            comboEnabled: true,
+            ripple: true,
+            rippleSize: 104,
+            rippleDuration: 820,
+            particle: true,
+            particleCount: 18,
+            particleSize: 9,
+            particleSpread: 56,
+            particleDuration: 760,
+            sound: true,
+            volume: 78,
+            shake: 42,
+            cursorOverride: "木鱼（继承默认）",
+            holdMs: 80,
+            soundFile: "woodfish-soft.wav",
           },
         },
       },
@@ -142,39 +135,32 @@
       description: "保留反馈但更克制，适合日常浏览。",
       kind: "builtin",
       cursorStates: createDefaultCursorStates(),
-      behavior: {
-        click: {
-          enabled: true,
-          trigger: {
-            button: "left",
-            cooldownMs: 110,
-          },
-          effects: {
-            text: {
-              enabled: true,
-              content: "收到",
-              color: "#475569",
-              fontSize: 22,
-              fontWeight: 700,
-              offsetX: 10,
-              offsetY: -48,
-              durationMs: 760,
-            },
-            ripple: {
-              enabled: true,
-              color: "#94a3b8",
-              size: 96,
-              durationMs: 620,
-            },
-            particle: {
-              enabled: true,
-              color: "#cbd5e1",
-              count: 8,
-              size: 5,
-              baseDistance: 34,
-              distanceStep: 6,
-              durationMs: 540,
-            },
+      workbenchDraft: {
+        actionConfigs: {
+          leftClick: {
+            textEnabled: true,
+            textContent: "+1",
+            textTags: ["功德 +1", "继续点击", "已触发"],
+            textColor: "#0F766E",
+            fontSize: 18,
+            textWeight: "中等",
+            textOffsetX: 10,
+            textOffsetY: -48,
+            textDuration: 760,
+            comboEnabled: true,
+            ripple: true,
+            rippleSize: 96,
+            rippleDuration: 620,
+            particle: false,
+            particleCount: 8,
+            particleSize: 5,
+            particleSpread: 34,
+            particleDuration: 540,
+            sound: false,
+            shake: 12,
+            cursorOverride: "木鱼（继承默认）",
+            holdMs: 110,
+            soundFile: "woodfish-soft.wav",
           },
         },
       },
@@ -185,39 +171,33 @@
       description: "更亮、更大，适合演示和录屏。",
       kind: "builtin",
       cursorStates: createDefaultCursorStates(),
-      behavior: {
-        click: {
-          enabled: true,
-          trigger: {
-            button: "left",
-            cooldownMs: 60,
-          },
-          effects: {
-            text: {
-              enabled: true,
-              content: "Nice!",
-              color: "#7c3aed",
-              fontSize: 30,
-              fontWeight: 900,
-              offsetX: 14,
-              offsetY: -62,
-              durationMs: 1020,
-            },
-            ripple: {
-              enabled: true,
-              color: "#facc15",
-              size: 138,
-              durationMs: 900,
-            },
-            particle: {
-              enabled: true,
-              color: "#f59e0b",
-              count: 18,
-              size: 9,
-              baseDistance: 62,
-              distanceStep: 12,
-              durationMs: 860,
-            },
+      workbenchDraft: {
+        actionConfigs: {
+          leftClick: {
+            textEnabled: true,
+            textContent: "+1",
+            textTags: ["功德 +1", "继续点击", "已触发"],
+            textColor: "#7C3AED",
+            fontSize: 26,
+            textWeight: "加粗",
+            textOffsetX: 14,
+            textOffsetY: -62,
+            textDuration: 1020,
+            comboEnabled: true,
+            ripple: true,
+            rippleSize: 138,
+            rippleDuration: 900,
+            particle: true,
+            particleCount: 26,
+            particleSize: 9,
+            particleSpread: 62,
+            particleDuration: 860,
+            sound: true,
+            volume: 84,
+            shake: 55,
+            cursorOverride: "木鱼（增强态）",
+            holdMs: 60,
+            soundFile: "woodfish-soft.wav",
           },
         },
       },
@@ -228,39 +208,33 @@
       description: "柔和粒子和粉色飘字，适合轻互动主题。",
       kind: "custom",
       cursorStates: createDefaultCursorStates(),
-      behavior: {
-        click: {
-          enabled: true,
-          trigger: {
-            button: "left",
-            cooldownMs: 90,
-          },
-          effects: {
-            text: {
-              enabled: true,
-              content: "花开",
-              color: "#be185d",
-              fontSize: 24,
-              fontWeight: 700,
-              offsetX: 0,
-              offsetY: -52,
-              durationMs: 920,
-            },
-            ripple: {
-              enabled: true,
-              color: "#f9a8d4",
-              size: 108,
-              durationMs: 760,
-            },
-            particle: {
-              enabled: true,
-              color: "#f472b6",
-              count: 16,
-              size: 8,
-              baseDistance: 50,
-              distanceStep: 8,
-              durationMs: 720,
-            },
+      workbenchDraft: {
+        actionConfigs: {
+          leftClick: {
+            textEnabled: true,
+            textContent: "+1",
+            textTags: ["功德 +1", "继续点击", "已触发"],
+            textStyle: "中文数字 (一, 二, 三)",
+            textColor: "#BE185D",
+            fontSize: 24,
+            textWeight: "加粗",
+            textOffsetY: -52,
+            textDuration: 920,
+            comboEnabled: true,
+            ripple: true,
+            rippleSize: 108,
+            rippleDuration: 760,
+            particle: true,
+            particleCount: 16,
+            particleSize: 8,
+            particleSpread: 50,
+            particleDuration: 720,
+            sound: true,
+            volume: 68,
+            shake: 26,
+            cursorOverride: "木鱼（继承默认）",
+            holdMs: 90,
+            soundFile: "woodfish-soft.wav",
           },
         },
       },
@@ -273,40 +247,27 @@
 
   function mergeThemePackWithFallback(fallbackPack, pack) {
     const normalizedId = normalizeThemePackId(pack?.id || fallbackPack?.id);
+    const mergedWorkbenchDraft = {
+      ...(fallbackPack.workbenchDraft || {}),
+      ...(pack?.workbenchDraft || {}),
+      actionConfigs: {
+        ...(fallbackPack.workbenchDraft?.actionConfigs || {}),
+        ...(pack?.workbenchDraft?.actionConfigs || {}),
+      },
+    };
+    Object.keys(mergedWorkbenchDraft.actionConfigs).forEach((actionId) => {
+      mergedWorkbenchDraft.actionConfigs[actionId] = {
+        ...(fallbackPack.workbenchDraft?.actionConfigs?.[actionId] || {}),
+        ...(pack?.workbenchDraft?.actionConfigs?.[actionId] || {}),
+      };
+    });
     return {
       ...fallbackPack,
       ...pack,
       id: normalizedId,
       kind: pack?.kind || fallbackPack.kind || "custom",
       cursorStates: mergeCursorStates(fallbackPack.cursorStates, pack?.cursorStates),
-      behavior: {
-        ...(fallbackPack.behavior || {}),
-        ...(pack?.behavior || {}),
-        click: {
-          ...(fallbackPack.behavior?.click || {}),
-          ...(pack?.behavior?.click || {}),
-          trigger: {
-            ...(fallbackPack.behavior?.click?.trigger || {}),
-            ...(pack?.behavior?.click?.trigger || {}),
-          },
-          effects: {
-            ...(fallbackPack.behavior?.click?.effects || {}),
-            ...(pack?.behavior?.click?.effects || {}),
-            text: {
-              ...(fallbackPack.behavior?.click?.effects?.text || {}),
-              ...(pack?.behavior?.click?.effects?.text || {}),
-            },
-            ripple: {
-              ...(fallbackPack.behavior?.click?.effects?.ripple || {}),
-              ...(pack?.behavior?.click?.effects?.ripple || {}),
-            },
-            particle: {
-              ...(fallbackPack.behavior?.click?.effects?.particle || {}),
-              ...(pack?.behavior?.click?.effects?.particle || {}),
-            },
-          },
-        },
-      },
+      workbenchDraft: mergedWorkbenchDraft,
     };
   }
 

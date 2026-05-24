@@ -124,8 +124,8 @@ describe("themeDraftAdapter", () => {
       }
     );
 
-    expect(previewPack.behavior.click.effects.text.tags).toEqual(["主文案", "备选文案", "第三条"]);
-    expect(previewPack.behavior.click.effects.text.content).toBe("主文案");
+    expect(previewPack.workbenchDraft.actionConfigs.leftClick.textTags).toEqual(["备选文案", "主文案", "第三条"]);
+    expect(previewPack.workbenchDraft.actionConfigs.leftClick.textContent).toBe("主文案");
     expect(previewPack.cursorStates.wait).toEqual({
       mode: "override",
       actionId: "doubleClick",
@@ -297,12 +297,12 @@ describe("themeDraftAdapter", () => {
     const storedConfig = buildStoredConfigFromWorkbench(defaultConfig, state);
     const storedThemePack = storedConfig.themePacks.find((item) => item.id === "woodfish");
 
-    expect(storedThemePack.behavior.click.effects.text).toMatchObject({
-      kind: "number",
-      mode: "default",
+    expect(storedThemePack.workbenchDraft.actionConfigs.leftClick).toMatchObject({
+      textKind: "数字飘字",
+      textMode: "默认模式 (+1)",
       comboEnabled: true,
     });
-    expect(storedThemePack.behavior.click.effects.text.tags).toEqual(["功德 +1", "继续点击", "已触发"]);
+    expect(storedThemePack.workbenchDraft.actionConfigs.leftClick.textTags).toEqual(["功德 +1", "继续点击", "已触发"]);
     expect(runtime.getActionTextConfig(draft).textKind).toBe("数字飘字");
   });
 
@@ -314,16 +314,15 @@ describe("themeDraftAdapter", () => {
       themePacks: [
         {
           id: "woodfish",
-          behavior: {
-            click: {
-              effects: {
-                text: {
-                  enabled: true,
-                  kind: "text",
-                  content: "第一条",
-                  tags: ["第二条", "第一条", "第三条"],
-                  tagPlayMode: "按顺序显示",
-                },
+          workbenchDraft: {
+            actionConfigs: {
+              leftClick: {
+                textKind: "文本飘字",
+                textEnabled: true,
+                textContent: "第一条",
+                textTags: ["第二条", "第一条", "第三条"],
+                textTagPlayMode: "按顺序显示",
+                comboEnabled: false,
               },
             },
           },
@@ -336,19 +335,20 @@ describe("themeDraftAdapter", () => {
 
     expect(draft.textKind).toBe("文本飘字");
     expect(draft.textContent).toBe("第一条");
-    expect(draft.textTags).toEqual(["第一条", "第二条", "第三条"]);
+    expect(draft.textTags).toEqual(["第二条", "第一条", "第三条"]);
 
     const storedConfig = buildStoredConfigFromWorkbench(customConfig, state);
     const storedThemePack = storedConfig.themePacks.find((item) => item.id === "woodfish");
 
-    expect(storedThemePack.behavior.click.effects.text.content).toBe("第一条");
-    expect(storedThemePack.behavior.click.effects.text.tags).toEqual(["第一条", "第二条", "第三条"]);
+    expect(storedThemePack.workbenchDraft.actionConfigs.leftClick.textContent).toBe("第一条");
+    expect(storedThemePack.workbenchDraft.actionConfigs.leftClick.textTags).toEqual(["第二条", "第一条", "第三条"]);
   });
 
   it("builds preview overlays without mutating persisted config semantics", () => {
     const { defaultConfig } = installPublicConfigRuntime();
     const state = hydrateWorkbenchState(defaultConfig, { host: "example.com" });
-    const originalContent = defaultConfig.themePacks.find((item) => item.id === "woodfish").behavior.click.effects.text.content;
+    const originalContent = defaultConfig.themePacks.find((item) => item.id === "woodfish")
+      .workbenchDraft.actionConfigs.leftClick.textContent;
 
     state.draftsByTheme.woodfish.actionConfigs.leftClick.textKind = "文本飘字";
     state.draftsByTheme.woodfish.actionConfigs.leftClick.textContent = "预览文案";
@@ -356,12 +356,13 @@ describe("themeDraftAdapter", () => {
 
     const previewThemePack = buildPreviewThemePackFromWorkbench(defaultConfig, state);
 
-    expect(previewThemePack.behavior.click.effects.text.content).toBe("预览文案");
-    expect(previewThemePack.behavior.click.effects.text.tags).toEqual(["预览文案", "备用文案"]);
-    expect(defaultConfig.themePacks.find((item) => item.id === "woodfish").behavior.click.effects.text.content).toBe(originalContent);
+    expect(previewThemePack.workbenchDraft.actionConfigs.leftClick.textContent).toBe("预览文案");
+    expect(previewThemePack.workbenchDraft.actionConfigs.leftClick.textTags).toEqual(["预览文案", "备用文案"]);
+    expect(defaultConfig.themePacks.find((item) => item.id === "woodfish")
+      .workbenchDraft.actionConfigs.leftClick.textContent).toBe(originalContent);
   });
 
-  it("stores left-click workbench draft with only workbench-canonical fields", () => {
+  it("stores all action config fields in workbench draft", () => {
     const { defaultConfig } = installPublicConfigRuntime();
     const state = hydrateWorkbenchState(defaultConfig, { host: "example.com" });
 
@@ -379,14 +380,14 @@ describe("themeDraftAdapter", () => {
       triggerTiming: "抬起时",
       triggerZone: "当前页面可点击区域",
     });
-    expect(storedLeftClickDraft).not.toHaveProperty("textKind");
-    expect(storedLeftClickDraft).not.toHaveProperty("textEnabled");
-    expect(storedLeftClickDraft).not.toHaveProperty("ripple");
-    expect(storedLeftClickDraft).not.toHaveProperty("particle");
-    expect(storedLeftClickDraft).not.toHaveProperty("holdMs");
+    expect(storedLeftClickDraft).toHaveProperty("textKind", "数字飘字");
+    expect(storedLeftClickDraft).toHaveProperty("textEnabled", true);
+    expect(storedLeftClickDraft).toHaveProperty("ripple", true);
+    expect(storedLeftClickDraft).toHaveProperty("particle", true);
+    expect(storedLeftClickDraft).toHaveProperty("holdMs", 80);
   });
 
-  it("rehydrates left-click runtime semantics from behavior plus stored draft patch", () => {
+  it("rehydrates left-click config from workbench draft", () => {
     const { defaultConfig } = installPublicConfigRuntime();
     const state = hydrateWorkbenchState(defaultConfig, { host: "example.com" });
     state.draftsByTheme.woodfish.actionConfigs.leftClick.textEasing = "弹性";
@@ -417,8 +418,8 @@ describe("themeDraftAdapter", () => {
     expect(payload.format).toBe("cursordance-theme-pack");
     expect(payload.version).toBe(1);
     expect(payload.themePack.id).toBe("woodfish");
-    expect(payload.themePack.behavior.click.effects.text.content).toBe("导出测试");
-    expect(payload.themePack.workbenchDraft.actionConfigs.leftClick).not.toHaveProperty("textKind");
+    expect(payload.themePack.workbenchDraft.actionConfigs.leftClick.textContent).toBe("导出测试");
+    expect(payload.themePack.workbenchDraft.actionConfigs.leftClick).toHaveProperty("textKind", "文本飘字");
   });
 
   it("stores and rehydrates image effect fields through workbench drafts", () => {

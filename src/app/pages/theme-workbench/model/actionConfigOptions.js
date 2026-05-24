@@ -226,8 +226,7 @@ export function getActionCursorFeedbackConfig(config) {
 
 export function pickStoredWorkbenchActionConfig(actionId, config) {
   if (!config || typeof config !== "object") return {};
-  const fieldNames = actionId === "leftClick" ? ACTION_WORKBENCH_CANONICAL_FIELDS : ACTION_RUNTIME_FIELDS;
-  return pickActionConfigFields(config, fieldNames);
+  return pickActionConfigFields(config, ACTION_RUNTIME_FIELDS);
 }
 
 export function pickStoredWorkbenchActionConfigs(actionConfigs = {}) {

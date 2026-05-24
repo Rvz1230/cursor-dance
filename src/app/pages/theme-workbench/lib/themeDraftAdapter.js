@@ -5,11 +5,6 @@ import {
   buildThemeDrafts,
   buildThemeLibraryItem,
   createThemeDraft,
-  getActionParticleConfig,
-  getActionRippleConfig,
-  getActionTextConfig,
-  getActionTriggerConfig,
-  getOrderedActionTextTags,
   mergeActionConfig,
   pickStoredWorkbenchActionConfigs,
 } from "../model/workbenchSchema.js";
@@ -31,63 +26,16 @@ function toExtensionCursorState(mode, actionId) {
   };
 }
 
-function mapFontWeightToWorkbench(fontWeight) {
-  if (fontWeight >= 700) return "加粗";
-  if (fontWeight >= 600) return "中等";
-  return "常规";
-}
-
-function mapFontWeightToStored(weight) {
-  if (weight === "加粗") return 800;
-  if (weight === "中等") return 600;
-  return 500;
-}
-
-function buildLeftClickBehaviorActionConfig(baseActionConfig, themePack) {
-  const clickConfig = themePack?.behavior?.click ?? {};
-  const effects = clickConfig.effects ?? {};
-  const textEffect = effects.text ?? {};
-  const rippleEffect = effects.ripple ?? {};
-  const particleEffect = effects.particle ?? {};
-  const fallbackTextConfig = getRuntimeConfig().resolveActionTextConfigFromEffect?.(baseActionConfig, textEffect)
-    ?? baseActionConfig;
-
-  return {
-    ...fallbackTextConfig,
-    textEnabled: textEffect.enabled !== false,
-    textColor: textEffect.color ?? baseActionConfig.textColor,
-    fontSize: textEffect.fontSize ?? baseActionConfig.fontSize,
-    textFontFamily: textEffect.fontFamily ?? baseActionConfig.textFontFamily,
-    textWeight: mapFontWeightToWorkbench(textEffect.fontWeight ?? 800),
-    textOffsetX: textEffect.offsetX ?? baseActionConfig.textOffsetX,
-    textOffsetY: textEffect.offsetY ?? baseActionConfig.textOffsetY,
-    textDuration: textEffect.durationMs ?? baseActionConfig.textDuration,
-    ripple: rippleEffect.enabled !== false,
-    rippleSize: rippleEffect.size ?? baseActionConfig.rippleSize,
-    rippleDuration: rippleEffect.durationMs ?? baseActionConfig.rippleDuration,
-    particle: particleEffect.enabled !== false,
-    particleCount: particleEffect.count ?? baseActionConfig.particleCount,
-    particleSize: particleEffect.size ?? baseActionConfig.particleSize,
-    particleSpread: particleEffect.baseDistance ?? baseActionConfig.particleSpread,
-    particleDuration: particleEffect.durationMs ?? baseActionConfig.particleDuration,
-    holdMs: clickConfig.trigger?.cooldownMs ?? baseActionConfig.holdMs,
-  };
-}
-
 function buildDraftActionConfigs(baseDraft, themePack) {
   const storedActionConfigs = themePack?.workbenchDraft?.actionConfigs || {};
-  const leftClickBehaviorConfig = themePack?.behavior?.click
-    ? buildLeftClickBehaviorActionConfig(baseDraft.actionConfigs.leftClick, themePack)
-    : {};
 
   return Object.fromEntries(
     ACTIONS.map((action) => {
       const baseActionConfig = baseDraft.actionConfigs[action.id];
       const storedActionConfig = storedActionConfigs[action.id] || {};
-      const behaviorActionConfig = action.id === "leftClick" ? leftClickBehaviorConfig : {};
       return [
         action.id,
-        mergeActionConfig(baseActionConfig, storedActionConfig, behaviorActionConfig),
+        mergeActionConfig(baseActionConfig, storedActionConfig),
       ];
     })
   );
@@ -235,23 +183,6 @@ function getStoredThemePack(config, themeId) {
 
 function buildStoredThemePack(themeId, draft, previousConfig, themeRecord) {
   const previousThemePack = getStoredThemePack(previousConfig, themeId) ?? {};
-  const previousEffects = previousThemePack.behavior?.click?.effects ?? {};
-  const actionConfig = draft.actionConfigs.leftClick;
-  const textConfig = getActionTextConfig(actionConfig);
-  const particleConfig = getActionParticleConfig(actionConfig);
-  const rippleConfig = getActionRippleConfig(actionConfig);
-  const triggerConfig = getActionTriggerConfig(actionConfig);
-  const orderedTextTags = getOrderedActionTextTags(actionConfig);
-  const storedTextEffect = getRuntimeConfig().buildStoredTextEffectPayload?.(textConfig, orderedTextTags) ?? {
-    kind: textConfig.textKind === "文本飘字" ? "text" : "number",
-    numberStyle: textConfig.textStyle,
-    mode: textConfig.textMode === "模板模式" ? "template" : "default",
-    template: textConfig.textTemplate,
-    tags: orderedTextTags,
-    tagPlayMode: textConfig.textTagPlayMode,
-    comboEnabled: textConfig.comboEnabled,
-    content: textConfig.textKind === "数字飘字" ? "" : (orderedTextTags[0] || textConfig.textContent || ""),
-  };
 
   return {
     ...previousThemePack,
@@ -274,47 +205,6 @@ function buildStoredThemePack(themeId, draft, previousConfig, themeRecord) {
         },
       ])
     ),
-    behavior: {
-      ...previousThemePack.behavior,
-      click: {
-        ...previousThemePack.behavior?.click,
-        enabled: textConfig.textEnabled || particleConfig.particle || rippleConfig.ripple,
-        trigger: {
-          ...previousThemePack.behavior?.click?.trigger,
-          button: "left",
-          cooldownMs: triggerConfig.holdMs,
-        },
-        effects: {
-          ...previousEffects,
-          text: {
-            ...previousEffects.text,
-            enabled: textConfig.textEnabled,
-            ...storedTextEffect,
-            color: textConfig.textColor,
-            fontSize: textConfig.fontSize,
-            fontFamily: textConfig.textFontFamily,
-            fontWeight: mapFontWeightToStored(textConfig.textWeight),
-            offsetX: textConfig.textOffsetX,
-            offsetY: textConfig.textOffsetY,
-            durationMs: textConfig.textDuration,
-          },
-          ripple: {
-            ...previousEffects.ripple,
-            enabled: rippleConfig.ripple,
-            size: rippleConfig.rippleSize,
-            durationMs: rippleConfig.rippleDuration,
-          },
-          particle: {
-            ...previousEffects.particle,
-            enabled: particleConfig.particle,
-            count: particleConfig.particleCount,
-            size: particleConfig.particleSize,
-            baseDistance: particleConfig.particleSpread,
-            durationMs: particleConfig.particleDuration,
-          },
-        },
-      },
-    },
   };
 }
 
