@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Bot, Check, CheckCircle2, Eye, Loader2, RotateCcw, Send, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button.jsx";
 import { cn } from "@/components/ui/utils.js";
-import { getAiRequestErrorMessage, requestAiSchemeEdit } from "../lib/aiSchemeAssistant.js";
+import { getAiRequestErrorMessage, requestAiSchemeEditStreaming } from "../lib/aiSchemeAssistant.js";
 import { Panel } from "./WorkbenchControls.jsx";
 
 const PROMPT_EXAMPLES = [
@@ -67,9 +67,12 @@ function SourceBadge({ source }) {
 
 function SanitizeHint({ meta }) {
   if (!meta?.droppedFieldCount) return null;
+  const droppedList = meta.droppedFields?.length
+    ? meta.droppedFields.map((fieldName) => <code key={fieldName} className="rounded bg-amber-100 px-1 py-0.5 text-xs font-mono">{fieldName}</code>)
+    : null;
   return (
     <div className="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-      已过滤 {meta.droppedFieldCount} 个不受支持字段，保留 {meta.acceptedFieldCount} 个可执行字段。
+      已过滤 {meta.droppedFieldCount} 个不受支持字段（{droppedList || "—"}），保留 {meta.acceptedFieldCount} 个可执行字段。
     </div>
   );
 }
@@ -178,11 +181,15 @@ export function AiSchemePanel({
   onPreviewProposal,
   onClearPreview,
   notify,
+  aiSnapshot,
+  onRevertAiChanges,
+  onClearAiSnapshot,
   variant = "dock",
 }) {
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState(getInitialMessages);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [streamingReply, setStreamingReply] = useState("");
   const [error, setError] = useState("");
   const [pendingResult, setPendingResult] = useState(null);
   const [lastPrompt, setLastPrompt] = useState("");
@@ -196,7 +203,7 @@ export function AiSchemePanel({
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, isGenerating]);
+  }, [messages, isGenerating, streamingReply]);
 
   async function submitPrompt(nextPrompt = prompt, modeOverride = taskMode) {
     const trimmedPrompt = nextPrompt.trim();
@@ -206,21 +213,26 @@ export function AiSchemePanel({
     setPrompt("");
     setError("");
     setIsGenerating(true);
-    setPendingResult(null);
     onClearPreview?.();
+    onClearAiSnapshot?.();
     setLastPrompt(trimmedPrompt);
     setMessages((current) => [...current, { role: "user", content: trimmedPrompt }]);
 
     try {
-      const result = await requestAiSchemeEdit({
+      setStreamingReply("");
+      const result = await requestAiSchemeEditStreaming({
         prompt: trimmedPrompt,
         currentConfig,
         actionLabel,
         actionId,
         taskMode: modeOverride,
         proposalContext,
+        onProgress: (replyText) => {
+          setStreamingReply(replyText);
+        },
       });
 
+      setStreamingReply("");
       const proposal = {
         ...result,
         actionId,
@@ -237,7 +249,6 @@ export function AiSchemePanel({
     } catch (caughtError) {
       const message = getAiRequestErrorMessage(caughtError);
       setError(message);
-      setMessages((current) => [...current, { role: "assistant", content: message }]);
     } finally {
       setIsGenerating(false);
     }
@@ -326,9 +337,15 @@ export function AiSchemePanel({
           ))}
           {isGenerating ? (
             <div className="flex justify-start">
-              <div className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
-                <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-                正在生成配置建议
+              <div className="max-w-[86%] rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-700">
+                {streamingReply ? (
+                  <span>{streamingReply}<span className="ml-0.5 inline-block h-3.5 w-0.5 animate-pulse bg-sky-400 align-middle" /></span>
+                ) : (
+                  <span className="inline-flex items-center gap-2 text-slate-500">
+                    <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+                    正在生成配置建议
+                  </span>
+                )}
               </div>
             </div>
           ) : null}
@@ -368,6 +385,10 @@ export function AiSchemePanel({
                 </button>
               ))}
             </div>
+          ) : !pendingResult && !isGenerating ? (
+            <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-500">
+              描述你想要的鼠标效果，AI 将生成可直接预览和应用的配置方案。
+            </div>
           ) : null}
         </div>
 
@@ -387,6 +408,22 @@ export function AiSchemePanel({
             <Button variant="outline" size="icon" className="size-9 rounded-xl text-rose-600" onClick={discardPendingResult} aria-label="放弃改动">
               <X className="size-4" aria-hidden="true" />
             </Button>
+          </div>
+        ) : null}
+
+        {!pendingResult && aiSnapshot ? (
+          <div className="border-t border-slate-100 px-3 py-2">
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-100 active:scale-[0.97]"
+              onClick={() => {
+                onRevertAiChanges?.();
+                setMessages((current) => [...current, { role: "assistant", content: "已撤销 AI 改动，配置已恢复。" }]);
+              }}
+            >
+              <RotateCcw className="size-3.5" aria-hidden="true" />
+              撤销 AI 改动
+            </button>
           </div>
         ) : null}
 

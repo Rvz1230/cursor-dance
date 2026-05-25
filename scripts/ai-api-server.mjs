@@ -4,8 +4,20 @@ import {
   buildCorsHeaders,
   createAiSchemeProposal,
   getAiServiceHealth,
+  getAiRequestLimits,
+  serializeAiProposal,
   validateAiApiAccess,
 } from "../server/ai/proposal-service.mjs";
+import {
+  normalizeAiSchemeProposal,
+  sanitizeAiSchemePatch,
+  getAiPatchSanitizeMeta,
+  validateAiSchemeRequest,
+} from "../src/app/pages/theme-workbench/lib/aiSchemeAssistant.js";
+import {
+  generateSchemePatchWithModelStreaming,
+  hasConfiguredModelProvider,
+} from "./ai-model-provider.mjs";
 
 loadLocalEnv();
 
@@ -52,6 +64,95 @@ async function handleAiSchemeRequest(request, response) {
   sendJson(request, response, result.status, result.body);
 }
 
+function sendSseHeaders(request, response) {
+  response.writeHead(200, {
+    "Content-Type": "text/event-stream; charset=utf-8",
+    "Cache-Control": "no-cache",
+    "Connection": "keep-alive",
+    ...buildCorsHeaders({ origin: request.headers.origin || "" }),
+  });
+}
+
+function sendSseEvent(response, event, data) {
+  response.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+}
+
+async function handleAiSchemeStreamRequest(request, response) {
+  let payload;
+  let rawBodyLength = 0;
+  try {
+    const parsedRequest = await readJsonBody(request);
+    payload = parsedRequest.body;
+    rawBodyLength = parsedRequest.rawBodyLength;
+  } catch {
+    sendJson(request, response, 400, { error: "Invalid JSON body" });
+    return;
+  }
+
+  const access = validateAiApiAccess({ headers: request.headers, rawBodyLength });
+  if (!access.ok) {
+    sendJson(request, response, access.status, access.body);
+    return;
+  }
+
+  const requestState = validateAiSchemeRequest(payload);
+  if (!requestState.ok) {
+    sendJson(request, response, 400, {
+      error: "Invalid AI scheme request",
+      code: "invalid_request",
+      details: requestState.errors,
+    });
+    return;
+  }
+
+  if (!hasConfiguredModelProvider(process.env)) {
+    sendJson(request, response, 503, {
+      error: "AI model provider is not configured",
+      code: "provider_failed",
+    });
+    return;
+  }
+
+  sendSseHeaders(request, response);
+
+  try {
+    const result = await generateSchemePatchWithModelStreaming(
+      requestState.value,
+      process.env,
+      (replyText) => {
+        if (!response.writableEnded) {
+          sendSseEvent(response, "progress", { reply: replyText });
+        }
+      }
+    );
+
+    const sanitizedPatch = sanitizeAiSchemePatch(result.patch);
+    const proposal = normalizeAiSchemeProposal(
+      {
+        ...result,
+        patch: sanitizedPatch,
+        sanitizeMeta: getAiPatchSanitizeMeta(result.patch, sanitizedPatch),
+      },
+      requestState.value
+    );
+
+    if (!response.writableEnded) {
+      sendSseEvent(response, "result", serializeAiProposal(proposal));
+    }
+  } catch (error) {
+    if (!response.writableEnded) {
+      sendSseEvent(response, "error", {
+        error: "AI model provider streaming failed",
+        details: error instanceof Error ? error.message : "Unknown error.",
+      });
+    }
+  } finally {
+    if (!response.writableEnded) {
+      response.end();
+    }
+  }
+}
+
 const server = createServer(async (request, response) => {
   if (request.method === "OPTIONS") {
     sendJson(request, response, 204, {});
@@ -72,6 +173,11 @@ const server = createServer(async (request, response) => {
     )
   ) {
     await handleAiSchemeRequest(request, response);
+    return;
+  }
+
+  if (request.method === "POST" && request.url === "/api/ai/scheme-proposals/stream") {
+    await handleAiSchemeStreamRequest(request, response);
     return;
   }
 

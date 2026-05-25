@@ -43,16 +43,16 @@ const ENUM_OPTIONS = {
   textEasing: ["线性", "缓入", "缓出", "缓入缓出", "弹跳", "弹性"],
   textWeight: ["常规", "中等", "加粗"],
   textShadow: ["无", "柔和", "清晰"],
-  particleStyle: ["点状粒子", "碎屑粒子", "火花"],
+  particleStyle: ["点状粒子", "碎屑粒子", "火花", "星光", "钻石", "心形", "方块", "三角"],
   particleDirection: ["四周扩散", "向上喷发", "沿点击方向"],
   particleColorMode: ["跟随主题", "跟随飘字色", "随机轻变化"],
-  rippleStyle: ["单环", "双环", "柔和面波"],
+  rippleStyle: ["单环", "双环", "柔和面波", "脉冲波纹", "回声环", "能量脉冲"],
   rippleEasing: ["线性", "缓出", "缓入缓出", "弹性"],
   soundTriggerMode: ["每次触发", "连击叠加", "节流播放"],
   soundBlendMode: ["保持原音量", "压低页面音频", "仅插件音效"],
   soundFile: ["woodfish-soft.wav", "woodfish-deep.wav", "tick-light.wav"],
   cursorOverride: ["跟随当前状态", "木鱼（继承默认）", "木鱼（增强态）", "木鱼（按压态）", "切换到 pointer"],
-  animationStyle: ["聚焦脉冲", "斜切闪片", "弹跳徽记"],
+  animationStyle: ["聚焦脉冲", "斜切闪片", "弹跳徽记", "漩涡旋转", "星光闪耀", "轨道环绕", "螺旋上升"],
 };
 
 const BOOLEAN_FIELDS = new Set([
@@ -89,14 +89,27 @@ export const AI_SCHEMA_VERSION = "2026-05-20";
 const MAX_PROPOSAL_CONTEXT_BYTES = 8 * 1024;
 
 const FIELD_LABELS = {
+  triggerTiming: "触发时机",
+  triggerZone: "触发区域",
   textEnabled: "飘字",
   textKind: "飘字类型",
+  textStyle: "数字样式",
+  textMode: "飘字模式",
+  textTemplate: "模板文案",
   textContent: "飘字文案",
   textTags: "候选文案",
+  textTagPlayMode: "候选播放",
   textColor: "主色",
   fontSize: "字号",
   textDuration: "飘字时长",
+  textEasing: "飘字缓动",
+  textWeight: "字体粗细",
+  textShadow: "文字阴影",
   textOpacity: "飘字透明度",
+  textOffsetX: "飘字水平偏移",
+  textOffsetY: "飘字垂直偏移",
+  textOutlineWidth: "文字描边",
+  comboEnabled: "连击累加",
   particle: "粒子",
   particleCount: "粒子数量",
   particleSpread: "粒子范围",
@@ -111,13 +124,34 @@ const FIELD_LABELS = {
   rippleDuration: "波纹时长",
   rippleOpacity: "波纹透明度",
   rippleStyle: "波纹样式",
+  rippleEasing: "波纹缓动",
+  rippleLineWidth: "波纹线宽",
   sound: "音效",
   volume: "音量",
+  playbackRate: "播放速度",
+  soundDelay: "音效延迟",
+  soundFadeOut: "淡出时长",
+  soundTriggerMode: "播放策略",
+  soundBlendMode: "混音模式",
   soundFile: "音效文件",
   shake: "震动强度",
   cursorOverride: "光标反馈",
   cursorSize: "光标尺寸",
   holdMs: "触发延迟",
+  animationEnabled: "动画",
+  animationStyle: "动画样式",
+  animationDuration: "动画时长",
+  animationScale: "动画缩放",
+  animationOpacity: "动画透明度",
+  animationOffsetX: "动画水平偏移",
+  animationOffsetY: "动画垂直偏移",
+  imageEnabled: "图像",
+  imageDataUrl: "图像数据",
+  imageDuration: "图像时长",
+  imageSize: "图像尺寸",
+  imageOpacity: "图像透明度",
+  imageOffsetX: "图像水平偏移",
+  imageOffsetY: "图像垂直偏移",
 };
 
 const AI_TASK_MODES = {
@@ -241,6 +275,57 @@ function wantsRippleOnly(prompt) {
   return normalized.includes("只保留波纹") || normalized.includes("仅保留波纹") || normalized.includes("只要波纹") || normalized.includes("仅要波纹");
 }
 
+function wantsShakeOff(prompt) {
+  const normalized = normalizeIntentText(prompt);
+  return normalized.includes("不要震动") || normalized.includes("关闭震动") || normalized.includes("关掉震动") || normalized.includes("无震动") || normalized.includes("不震动");
+}
+
+function wantsRippleOff(prompt) {
+  const normalized = normalizeIntentText(prompt);
+  return normalized.includes("不要波纹") || normalized.includes("关闭波纹") || normalized.includes("关掉波纹") || normalized.includes("无波纹");
+}
+
+function wantsAnimationOff(prompt) {
+  const normalized = normalizeIntentText(prompt);
+  return normalized.includes("不要动画") || normalized.includes("关闭动画") || normalized.includes("关掉动画") || normalized.includes("无动画");
+}
+
+function wantsImageOff(prompt) {
+  const normalized = normalizeIntentText(prompt);
+  return normalized.includes("不要图像") || normalized.includes("关闭图像") || normalized.includes("关掉图像") || normalized.includes("不要图片") || normalized.includes("关闭图片");
+}
+
+function wantsComboOff(prompt) {
+  const normalized = normalizeIntentText(prompt);
+  return normalized.includes("不要连击") || normalized.includes("关闭连击") || normalized.includes("关掉连击") || normalized.includes("取消连击");
+}
+
+function wantsSofterFeedback(prompt) {
+  const normalized = normalizeIntentText(prompt);
+  return (normalized.includes("柔和") || normalized.includes("温柔") || normalized.includes("软一点"))
+    && !normalized.includes("不柔和");
+}
+
+function wantsMoreVisibleFeedback(prompt) {
+  const normalized = normalizeIntentText(prompt);
+  return normalized.includes("更明显") || normalized.includes("更显眼") || normalized.includes("明显一点") || normalized.includes("更突出") || normalized.includes("强化");
+}
+
+function wantsBiggerCursor(prompt) {
+  const normalized = normalizeIntentText(prompt);
+  return (normalized.includes("光标") || normalized.includes("鼠标")) && (normalized.includes("大一点") || normalized.includes("变大") || normalized.includes("更大") || normalized.includes("放大"));
+}
+
+function wantsSmallerCursor(prompt) {
+  const normalized = normalizeIntentText(prompt);
+  return (normalized.includes("光标") || normalized.includes("鼠标")) && (normalized.includes("小一点") || normalized.includes("变小") || normalized.includes("更小") || normalized.includes("缩小"));
+}
+
+function wantsRippleSmaller(prompt) {
+  const normalized = normalizeIntentText(prompt);
+  return normalized.includes("波纹") && (normalized.includes("小一点") || normalized.includes("变小") || normalized.includes("缩小") || normalized.includes("低调"));
+}
+
 function repairPatchForUserIntent(patch, requestState = {}) {
   const prompt = requestState.prompt || "";
   const currentConfig = requestState.currentConfig || {};
@@ -338,6 +423,83 @@ function repairPatchForUserIntent(patch, requestState = {}) {
       volume: 0,
       animationEnabled: false,
       imageEnabled: false,
+    });
+  }
+
+  if (wantsShakeOff(prompt)) {
+    Object.assign(repairedPatch, {
+      shake: 0,
+    });
+  }
+
+  if (wantsRippleOff(prompt)) {
+    Object.assign(repairedPatch, {
+      ripple: false,
+    });
+  }
+
+  if (wantsAnimationOff(prompt)) {
+    Object.assign(repairedPatch, {
+      animationEnabled: false,
+    });
+  }
+
+  if (wantsImageOff(prompt)) {
+    Object.assign(repairedPatch, {
+      imageEnabled: false,
+    });
+  }
+
+  if (wantsComboOff(prompt)) {
+    Object.assign(repairedPatch, {
+      comboEnabled: false,
+    });
+  }
+
+  if (wantsSofterFeedback(prompt)) {
+    const currentParticleOpacity = Number.isFinite(Number(currentConfig.particleOpacity)) ? Number(currentConfig.particleOpacity) : 70;
+    const currentRippleOpacity = Number.isFinite(Number(currentConfig.rippleOpacity)) ? Number(currentConfig.rippleOpacity) : 60;
+    const currentTextOpacity = Number.isFinite(Number(currentConfig.textOpacity)) ? Number(currentConfig.textOpacity) : 85;
+    Object.assign(repairedPatch, {
+      particleOpacity: repairedPatch.particleOpacity ?? Math.max(15, Math.round(currentParticleOpacity * 0.6)),
+      rippleOpacity: repairedPatch.rippleOpacity ?? Math.max(10, Math.round(currentRippleOpacity * 0.6)),
+      textOpacity: repairedPatch.textOpacity ?? Math.max(20, Math.round(currentTextOpacity * 0.7)),
+      textEasing: repairedPatch.textEasing || "缓出",
+      rippleEasing: repairedPatch.rippleEasing || "缓出",
+    });
+  }
+
+  if (wantsMoreVisibleFeedback(prompt)) {
+    const currentParticleCount = Number.isFinite(Number(currentConfig.particleCount)) ? Number(currentConfig.particleCount) : 18;
+    const currentParticleOpacity = Number.isFinite(Number(currentConfig.particleOpacity)) ? Number(currentConfig.particleOpacity) : 70;
+    const currentRippleOpacity = Number.isFinite(Number(currentConfig.rippleOpacity)) ? Number(currentConfig.rippleOpacity) : 60;
+    Object.assign(repairedPatch, {
+      particleCount: repairedPatch.particleCount ?? Math.min(40, Math.round(currentParticleCount * 1.4)),
+      particleOpacity: repairedPatch.particleOpacity ?? Math.min(100, Math.round(currentParticleOpacity * 1.3)),
+      rippleOpacity: repairedPatch.rippleOpacity ?? Math.min(100, Math.round(currentRippleOpacity * 1.3)),
+      textOpacity: repairedPatch.textOpacity ?? Math.min(100, 95),
+    });
+  }
+
+  if (wantsBiggerCursor(prompt)) {
+    const currentSize = Number.isFinite(Number(currentConfig.cursorSize)) ? Number(currentConfig.cursorSize) : 40;
+    Object.assign(repairedPatch, {
+      cursorSize: repairedPatch.cursorSize ?? Math.min(64, Math.round(currentSize * 1.3)),
+    });
+  }
+
+  if (wantsSmallerCursor(prompt)) {
+    const currentSize = Number.isFinite(Number(currentConfig.cursorSize)) ? Number(currentConfig.cursorSize) : 40;
+    Object.assign(repairedPatch, {
+      cursorSize: repairedPatch.cursorSize ?? Math.max(32, Math.round(currentSize * 0.75)),
+    });
+  }
+
+  if (wantsRippleSmaller(prompt)) {
+    const currentRippleSize = Number.isFinite(Number(currentConfig.rippleSize)) ? Number(currentConfig.rippleSize) : 60;
+    Object.assign(repairedPatch, {
+      ripple: true,
+      rippleSize: repairedPatch.rippleSize ?? Math.max(20, Math.round(currentRippleSize * 0.6)),
     });
   }
 
@@ -588,36 +750,31 @@ export function getAiRequestErrorMessage(error) {
   return message || "生成失败，请稍后重试。";
 }
 
-async function requestRemoteAiSchemeEdit({ prompt, currentConfig, actionLabel, actionId, taskMode, proposalContext }) {
-  if (typeof window === "undefined" || typeof window.fetch !== "function") {
-    throw new Error("Browser fetch is unavailable.");
-  }
+function getAiTimeoutMs() {
+  const envValue = import.meta.env?.VITE_CURSORDANCE_AI_TIMEOUT_MS;
+  const parsed = Number.parseInt(envValue, 10);
+  return Number.isFinite(parsed) && parsed >= 3000 ? parsed : 12000;
+}
 
+function isRetryableError(error) {
+  if (error?.code === "timeout") return true;
+  if (error?.code === "network") return true;
+  const status = error?.status;
+  return status === 502 || status === 503 || status === 504;
+}
+
+async function makeAiSchemeRequest({ endpoint, headers, body, timeoutMs }) {
   const controller = new AbortController();
-  const timer = window.setTimeout(() => controller.abort(), 12000);
-  const endpoint = import.meta.env?.VITE_CURSORDANCE_AI_API_ENDPOINT || DEFAULT_API_ENDPOINT;
-  const accessToken = import.meta.env?.VITE_CURSORDANCE_AI_API_ACCESS_TOKEN || "";
-  const headers = {
-    "Content-Type": "application/json",
-    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-  };
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const response = await window.fetch(endpoint, {
       method: "POST",
       headers,
-      body: JSON.stringify({
-        prompt,
-        currentConfig,
-        proposalContext: buildAiProposalContext(proposalContext),
-        actionLabel,
-        actionId,
-        taskMode,
-        extensionVersion: AI_EXTENSION_VERSION,
-        schemaVersion: AI_SCHEMA_VERSION,
-      }),
+      body: JSON.stringify(body),
       signal: controller.signal,
     });
+
     if (!response.ok) {
       let errorMessage = `AI API responded with ${response.status}`;
       let errorCode = response.status === 401 || response.status === 403 ? "permission_denied" : "api_failed";
@@ -640,15 +797,10 @@ async function requestRemoteAiSchemeEdit({ prompt, currentConfig, actionLabel, a
       requestError.code = errorCode;
       throw requestError;
     }
-    const payload = await response.json();
-    return normalizeAiSchemeProposal(
-      {
-        ...payload,
-        source: payload.source || "api",
-      },
-      { currentConfig, actionLabel, actionId, taskMode, schemaVersion: payload.schemaVersion || AI_SCHEMA_VERSION }
-    );
+
+    return await response.json();
   } catch (error) {
+    if (error?.status) throw error; // Already wrapped as requestError above
     if (error?.name === "AbortError") {
       const timeoutError = new Error("AI 请求超时，请确认模型服务可用后重试。");
       timeoutError.code = "timeout";
@@ -665,6 +817,154 @@ async function requestRemoteAiSchemeEdit({ prompt, currentConfig, actionLabel, a
   }
 }
 
+async function requestRemoteAiSchemeEdit({ prompt, currentConfig, actionLabel, actionId, taskMode, proposalContext }) {
+  if (typeof window === "undefined" || typeof window.fetch !== "function") {
+    throw new Error("Browser fetch is unavailable.");
+  }
+
+  const timeoutMs = getAiTimeoutMs();
+  const endpoint = import.meta.env?.VITE_CURSORDANCE_AI_API_ENDPOINT || DEFAULT_API_ENDPOINT;
+  const accessToken = import.meta.env?.VITE_CURSORDANCE_AI_API_ACCESS_TOKEN || "";
+  const headers = {
+    "Content-Type": "application/json",
+    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+  };
+  const body = {
+    prompt,
+    currentConfig,
+    proposalContext: buildAiProposalContext(proposalContext),
+    actionLabel,
+    actionId,
+    taskMode,
+    extensionVersion: AI_EXTENSION_VERSION,
+    schemaVersion: AI_SCHEMA_VERSION,
+  };
+  const requestState = { currentConfig, actionLabel, actionId, taskMode };
+
+  try {
+    const payload = await makeAiSchemeRequest({ endpoint, headers, body, timeoutMs });
+    return normalizeAiSchemeProposal(
+      { ...payload, source: payload.source || "api" },
+      { ...requestState, schemaVersion: payload.schemaVersion || AI_SCHEMA_VERSION }
+    );
+  } catch (error) {
+    if (!isRetryableError(error)) throw error;
+
+    // Single automatic retry for transient failures (timeout, 502, 503)
+    try {
+      const payload = await makeAiSchemeRequest({ endpoint, headers, body, timeoutMs: Math.min(timeoutMs * 1.5, 30000) });
+      return normalizeAiSchemeProposal(
+        { ...payload, source: payload.source || "api" },
+        { ...requestState, schemaVersion: payload.schemaVersion || AI_SCHEMA_VERSION }
+      );
+    } catch (retryError) {
+      throw retryError;
+    }
+  }
+}
+
 export async function requestAiSchemeEdit({ prompt, currentConfig, actionLabel, actionId, taskMode, proposalContext }) {
   return requestRemoteAiSchemeEdit({ prompt, currentConfig, actionLabel, actionId, taskMode, proposalContext });
+}
+
+async function parseSseStream(response, onProgress) {
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let currentEventType = "message";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) throw new Error("Unexpected end of SSE stream without result.");
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        if (line.startsWith("event: ")) {
+          currentEventType = line.slice(7).trim();
+          continue;
+        }
+        if (!line.startsWith("data: ")) continue;
+        const rawData = line.slice(6).trim();
+        if (!rawData) continue;
+
+        try {
+          const data = JSON.parse(rawData);
+          if (currentEventType === "progress" && data.reply) {
+            onProgress?.(data.reply);
+          } else if (currentEventType === "result") {
+            return data;
+          } else if (currentEventType === "error") {
+            throw new Error(data.error || data.details || "Stream error");
+          }
+        } catch (err) {
+          if (err instanceof SyntaxError) continue;
+          throw err;
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock?.();
+  }
+}
+
+export async function requestAiSchemeEditStreaming({ prompt, currentConfig, actionLabel, actionId, taskMode, proposalContext, onProgress }) {
+  if (typeof window === "undefined" || typeof window.fetch !== "function") {
+    throw new Error("Browser fetch is unavailable.");
+  }
+
+  const endpoint = (import.meta.env?.VITE_CURSORDANCE_AI_API_ENDPOINT || DEFAULT_API_ENDPOINT).replace(/\/+$/, "") + "/stream";
+  const accessToken = import.meta.env?.VITE_CURSORDANCE_AI_API_ACCESS_TOKEN || "";
+  const controller = new AbortController();
+  const timeoutMs = getAiTimeoutMs();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await window.fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: JSON.stringify({
+        prompt,
+        currentConfig,
+        proposalContext: buildAiProposalContext(proposalContext),
+        actionLabel,
+        actionId,
+        taskMode,
+        extensionVersion: AI_EXTENSION_VERSION,
+        schemaVersion: AI_SCHEMA_VERSION,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      let errorMessage = `AI API responded with ${response.status}`;
+      try {
+        const errorPayload = await response.json();
+        errorMessage = errorPayload?.error || errorMessage;
+      } catch { /* keep status-based message */ }
+      throw new Error(errorMessage);
+    }
+
+    return await parseSseStream(response, onProgress);
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      const timeoutError = new Error("AI 流式请求超时，请稍后重试。");
+      timeoutError.code = "timeout";
+      throw timeoutError;
+    }
+    if (error instanceof TypeError && error.message.includes("fetch")) {
+      const networkError = new Error("后端未连接，请确认 AI API 服务已启动。");
+      networkError.code = "network";
+      throw networkError;
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timer);
+  }
 }

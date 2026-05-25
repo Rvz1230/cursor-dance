@@ -2,6 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import { createThemeDraft } from "../model/workbenchSchema.js";
 import {
+  ANIMATION_STYLE_OPTIONS,
+  PARTICLE_STYLE_OPTIONS,
+  RIPPLE_STYLE_OPTIONS,
+} from "../model/actionConfigOptions.js";
+import {
   AI_EXTENSION_VERSION,
   AI_SCHEMA_VERSION,
   buildAiProposalContext,
@@ -250,6 +255,61 @@ describe("aiSchemeAssistant", () => {
           imageEnabled: false,
         },
       },
+      {
+        prompt: "不要震动",
+        patch: {},
+        expected: { shake: 0 },
+      },
+      {
+        prompt: "关闭波纹",
+        patch: {},
+        expected: { ripple: false },
+      },
+      {
+        prompt: "不要动画",
+        patch: {},
+        expected: { animationEnabled: false },
+      },
+      {
+        prompt: "不要图像",
+        patch: {},
+        expected: { imageEnabled: false },
+      },
+      {
+        prompt: "关闭连击",
+        patch: {},
+        expected: { comboEnabled: false },
+      },
+      {
+        prompt: "柔和一点",
+        patch: {},
+        currentConfig: { particleOpacity: 80, rippleOpacity: 70, textOpacity: 90 },
+        expected: { particleOpacity: 48, rippleOpacity: 42, textOpacity: 63, textEasing: "缓出", rippleEasing: "缓出" },
+      },
+      {
+        prompt: "更明显一点",
+        patch: {},
+        currentConfig: { particleCount: 20, particleOpacity: 70, rippleOpacity: 60 },
+        expected: { particleCount: 28, particleOpacity: 91, rippleOpacity: 78, textOpacity: 95 },
+      },
+      {
+        prompt: "光标大一点",
+        patch: {},
+        currentConfig: { cursorSize: 40 },
+        expected: { cursorSize: 52 },
+      },
+      {
+        prompt: "光标小一点",
+        patch: {},
+        currentConfig: { cursorSize: 48 },
+        expected: { cursorSize: 36 },
+      },
+      {
+        prompt: "波纹小一点",
+        patch: {},
+        currentConfig: { rippleSize: 80 },
+        expected: { ripple: true, rippleSize: 48 },
+      },
     ];
 
     for (const item of cases) {
@@ -311,5 +371,20 @@ describe("aiSchemeAssistant", () => {
       expect.objectContaining({ fieldName: "textColor", label: "主色", beforeLabel: "#B45309", afterLabel: "#0284C7" }),
       expect.objectContaining({ fieldName: "particleCount", label: "粒子数量", beforeLabel: "18", afterLabel: "8" }),
     ]);
+  });
+
+  it("accepts all particleStyle, rippleStyle, and animationStyle options from the canonical source", () => {
+    for (const value of PARTICLE_STYLE_OPTIONS) {
+      const result = sanitizeAiSchemePatch({ particleStyle: value });
+      expect(result.particleStyle).toBe(value);
+    }
+    for (const value of RIPPLE_STYLE_OPTIONS) {
+      const result = sanitizeAiSchemePatch({ rippleStyle: value });
+      expect(result.rippleStyle).toBe(value);
+    }
+    for (const value of ANIMATION_STYLE_OPTIONS) {
+      const result = sanitizeAiSchemePatch({ animationStyle: value });
+      expect(result.animationStyle).toBe(value);
+    }
   });
 });

@@ -29,6 +29,7 @@ function ThemeWorkbenchPageContent() {
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [columnWeights, setColumnWeights] = useState({ config: 1.05, preview: 1.25, ai: 1 });
   const [previewProposal, setPreviewProposal] = useState(null);
+  const [aiSnapshot, setAiSnapshot] = useState(null);
   const {
     state,
     selected,
@@ -135,8 +136,19 @@ function ThemeWorkbenchPageContent() {
         .filter((target) => target.type === "action" && target.actionId && Object.keys(target.patch || {}).length)
         .map((target) => [target.actionId, target.patch])
     );
+    const snapshot = Object.fromEntries(
+      Object.keys(patchesByActionId).map((actionId) => [actionId, { ...draft.actionConfigs[actionId] }])
+    );
+    setAiSnapshot(snapshot);
     setPreviewProposal(null);
     updateActionConfigs(patchesByActionId);
+  }
+
+  function handleRevertAiChanges() {
+    if (!aiSnapshot) return;
+    updateActionConfigs(aiSnapshot);
+    setAiSnapshot(null);
+    toast({ tone: "info", title: "已撤销 AI 改动", description: "配置已恢复到应用 AI 方案之前的状态。" });
   }
 
   return (
@@ -245,6 +257,7 @@ function ThemeWorkbenchPageContent() {
                           transition={{ duration: 0.2, ease: "easeOut" }}
                         >
                           <AiSchemePanel
+                            key={selected.actionId}
                             actionId={selected.actionId}
                             actionLabel={formatActionLabel(selected.actionId)}
                             currentConfig={currentActionConfig}
@@ -254,6 +267,9 @@ function ThemeWorkbenchPageContent() {
                             onPreviewProposal={setPreviewProposal}
                             onClearPreview={() => setPreviewProposal(null)}
                             notify={toast}
+                            aiSnapshot={aiSnapshot}
+                            onRevertAiChanges={handleRevertAiChanges}
+                            onClearAiSnapshot={() => setAiSnapshot(null)}
                             variant="full"
                           />
                         </motion.div>

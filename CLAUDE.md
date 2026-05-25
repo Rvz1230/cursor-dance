@@ -59,7 +59,7 @@ Default action configs live in two places:
 These must stay in sync. A test at `actionConfigSync.test.js` validates this automatically by comparing both outputs.
 
 ### AI Scheme Assistant
-Workbench panel that calls `/api/ai/scheme-proposals` → `scripts/ai-model-provider.mjs` (OpenAI Responses API format, DeepSeek model). Full sanitize pipeline in `aiSchemeAssistant.js`: numeric clamping, enum whitelisting, hex color normalization, user intent repair (e.g., "不要声音" → forces `sound: false, volume: 0`).
+Workbench panel that calls `/api/ai/scheme-proposals` → `scripts/ai-model-provider.mjs` (OpenAI Responses API / Chat Completions API, default model gpt-4.1-mini, configurable via `CURSORDANCE_AI_MODEL`). Full sanitize pipeline in `aiSchemeAssistant.js`: numeric clamping, enum whitelisting, hex color normalization, user intent repair (e.g., "不要声音" → forces `sound: false, volume: 0`).
 
 ### Runtime effects pipeline
 DOM events (pointerdown/up/move, wheel, contextmenu) → `trigger-handlers.js` resolves cursor state binding and checks trigger zone/throttle/combo windows → `visual-effects.js` renders effects via Web Animations API (not CSS transitions — avoids layout thrashing with `contain`, `will-change`, `transform: translate3d`).

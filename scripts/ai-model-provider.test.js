@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   generateSchemePatchWithModel,
+  generateSchemePatchWithModelStreaming,
   hasConfiguredModelProvider,
 } from "./ai-model-provider.mjs";
 
@@ -132,6 +133,59 @@ describe("ai-model-provider", () => {
     );
     expect(result.source).toBe("model-chat-completions");
     expect(result.patch).toEqual({ sound: false, volume: 0 });
+
+    globalThis.fetch = originalFetch;
+  });
+
+  it("streams partial reply text via onProgress during model generation", async () => {
+    const originalFetch = globalThis.fetch;
+    const progressCalls = [];
+
+    const innerJson = JSON.stringify({
+      mode: "modify_action",
+      scheme: { name: "低干扰方案", summary: "减少干扰。", styleTags: ["低调"], rationale: "测试理由。" },
+      targets: [{ type: "action", actionId: "leftClick", label: "左键单击", patch: { sound: false, volume: 0 } }],
+      reply: "已调整为低噪音反馈。",
+      diffSummary: ["关闭音效"],
+      riskLevel: "low",
+      warnings: [],
+      tuningOptions: ["更低调", "更明显"],
+    });
+
+    // Split the inner JSON into two parts to test progressive accumulation
+    const splitAt = Math.floor(innerJson.length * 0.45);
+    const part1 = innerJson.slice(0, splitAt);
+    const part2 = innerJson.slice(splitAt);
+
+    const sse1 = `data: ${JSON.stringify({ type: "response.output_text.delta", delta: part1 })}\n\n`;
+    const sse2 = `data: ${JSON.stringify({ type: "response.output_text.delta", delta: part2 })}\n\n`;
+
+    let chunkIndex = 0;
+    const chunks = [sse1, sse2];
+    globalThis.fetch = vi.fn(async () => ({
+      ok: true,
+      body: new ReadableStream({
+        pull(controller) {
+          if (chunkIndex < chunks.length) {
+            controller.enqueue(new TextEncoder().encode(chunks[chunkIndex]));
+            chunkIndex++;
+          } else {
+            controller.close();
+          }
+        },
+      }),
+    }));
+
+    const result = await generateSchemePatchWithModelStreaming(
+      { ...requestState, prompt: "低干扰方案" },
+      { OPENAI_API_KEY: "sk-test", CURSORDANCE_AI_API_BASE_URL: "https://api.openai.test/v1", CURSORDANCE_AI_MODEL: "test-model" },
+      (reply) => { progressCalls.push(reply); }
+    );
+
+    expect(progressCalls.length).toBeGreaterThanOrEqual(1);
+    expect(progressCalls[progressCalls.length - 1]).toContain("低噪音");
+    expect(result.source).toContain("streaming");
+    expect(result.patch).toMatchObject({ sound: false, volume: 0 });
 
     globalThis.fetch = originalFetch;
   });

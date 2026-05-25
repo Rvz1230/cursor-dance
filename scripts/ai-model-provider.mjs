@@ -11,7 +11,7 @@ const RESPONSE_SCHEMA = {
   properties: {
     mode: {
       type: "string",
-      description: "One of modify_action, generate_theme, explain_config, tune_proposal.",
+      description: "One of modify_action or tune_proposal.",
     },
     intent: {
       type: "string",
@@ -87,19 +87,11 @@ const RESPONSE_SCHEMA = {
 
 const MODE_RULES = {
   modify_action: [
-    "当前模式是 modify_action：只修改当前动作，targets 默认只返回当前 actionId。",
+    "只修改当前动作，targets 默认只返回当前 actionId。",
     "必须返回可执行 patch；如果用户意图明确但字段缺失，要补齐必要字段。",
   ],
-  generate_theme: [
-    "当前模式是 generate_theme：可以返回多个 targets，覆盖 leftClick, rightClick, doubleClick, longPress, wheel, hover 中相关动作。",
-    "每个 target 都要克制，不要把所有反馈全部打开；主题要能长期使用。",
-  ],
-  explain_config: [
-    "当前模式是 explain_config：以解释当前配置为主，不要强制给 patch。",
-    "如用户没有要求修改，targets 返回当前动作且 patch={}；diffSummary 可以为空数组。",
-  ],
   tune_proposal: [
-    "当前模式是 tune_proposal：必须基于 proposalContext 做增量微调。",
+    "当前是微调模式：必须基于 proposalContext 做增量微调。",
     "只返回本次需要调整的字段，不要完全重写上一版方案。",
   ],
 };
@@ -120,7 +112,7 @@ function buildSystemPrompt(taskMode = "modify_action") {
     "你的任务不是机械改字段，而是理解用户场景，生成可预览、可解释、可微调的鼠标反馈方案。",
     "只输出 JSON，不要 Markdown，不要解释 JSON 之外的内容。",
     "返回的是方案提案 proposal，不是最终写入结果。",
-    "mode 必须是 modify_action、generate_theme、explain_config 或 tune_proposal。",
+    "mode 取值为 modify_action 或 tune_proposal。",
     "scheme 描述方案名称、摘要、风格标签和设计理由。",
     "targets 是需要修改的动作列表。target.type 当前只能是 action。",
     "patch 只能表达需要修改的字段，不能返回 CSS、HTML、JS、代码或未知字段。",
@@ -266,6 +258,88 @@ async function callResponsesApi({ apiKey, baseUrl, model, requestState }) {
   return normalizeModelPayload(parsed, "model-responses-api", requestState);
 }
 
+function extractReplyFromPartialJson(text) {
+  const match = text.match(/"reply"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+  if (!match) return null;
+  return match[1].replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\\\/g, '\\');
+}
+
+async function callResponsesApiStreaming({ apiKey, baseUrl, model, requestState, onProgress }) {
+  const maxOutputTokens = getOptionalPositiveInteger(requestState.maxOutputTokens);
+  const response = await fetch(`${trimTrailingSlash(baseUrl)}/responses`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      input: [
+        { role: "system", content: buildSystemPrompt(requestState.taskMode) },
+        { role: "user", content: buildUserPrompt(requestState) },
+      ],
+      text: {
+        format: {
+          type: "json_schema",
+          name: "cursor_dance_scheme_edit",
+          strict: false,
+          schema: RESPONSE_SCHEMA,
+        },
+      },
+      stream: true,
+      ...(maxOutputTokens ? { max_output_tokens: maxOutputTokens } : {}),
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Model API responded with ${response.status}: ${errorText.slice(0, 200)}`);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let accumulatedDeltas = "";
+  let rawBuffer = "";
+  let lastReply = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      rawBuffer += decoder.decode(value, { stream: true });
+      const lines = rawBuffer.split("\n");
+      rawBuffer = lines.pop() || "";
+
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        const data = line.slice(6).trim();
+        if (!data || data === "[DONE]") continue;
+
+        try {
+          const event = JSON.parse(data);
+          if (event.type === "response.output_text.delta" && event.delta) {
+            accumulatedDeltas += event.delta;
+            const reply = extractReplyFromPartialJson(accumulatedDeltas);
+            if (reply && reply !== lastReply) {
+              lastReply = reply;
+              onProgress?.(reply);
+            }
+          }
+        } catch {
+          // Skip unparseable SSE data lines gracefully
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock?.();
+  }
+
+  const parsed = safeJsonParse(accumulatedDeltas);
+  if (!parsed) throw new Error("Model returned non-JSON streaming output.");
+  return normalizeModelPayload(parsed, "model-responses-api-streaming", requestState);
+}
+
 async function callChatCompletionsApi({ apiKey, baseUrl, model, requestState }) {
   const maxOutputTokens = getOptionalPositiveInteger(requestState.maxOutputTokens);
   const payload = await postJson(`${trimTrailingSlash(baseUrl)}/chat/completions`, apiKey, {
@@ -305,4 +379,19 @@ export async function generateSchemePatchWithModel(requestState, env = process.e
   }
 
   return callResponsesApi({ apiKey, baseUrl, model, requestState: modelRequestState });
+}
+
+export async function generateSchemePatchWithModelStreaming(requestState, env = process.env, onProgress) {
+  const apiKey = env.CURSORDANCE_AI_API_KEY || env.OPENAI_API_KEY;
+  if (!apiKey) return null;
+
+  const mode = env.CURSORDANCE_AI_API_MODE || "responses";
+  const baseUrl = env.CURSORDANCE_AI_API_BASE_URL || DEFAULT_RESPONSES_BASE_URL;
+  const model = env.CURSORDANCE_AI_MODEL || (mode === "chat_completions" ? DEFAULT_CHAT_MODEL : DEFAULT_RESPONSES_MODEL);
+  const modelRequestState = {
+    ...requestState,
+    maxOutputTokens: env.CURSORDANCE_AI_MAX_OUTPUT_TOKENS || requestState.maxOutputTokens,
+  };
+
+  return callResponsesApiStreaming({ apiKey, baseUrl, model, requestState: modelRequestState, onProgress });
 }
