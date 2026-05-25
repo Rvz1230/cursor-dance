@@ -9,6 +9,7 @@ export const DIAGNOSTIC_EVENT_MESSAGE_TYPE = "diagnostic-event";
 const LIVE_PREVIEW_CONFIG_STORAGE_KEY = "cursordance.livePreviewConfig";
 const CURSOR_ASSET_STORAGE_KEY_PREFIX = "cursordance.cursorAsset.";
 const RECENT_CURSOR_ASSETS_STORAGE_KEY = "cursordance.cursorAssetRecents";
+const RUNTIME_ERRORS_STORAGE_KEY = "cursordance.runtimeErrors";
 const MAX_CURSOR_ASSET_DATA_URL_LENGTH = 600 * 1024;
 const MAX_RECENT_CURSOR_ASSETS = 6;
 
@@ -532,5 +533,26 @@ export async function previewThemePack(themeId, themePack, actionId = "leftClick
     return true;
   } catch {
     return false;
+  }
+}
+
+export async function readRuntimeErrors() {
+  const chromeApi = getChromeApi();
+  if (!chromeApi?.storage?.local) return [];
+  try {
+    const result = await chromeApi.storage.local.get([RUNTIME_ERRORS_STORAGE_KEY]);
+    return Array.isArray(result[RUNTIME_ERRORS_STORAGE_KEY]) ? result[RUNTIME_ERRORS_STORAGE_KEY] : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function clearRuntimeErrors() {
+  const chromeApi = getChromeApi();
+  if (!chromeApi?.storage?.local) return;
+  try {
+    await chromeApi.storage.local.remove([RUNTIME_ERRORS_STORAGE_KEY]);
+  } catch {
+    // Best-effort cleanup.
   }
 }

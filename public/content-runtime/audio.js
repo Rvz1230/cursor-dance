@@ -8,6 +8,7 @@
       state,
       diagnostics,
       configStore,
+      reportRuntimeError,
     } = runtime;
     const resolveAudioDuckProfile = modules.resolveAudioDuckProfile
       || (({ audioConfig, blendMode }) => ({
@@ -254,6 +255,7 @@
 
       const context = getAudioContext();
       if (!context) {
+        reportRuntimeError?.("audio-context", "Web Audio API unavailable.");
         diagnostics?.log("audio.skip", {
           actionId,
           reason: "audio-context-unavailable",
@@ -297,6 +299,7 @@
           oscillator.stop(startAt + duration + preset.decay);
         });
       } catch {
+        reportRuntimeError?.("audio-playback", "Audio playback failed.");
         diagnostics?.log("audio.skip", {
           actionId,
           reason: "playback-error",

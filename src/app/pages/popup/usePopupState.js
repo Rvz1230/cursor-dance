@@ -2,12 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import {
   createWorkbenchThemeState,
   clearLivePreviewConfig,
+  clearRuntimeErrors,
   hydrateWorkbenchState,
   normalizeStoredConfig,
   previewThemePack,
   readActiveSiteContext,
   readExtensionConfig,
   readLivePreviewConfig,
+  readRuntimeErrors,
   subscribeExtensionConfig,
   subscribeLivePreviewConfig,
   writeExtensionConfig,
@@ -64,21 +66,32 @@ export function usePopupState() {
   const [site, setSite] = useState(EMPTY_SITE);
   const [busyKey, setBusyKey] = useState("");
   const [notice, setNotice] = useState({ tone: "slate", message: "正在连接主题切换器…" });
+  const [runtimeErrors, setRuntimeErrors] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
 
     async function hydrate() {
-      const [nextConfig, nextLivePreviewConfig, nextSite] = await Promise.all([
+      const [nextConfig, nextLivePreviewConfig, nextSite, errors] = await Promise.all([
         readExtensionConfig(),
         readLivePreviewConfig(),
         readActiveSiteContext(),
+        readRuntimeErrors(),
       ]);
       if (cancelled) return;
       setConfig(nextConfig);
       setLivePreviewConfig(nextLivePreviewConfig);
       setSite(nextSite);
-      setNotice(buildInitialNotice(nextSite));
+      setRuntimeErrors(errors);
+      if (errors.length > 0) {
+        clearRuntimeErrors();
+        setNotice({
+          tone: "amber",
+          message: `检测到 ${errors.length} 个运行时问题：${errors.map((e) => e.type).join("、")}`,
+        });
+      } else {
+        setNotice(buildInitialNotice(nextSite));
+      }
     }
 
     hydrate();
@@ -290,6 +303,7 @@ export function usePopupState() {
     activeThemeChoice,
     themeChoices,
     siteRule,
+    runtimeErrors,
     setEnabled,
     setThemeId,
     previewCurrentTheme,

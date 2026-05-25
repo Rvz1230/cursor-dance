@@ -12,9 +12,14 @@
     LOCAL_PREVIEW_CHANNEL_NAME: "cursordance.local-preview",
     CURSOR_ASSET_STORAGE_KEY_PREFIX: "cursordance.cursorAsset.",
     LEGACY_ENABLED_STORAGE_KEY: "cursordance.enabled",
+    RUNTIME_ERRORS_STORAGE_KEY: "cursordance.runtimeErrors",
     INTERACTIVE_SELECTOR: 'a,button,input,textarea,select,summary,label,[role="button"],[tabindex]',
     TEXT_EDITABLE_SELECTOR: 'textarea,input:not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]),[contenteditable]:not([contenteditable="false"])',
   };
+
+  const MAX_RUNTIME_ERRORS = 10;
+  let errorWriteTimer = null;
+  let pendingErrors = [];
 
   const state = {
     config: null,
@@ -46,12 +51,38 @@
     state,
   };
 
+  function reportRuntimeError(type, detail) {
+    if (!runtime.chrome?.storage?.local) return;
+    const entry = {
+      type,
+      detail: typeof detail === "string" ? detail : (detail?.message || JSON.stringify(detail || {})),
+      host: window.location.host || "",
+      at: new Date().toISOString(),
+    };
+    pendingErrors.push(entry);
+    if (pendingErrors.length > MAX_RUNTIME_ERRORS + 5) {
+      pendingErrors = pendingErrors.slice(-MAX_RUNTIME_ERRORS);
+    }
+    if (errorWriteTimer) return;
+    errorWriteTimer = window.setTimeout(() => {
+      errorWriteTimer = null;
+      const batch = pendingErrors.slice(-MAX_RUNTIME_ERRORS);
+      pendingErrors = [];
+      try {
+        runtime.chrome.storage.local.set({ [constants.RUNTIME_ERRORS_STORAGE_KEY]: batch });
+      } catch {
+        // Best-effort error reporting.
+      }
+    }, 500);
+  }
+
   const diagnostics = modules.createDiagnostics({
     ...runtime,
   });
   const configStore = modules.createConfigStore({
     ...runtime,
     diagnostics,
+    reportRuntimeError,
   });
   state.config = configStore.normalizeConfig(defaultConfig);
 
@@ -64,6 +95,7 @@
     ...runtime,
     diagnostics,
     configStore,
+    reportRuntimeError,
   });
   const cursorOverlay = modules.createCursorOverlay({
     ...runtime,
@@ -108,7 +140,7 @@
         });
       });
     } catch {
-      // Ignore local preview storage bridge failures.
+      reportRuntimeError("storage-bridge", "Local preview storage bridge unavailable.");
     }
 
     try {
@@ -147,6 +179,7 @@
       }
     });
   } catch {
+    reportRuntimeError("storage-listener", "chrome.storage.onChanged unavailable; live config sync disabled.");
     configStore.setConfig(state.config);
   }
 
@@ -159,7 +192,7 @@
       return false;
     });
   } catch {
-    // Keep the runtime usable even if extension messaging is unavailable.
+    reportRuntimeError("messaging", "chrome.runtime.onMessage unavailable; preview trigger disabled.");
   }
 
   document.addEventListener("pointerdown", triggerHandlers.handleLeftPointerDown, true);

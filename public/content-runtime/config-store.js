@@ -10,6 +10,7 @@
       constants,
       state,
       diagnostics,
+      reportRuntimeError,
     } = runtime;
 
     function normalizeConfig(value) {
@@ -718,7 +719,7 @@
             return;
           }
         } catch {
-          // Ignore live preview session read failures and fall back to persisted config.
+          reportRuntimeError?.("config-session-read", "Failed to read live preview from session storage.");
         }
 
         if (chrome?.storage?.local) {
@@ -745,6 +746,7 @@
         setConfig(getConfig() || defaultConfig);
         clearStateCursorOverlay();
       } catch {
+        reportRuntimeError?.("config-sync", "Failed to sync config from storage; using defaults.");
         setConfig(getConfig() || defaultConfig);
         clearStateCursorOverlay();
       }
