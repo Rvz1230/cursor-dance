@@ -46,12 +46,18 @@ function resolveThemeCursorAsset(themePack, stateId = "default") {
 
 function buildParticleDots(actionConfig) {
   if (!actionConfig?.particle) return [];
-  return [
-    { x: -54, y: -28, delay: 0 },
-    { x: 50, y: -16, delay: 60 },
-    { x: -26, y: 52, delay: 120 },
-    { x: 42, y: 44, delay: 180 },
-  ];
+  const count = actionConfig.particleCount ?? 5;
+  const spread = (actionConfig.particleSpread ?? 56) * 0.7;
+  const dots = [];
+  for (let i = 0; i < count; i++) {
+    const angle = (2 * Math.PI * i) / count;
+    dots.push({
+      x: Math.round(Math.cos(angle) * spread),
+      y: Math.round(Math.sin(angle) * spread),
+      delay: i * Math.round(180 / Math.max(count, 1)),
+    });
+  }
+  return dots;
 }
 
 function useReducedMotion() {
@@ -94,23 +100,41 @@ function HeroPreview({ themePack, actionConfig, themeId }) {
   const defaultCursor = resolveThemeCursorAsset(themePack, "default");
   const particles = useMemo(() => buildParticleDots(actionConfig), [actionConfig]);
   const { tick, reducedMotion } = usePreviewTick(themeId, actionConfig);
+  const hasRipple = Boolean(actionConfig?.ripple);
+  const hasParticle = Boolean(actionConfig?.particle);
+  const hasText = Boolean(actionConfig?.textEnabled && actionConfig?.textContent);
+  const particleColor = actionConfig?.particlePalette?.[0] ?? "#94A3B8";
+  const isDualRipple = actionConfig?.rippleStyle === "双环";
+  const hasAnyEffect = hasRipple || hasParticle || hasText;
 
   return (
     <div className="relative flex h-[80px] items-center justify-center rounded-xl bg-slate-50">
       <style>{POPUP_PREVIEW_KEYFRAMES}</style>
 
-      {actionConfig?.ripple ? (
+      {hasRipple ? (
         <>
-          <div key={`ra-${tick}`} className="absolute left-1/2 top-1/2 size-[56px] rounded-full border border-emerald-300/50" style={{ animation: reducedMotion ? undefined : "cursorDancePopupRipple 1100ms ease-out forwards" }} />
-          <div key={`rb-${tick}`} className="absolute left-1/2 top-1/2 size-[64px] rounded-full border border-emerald-200/45" style={{ animation: reducedMotion ? undefined : "cursorDancePopupRipple 1100ms ease-out 110ms forwards" }} />
+          <div key={`ra-${tick}`} className="absolute left-1/2 top-1/2 size-[56px] rounded-full border border-slate-300/50" style={{ animation: reducedMotion ? undefined : "cursorDancePopupRipple 1100ms ease-out forwards" }} />
+          {isDualRipple ? (
+            <div key={`rb-${tick}`} className="absolute left-1/2 top-1/2 size-[64px] rounded-full border border-slate-200/45" style={{ animation: reducedMotion ? undefined : "cursorDancePopupRipple 1100ms ease-out 110ms forwards" }} />
+          ) : null}
         </>
       ) : null}
 
-      {actionConfig?.particle
+      {hasParticle
         ? particles.map((p, i) => (
-          <span key={`pt-${tick}-${i}`} className="absolute left-1/2 top-1/2 size-2 rounded-full bg-emerald-400/80" style={{ "--particle-x": `${p.x}px`, "--particle-y": `${p.y}px`, animation: reducedMotion ? undefined : `cursorDancePopupParticle 920ms ease-out ${p.delay}ms forwards` }} />
+          <span key={`pt-${tick}-${i}`} className="absolute left-1/2 top-1/2 size-2 rounded-full" style={{ backgroundColor: particleColor, opacity: 0.7, "--particle-x": `${p.x}px`, "--particle-y": `${p.y}px`, animation: reducedMotion ? undefined : `cursorDancePopupParticle 920ms ease-out ${p.delay}ms forwards` }} />
         ))
         : null}
+
+      {hasText ? (
+        <span key={`txt-${tick}`} className="absolute left-1/2 top-[8px] z-20 -translate-x-1/2 text-xs font-semibold text-slate-600" style={{ opacity: 0, animation: reducedMotion ? undefined : `cursorDancePopupParticle 1100ms ease-out 50ms forwards` }}>
+          {actionConfig.textContent}
+        </span>
+      ) : null}
+
+      {!hasAnyEffect ? (
+        <span className="absolute z-10 text-xs text-slate-400">无特效</span>
+      ) : null}
 
       <div className="relative z-10 flex size-[44px] items-center justify-center rounded-full border border-white bg-white shadow-sm" style={{ animation: reducedMotion ? undefined : "cursorDancePopupPulse 1800ms ease-in-out infinite" }}>
         <img src={defaultCursor.imageDataUrl} alt="光标预览" className="max-h-[30px] max-w-[30px] object-contain" />
@@ -126,20 +150,17 @@ function Header({ enabled, siteHost, siteRule, busyKey, setEnabled }) {
   return (
     <header className="flex items-center justify-between gap-2">
       <div className="flex min-w-0 items-center gap-2">
-        <div className="relative flex size-8 items-center justify-center">
-          <div className="size-7 rounded-full border-[4px] border-emerald-600 border-r-transparent" />
-          <div className="absolute right-0.5 top-1 h-2.5 w-2.5 text-amber-400">
-            <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0.8 9.4 5.1 13.7 6.5 9.4 7.9 8 12.2 6.6 7.9 2.3 6.5 6.6 5.1 8 0.8Z" /></svg>
-          </div>
+        <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full">
+          <img src="logo.svg" alt="CursorDance" className="size-full object-contain" />
         </div>
         <div className="min-w-0">
-          <h1 className="text-sm font-semibold leading-tight text-slate-800 text-balance">CursorDance</h1>
-          <p className="mt-0.5 flex items-center gap-1 text-[11px] text-slate-500 truncate">
+          <h1 className="text-sm font-semibold leading-tight text-slate-900 text-balance">CursorDance</h1>
+          <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-500 truncate">
             {siteHost ? <Globe2 className="size-3 shrink-0" /> : null}
             <span className="truncate">{siteHost || "主题切换器"}</span>
             {siteRuleActive ? (
               <span className={cn(
-                "ml-0.5 inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-px text-[10px] font-medium",
+                "ml-0.5 inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-px text-xs font-medium",
                 siteRule.mode === "disabled"
                   ? "bg-rose-100 text-rose-600"
                   : "bg-amber-100 text-amber-700"
@@ -185,11 +206,11 @@ function CurrentThemeHero({ theme, themePack, actionConfig, actionLabel }) {
             />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="text-sm font-semibold text-slate-800 text-balance">{theme?.name || "未选择主题"}</h2>
+            <h2 className="text-sm font-semibold text-slate-900 text-balance">{theme?.name || "未选择主题"}</h2>
             <div className="mt-1 flex flex-wrap items-center gap-1.5">
-              <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">{actionLabel}</span>
+              <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{actionLabel}</span>
               {effectCount > 0 ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
                   <span className="size-1.5 rounded-full bg-emerald-500" />
                   {effectCount} 个特效
                 </span>
@@ -219,7 +240,7 @@ function ThemeListCard({ theme, themePack, actionConfig, selected, onSelect, dis
       className={cn(
         "relative w-full overflow-hidden rounded-xl text-left transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60",
         selected
-          ? "border border-emerald-200/70 bg-emerald-50/50 shadow-sm"
+          ? "border border-slate-300 bg-slate-50 shadow-sm"
           : "border border-slate-200/60 bg-white hover:border-slate-300 hover:shadow-sm"
       )}
     >
@@ -229,7 +250,7 @@ function ThemeListCard({ theme, themePack, actionConfig, selected, onSelect, dis
           <img src={cursorAsset.imageDataUrl} alt={`${theme.name} 光标`} className="max-h-[22px] max-w-[22px] object-contain" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-[13px] font-semibold text-slate-800">{theme.name}</div>
+          <div className="truncate text-sm font-semibold text-slate-900">{theme.name}</div>
           <div className="mt-0.5 truncate text-xs text-slate-500">{theme.summary}</div>
         </div>
       </div>
@@ -247,16 +268,16 @@ function ThemeListSection({ items, activeThemeId, siteRule, busyKey, setThemeId 
       <div className="mb-1.5 flex items-center justify-between gap-3 px-0.5">
         <h3 className="text-xs font-semibold text-slate-400">
           主题列表
-          <span className="ml-1 font-normal normal-case text-slate-350">{items.length} 个</span>
+          <span className="ml-1 font-normal normal-case text-slate-400">{items.length} 个</span>
         </h3>
       </div>
       {siteRuleActive ? (
-        <div className="mb-1.5 rounded-lg border border-amber-200/60 bg-amber-50/70 px-2.5 py-1.5 text-[11px] text-amber-700">
+        <div className="mb-1.5 rounded-lg border border-amber-200/60 bg-amber-50/70 px-2.5 py-1.5 text-xs text-amber-700">
           此站点已绑定专属主题，切换将更新站点规则。
         </div>
       ) : null}
       {siteRuleDisabled ? (
-        <div className="mb-1.5 rounded-lg border border-rose-200/60 bg-rose-50/70 px-2.5 py-1.5 text-[11px] text-rose-700">
+        <div className="mb-1.5 rounded-lg border border-rose-200/60 bg-rose-50/70 px-2.5 py-1.5 text-xs text-rose-700">
           此站点的特效已禁用，切换主题将重新启用。
         </div>
       ) : null}
@@ -293,11 +314,11 @@ function FooterActions({ notice, canPreview, busyKey, previewCurrentTheme, openO
       </AnimatePresence>
 
       <div className="grid grid-cols-2 gap-2">
-        <Button className="h-9 rounded-xl bg-emerald-600 text-[13px] font-semibold text-white shadow-sm hover:bg-emerald-700" disabled={!canPreview || busyKey === "preview"} onClick={previewCurrentTheme}>
+        <Button className="h-9 rounded-xl bg-slate-950 text-sm font-semibold text-white shadow-sm hover:bg-slate-800" disabled={!canPreview || busyKey === "preview"} onClick={previewCurrentTheme}>
           <Play className="mr-1.5 size-4" />
           测试效果
         </Button>
-        <Button variant="outline" className="h-9 rounded-xl border-slate-200 bg-white text-[13px] font-semibold text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50" disabled={busyKey === "options"} onClick={openOptionsPage}>
+        <Button variant="outline" className="h-9 rounded-xl border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50" disabled={busyKey === "options"} onClick={openOptionsPage}>
           <Settings className="mr-1.5 size-4" />
           打开工作台
         </Button>
@@ -340,7 +361,7 @@ export default function PopupPage() {
 
   return (
     <div
-      className="overflow-hidden text-slate-800"
+      className="overflow-hidden text-slate-700"
       style={{ width: POPUP_WIDTH, height: POPUP_HEIGHT, fontFamily: '"SF Pro Display","SF Pro Text","PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif' }}
     >
       <div className="flex h-full w-full flex-col gap-2.5 bg-white p-3">

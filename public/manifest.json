@@ -7,7 +7,17 @@
   "minimum_chrome_version": "114",
   "action": {
     "default_popup": "popup.html",
-    "default_title": "CursorDance"
+    "default_title": "CursorDance",
+    "default_icon": {
+      "16": "icon-16.png",
+      "48": "icon-48.png",
+      "128": "icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "icon-16.png",
+    "48": "icon-48.png",
+    "128": "icon-128.png"
   },
   "options_page": "index.html",
   "permissions": ["storage", "activeTab", "unlimitedStorage"],
