@@ -80,6 +80,7 @@ import {
   pickStoredWorkbenchActionConfig,
   pickStoredWorkbenchActionConfigs,
 } from "./actionConfigSchema.js";
+import { ANIMATION_EASING_OPTIONS } from "./actionConfigOptions.js";
 import { getDefaultActionConfigs } from "./actionConfigPresets.js";
 
 export const WORKSPACES = [
@@ -315,6 +316,7 @@ export {
   AUDIO_BLEND_OPTIONS,
   AUDIO_TRIGGER_OPTIONS,
   ANIMATION_STYLE_OPTIONS,
+  ANIMATION_EASING_OPTIONS,
   ACTION_ANIMATION_FIELDS,
   ACTION_AUDIO_FIELDS,
   ACTION_CONFIG_MODEL_BOUNDARIES,
