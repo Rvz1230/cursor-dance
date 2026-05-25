@@ -12,41 +12,36 @@ function extractBaseActionConfigs() {
   const source = fs.readFileSync(CONFIG_STORE_PATH, "utf-8");
   const lines = source.split("\n");
 
-  let fnStart = -1;
+  let varStart = -1;
   for (let i = 0; i < lines.length; i++) {
-    if (lines[i].includes("function getBaseActionConfigs()")) {
-      fnStart = i;
+    if (lines[i].includes("var BASE_ACTION_CONFIGS = {")) {
+      varStart = i;
       break;
     }
   }
-  if (fnStart < 0) throw new Error("Could not find getBaseActionConfigs in config-store.js");
+  if (varStart < 0) throw new Error("Could not find BASE_ACTION_CONFIGS in config-store.js");
 
-  // Find the return statement line
-  let returnLine = -1;
-  for (let i = fnStart + 1; i < lines.length; i++) {
-    if (lines[i].includes("return {")) {
-      returnLine = i;
-      break;
-    }
-  }
-  if (returnLine < 0) throw new Error("Could not find return statement in getBaseActionConfigs");
-
-  // Count brace depth from the return statement to find the closing brace
+  // Count brace depth from the opening brace to find the closing }; of the object literal
   let depth = 0;
-  let endLine = returnLine;
-  for (let i = returnLine; i < lines.length; i++) {
+  let started = false;
+  let endLine = varStart;
+  for (let i = varStart; i < lines.length; i++) {
     for (const ch of lines[i]) {
-      if (ch === "{") depth++;
+      if (ch === "{") { depth++; started = true; }
       if (ch === "}") depth--;
     }
-    if (depth === 0 && i > returnLine) {
+    if (started && depth === 0) {
       endLine = i;
       break;
     }
   }
 
-  const returnBlock = lines.slice(returnLine, endLine + 1).join("\n");
-  const fn = new Function(`${returnBlock}`);
+  // Extract from "{" to the closing "}" (the value part of the assignment)
+  const block = lines.slice(varStart, endLine + 1).join("\n");
+  const objStart = block.indexOf("{");
+  const objEnd = block.lastIndexOf("}") + 1;
+  const objLiteral = block.slice(objStart, objEnd);
+  const fn = new Function(`return ${objLiteral}`);
   return fn();
 }
 

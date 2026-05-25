@@ -85,7 +85,6 @@
     reportRuntimeError,
   });
   state.config = configStore.normalizeConfig(defaultConfig);
-  state.ready = true;
 
   const visualEffects = modules.createVisualEffects({
     ...runtime,
@@ -136,7 +135,7 @@
         ) {
           return;
         }
-        void configStore.syncConfigFromStorage({
+        void configStore.debouncedSyncConfigFromStorage({
           clearStateCursorOverlay: cursorOverlay.clearStateCursorOverlay,
         });
       });
@@ -174,7 +173,7 @@
         || changedKeys.includes(constants.LEGACY_ENABLED_STORAGE_KEY)
         || changedKeys.some((key) => key.startsWith(constants.CURSOR_ASSET_STORAGE_KEY_PREFIX))
       ) {
-        void configStore.syncConfigFromStorage({
+        void configStore.debouncedSyncConfigFromStorage({
           clearStateCursorOverlay: cursorOverlay.clearStateCursorOverlay,
         });
       }

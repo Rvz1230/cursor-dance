@@ -435,8 +435,8 @@ export function StatesPanel({
 
           <section className="rounded-xl border border-slate-200 bg-white p-3">
             <div className="mb-2 text-sm font-semibold text-slate-900">来源策略</div>
-            <div className="grid grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1">
-              {["源", "继承", "覆盖"].map((mode) => (
+            <div className={cn("grid gap-1 rounded-xl bg-slate-100 p-1", stateId === "default" ? "grid-cols-1" : "grid-cols-2")}>
+              {(stateId === "default" ? ["源"] : ["继承", "覆盖"]).map((mode) => (
                 <button
                   key={mode}
                   type="button"
@@ -448,7 +448,7 @@ export function StatesPanel({
               ))}
             </div>
             <div className="mt-2 text-xs text-slate-500">
-              {currentMode === "继承" && stateId !== "default" ? "此状态沿用默认状态素材与热点。" : "此状态使用自己的绑定素材。"}
+              {stateId === "default" ? "默认状态始终使用自己的绑定素材。" : currentMode === "继承" ? "此状态沿用默认状态素材与热点。" : "此状态使用自己的绑定素材。"}
             </div>
           </section>
 
@@ -539,6 +539,7 @@ export function StatesPanel({
             >
               {actionItems.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
             </select>
+            <div className="mt-1.5 text-xs text-slate-400">仅对左键单击生效；其他触发方式（右键/双击/长按/滚轮/悬停）不受此绑定影响。</div>
           </section>
 
           <section className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-3">

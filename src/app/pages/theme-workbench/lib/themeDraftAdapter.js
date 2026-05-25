@@ -13,9 +13,7 @@ import { getDefaultConfig, getRuntimeConfig, normalizeStoredConfig } from "./run
 export const DEFAULT_WORKBENCH_SITE_MODE = "跟随全局";
 
 function toWorkbenchCursorMode(stateId, mode) {
-  if (stateId === "default") {
-    return mode === "override" ? "覆盖" : "源";
-  }
+  if (stateId === "default") return "源";
   return mode === "override" ? "覆盖" : "继承";
 }
 

@@ -185,6 +185,7 @@ export const CURSOR_STATES = [
   { id: "pointer", label: "手型", detail: "Pointer · 48 × 48", icon: Hand, defaultMode: "继承" },
   { id: "text", label: "文本", detail: "Text · 48 × 48", icon: TextCursorInput, defaultMode: "继承" },
   { id: "help", label: "帮助", detail: "Help · 48 × 48", icon: HelpCircle, defaultMode: "继承" },
+  // wait 默认覆盖：等待/加载状态下通常需要独立的视觉反馈（如转圈动画），不适合继承默认光标。
   { id: "wait", label: "等待", detail: "Wait · 48 × 48", icon: Clock3, defaultMode: "覆盖" },
   { id: "notAllowed", label: "禁用", detail: "Not allowed · 48 × 48", icon: Ban, defaultMode: "继承" },
 ];
