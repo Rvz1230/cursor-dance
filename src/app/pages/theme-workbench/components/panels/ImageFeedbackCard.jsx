@@ -89,7 +89,7 @@ export function ImageFeedbackCard({ config, updateActionConfig }) {
                 className="w-full rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-4 text-left transition-colors hover:border-fuchsia-300 hover:bg-fuchsia-50/50"
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-3xl bg-fuchsia-50 text-fuchsia-700">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-fuchsia-50 text-fuchsia-700">
                     <Upload className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">

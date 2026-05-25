@@ -146,10 +146,10 @@ export function ControlSlider({ value, min, max, onValueChange, suffix = "", dis
         <Slider className="flex-1" value={[value]} min={min} max={max} onValueChange={(next) => commitValue(next[0])} disabled={disabled} aria-label={label} />
         <div
           className={cn(
-            "pointer-events-none absolute -top-7 z-10 -translate-x-1/2 rounded-lg bg-slate-950 px-2 py-1 text-xs font-semibold tabular-nums text-white shadow-md transition-opacity",
+            "pointer-events-none absolute -top-7 z-10 -translate-x-1/2 rounded-lg bg-slate-950 px-2 py-1 text-xs font-semibold tabular-nums text-white shadow-lg transition-opacity",
             isInteracting ? "opacity-100" : "opacity-0"
           )}
-          style={{ left: `${percent}%` }}
+          style={{ left: `${Math.max(5, Math.min(95, percent))}%` }}
           aria-hidden="true"
         >
           {value}{suffix}
@@ -171,7 +171,7 @@ export function ControlSlider({ value, min, max, onValueChange, suffix = "", dis
             commitValue(Number(raw));
           }}
           onBlur={(event) => commitValue(Number(event.target.value))}
-          className="min-w-0 bg-transparent pr-1 text-right text-sm font-semibold tabular-nums text-slate-800 outline-none disabled:cursor-not-allowed"
+          className="min-w-0 bg-transparent pr-1 text-right text-sm font-semibold tabular-nums text-slate-800 outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
         />
         {suffix ? <span className="ml-0.5 shrink-0 text-xs font-medium text-slate-500">{suffix}</span> : null}
       </div>
@@ -227,8 +227,8 @@ export function ColorOptions({ value, onChange, disabled = false }) {
                   disabled={disabled}
                   onClick={() => commitColor(color)}
                   className={cn(
-                    "flex size-9 items-center justify-center rounded-xl border transition-transform disabled:cursor-not-allowed",
-                    value?.toUpperCase() === color ? "border-slate-900 ring-2 ring-slate-200" : "border-slate-200 hover:scale-[1.03]"
+                    "flex size-9 items-center justify-center rounded-xl border transition-colors disabled:cursor-not-allowed",
+                    value?.toUpperCase() === color ? "border-slate-900 ring-2 ring-slate-200" : "border-slate-200 hover:border-slate-300"
                   )}
                   style={{ backgroundColor: color }}
                   aria-label={`选择颜色 ${color}`}
@@ -477,7 +477,7 @@ export function ThemeCard({ theme, selected, onClick, onDuplicate, onExport, onD
                     if (event.key === "Escape") { event.preventDefault(); setEditingName(""); }
                   }}
                   onClick={(event) => event.stopPropagation()}
-                  className="w-full min-w-0 rounded-md border border-slate-300 bg-white px-1.5 py-0.5 text-sm font-semibold text-slate-900 outline-none ring-2 ring-slate-950/20 ring-offset-0"
+                  className="w-full min-w-0 rounded-lg border border-slate-300 bg-white px-1.5 py-0.5 text-sm font-semibold text-slate-900 outline-none ring-2 ring-slate-950/20 ring-offset-0"
                   autoFocus
                   onFocus={(event) => event.target.select()}
                 />

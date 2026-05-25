@@ -41,17 +41,17 @@ export function AssetsPanel({
         action={<DataPill tone="teal">{summary.counts.total} 项可见素材</DataPill>}
       >
         <div className="grid gap-4 lg:grid-cols-3">
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <div className="text-xs text-slate-500">当前动作贴纸</div>
             <div className="mt-2 text-2xl font-semibold text-slate-900">{summary.counts.hasActionImageAsset ? "1" : "0"}</div>
             <div className="mt-2 text-sm text-slate-600">集中查看当前动作是否绑定图片贴纸，以及它现在是否处于启用状态。</div>
           </div>
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <div className="text-xs text-slate-500">光标状态素材</div>
             <div className="mt-2 text-2xl font-semibold text-slate-900">{summary.counts.cursor}</div>
             <div className="mt-2 text-sm text-slate-600">这里汇总当前主题里已经配置过图片的光标状态，方便快速排查继承链是否齐全。</div>
           </div>
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <div className="text-xs text-slate-500">最近导入素材</div>
             <div className="mt-2 text-2xl font-semibold text-slate-900">{summary.counts.recent}</div>
             <div className="mt-2 text-sm text-slate-600">最近上传过的光标素材会保留在这里，方便回看和重复使用。</div>
@@ -92,7 +92,7 @@ export function AssetsPanel({
               </div>
             </div>
           ) : (
-            <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-5 py-6 text-sm text-slate-600">
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-6 text-sm text-slate-600">
               当前动作还没有图片贴纸。你可以回到主题工作台，为这个动作加一张图片反馈素材。
             </div>
           )}
@@ -107,7 +107,7 @@ export function AssetsPanel({
           {summary.recentAssets.length ? (
             <div className="grid gap-3 md:grid-cols-2">
               {summary.recentAssets.map((asset) => (
-                <div key={asset.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-3">
+                <div key={asset.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
                   <div className="flex items-center gap-3">
                     <AssetPreview asset={asset} alt={asset.name} className="h-20 w-20 shrink-0" />
                     <div className="min-w-0">
@@ -123,7 +123,7 @@ export function AssetsPanel({
               ))}
             </div>
           ) : (
-            <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-5 py-6 text-sm text-slate-600">
+            <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-6 text-sm text-slate-600">
               最近还没有导入过新的光标素材。后续在“光标状态”里上传后，这里会自动出现记录。
             </div>
           )}
@@ -151,7 +151,7 @@ export function AssetsPanel({
                   setWorkspaceId("states");
                   setCursorStateId(asset.id);
                 }}
-                className="rounded-3xl border border-slate-200 bg-slate-50 p-3 text-left transition-colors hover:border-slate-300 hover:bg-white"
+                className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-left transition-colors hover:border-slate-300 hover:bg-white"
               >
                 <div className="flex items-center gap-3">
                   <AssetPreview asset={asset} alt={`${asset.label} cursor`} className="h-20 w-20 shrink-0" />
@@ -167,7 +167,7 @@ export function AssetsPanel({
             ))}
           </div>
         ) : (
-          <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-5 py-6 text-sm text-slate-600">
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-6 text-sm text-slate-600">
             当前主题还没有配置任何光标状态图片。后续在“光标状态”里上传之后，这里会统一显示。
           </div>
         )}

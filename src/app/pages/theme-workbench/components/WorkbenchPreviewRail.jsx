@@ -205,7 +205,7 @@ function PreviewTimeline({ tracks, totalMs, playbackSpeed }) {
       <div className="relative mb-3 h-5">
         <div className="absolute inset-x-0 top-2 h-px bg-slate-200" />
         {ticks.map((tick) => (
-          <div key={tick} className="absolute top-0 text-xs text-slate-500" style={{ left: `${(tick / totalMs) * 100}%`, transform: tick === 0 ? "none" : "translateX(-50%)" }}>
+          <div key={tick} className="absolute top-0 text-xs text-slate-500" style={{ left: `${(tick / totalMs) * 100}%`, transform: tick === 0 ? "none" : tick === totalMs ? "translateX(-100%)" : "translateX(-50%)" }}>
             <span className="block h-2 w-px bg-slate-300" />
             <span className="mt-1 block">{tick}ms</span>
           </div>

@@ -378,7 +378,7 @@ export function StatesPanel({
                       </div>
                     </div>
                     <select
-                      className="h-9 rounded-xl border border-slate-200 bg-white px-2 text-sm text-slate-700 outline-none"
+                      className="h-9 rounded-xl border border-slate-200 bg-white px-2 text-sm text-slate-700 outline-none focus-visible:ring-2 focus-visible:ring-slate-950"
                       defaultValue=""
                       onChange={(event) => event.target.value && bindPendingFile(pendingFile, event.target.value)}
                     >

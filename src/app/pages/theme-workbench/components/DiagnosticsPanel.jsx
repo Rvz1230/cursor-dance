@@ -138,22 +138,22 @@ export function DiagnosticsPanel({
         action={<DataPill tone={debugEnabled ? "teal" : "amber"}>{debugEnabled ? "诊断已开启" : "诊断默认关闭"}</DataPill>}
       >
         <div className="grid gap-4 lg:grid-cols-4">
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <div className="text-xs text-slate-500">当前主题</div>
             <div className="mt-2 text-lg font-semibold text-slate-900">{themeName}</div>
             <div className="mt-2 text-sm text-slate-600">当前动作：{formatActionLabel(actionId)}</div>
           </div>
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <div className="text-xs text-slate-500">当前工作区</div>
             <div className="mt-2 text-lg font-semibold text-slate-900">{workspaceLabel}</div>
             <div className="mt-2 text-sm text-slate-600">未保存状态：{unsaved ? "有改动" : "已同步"}</div>
           </div>
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <div className="text-xs text-slate-500">当前站点</div>
             <div className="mt-2 text-lg font-semibold text-slate-900">{site.host}</div>
             <div className="mt-2 text-sm text-slate-600">{site.isSupportedPage ? "可写入规则页面" : "当前页只读或不可注入"}</div>
           </div>
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <div className="text-xs text-slate-500">全局开关</div>
             <div className="mt-2 text-lg font-semibold text-slate-900">{enabled ? "已启用" : "已关闭"}</div>
             <div className="mt-2 text-sm text-slate-600">用于区分是配置问题还是总开关未打开。</div>
@@ -168,7 +168,7 @@ export function DiagnosticsPanel({
           iconTone="bg-sky-100 text-sky-700"
           action={<DataPill tone={livePreviewSummary.status === "inactive" ? "slate" : "teal"}>{livePreviewSummary.status}</DataPill>}
         >
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <div className="text-sm font-semibold text-slate-900">{livePreviewSummary.label}</div>
             <div className="mt-2 text-sm leading-6 text-slate-600">
               {livePreviewSummary.activeThemeId
@@ -215,7 +215,7 @@ export function DiagnosticsPanel({
             {diagnosticEntries.slice().reverse().map((entry, index) => {
               const details = toEntryDetails(entry);
               return (
-                <article key={`${entry.scope}-${entry.at}-${index}`} className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                <article key={`${entry.scope}-${entry.at}-${index}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="text-sm font-semibold text-slate-900">{entry.scope}</div>
                     <DataPill>{formatEntryTime(entry.at)}</DataPill>
@@ -232,7 +232,7 @@ export function DiagnosticsPanel({
             })}
           </div>
         ) : (
-          <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 px-5 py-6 text-sm text-slate-600">
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-6 text-sm text-slate-600">
             还没有收到 runtime diagnostics 事件。开启诊断后，在目标页面触发一次点击、悬停、滚轮或音频播放，这里就会开始滚动显示原因链路。
           </div>
         )}

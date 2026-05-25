@@ -19,7 +19,7 @@ export function WorkbenchPanel({ actionId, config, updateActionConfig, conflicts
   return (
     <div className="space-y-3">
       {conflicts.length ? (
-        <div className="rounded-3xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-amber-800">
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
             <div>

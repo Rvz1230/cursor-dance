@@ -113,6 +113,8 @@ function ThemeComposerModal({
                   placeholder="例如：Warm Click Studio"
                   className="bg-white"
                   autoFocus
+                  required
+                  aria-required="true"
                   aria-describedby={createError ? "theme-create-error" : undefined}
                   aria-invalid={Boolean(createError)}
                 />

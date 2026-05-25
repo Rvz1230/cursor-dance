@@ -75,7 +75,7 @@ export function SitesPanel({
         }
       >
         <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <SectionTitle>当前站点</SectionTitle>
             <div className="text-lg font-semibold text-slate-900">{activeHost}</div>
             <div className="mt-2 text-sm text-slate-600">
@@ -127,7 +127,7 @@ export function SitesPanel({
               <Input value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="搜索域名，例如 demo 或 docs" className="rounded-2xl bg-white" />
               <Button variant="ghost" className="rounded-2xl px-4" onClick={() => setFilter("")}>清空搜索</Button>
             </div>
-            <div className="overflow-hidden rounded-3xl border border-slate-200">
+            <div className="overflow-hidden rounded-2xl border border-slate-200">
               <table className="min-w-full text-left text-sm">
                 <thead className="bg-slate-50 text-xs text-slate-500">
                   <tr>
