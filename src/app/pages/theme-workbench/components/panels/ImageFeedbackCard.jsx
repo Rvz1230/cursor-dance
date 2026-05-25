@@ -157,7 +157,7 @@ export function ImageFeedbackCard({ config, updateActionConfig }) {
 
             <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4">
               <div className="text-sm font-semibold text-slate-900">当前预览</div>
-              <div className="mt-4 flex h-32 items-center justify-center rounded-[28px] border border-slate-200 bg-[radial-gradient(circle_at_top,#ffffff,#ede9fe)] shadow-sm">
+              <div className="mt-4 flex h-32 items-center justify-center rounded-[28px] border border-slate-200 bg-purple-50 shadow-sm">
                 {config.imageDataUrl ? (
                   <img src={config.imageDataUrl} alt="image effect preview" style={buildImagePreviewStyle(config)} />
                 ) : (

@@ -53,7 +53,7 @@ export function ToastProvider({ children }) {
                 if (!open) closeToast(item.id)
               }}
               className={cn(
-                'grid w-fit min-w-[240px] max-w-[min(420px,calc(100vw-2rem))] grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 rounded-md border px-3 py-2 shadow-md shadow-slate-900/10',
+                'grid w-fit min-w-[240px] max-w-[min(420px,calc(100vw-2rem))] grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 rounded-xl border px-3 py-2 shadow-md shadow-slate-900/10',
                 tone.rootClassName
               )}
             >

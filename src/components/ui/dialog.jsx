@@ -13,7 +13,7 @@ export function DialogContent({ className, children, titleId, title, showClose =
       <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-slate-950/55" />
       <DialogPrimitive.Content
         className={cn(
-          'fixed left-1/2 top-1/2 z-50 flex max-h-[min(720px,calc(100dvh-4rem))] w-[calc(100vw-2rem)] max-w-[640px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-[#f8fafc] shadow-xl focus:outline-none',
+          'fixed left-1/2 top-1/2 z-50 flex max-h-[min(720px,calc(100dvh-4rem))] w-[calc(100vw-2rem)] max-w-[640px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-[#f8fafc] shadow-lg focus:outline-none',
           className
         )}
         aria-labelledby={titleId}

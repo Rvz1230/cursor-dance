@@ -70,6 +70,9 @@ DOM events (pointerdown/up/move, wheel, contextmenu) → `trigger-handlers.js` r
 - `mergeActionConfig(base, ...overlays)` handles textTags as arrays (replaced, not merged)
 - Theme tone colors: amber, teal, sky, rose — mapped in `toneClasses()`
 
+## Design
+See [DESIGN.md](./DESIGN.md) for the project's visual design language ("克制柔软" / soft-minimal linear). All new UI work must follow the tokens and patterns defined there.
+
 ## No-go areas
 - Do NOT add `behavior.click.effects` back — this old format was removed (2026-05-24)
 - Do NOT rewrite `public/content.js` broadly; add focused runtime modules instead

@@ -546,14 +546,14 @@ export function WorkspaceItem({ item, active, onClick, compact = false }) {
       onClick={onClick}
       className={cn(
         compact
-          ? "inline-flex whitespace-nowrap items-center gap-2 rounded-xl border px-2.5 py-1.5 text-sm transition-all active:scale-[0.97]"
+          ? "inline-flex whitespace-nowrap items-center gap-2 rounded-xl border px-2.5 py-1.5 text-sm transition-[transform,color,background-color,border-color,box-shadow] active:scale-[0.97]"
           : "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors",
         compact
           ? active
             ? "border-slate-950 bg-slate-950 text-white shadow-sm"
             : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900"
           : active
-            ? "bg-emerald-50 text-emerald-800"
+            ? "bg-slate-100 text-slate-900"
             : "text-slate-600 hover:bg-white hover:text-slate-900"
       )}
     >
@@ -569,7 +569,7 @@ export function ActionTab({ item, active, onClick }) {
       type="button"
       onClick={onClick}
       className={cn(
-        "min-w-fit rounded-xl border px-3 py-1.5 text-sm font-medium transition-all active:scale-[0.97]",
+        "min-w-fit rounded-xl border px-3 py-1.5 text-sm font-medium transition-[transform,color,background-color,border-color,box-shadow] active:scale-[0.97]",
         active ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900"
       )}
     >
