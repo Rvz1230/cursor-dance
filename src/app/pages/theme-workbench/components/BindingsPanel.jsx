@@ -25,7 +25,7 @@ export function BindingsPanel({ actionConfigs, actionId, setActionId, currentCon
       <Panel title="动作矩阵总览">
         <div className="overflow-hidden rounded-2xl border border-slate-200">
           <table className="min-w-full text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+            <thead className="bg-slate-50 text-xs text-slate-500">
               <tr>
                 <th className="px-4 py-3 font-medium">动作</th>
                 <th className="px-4 py-3 font-medium">飘字</th>

@@ -5,7 +5,7 @@ import { buildAssetCenterSummary } from "../lib/assetCenter.js";
 
 function AssetPreview({ asset, alt, className = "" }) {
   return (
-    <div className={`flex items-center justify-center rounded-[24px] border border-slate-200 bg-white ${className}`}>
+    <div className={`flex items-center justify-center rounded-2xl border border-slate-200 bg-white ${className}`}>
       <img
         src={asset.imageDataUrl}
         alt={alt}

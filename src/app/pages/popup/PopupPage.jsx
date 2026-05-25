@@ -96,7 +96,7 @@ function HeroPreview({ themePack, actionConfig, themeId }) {
   const { tick, reducedMotion } = usePreviewTick(themeId, actionConfig);
 
   return (
-    <div className="relative flex h-[80px] items-center justify-center rounded-xl bg-[#f8fafb]">
+    <div className="relative flex h-[80px] items-center justify-center rounded-xl bg-slate-50">
       <style>{POPUP_PREVIEW_KEYFRAMES}</style>
 
       {actionConfig?.ripple ? (
@@ -245,7 +245,7 @@ function ThemeListSection({ items, activeThemeId, siteRule, busyKey, setThemeId 
   return (
     <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div className="mb-1.5 flex items-center justify-between gap-3 px-0.5">
-        <h3 className="text-xs font-semibold text-slate-400 uppercase">
+        <h3 className="text-xs font-semibold text-slate-400">
           主题列表
           <span className="ml-1 font-normal normal-case text-slate-350">{items.length} 个</span>
         </h3>

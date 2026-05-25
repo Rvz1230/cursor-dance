@@ -59,8 +59,8 @@ export function ImageFeedbackCard({ config, updateActionConfig }) {
   return (
     <Panel
       title="图片贴纸反馈"
-      icon={PANEL_META.cursor.icon}
-      iconTone="bg-fuchsia-100 text-fuchsia-700"
+      icon={PANEL_META.image.icon}
+      iconTone={PANEL_META.image.tone}
       collapsible
       defaultOpen={config.imageEnabled}
       enabled={config.imageEnabled}
@@ -86,14 +86,14 @@ export function ImageFeedbackCard({ config, updateActionConfig }) {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full rounded-[24px] border border-dashed border-slate-300 bg-white px-4 py-4 text-left transition-colors hover:border-fuchsia-300 hover:bg-fuchsia-50/50"
+                className="w-full rounded-2xl border border-dashed border-slate-300 bg-white px-4 py-4 text-left transition-colors hover:border-fuchsia-300 hover:bg-fuchsia-50/50"
               >
                 <div className="flex items-center gap-3">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-3xl bg-fuchsia-50 text-fuchsia-700">
                     <Upload className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-sm font-semibold text-slate-900">上传 PNG / WebP / SVG</div>
+                    <div className="text-sm font-semibold text-slate-900 text-balance">上传 PNG / WebP / SVG</div>
                     <div className="mt-1 text-xs text-slate-500">建议 300 KB 以内，先做一张点击贴纸。</div>
                   </div>
                 </div>
@@ -109,13 +109,13 @@ export function ImageFeedbackCard({ config, updateActionConfig }) {
                       setAssetTone("teal");
                       setAssetMessage(`已应用${preset.label}。`);
                     }}
-                    className="flex items-center gap-3 rounded-[24px] border border-slate-200 bg-white px-4 py-3 text-left transition-colors hover:border-fuchsia-300 hover:bg-fuchsia-50/40"
+                    className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left transition-colors hover:border-fuchsia-300 hover:bg-fuchsia-50/40"
                   >
                     <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-purple-50">
                       <img src={preset.asset.imageDataUrl} alt={`${preset.label} preview`} className="object-contain" style={{ width: "40px", height: "40px" }} />
                     </div>
                     <div className="min-w-0">
-                      <div className="text-sm font-semibold text-slate-800">{preset.label}</div>
+                      <div className="text-sm font-semibold text-slate-800 text-balance">{preset.label}</div>
                       <div className="mt-1 text-xs leading-5 text-slate-500">{preset.hint}</div>
                     </div>
                   </button>
@@ -155,9 +155,9 @@ export function ImageFeedbackCard({ config, updateActionConfig }) {
               ) : null}
             </div>
 
-            <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4">
-              <div className="text-sm font-semibold text-slate-900">当前预览</div>
-              <div className="mt-4 flex h-32 items-center justify-center rounded-[28px] border border-slate-200 bg-purple-50 shadow-sm">
+            <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
+              <div className="text-sm font-semibold text-slate-900 text-balance">当前预览</div>
+              <div className="mt-4 flex h-32 items-center justify-center rounded-2xl border border-slate-200 bg-purple-50 shadow-sm">
                 {config.imageDataUrl ? (
                   <img src={config.imageDataUrl} alt="image effect preview" style={buildImagePreviewStyle(config)} />
                 ) : (
