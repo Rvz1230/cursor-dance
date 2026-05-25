@@ -96,7 +96,7 @@ function ThemeComposerModal({
 
         <div className="overflow-y-auto px-5 py-5">
           <Tabs value={mode} className="mb-4">
-            <TabsList value={mode} className="w-full justify-start bg-white" onValueChange={setMode}>
+            <TabsList value={mode} className="w-full justify-start" onValueChange={setMode}>
               <TabsTrigger value="create">新建主题</TabsTrigger>
               <TabsTrigger value="import">导入 JSON</TabsTrigger>
             </TabsList>
@@ -133,7 +133,7 @@ function ThemeComposerModal({
                   onChange={(event) => setCreateDescription(event.target.value)}
                   placeholder="一句话说明这个主题更适合什么场景。"
                   rows={4}
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
                 />
               </div>
 
@@ -256,45 +256,57 @@ export function ThemeLibrarySidebar({
     <aside className={cn("flex shrink-0 flex-col border-r border-slate-200 bg-slate-100 transition-[width] duration-200", collapsed ? "w-[76px]" : "w-[304px]")}>
       <div className="flex min-h-0 flex-1 flex-col">
         <div className={cn("px-3 py-2.5", collapsed && "flex justify-center")}>
-          <div className={cn(collapsed ? "flex flex-col items-center gap-2" : "grid grid-cols-[36px_36px_minmax(0,1fr)] items-center gap-2 rounded-2xl border border-slate-200/70 bg-white/70 p-1 shadow-sm")}>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-9 rounded-xl"
-              aria-label={collapsed ? "展开主题库" : "收起主题库"}
-              title={collapsed ? "展开主题库" : "收起主题库"}
-              onClick={() => setCollapsed((value) => !value)}
-            >
-              {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-            </Button>
-            <Button
-              variant={composerMode === "import" ? "default" : "ghost"}
-              size="icon"
-              className="size-9 rounded-xl"
-              aria-label="导入主题包"
-              onClick={() => setComposerMode((current) => (current === "import" ? "" : "import"))}
-            >
-              <Upload className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={composerMode === "create" ? "default" : "outline"}
-              size={collapsed ? "icon" : undefined}
-              className={cn(collapsed ? "size-9 rounded-xl" : "h-9 justify-center rounded-xl px-3 text-xs shadow-sm")}
-              aria-label="新建主题"
-              onClick={() => setComposerMode((current) => (current === "create" ? "" : "create"))}
-            >
-              <Plus className={cn("h-4 w-4", !collapsed && "mr-2")} />
-              {collapsed ? null : "新建"}
-            </Button>
-          </div>
-        </div>
-
-        <div className={cn("px-3 pb-2.5", collapsed && "hidden")}>
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="搜索主题包"
-          />
+          {collapsed ? (
+            <div className="flex flex-col items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-9 rounded-xl"
+                aria-label="展开主题库"
+                title="展开主题库"
+                onClick={() => setCollapsed(false)}
+              >
+                <PanelLeftOpen className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={composerMode === "create" ? "default" : "outline"}
+                size="icon"
+                className="size-9 rounded-xl"
+                aria-label="新建主题"
+                onClick={() => setComposerMode((current) => (current === "create" ? "" : "create"))}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-9 shrink-0 rounded-xl"
+                aria-label="收起主题库"
+                title="收起主题库"
+                onClick={() => setCollapsed(true)}
+              >
+                <PanelLeftClose className="h-4 w-4" />
+              </Button>
+              <Input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="搜索主题包"
+                className="h-9 flex-1 bg-white"
+              />
+              <Button
+                variant={composerMode === "create" ? "default" : "outline"}
+                className="h-9 shrink-0 rounded-xl px-3 text-xs"
+                aria-label="新建主题"
+                onClick={() => setComposerMode((current) => (current === "create" ? "" : "create"))}
+              >
+                <Plus className="mr-1.5 h-4 w-4" />
+                新建
+              </Button>
+            </div>
+          )}
         </div>
 
         {actionError ? (
@@ -354,7 +366,7 @@ export function ThemeLibrarySidebar({
             确定删除主题“{pendingDeleteTheme?.name}”吗？此操作会在下次保存时写入扩展配置。
           </AlertDialogDescription>
           <div className="mt-5 flex justify-end gap-2">
-            <AlertDialogCancel className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2">
+            <AlertDialogCancel className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
               取消
             </AlertDialogCancel>
             <AlertDialogAction

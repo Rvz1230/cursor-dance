@@ -378,7 +378,7 @@ export function StatesPanel({
                       </div>
                     </div>
                     <select
-                      className="h-9 rounded-xl border border-slate-200 bg-white px-2 text-sm text-slate-700 outline-none focus-visible:ring-2 focus-visible:ring-slate-950"
+                      className="h-9 rounded-xl border border-slate-200 bg-white px-2 text-sm text-slate-700 outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
                       defaultValue=""
                       onChange={(event) => event.target.value && bindPendingFile(pendingFile, event.target.value)}
                     >
@@ -478,7 +478,7 @@ export function StatesPanel({
                 if (event.key === "ArrowUp") updateHotspot({ hotspotY: currentAsset.hotspotY - 1 });
                 if (event.key === "ArrowDown") updateHotspot({ hotspotY: currentAsset.hotspotY + 1 });
               }}
-              className="relative mx-auto flex aspect-square w-full max-w-[260px] cursor-crosshair items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white outline-none focus-visible:ring-2 focus-visible:ring-slate-950"
+              className="relative mx-auto flex aspect-square w-full max-w-[260px] cursor-crosshair items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
               style={{
                 backgroundImage: "linear-gradient(#e2e8f0 1px, transparent 1px), linear-gradient(90deg, #e2e8f0 1px, transparent 1px)",
                 backgroundSize: "16px 16px",
@@ -535,7 +535,7 @@ export function StatesPanel({
             <select
               value={currentActionId}
               onChange={(event) => updateCursorStateAction(event.target.value)}
-              className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus-visible:ring-2 focus-visible:ring-slate-950"
+              className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
             >
               {actionItems.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
             </select>

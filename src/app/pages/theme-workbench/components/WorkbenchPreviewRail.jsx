@@ -184,47 +184,48 @@ function buildTimelineTracks({ textConfig, particleConfig, rippleConfig, audioCo
 }
 
 function getTimelineTone(tone) {
-  if (tone === "rose") return "bg-rose-400 text-rose-700";
-  if (tone === "teal") return "bg-teal-400 text-teal-700";
-  if (tone === "amber") return "bg-amber-400 text-amber-700";
-  if (tone === "sky") return "bg-sky-400 text-sky-700";
-  if (tone === "violet") return "bg-violet-400 text-violet-700";
-  if (tone === "indigo") return "bg-indigo-400 text-indigo-700";
-  return "bg-slate-400 text-slate-700";
+  if (tone === "rose") return "bg-rose-300 text-rose-600";
+  if (tone === "teal") return "bg-teal-300 text-teal-600";
+  if (tone === "amber") return "bg-amber-300 text-amber-600";
+  if (tone === "sky") return "bg-sky-300 text-sky-600";
+  if (tone === "violet") return "bg-violet-300 text-violet-600";
+  if (tone === "indigo") return "bg-indigo-300 text-indigo-600";
+  return "bg-slate-300 text-slate-600";
 }
 
-function PreviewTimeline({ tracks, totalMs, playbackSpeed }) {
-  const ticks = [0, Math.round(totalMs * 0.25), Math.round(totalMs * 0.5), Math.round(totalMs * 0.75), totalMs];
+function PreviewTimeline({ tracks, totalMs }) {
+  const tickMs = [0, totalMs];
 
   return (
-    <div className="mt-3 rounded-xl border border-slate-200 bg-white/85 px-3 py-3 shadow-sm">
-      <div className="mb-2 flex items-center justify-between gap-3 text-xs font-medium text-slate-500">
-        <span>动画时间轴</span>
-        <span>{formatPlaybackSpeed(playbackSpeed)} 播放 · 原始 {totalMs}ms</span>
+    <div className="mt-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <span className="text-xs font-medium text-slate-500">时间轴</span>
+        <span className="text-xs tabular-nums text-slate-400">{totalMs}ms</span>
       </div>
-      <div className="relative mb-3 h-5">
+
+      <div className="relative mb-3 h-4">
         <div className="absolute inset-x-0 top-2 h-px bg-slate-200" />
-        {ticks.map((tick) => (
-          <div key={tick} className="absolute top-0 text-xs text-slate-500" style={{ left: `${(tick / totalMs) * 100}%`, transform: tick === 0 ? "none" : tick === totalMs ? "translateX(-100%)" : "translateX(-50%)" }}>
-            <span className="block h-2 w-px bg-slate-300" />
-            <span className="mt-1 block">{tick}ms</span>
+        {tickMs.map((tick) => (
+          <div key={tick} className="absolute top-0 text-[11px] tabular-nums text-slate-400" style={{ left: `${(tick / totalMs) * 100}%`, transform: tick === 0 ? "none" : "translateX(-100%)" }}>
+            {tick}ms
           </div>
         ))}
       </div>
-      <div className="space-y-2">
+
+      <div className="space-y-1.5">
         {tracks.length ? tracks.map((track) => {
           const toneClass = getTimelineTone(track.tone);
           const left = `${(track.start / totalMs) * 100}%`;
           const width = `${Math.max(1.5, ((track.end - track.start) / totalMs) * 100)}%`;
           return (
-            <div key={track.id} className="grid grid-cols-[42px_minmax(0,1fr)] items-center gap-2">
-              <div className={cn("text-xs font-semibold", toneClass.split(" ")[1])}>{track.label}</div>
-              <div className="relative h-6 rounded-full bg-slate-100">
-                <div className={cn("absolute top-1 h-4 rounded-full opacity-80", toneClass.split(" ")[0])} style={{ left, width }} />
+            <div key={track.id} className="grid grid-cols-[36px_minmax(0,1fr)] items-center gap-2">
+              <div className={cn("text-[11px] font-medium", toneClass.split(" ")[1])}>{track.label}</div>
+              <div className="relative h-4 rounded-full bg-slate-100/70">
+                <div className={cn("absolute top-1/2 h-2 -translate-y-1/2 rounded-full", toneClass.split(" ")[0])} style={{ left, width }} />
                 {track.markers.map((marker) => (
                   <span
                     key={`${track.id}-${marker.label}`}
-                    className={cn("absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-sm", toneClass.split(" ")[0])}
+                    className={cn("absolute top-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white", toneClass.split(" ")[0])}
                     style={{ left: `${(marker.at / totalMs) * 100}%` }}
                     title={`${track.label} · ${marker.label} · ${marker.at}ms`}
                   />
@@ -233,7 +234,7 @@ function PreviewTimeline({ tracks, totalMs, playbackSpeed }) {
             </div>
           );
         }) : (
-          <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
+          <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50/50 px-3 py-2 text-xs text-slate-500">
             当前动作没有开启可播放的视觉效果，在左侧配置面板中开启至少一项效果。
           </div>
         )}
@@ -333,7 +334,7 @@ function SimplePreviewStage({ config, siteMode, runId, outputs, playbackSpeed })
           </div>
         ) : null}
       </div>
-      <PreviewTimeline tracks={timeline.tracks} totalMs={timeline.totalMs} playbackSpeed={playbackSpeed} />
+      <PreviewTimeline tracks={timeline.tracks} totalMs={timeline.totalMs} />
     </div>
   );
 }

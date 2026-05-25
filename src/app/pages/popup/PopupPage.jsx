@@ -217,7 +217,7 @@ function ThemeListCard({ theme, themePack, actionConfig, selected, onSelect, dis
       layout
       whileTap={{ scale: 0.985 }}
       className={cn(
-        "relative w-full overflow-hidden rounded-xl text-left transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400/40 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60",
+        "relative w-full overflow-hidden rounded-xl text-left transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60",
         selected
           ? "border border-emerald-200/70 bg-emerald-50/50 shadow-sm"
           : "border border-slate-200/60 bg-white hover:border-slate-300 hover:shadow-sm"

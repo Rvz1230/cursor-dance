@@ -24,7 +24,7 @@ export function DialogContent({ className, children, titleId, title, showClose =
         </VisuallyHidden.Root>
         {children}
         {showClose ? (
-          <DialogPrimitive.Close className="absolute right-4 top-4 inline-flex size-9 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2" aria-label="关闭弹窗">
+          <DialogPrimitive.Close className="absolute right-4 top-4 inline-flex size-9 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2" aria-label="关闭弹窗">
             <X className="size-4" aria-hidden="true" />
           </DialogPrimitive.Close>
         ) : null}

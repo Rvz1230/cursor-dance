@@ -94,7 +94,7 @@ export function SmallSelect({ value, options, onChange, label }) {
 
 export function FieldRow({ label, hint, control }) {
   return (
-    <div className="grid min-w-0 gap-1.5 border-b border-slate-100 py-3 last:border-b-0 md:grid-cols-[104px_minmax(0,1fr)] md:items-center md:gap-3">
+    <div className="grid min-w-0 gap-1.5 py-2 md:grid-cols-[104px_minmax(0,1fr)] md:items-center md:gap-3">
       <div>
         <div className="text-sm font-medium text-slate-800">{label}</div>
       </div>
@@ -132,9 +132,9 @@ export function ControlSlider({ value, min, max, onValueChange, suffix = "", dis
   }
 
   return (
-    <div className={cn("grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(64px,76px)] items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-2 py-2", disabled && "opacity-50")}>
+    <div className={cn("flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-2 py-2", disabled && "opacity-50")}>
       <div
-        className="relative min-w-0 py-2"
+        className="relative flex-1 min-w-0 py-2"
         onPointerDown={() => {
           if (!disabled) setIsInteracting(true);
         }}
@@ -156,24 +156,29 @@ export function ControlSlider({ value, min, max, onValueChange, suffix = "", dis
           <span className="absolute left-1/2 top-full size-2 -translate-x-1/2 -translate-y-1/2 rotate-45 bg-slate-950" />
         </div>
       </div>
-      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1 rounded-xl bg-white px-2 py-1.5 ring-1 ring-slate-200">
-        <input
-          type="number"
-          value={value}
-          min={min}
-          max={max}
-          disabled={disabled}
-          inputMode="numeric"
-          aria-label={label}
-          onChange={(event) => {
-            const raw = event.target.value;
-            if (raw === "") return;
-            commitValue(Number(raw));
-          }}
-          onBlur={(event) => commitValue(Number(event.target.value))}
-          className="min-w-0 bg-transparent pr-1 text-right text-sm font-semibold tabular-nums text-slate-800 outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
-        />
-        {suffix ? <span className="ml-0.5 shrink-0 text-xs font-medium text-slate-500">{suffix}</span> : null}
+      <div className="relative shrink-0 inline-grid rounded-xl bg-white ring-1 ring-slate-200">
+        <span className="invisible col-start-1 row-start-1 px-2 py-1.5 text-sm font-semibold tabular-nums" aria-hidden="true">
+          {String(value)}{suffix}
+        </span>
+        <div className="col-start-1 row-start-1 flex items-center gap-0.5 px-2 py-1.5">
+          <input
+            type="number"
+            value={value}
+            min={min}
+            max={max}
+            disabled={disabled}
+            inputMode="numeric"
+            aria-label={label}
+            onChange={(event) => {
+              const raw = event.target.value;
+              if (raw === "") return;
+              commitValue(Number(raw));
+            }}
+            onBlur={(event) => commitValue(Number(event.target.value))}
+            className="w-full bg-transparent pr-0.5 text-right text-sm font-semibold tabular-nums text-slate-800 outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+          />
+          {suffix ? <span className="shrink-0 text-xs font-medium text-slate-500">{suffix}</span> : null}
+        </div>
       </div>
     </div>
   );
@@ -377,7 +382,7 @@ export function TextTagEditor({ tags, onChange, disabled = false }) {
 
 export function SettingSection({ disabled = false, children }) {
   return (
-    <div className={cn("rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3", disabled && "bg-slate-50 opacity-55")}>
+    <div className={cn("border-t border-slate-100 pt-4 first:border-t-0 first:pt-0", disabled && "opacity-50")}>
       {children}
     </div>
   );

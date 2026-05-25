@@ -1,26 +1,15 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react'
 import * as ToastPrimitive from '@radix-ui/react-toast'
-import { CheckCircle2, Info, XCircle } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Info, XCircle } from 'lucide-react'
 import { cn } from './utils.js'
 
 const ToastContext = createContext(null)
 
 const toneMap = {
-  success: {
-    icon: CheckCircle2,
-    rootClassName: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-    iconClassName: 'text-emerald-600',
-  },
-  error: {
-    icon: XCircle,
-    rootClassName: 'border-rose-200 bg-rose-50 text-rose-800',
-    iconClassName: 'text-rose-600',
-  },
-  info: {
-    icon: Info,
-    rootClassName: 'border-sky-200 bg-sky-50 text-sky-800',
-    iconClassName: 'text-sky-600',
-  },
+  success: { icon: CheckCircle2, iconClass: 'text-emerald-500' },
+  error: { icon: XCircle, iconClass: 'text-rose-500' },
+  warning: { icon: AlertTriangle, iconClass: 'text-amber-500' },
+  info: { icon: Info, iconClass: 'text-sky-500' },
 }
 
 export function ToastProvider({ children }) {
@@ -53,19 +42,16 @@ export function ToastProvider({ children }) {
                 if (!open) closeToast(item.id)
               }}
               className={cn(
-                'grid w-fit min-w-[240px] max-w-[min(420px,calc(100vw-2rem))] grid-cols-[auto_minmax(0,1fr)] items-center gap-x-2 rounded-xl border px-3 py-2 shadow-md shadow-slate-900/10',
-                tone.rootClassName
+                'flex w-fit max-w-sm items-start gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-lg'
               )}
             >
-              <div className={cn('flex size-5 items-center justify-center', tone.iconClassName)}>
-                <Icon className="size-4" aria-hidden="true" />
-              </div>
+              <Icon className={cn('mt-0.5 size-4 shrink-0', tone.iconClass)} aria-hidden="true" />
               <div className="min-w-0">
-                <ToastPrimitive.Title className="text-sm font-medium leading-5 text-pretty">
+                <ToastPrimitive.Title className="text-sm font-medium text-slate-900 text-pretty">
                   {item.title}
                 </ToastPrimitive.Title>
                 {item.description ? (
-                  <ToastPrimitive.Description className="mt-0.5 text-xs leading-5 opacity-80 text-pretty">
+                  <ToastPrimitive.Description className="mt-0.5 text-xs text-slate-500 text-pretty">
                     {item.description}
                   </ToastPrimitive.Description>
                 ) : null}
@@ -73,7 +59,7 @@ export function ToastProvider({ children }) {
             </ToastPrimitive.Root>
           )
         })}
-        <ToastPrimitive.Viewport className="fixed left-1/2 top-4 z-50 flex max-h-dvh -translate-x-1/2 flex-col gap-2.5 outline-none" />
+        <ToastPrimitive.Viewport className="fixed left-1/2 top-4 z-50 flex max-h-dvh -translate-x-1/2 flex-col gap-2 outline-none" />
       </ToastPrimitive.Provider>
     </ToastContext.Provider>
   )
