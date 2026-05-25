@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, ChevronDown, Copy, Download, GripVertical, MoreHorizontal, MousePointer2, Plus, Trash2, Wand2, X } from "lucide-react";
+import { Check, ChevronDown, Copy, Download, GripVertical, MoreHorizontal, MousePointer2, Pencil, Plus, Trash2, Wand2, X } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion.jsx";
 import { Button } from "@/components/ui/button.jsx";
 import { Input } from "@/components/ui/input.jsx";
@@ -44,7 +44,7 @@ export function Panel({
       <Accordion key={defaultOpen ? "open" : "closed"} type="single" collapsible defaultValue={defaultOpen ? "content" : undefined} className={className}>
         <AccordionItem value="content" className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-            <AccordionTrigger className="group flex min-w-0 flex-1 items-center justify-between gap-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2">
+            <AccordionTrigger className="group flex min-w-0 flex-1 items-center justify-between gap-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
               {header}
               <ChevronDown className="size-4 shrink-0 text-slate-400 transition-transform group-data-[state=open]:rotate-180" aria-hidden="true" />
             </AccordionTrigger>
@@ -81,7 +81,7 @@ export function DataPill({ children, tone = "slate" }) {
           ? "bg-rose-50 text-rose-700 ring-rose-200"
           : "bg-slate-100 text-slate-600 ring-slate-200";
   return (
-    <span className={cn("inline-flex items-center rounded-lg px-2 py-1 text-xs font-medium ring-1", toneClass)}>
+    <span className={cn("inline-flex items-center whitespace-nowrap rounded-lg px-2 py-1 text-xs font-medium ring-1", toneClass)}>
       {children}
     </span>
   );
@@ -424,7 +424,7 @@ export function ThemeCard({ theme, selected, onClick, onDuplicate, onExport, onD
   return (
     <div
       className={cn(
-        "group relative rounded-xl border bg-white transition-[background-color,border-color,box-shadow] duration-150 ease-out hover:border-slate-300 hover:bg-slate-50/60 active:scale-[0.995]",
+        "group relative rounded-xl border bg-white transition-[background-color,border-color,box-shadow] duration-150 ease-out hover:border-slate-300 hover:bg-slate-50 active:scale-[0.995]",
         selected ? "border-slate-950/20 bg-white shadow-sm ring-1 ring-slate-950/10" : "border-slate-200/80"
       )}
     >
@@ -466,28 +466,44 @@ export function ThemeCard({ theme, selected, onClick, onDuplicate, onExport, onD
             </PopoverContent>
           </Popover>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 min-w-0">
               {editingName !== "" ? (
-                <input
-                  value={editingName}
-                  onChange={(event) => setEditingName(event.target.value)}
-                  onBlur={commitRename}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") { event.preventDefault(); commitRename(); }
-                    if (event.key === "Escape") { event.preventDefault(); setEditingName(""); }
-                  }}
-                  onClick={(event) => event.stopPropagation()}
-                  className="w-full min-w-0 rounded-lg border border-slate-300 bg-white px-1.5 py-0.5 text-sm font-semibold text-slate-900 outline-none ring-2 ring-slate-950/20 ring-offset-0"
-                  autoFocus
-                  onFocus={(event) => event.target.select()}
-                />
+                <>
+                  <input
+                    value={editingName}
+                    onChange={(event) => setEditingName(event.target.value)}
+                    onBlur={commitRename}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") { event.preventDefault(); commitRename(); }
+                      if (event.key === "Escape") { event.preventDefault(); setEditingName(""); }
+                    }}
+                    onClick={(event) => event.stopPropagation()}
+                    maxLength={30}
+                    className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-1.5 py-0.5 text-sm font-semibold text-slate-900 outline-none ring-2 ring-slate-950/20 ring-offset-0"
+                    autoFocus
+                    onFocus={(event) => event.target.select()}
+                  />
+                  <DataPill tone={theme.kind === "内置" ? "teal" : "amber"} className="shrink-0">{theme.kind}</DataPill>
+                </>
               ) : (
-                <div
-                  className="truncate text-sm font-semibold text-slate-900 cursor-text"
-                  onDoubleClick={(event) => { event.stopPropagation(); startRename(); }}
-                >{theme.name}</div>
+                <>
+                  <div
+                    className="min-w-0 truncate text-sm font-semibold text-slate-900 select-none"
+                    title={theme.name}
+                    onDoubleClick={(event) => { event.stopPropagation(); startRename(); }}
+                  >{theme.name}</div>
+                  <button
+                    type="button"
+                    className="shrink-0 flex size-5 items-center justify-center rounded text-slate-400 opacity-0 transition-opacity hover:bg-slate-200 hover:text-slate-600 group-hover:opacity-100"
+                    onClick={(event) => { event.stopPropagation(); startRename(); }}
+                    aria-label="编辑主题名称"
+                    title="编辑名称"
+                  >
+                    <Pencil className="size-3" />
+                  </button>
+                  <DataPill tone={theme.kind === "内置" ? "teal" : "amber"} className="shrink-0">{theme.kind}</DataPill>
+                </>
               )}
-              <DataPill tone={theme.kind === "内置" ? "teal" : "amber"}>{theme.kind}</DataPill>
             </div>
             <div className="mt-1 text-xs leading-5 text-pretty text-slate-600">{theme.summary}</div>
           </div>
@@ -498,7 +514,7 @@ export function ThemeCard({ theme, selected, onClick, onDuplicate, onExport, onD
           <Button
             variant="ghost"
             size="icon"
-            className="absolute right-2 top-2 size-7 rounded-lg bg-white/90 opacity-0 shadow-sm ring-1 ring-slate-200 transition-opacity duration-150 hover:bg-white group-hover:opacity-100 group-focus-within:opacity-100 data-[state=open]:opacity-100"
+            className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-lg text-slate-400 opacity-0 transition-opacity hover:bg-slate-200 hover:text-slate-600 group-hover:opacity-100 group-focus-within:opacity-100 data-[state=open]:opacity-100"
             aria-label={`${theme.name} 更多操作`}
             onClick={(event) => event.stopPropagation()}
           >
