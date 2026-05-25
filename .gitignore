@@ -1,6 +1,7 @@
 node_modules
 dist
 .DS_Store
+$TMPDIR
 playwright-report
 test-results
 .env
