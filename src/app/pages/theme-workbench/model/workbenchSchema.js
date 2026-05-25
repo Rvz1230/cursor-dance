@@ -2,16 +2,34 @@ import {
   ActivitySquare,
   Ban,
   Clock3,
+  Cloud,
+  Coffee,
+  Cookie,
+  Crown,
+  Feather,
+  Flame,
+  Gamepad2,
+  Gem,
+  Globe,
   Hand,
+  Heart,
   HelpCircle,
   Link2,
+  Moon,
   MousePointer2,
+  Music,
+  Palette,
+  Rainbow,
   Settings2,
+  Sparkles,
+  Star,
+  Sun,
   TextCursorInput,
   Type,
   Volume2,
   Wand2,
   Waves,
+  Zap,
 } from "lucide-react";
 import {
   AUDIO_BLEND_OPTIONS,
@@ -212,6 +230,7 @@ export function buildThemeLibraryItem(themePack, fallbackIndex = 0) {
     summary: buildThemeSummary(themePack),
     description,
     tone: getThemeTone(themePack?.id, fallbackIndex),
+    icon: themePack?.icon || "Wand2",
   };
 }
 
@@ -229,6 +248,29 @@ export const PANEL_META = {
   audio: { icon: Volume2, tone: "bg-rose-100 text-rose-700" },
   cursor: { icon: Settings2, tone: "bg-slate-200 text-slate-700" },
 };
+
+export const ICON_OPTIONS = [
+  { name: "Wand2", Icon: Wand2 },
+  { name: "Sparkles", Icon: Sparkles },
+  { name: "Zap", Icon: Zap },
+  { name: "Star", Icon: Star },
+  { name: "Heart", Icon: Heart },
+  { name: "Flame", Icon: Flame },
+  { name: "Gem", Icon: Gem },
+  { name: "Crown", Icon: Crown },
+  { name: "Sun", Icon: Sun },
+  { name: "Moon", Icon: Moon },
+  { name: "Cloud", Icon: Cloud },
+  { name: "Rainbow", Icon: Rainbow },
+  { name: "Feather", Icon: Feather },
+  { name: "Cookie", Icon: Cookie },
+  { name: "Music", Icon: Music },
+  { name: "Palette", Icon: Palette },
+  { name: "Globe", Icon: Globe },
+  { name: "Gamepad2", Icon: Gamepad2 },
+  { name: "Coffee", Icon: Coffee },
+  { name: "MousePointer2", Icon: MousePointer2 },
+];
 
 export function toneClasses(tone) {
   return toneMap[tone] ?? toneMap.teal;

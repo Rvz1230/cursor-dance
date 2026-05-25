@@ -51,6 +51,8 @@ function ThemeWorkbenchPageContent() {
     deleteTheme,
     exportTheme,
     importThemeFromText,
+    renameTheme,
+    updateThemeIcon,
     resetCurrentTheme,
     setSiteFilter,
     updateActionConfig,
@@ -169,6 +171,8 @@ function ThemeWorkbenchPageContent() {
               deleteTheme={deleteTheme}
               exportTheme={exportTheme}
               importThemeFromText={importThemeFromText}
+              renameTheme={renameTheme}
+              updateThemeIcon={updateThemeIcon}
               notify={toast}
             />
 

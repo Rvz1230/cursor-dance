@@ -94,6 +94,26 @@ export function reducer(state, action) {
         ui: { ...state.ui, unsaved: true, saveError: "" },
       };
     }
+    case "theme/library-rename": {
+      const { themeId, name } = action.payload;
+      return {
+        ...state,
+        themeLibrary: state.themeLibrary.map((theme) =>
+          theme.id === themeId ? { ...theme, name } : theme
+        ),
+        ui: { ...state.ui, unsaved: true, saveError: "" },
+      };
+    }
+    case "theme/library-update-icon": {
+      const { themeId, icon } = action.payload;
+      return {
+        ...state,
+        themeLibrary: state.themeLibrary.map((theme) =>
+          theme.id === themeId ? { ...theme, icon } : theme
+        ),
+        ui: { ...state.ui, unsaved: true, saveError: "" },
+      };
+    }
     case "action/select":
       return {
         ...state,

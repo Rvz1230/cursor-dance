@@ -197,6 +197,8 @@ export function ThemeLibrarySidebar({
   deleteTheme,
   exportTheme,
   importThemeFromText,
+  renameTheme,
+  updateThemeIcon,
   notify,
 }) {
   const [query, setQuery] = useState("");
@@ -311,6 +313,8 @@ export function ThemeLibrarySidebar({
                 onDuplicate={() => handleDuplicateTheme(theme.id)}
                 onExport={() => handleExportTheme(theme.id)}
                 onDelete={() => setPendingDeleteTheme(theme)}
+                onRename={renameTheme}
+                onUpdateIcon={updateThemeIcon}
                 collapsed={collapsed}
               />
             ))

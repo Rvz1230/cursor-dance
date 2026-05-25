@@ -188,6 +188,7 @@ function buildStoredThemePack(themeId, draft, previousConfig, themeRecord) {
     ...previousThemePack,
     id: themeId,
     name: themeRecord?.name ?? previousThemePack.name ?? themeId,
+    icon: themeRecord?.icon ?? previousThemePack.icon ?? "Wand2",
     description: themeRecord?.description ?? themeRecord?.summary ?? previousThemePack.description ?? "",
     kind: themeRecord?.kind === "内置" ? "builtin" : previousThemePack.kind || "custom",
     workbenchDraft: {

@@ -152,6 +152,21 @@ export function useThemeWorkbenchState() {
     });
   }
 
+  function renameTheme(themeId, name) {
+    const trimmed = name.trim();
+    if (!trimmed) return false;
+    const exists = state.themeLibrary.some(
+      (theme) => theme.id !== themeId && theme.name.toLowerCase() === trimmed.toLowerCase()
+    );
+    if (exists) return false;
+    dispatch({ type: "theme/library-rename", payload: { themeId, name: trimmed } });
+    return true;
+  }
+
+  function updateThemeIcon(themeId, icon) {
+    dispatch({ type: "theme/library-update-icon", payload: { themeId, icon } });
+  }
+
   return {
     state,
     selected,
@@ -177,6 +192,8 @@ export function useThemeWorkbenchState() {
     deleteTheme,
     exportTheme,
     importThemeFromText,
+    renameTheme,
+    updateThemeIcon,
     resetCurrentTheme: () => dispatch({ type: "theme/reset-current" }),
     setSiteFilter: (value) => dispatch({ type: "site-filter/set", payload: value }),
     updateActionConfig: (patch) =>
