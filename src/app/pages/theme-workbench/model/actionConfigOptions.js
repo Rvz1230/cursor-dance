@@ -53,6 +53,7 @@ export const AUDIO_BLEND_OPTIONS = ["保持原音量", "压低页面音频", "�
 export const CURSOR_SIZE_OPTIONS = ["32 × 32", "40 × 40", "48 × 48", "56 × 56", "64 × 64"];
 export const CURSOR_HOTSPOT_OPTIONS = ["0, 0", "8, 8", "12, 12", "16, 16", "16, 32", "24, 24"];
 export const ANIMATION_STYLE_OPTIONS = ["聚焦脉冲", "斜切闪片", "弹跳徽记"];
+export const ANIMATION_EASING_OPTIONS = ["线性", "缓出", "缓入缓出", "弹性"];
 
 export const ACTION_TRIGGER_FIELDS = ["triggerTiming", "triggerZone", "holdMs"];
 export const ACTION_TEXT_FIELDS = [
@@ -111,6 +112,7 @@ export const ACTION_ANIMATION_FIELDS = [
   "animationEnabled",
   "animationStyle",
   "animationDuration",
+  "animationEasing",
   "animationScale",
   "animationOpacity",
   "animationOffsetX",

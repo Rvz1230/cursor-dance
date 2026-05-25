@@ -18,6 +18,7 @@ const ACTION_CONFIG_SHARED_DEFAULTS = {
   animationEnabled: false,
   animationStyle: "聚焦脉冲",
   animationDuration: 720,
+  animationEasing: "缓出",
   animationScale: 100,
   animationOpacity: 100,
   animationOffsetX: 0,

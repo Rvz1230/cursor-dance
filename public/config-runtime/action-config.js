@@ -58,6 +58,7 @@
     "animationEnabled",
     "animationStyle",
     "animationDuration",
+    "animationEasing",
     "animationScale",
     "animationOpacity",
     "animationOffsetX",

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import {
   buildStoredConfigFromWorkbench,
   clearLivePreviewConfig,
@@ -11,6 +11,10 @@ import {
 } from "../lib/extensionConfig.js";
 
 export function useThemeWorkbenchPersistence({ state, dispatch, configRef }) {
+  const debounceRef = useRef(null);
+  const stateRef = useRef(state);
+  stateRef.current = state;
+
   useEffect(() => {
     let cancelled = false;
 
@@ -59,10 +63,18 @@ export function useThemeWorkbenchPersistence({ state, dispatch, configRef }) {
       return;
     }
 
-    const baseConfig = configRef.current;
-    if (!baseConfig) return;
+    if (!configRef.current) return;
 
-    const livePreviewConfig = buildStoredConfigFromWorkbench(baseConfig, state);
-    void writeLivePreviewConfig(livePreviewConfig);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      const latestState = stateRef.current;
+      const baseConfig = configRef.current;
+      if (!baseConfig || !latestState.ui.unsaved) return;
+      void writeLivePreviewConfig(buildStoredConfigFromWorkbench(baseConfig, latestState));
+    }, 180);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, [configRef, state]);
 }

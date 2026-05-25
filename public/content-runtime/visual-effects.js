@@ -35,7 +35,7 @@
     }
 
     function getTextWeight(actionConfig) {
-      if (actionConfig.textWeight === "加粗") return 800;
+      if (actionConfig.textWeight === "加粗") return 700;
       if (actionConfig.textWeight === "中等") return 600;
       return 500;
     }
@@ -106,7 +106,7 @@
         const palette = ["#FDBA74", "#FDE68A", "#86EFAC", "#93C5FD", "#F9A8D4"];
         return hexToRgba(palette[index % palette.length], (particleConfig.particleOpacity || 88) / 100);
       }
-      return hexToRgba("#F59E0B", (particleConfig.particleOpacity || 88) / 100);
+      return hexToRgba("#FBBF24", (particleConfig.particleOpacity || 88) / 100);
     }
 
     function ensureStyles() {
@@ -452,7 +452,7 @@
               ],
         {
           duration,
-          easing: style === "聚焦脉冲" ? "cubic-bezier(0.16, 1, 0.3, 1)" : "cubic-bezier(0.22, 1, 0.36, 1)",
+          easing: getAnimationEasing(animationConfig.animationEasing),
         }
       );
     }

@@ -85,6 +85,7 @@
     reportRuntimeError,
   });
   state.config = configStore.normalizeConfig(defaultConfig);
+  state.ready = true;
 
   const visualEffects = modules.createVisualEffects({
     ...runtime,

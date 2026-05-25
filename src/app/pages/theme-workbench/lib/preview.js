@@ -96,7 +96,7 @@ export function getTextFontFamilyValue(value) {
 }
 
 export function hexToRgba(hex, alpha) {
-  const normalized = hex.replace("#", "");
+  const normalized = (hex || "#FBBF24").replace("#", "");
   const value =
     normalized.length === 3
       ? normalized
@@ -141,8 +141,8 @@ export function getParticleTint(config, index) {
 
 export function buildParticleSpecs(config, runIndex) {
   const particleConfig = getActionParticleConfig(config);
-  const visibleCount = Math.min(particleConfig.particleCount, 20);
-  const spread = Math.max(18, Math.min(particleConfig.particleSpread, 88));
+  const visibleCount = Math.min(particleConfig.particleCount, 40);
+  const spread = Math.max(0, Math.min(particleConfig.particleSpread, 90));
 
   return Array.from({ length: visibleCount }, (_, index) => {
     let startAngle = 0;

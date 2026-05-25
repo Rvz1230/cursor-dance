@@ -1,6 +1,7 @@
 import { Switch } from "@/components/ui/switch.jsx";
 import {
   ACTION_ANIMATION_FIELDS,
+  ANIMATION_EASING_OPTIONS,
   ANIMATION_STYLE_OPTIONS,
   PANEL_META,
 } from "../../model/workbenchSchema.js";
@@ -17,12 +18,12 @@ export function AnimationFeedbackCard({ config, updateActionConfig }) {
   return (
     <Panel
       title="基础动画反馈"
-      icon={PANEL_META.trigger.icon}
-      iconTone="bg-cyan-100 text-cyan-700"
+      icon={PANEL_META.animation.icon}
+      iconTone={PANEL_META.animation.tone}
       collapsible
       defaultOpen={config.animationEnabled}
       enabled={config.animationEnabled}
-      summary={config.animationEnabled ? `${config.animationStyle} · ${config.animationDuration}ms · ${config.animationOpacity}%` : "关闭基础动画"}
+      summary={config.animationEnabled ? `${config.animationStyle} · ${config.animationDuration}ms · ${config.animationEasing}` : "关闭基础动画"}
       action={<Switch checked={config.animationEnabled} onCheckedChange={(next) => updateActionConfig({ animationEnabled: next })} aria-label="动画反馈开关" />}
     >
       <div className="space-y-4">
@@ -37,6 +38,11 @@ export function AnimationFeedbackCard({ config, updateActionConfig }) {
             label="动画时长"
             hint="一轮动画持续多久。"
             control={<ControlSlider disabled={!config.animationEnabled} value={config.animationDuration} min={240} max={1400} onValueChange={(value) => updateActionConfig({ animationDuration: value[0] })} suffix="ms" label="动画时长" />}
+          />
+          <FieldRow
+            label="缓动曲线"
+            hint="动画的加减速节奏。"
+            control={<SmallSelect value={config.animationEasing} options={ANIMATION_EASING_OPTIONS} onChange={config.animationEnabled ? (value) => updateActionConfig({ animationEasing: value, animationEnabled: true }) : undefined} />}
           />
         </SettingSection>
 

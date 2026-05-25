@@ -213,6 +213,7 @@
           animationEnabled: false,
           animationStyle: "聚焦脉冲",
           animationDuration: 720,
+          animationEasing: "缓出",
           animationScale: 100,
           animationOpacity: 100,
           animationOffsetX: 0,
@@ -285,6 +286,7 @@
           animationEnabled: false,
           animationStyle: "聚焦脉冲",
           animationDuration: 720,
+          animationEasing: "缓出",
           animationScale: 100,
           animationOpacity: 100,
           animationOffsetX: 0,
@@ -350,6 +352,7 @@
           animationEnabled: false,
           animationStyle: "聚焦脉冲",
           animationDuration: 720,
+          animationEasing: "缓出",
           animationScale: 100,
           animationOpacity: 100,
           animationOffsetX: 0,
@@ -416,6 +419,7 @@
           animationEnabled: false,
           animationStyle: "聚焦脉冲",
           animationDuration: 720,
+          animationEasing: "缓出",
           animationScale: 100,
           animationOpacity: 100,
           animationOffsetX: 0,
@@ -482,6 +486,7 @@
           animationEnabled: false,
           animationStyle: "聚焦脉冲",
           animationDuration: 720,
+          animationEasing: "缓出",
           animationScale: 100,
           animationOpacity: 100,
           animationOffsetX: 0,
@@ -549,6 +554,7 @@
           animationEnabled: false,
           animationStyle: "聚焦脉冲",
           animationDuration: 720,
+          animationEasing: "缓出",
           animationScale: 100,
           animationOpacity: 100,
           animationOffsetX: 0,
@@ -566,13 +572,18 @@
 
     function mergeActionConfig(baseConfig, ...overlays) {
       return overlays.reduce(
-        (mergedConfig, overlay) => ({
-          ...mergedConfig,
-          ...(overlay || {}),
-          textTags: Array.isArray(overlay?.textTags)
-            ? [...overlay.textTags]
-            : mergedConfig.textTags,
-        }),
+        (mergedConfig, overlay) => {
+          const safeOverlay = overlay
+            ? Object.fromEntries(Object.entries(overlay).filter(([, v]) => v !== undefined))
+            : {};
+          return {
+            ...mergedConfig,
+            ...safeOverlay,
+            textTags: Array.isArray(overlay?.textTags)
+              ? [...overlay.textTags]
+              : mergedConfig.textTags,
+          };
+        },
         {
           ...baseConfig,
           textTags: Array.isArray(baseConfig?.textTags) ? [...baseConfig.textTags] : [],

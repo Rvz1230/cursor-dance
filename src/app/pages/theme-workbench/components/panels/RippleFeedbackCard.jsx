@@ -17,8 +17,8 @@ export function RippleFeedbackCard({ config, updateActionConfig }) {
   return (
     <Panel
       title="波纹反馈"
-      icon={PANEL_META.particles.icon}
-      iconTone="bg-emerald-100 text-emerald-700"
+      icon={PANEL_META.ripple.icon}
+      iconTone={PANEL_META.ripple.tone}
       collapsible
       defaultOpen={config.ripple}
       enabled={config.ripple}
