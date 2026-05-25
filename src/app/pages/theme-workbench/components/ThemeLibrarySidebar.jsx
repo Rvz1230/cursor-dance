@@ -105,7 +105,7 @@ function ThemeComposerModal({
           {mode === "create" ? (
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <label htmlFor="theme-create-name" className="text-xs font-medium uppercase text-slate-500">主题名称</label>
+                <label htmlFor="theme-create-name" className="text-xs font-medium text-slate-500">主题名称</label>
                 <Input
                   id="theme-create-name"
                   value={createName}
@@ -119,19 +119,19 @@ function ThemeComposerModal({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium uppercase text-slate-500">起始模板</label>
+                <label className="text-xs font-medium text-slate-500">起始模板</label>
                 <SmallSelect value={createBaseThemeId} options={baseThemeOptions} onChange={setCreateBaseThemeId} label="选择起始模板" />
               </div>
 
               <div className="space-y-1.5">
-                <label htmlFor="theme-create-description" className="text-xs font-medium uppercase text-slate-500">主题说明</label>
+                <label htmlFor="theme-create-description" className="text-xs font-medium text-slate-500">主题说明</label>
                 <textarea
                   id="theme-create-description"
                   value={createDescription}
                   onChange={(event) => setCreateDescription(event.target.value)}
                   placeholder="一句话说明这个主题更适合什么场景。"
                   rows={4}
-                  className="w-full rounded-2xl border border-black/5 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
                 />
               </div>
 
@@ -147,9 +147,9 @@ function ThemeComposerModal({
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="rounded-[28px] border border-dashed border-slate-300 bg-white px-5 py-5">
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-5">
                 <div className="flex items-start gap-4">
-                  <div className="flex size-11 items-center justify-center rounded-2xl bg-slate-50 text-slate-700 ring-1 ring-black/5">
+                  <div className="flex size-11 items-center justify-center rounded-2xl bg-slate-50 text-slate-700 ring-1 ring-slate-200">
                     <FileJson className="h-4 w-4" />
                   </div>
                   <div className="min-w-0 flex-1">
