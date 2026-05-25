@@ -111,7 +111,7 @@ export function ImageFeedbackCard({ config, updateActionConfig }) {
                     }}
                     className="flex items-center gap-3 rounded-[24px] border border-slate-200 bg-white px-4 py-3 text-left transition-colors hover:border-fuchsia-300 hover:bg-fuchsia-50/40"
                   >
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-[radial-gradient(circle_at_top,#ffffff,#f5f3ff)]">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-purple-50">
                       <img src={preset.asset.imageDataUrl} alt={`${preset.label} preview`} className="object-contain" style={{ width: "40px", height: "40px" }} />
                     </div>
                     <div className="min-w-0">

@@ -35,7 +35,7 @@ export function TabsTrigger({ className, value, selected, onSelect, ...props }) 
       type="button"
       onClick={onSelect}
       className={cn(
-        'inline-flex items-center justify-center whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium ring-1 ring-black/5 transition-all focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50',
+        'inline-flex items-center justify-center whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium ring-1 ring-black/5 transition-[color,background-color,box-shadow,opacity] focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50',
         selected ? 'bg-slate-950 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100',
         className
       )}
