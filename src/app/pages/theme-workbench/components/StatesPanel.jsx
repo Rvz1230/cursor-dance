@@ -61,7 +61,7 @@ function getStateStatus({ stateId, mode, asset, effectiveAsset }) {
   if (stateId !== "default" && mode === "继承") return { label: "继承", tone: "slate" };
   if (!effectiveAsset?.imageDataUrl) return { label: "缺失", tone: "rose" };
   if ((asset?.sourceWidth && asset.sourceWidth !== TARGET_CURSOR_SIZE) || (asset?.sourceHeight && asset.sourceHeight !== TARGET_CURSOR_SIZE)) {
-    return { label: "尺寸异常", tone: "amber" };
+    return { label: "非标尺寸", tone: "slate" };
   }
   return { label: "正常", tone: "teal" };
 }
@@ -152,7 +152,6 @@ export function StatesPanel({
     });
   }, [cursorModes, cursorStateAssets, defaultAsset]);
   const matchedCount = stateCards.filter((state) => state.status.label === "正常").length;
-  const warningCount = stateCards.filter((state) => state.status.label === "尺寸异常").length + pendingFiles.length;
   const missingCount = stateCards.filter((state) => state.status.label === "缺失").length;
 
   useEffect(() => {
@@ -321,7 +320,8 @@ export function StatesPanel({
 
           <div className="mt-3 flex flex-wrap gap-2">
             <DataPill tone="teal">已匹配 {matchedCount}</DataPill>
-            <DataPill tone={warningCount ? "amber" : "slate"}>需确认 {warningCount}</DataPill>
+            <DataPill tone="slate">非标尺寸 {stateCards.filter((state) => state.status.label === "非标尺寸").length}</DataPill>
+            <DataPill tone={pendingFiles.length ? "amber" : "slate"}>需确认 {pendingFiles.length}</DataPill>
             <DataPill tone={missingCount ? "rose" : "slate"}>缺失 {missingCount}</DataPill>
             {assetMessage ? <span className={cn("rounded-full px-2.5 py-1 text-xs", assetMessageTone === "rose" ? "bg-rose-50 text-rose-700" : assetMessageTone === "amber" ? "bg-amber-50 text-amber-700" : "bg-teal-50 text-teal-700")}>{assetMessage}</span> : null}
           </div>
@@ -424,9 +424,11 @@ export function StatesPanel({
               <Button variant="outline" className="rounded-xl px-3 text-xs" onClick={() => singleFileInputRef.current?.click()}>
                 <Upload className="mr-1.5 h-3.5 w-3.5" />替换
               </Button>
-              <Button variant="ghost" className="rounded-xl px-3 text-xs" onClick={copyDefaultCursorStateAsset}>
-                <Copy className="mr-1.5 h-3.5 w-3.5" />复制默认态
-              </Button>
+              {stateId !== "default" ? (
+                <Button variant="ghost" className="rounded-xl px-3 text-xs" onClick={copyDefaultCursorStateAsset}>
+                  <Copy className="mr-1.5 h-3.5 w-3.5" />复制默认态
+                </Button>
+              ) : null}
               <Button variant="ghost" className="rounded-xl px-3 text-xs text-rose-600 hover:text-rose-700" onClick={() => updateCursorStateAsset({ imageDataUrl: "", name: "", sourceWidth: undefined, sourceHeight: undefined })}>
                 移除
               </Button>
@@ -511,23 +513,13 @@ export function StatesPanel({
             </div>
           </section>
 
-          <section>
-            <div className="mb-2 text-sm font-semibold text-slate-900">尺寸策略</div>
-            <div className="grid grid-cols-3 gap-1 rounded-2xl bg-slate-100 p-1">
-              {["保持原图", "自动缩放", "手动裁剪"].map((mode, index) => (
-                <button key={mode} type="button" className={cn("rounded-xl px-2 py-2 text-xs font-semibold", index === 0 ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:bg-white")}>
-                  {mode}
-                </button>
-              ))}
-            </div>
-            <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
-              {(currentAsset.sourceWidth || TARGET_CURSOR_SIZE) === TARGET_CURSOR_SIZE && (currentAsset.sourceHeight || TARGET_CURSOR_SIZE) === TARGET_CURSOR_SIZE ? (
-                <CheckCircle2 className="h-4 w-4 text-teal-600" />
-              ) : (
-                <XCircle className="h-4 w-4 text-amber-600" />
-              )}
-              <span>{(currentAsset.sourceWidth || TARGET_CURSOR_SIZE) === TARGET_CURSOR_SIZE && (currentAsset.sourceHeight || TARGET_CURSOR_SIZE) === TARGET_CURSOR_SIZE ? "尺寸符合 48 x 48" : "尺寸与 48 x 48 不一致，保存前建议确认缩放策略"}</span>
-            </div>
+          <section className="flex items-center gap-2 text-xs text-slate-500">
+            {(currentAsset.sourceWidth || TARGET_CURSOR_SIZE) === TARGET_CURSOR_SIZE && (currentAsset.sourceHeight || TARGET_CURSOR_SIZE) === TARGET_CURSOR_SIZE ? (
+              <CheckCircle2 className="h-4 w-4 text-teal-600" />
+            ) : (
+              <XCircle className="h-4 w-4 text-slate-400" />
+            )}
+            <span>{(currentAsset.sourceWidth || TARGET_CURSOR_SIZE) === TARGET_CURSOR_SIZE && (currentAsset.sourceHeight || TARGET_CURSOR_SIZE) === TARGET_CURSOR_SIZE ? "尺寸符合 48 × 48" : `尺寸 ${currentAsset.sourceWidth || TARGET_CURSOR_SIZE} × ${currentAsset.sourceHeight || TARGET_CURSOR_SIZE}，渲染时自动适配 48 × 48`}</span>
           </section>
 
           <section>
@@ -542,11 +534,11 @@ export function StatesPanel({
             <div className="mt-1.5 text-xs text-slate-400">仅对左键单击生效；其他触发方式（右键/双击/长按/滚轮/悬停）不受此绑定影响。</div>
           </section>
 
-          <section className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-3">
-            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-900">
-              <Wand2 className="h-4 w-4 text-emerald-700" />最近素材
-            </div>
-            {recentCursorAssets?.length ? (
+          {recentCursorAssets?.length ? (
+            <section className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-3">
+              <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-900">
+                <Wand2 className="h-4 w-4 text-emerald-700" />最近素材
+              </div>
               <div className="grid grid-cols-3 gap-2">
                 {recentCursorAssets.slice(0, 6).map((asset) => (
                   <button
@@ -570,10 +562,8 @@ export function StatesPanel({
                   </button>
                 ))}
               </div>
-            ) : (
-              <div className="text-xs text-slate-500">当前主题包还没有最近素材。</div>
-            )}
-          </section>
+            </section>
+          ) : null}
         </div>
       </Panel>
     </div>
