@@ -74,6 +74,30 @@ export function ParticleFeedbackCard({ config, updateActionConfig }) {
             control={<SmallSelect value={config.particleColorMode} options={PARTICLE_COLOR_MODE_OPTIONS} onChange={config.particle ? (value) => updateActionConfig({ particleColorMode: value }) : undefined} />}
           />
         </SettingSection>
+
+        <SettingSection disabled={!config.particle}>
+          <SectionTitle>物理</SectionTitle>
+          <FieldRow
+            label="重力强度"
+            hint="粒子下落力度。"
+            control={<ControlSlider disabled={!config.particle} value={config.particleGravity || 0} min={0} max={100} onValueChange={(value) => updateActionConfig({ particleGravity: value[0] })} suffix="" label="重力强度" />}
+          />
+          <FieldRow
+            label="风力偏移"
+            hint="水平漂移方向。"
+            control={<ControlSlider disabled={!config.particle} value={config.particleWind || 0} min={-50} max={50} onValueChange={(value) => updateActionConfig({ particleWind: value[0] })} suffix="" label="风力偏移" />}
+          />
+          <FieldRow
+            label="弹跳强度"
+            hint="粒子反弹力度。"
+            control={<ControlSlider disabled={!config.particle} value={config.particleBounce || 0} min={0} max={100} onValueChange={(value) => updateActionConfig({ particleBounce: value[0] })} suffix="" label="弹跳强度" />}
+          />
+          <FieldRow
+            label="拖尾效果"
+            hint="粒子后方追加光尾。"
+            control={<Switch checked={config.particleTrail || false} disabled={!config.particle} onCheckedChange={(next) => updateActionConfig({ particleTrail: next })} aria-label="拖尾开关" />}
+          />
+        </SettingSection>
       </div>
     </Panel>
   );

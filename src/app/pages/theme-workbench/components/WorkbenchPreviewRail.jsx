@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MousePointerClick, Pause, Play, RotateCcw, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button.jsx";
 import { cn } from "@/components/ui/utils.js";
@@ -54,6 +54,7 @@ function PreviewEffects({
   disabledBySite,
   config,
   runId,
+  comboIndex,
   textConfig,
   particleConfig,
   rippleConfig,
@@ -61,7 +62,7 @@ function PreviewEffects({
   imageConfig,
   playbackSpeed,
 }) {
-  const accentText = getPreviewText(config, runId);
+  const accentText = getPreviewText(config, comboIndex);
   const particles = useMemo(() => buildParticleSpecs(config, runId), [config, runId]);
   const ripples = useMemo(() => buildRippleSpecs(config), [config]);
   const animationStyle = getPreviewAnimationStyle(config);
@@ -80,11 +81,11 @@ function PreviewEffects({
                 width: `${ripple.size}px`,
                 height: `${ripple.size}px`,
                 borderWidth: ripple.filled ? 0 : `${rippleConfig.rippleLineWidth}px`,
-                borderColor: ripple.filled ? "transparent" : hexToRgba("#34D399", ripple.opacity),
+                borderColor: ripple.filled ? "transparent" : hexToRgba(rippleConfig.rippleColor || "#34D399", ripple.opacity),
                 background: ripple.filled
-                  ? `radial-gradient(circle, ${hexToRgba("#6EE7B7", ripple.opacity * 0.34)} 0%, ${hexToRgba("#34D399", ripple.opacity * 0.16)} 56%, ${hexToRgba("#34D399", 0)} 100%)`
+                  ? `radial-gradient(circle, ${hexToRgba(rippleConfig.rippleColor || "#34D399", ripple.opacity * 0.34)} 0%, ${hexToRgba(rippleConfig.rippleColor || "#34D399", ripple.opacity * 0.16)} 56%, ${hexToRgba(rippleConfig.rippleColor || "#34D399", 0)} 100%)`
                   : "transparent",
-                boxShadow: ripple.filled ? `0 0 0 1px ${hexToRgba("#34D399", ripple.opacity * 0.22)} inset` : undefined,
+                boxShadow: ripple.filled ? `0 0 0 1px ${hexToRgba(rippleConfig.rippleColor || "#34D399", ripple.opacity * 0.22)} inset` : undefined,
                 animation: `cursorDancePreviewRipple ${scalePreviewTime(rippleConfig.rippleDuration, playbackSpeed)}ms ${getAnimationEasingCss(rippleConfig.rippleEasing)} ${scalePreviewTime(ripple.delay, playbackSpeed)}ms forwards`,
               }}
             />
@@ -137,9 +138,11 @@ function PreviewEffects({
       {animationConfig.animationEnabled ? (
         <div
           key={`animation-${runId}`}
-          className="absolute left-1/2 top-1/2 rounded-full border border-emerald-300/70 bg-emerald-100/60"
+          className="absolute left-1/2 top-1/2 rounded-full"
           style={{
             ...animationStyle,
+            border: `2px solid ${hexToRgba(animationConfig.animationColor || "#34D399", 0.42)}`,
+            background: `radial-gradient(circle, ${hexToRgba(animationConfig.animationColor || "#34D399", 0.3)} 0%, ${hexToRgba(animationConfig.animationColor || "#34D399", 0.14)} 55%, ${hexToRgba(animationConfig.animationColor || "#34D399", 0)} 100%)`,
             animation: `cursorDancePreviewAnimation ${scalePreviewTime(animationConfig.animationDuration, playbackSpeed)}ms ${getAnimationEasingCss(animationConfig.animationEasing)} forwards`,
           }}
         />
@@ -243,7 +246,7 @@ function PreviewTimeline({ tracks, totalMs }) {
   );
 }
 
-function SimplePreviewStage({ config, siteMode, runId, outputs, playbackSpeed }) {
+function SimplePreviewStage({ config, siteMode, runId, comboIndex, outputs, playbackSpeed }) {
   const disabledBySite = siteMode === "当前禁用";
   const textConfig = useMemo(() => getActionTextConfig(config), [config]);
   const particleConfig = useMemo(() => getActionParticleConfig(config), [config]);
@@ -304,6 +307,7 @@ function SimplePreviewStage({ config, siteMode, runId, outputs, playbackSpeed })
               disabledBySite={disabledBySite}
               config={config}
               runId={runId}
+              comboIndex={comboIndex}
               textConfig={textConfig}
               particleConfig={particleConfig}
               rippleConfig={rippleConfig}
@@ -342,8 +346,11 @@ function SimplePreviewStage({ config, siteMode, runId, outputs, playbackSpeed })
 export function WorkbenchPreviewRail({ actionLabel, config, siteMode, previewMode = false }) {
   const disabledBySite = siteMode === "当前禁用";
   const [runId, setRunId] = useState(0);
+  const [comboIndex, setComboIndex] = useState(1);
   const [autoPlay, setAutoPlay] = useState(true);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const timerRef = useRef(null);
+  const lastComboFireRef = useRef(0);
   const textConfig = useMemo(() => getActionTextConfig(config), [config]);
   const particleConfig = useMemo(() => getActionParticleConfig(config), [config]);
   const rippleConfig = useMemo(() => getActionRippleConfig(config), [config]);
@@ -355,25 +362,54 @@ export function WorkbenchPreviewRail({ actionLabel, config, siteMode, previewMod
     [textConfig, particleConfig, rippleConfig, audioConfig, animationConfig, imageConfig, config]
   );
   const loopDelay = scalePreviewTime(getPreviewLoopDelay(config), playbackSpeed);
+  const comboWindowMs = scalePreviewTime(textConfig.comboWindowMs || 900, playbackSpeed);
+  const displayComboIndex = textConfig.comboEnabled ? comboIndex : 1;
 
-  function replay() {
+  const replay = useCallback(() => {
     if (disabledBySite) return;
-    setRunId((value) => value + 1);
-  }
+    const now = Date.now();
+    setRunId((v) => v + 1);
+    setComboIndex((prev) => {
+      if (now - lastComboFireRef.current <= comboWindowMs) return prev + 1;
+      return 1;
+    });
+    lastComboFireRef.current = now;
+  }, [disabledBySite, comboWindowMs]);
+
+  const prevConfigRef = useRef(null);
 
   useEffect(() => {
     if (disabledBySite) return undefined;
+    const configFingerprint = JSON.stringify(config);
+    if (prevConfigRef.current === configFingerprint) return undefined;
+    prevConfigRef.current = configFingerprint;
     setRunId((value) => value + 1);
     return undefined;
   }, [actionLabel, config, disabledBySite]);
 
   useEffect(() => {
     if (disabledBySite || !autoPlay) return undefined;
-    const timer = window.setInterval(() => {
+    lastComboFireRef.current = 0;
+    setComboIndex(1);
+
+    const tick = () => {
+      const now = Date.now();
       setRunId((value) => value + 1);
-    }, loopDelay);
-    return () => window.clearInterval(timer);
-  }, [autoPlay, disabledBySite, loopDelay]);
+      setComboIndex((prev) => {
+        if (lastComboFireRef.current > 0 && now - lastComboFireRef.current <= comboWindowMs) return prev + 1;
+        return 1;
+      });
+      lastComboFireRef.current = now;
+    };
+
+    timerRef.current = window.setInterval(tick, loopDelay);
+    return () => {
+      if (timerRef.current !== null) {
+        window.clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [autoPlay, disabledBySite, loopDelay, comboWindowMs]);
 
   return (
     <div className="min-h-0 flex-1">
@@ -419,7 +455,7 @@ export function WorkbenchPreviewRail({ actionLabel, config, siteMode, previewMod
           </div>
         }
       >
-        <SimplePreviewStage config={config} siteMode={siteMode} runId={runId} outputs={outputs} playbackSpeed={playbackSpeed} />
+        <SimplePreviewStage config={config} siteMode={siteMode} runId={runId} comboIndex={displayComboIndex} outputs={outputs} playbackSpeed={playbackSpeed} />
       </Panel>
     </div>
   );

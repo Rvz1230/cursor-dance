@@ -6,6 +6,7 @@ import {
 } from "../../model/workbenchSchema.js";
 import {
   ControlSlider,
+  ColorOptions,
   FieldRow,
   Panel,
   SectionTitle,
@@ -32,6 +33,11 @@ export function RippleFeedbackCard({ config, updateActionConfig }) {
             label="波纹样式"
             hint="样式。"
             control={<SmallSelect value={config.rippleStyle} options={RIPPLE_STYLE_OPTIONS} onChange={config.ripple ? (value) => updateActionConfig({ rippleStyle: value, ripple: true }) : undefined} />}
+          />
+          <FieldRow
+            label="波纹颜色"
+            hint="波纹的色调。"
+            control={<ColorOptions disabled={!config.ripple} value={config.rippleColor || "#34D399"} onChange={(color) => updateActionConfig({ rippleColor: color })} />}
           />
           <FieldRow
             label="波纹尺寸"

@@ -72,6 +72,13 @@ export function TextFeedbackCard({ config, updateActionConfig }) {
                 hint="连续触发累加。"
                 control={<Switch checked={config.comboEnabled} disabled={!config.textEnabled} onCheckedChange={(next) => updateActionConfig({ comboEnabled: next, textEnabled: true })} aria-label="连击累加开关" />}
               />
+              {config.comboEnabled ? (
+                <FieldRow
+                  label="连击窗口"
+                  hint="多久以内算连续。"
+                  control={<ControlSlider disabled={!config.textEnabled} value={config.comboWindowMs || 900} min={120} max={3000} onValueChange={(value) => updateActionConfig({ comboWindowMs: value[0] })} suffix="ms" label="连击窗口" />}
+                />
+              ) : null}
             </>
           ) : (
             <>

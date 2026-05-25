@@ -6,6 +6,7 @@ import {
   PANEL_META,
 } from "../../model/workbenchSchema.js";
 import {
+  ColorOptions,
   ControlSlider,
   FieldRow,
   Panel,
@@ -31,8 +32,18 @@ export function AnimationFeedbackCard({ config, updateActionConfig }) {
           <SectionTitle>形态</SectionTitle>
           <FieldRow
             label="动画样式"
-            hint="先只支持三个轻量样式。"
+            hint="从 7 种样式中选择。"
             control={<SmallSelect value={config.animationStyle} options={ANIMATION_STYLE_OPTIONS} onChange={config.animationEnabled ? (value) => updateActionConfig({ animationStyle: value, animationEnabled: true }) : undefined} />}
+          />
+          <FieldRow
+            label="动画颜色"
+            hint="动画的主色调。"
+            control={<ColorOptions disabled={!config.animationEnabled} value={config.animationColor || "#34D399"} onChange={(color) => updateActionConfig({ animationColor: color })} />}
+          />
+          <FieldRow
+            label="光晕效果"
+            hint="附加柔和光晕。"
+            control={<Switch checked={config.animationGlow || false} disabled={!config.animationEnabled} onCheckedChange={(next) => updateActionConfig({ animationGlow: next })} aria-label="光晕开关" />}
           />
           <FieldRow
             label="动画时长"
@@ -72,9 +83,6 @@ export function AnimationFeedbackCard({ config, updateActionConfig }) {
             hint="控制动画存在感。"
             control={<ControlSlider disabled={!config.animationEnabled} value={config.animationOpacity} min={20} max={100} onValueChange={(value) => updateActionConfig({ animationOpacity: value[0] })} suffix="%" label="透明度" />}
           />
-          <div className="rounded-2xl bg-slate-100 px-3 py-2 text-xs text-slate-600">
-            当前这张卡只负责一个轻量装饰层动画，不和粒子 / 波纹复用配置，也不引入额外素材系统。共 {ACTION_ANIMATION_FIELDS.length} 个字段。
-          </div>
         </SettingSection>
       </div>
     </Panel>

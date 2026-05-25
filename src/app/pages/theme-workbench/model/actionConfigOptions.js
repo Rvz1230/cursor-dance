@@ -43,17 +43,18 @@ export const TEXT_EASING_OPTIONS = ["线性", "缓入", "缓出", "缓入缓出"
 export const TEXT_WEIGHT_OPTIONS = ["常规", "中等", "加粗"];
 export const TEXT_SHADOW_OPTIONS = ["无", "柔和", "清晰"];
 export const TEXT_FONT_PRESETS = ["系统默认", "苹方 / 微软雅黑", "宋体", "黑体", "楷体", "等宽字体", "自定义"];
-export const PARTICLE_STYLE_OPTIONS = ["点状粒子", "碎屑粒子", "火花"];
+export const PARTICLE_STYLE_OPTIONS = ["点状粒子", "碎屑粒子", "火花", "星光", "钻石", "心形", "方块", "三角"];
 export const PARTICLE_DIRECTION_OPTIONS = ["四周扩散", "向上喷发", "沿点击方向"];
 export const PARTICLE_COLOR_MODE_OPTIONS = ["跟随主题", "跟随飘字色", "随机轻变化"];
-export const RIPPLE_STYLE_OPTIONS = ["单环", "双环", "柔和面波"];
+export const RIPPLE_STYLE_OPTIONS = ["单环", "双环", "柔和面波", "脉冲波纹", "回声环", "能量脉冲"];
 export const RIPPLE_EASING_OPTIONS = ["线性", "缓出", "缓入缓出", "弹性"];
 export const AUDIO_TRIGGER_OPTIONS = ["每次触发", "连击叠加", "节流播放"];
 export const AUDIO_BLEND_OPTIONS = ["保持原音量", "压低页面音频", "仅插件音效"];
 export const CURSOR_SIZE_OPTIONS = ["32 × 32", "40 × 40", "48 × 48", "56 × 56", "64 × 64"];
 export const CURSOR_HOTSPOT_OPTIONS = ["0, 0", "8, 8", "12, 12", "16, 16", "16, 32", "24, 24"];
-export const ANIMATION_STYLE_OPTIONS = ["聚焦脉冲", "斜切闪片", "弹跳徽记"];
+export const ANIMATION_STYLE_OPTIONS = ["聚焦脉冲", "斜切闪片", "弹跳徽记", "漩涡旋转", "星光闪耀", "轨道环绕", "螺旋上升"];
 export const ANIMATION_EASING_OPTIONS = ["线性", "缓出", "缓入缓出", "弹性"];
+export const PARTICLE_PHYSICS_PRESET_OPTIONS = ["无", "重力飘落", "风场漂移", "弹跳迸发", "旋转扩散"];
 
 export const ACTION_TRIGGER_FIELDS = ["triggerTiming", "triggerZone", "holdMs"];
 export const ACTION_TEXT_FIELDS = [
@@ -77,6 +78,10 @@ export const ACTION_TEXT_FIELDS = [
   "textOffsetX",
   "textOffsetY",
   "fontSize",
+  "textGradient",
+  "textGradientStart",
+  "textGradientEnd",
+  "comboWindowMs",
 ];
 export const ACTION_PARTICLE_FIELDS = [
   "particle",
@@ -88,6 +93,11 @@ export const ACTION_PARTICLE_FIELDS = [
   "particleDuration",
   "particleSize",
   "particleOpacity",
+  "particlePalette",
+  "particleGravity",
+  "particleWind",
+  "particleBounce",
+  "particleTrail",
 ];
 export const ACTION_RIPPLE_FIELDS = [
   "ripple",
@@ -97,6 +107,7 @@ export const ACTION_RIPPLE_FIELDS = [
   "rippleEasing",
   "rippleLineWidth",
   "rippleOpacity",
+  "rippleColor",
 ];
 export const ACTION_AUDIO_FIELDS = [
   "sound",
@@ -117,6 +128,8 @@ export const ACTION_ANIMATION_FIELDS = [
   "animationOpacity",
   "animationOffsetX",
   "animationOffsetY",
+  "animationColor",
+  "animationGlow",
 ];
 export const ACTION_IMAGE_FIELDS = [
   "imageEnabled",
@@ -127,7 +140,7 @@ export const ACTION_IMAGE_FIELDS = [
   "imageOffsetX",
   "imageOffsetY",
 ];
-export const ACTION_CURSOR_FEEDBACK_FIELDS = ["shake", "cursorOverride", "cursorSize"];
+export const ACTION_CURSOR_FEEDBACK_FIELDS = ["shake", "cursorOverride", "cursorSize", "cursorTrailEnabled", "cursorTrailCount", "cursorTrailOpacity", "cursorGlowColor"];
 export const ACTION_RUNTIME_FIELDS = Array.from(
   new Set([
     ...ACTION_TRIGGER_FIELDS,

@@ -23,6 +23,10 @@
     "textOffsetX",
     "textOffsetY",
     "fontSize",
+    "textGradient",
+    "textGradientStart",
+    "textGradientEnd",
+    "comboWindowMs",
   ];
   const ACTION_PARTICLE_FIELDS = [
     "particle",
@@ -34,6 +38,11 @@
     "particleDuration",
     "particleSize",
     "particleOpacity",
+    "particlePalette",
+    "particleGravity",
+    "particleWind",
+    "particleBounce",
+    "particleTrail",
   ];
   const ACTION_RIPPLE_FIELDS = [
     "ripple",
@@ -43,6 +52,7 @@
     "rippleEasing",
     "rippleLineWidth",
     "rippleOpacity",
+    "rippleColor",
   ];
   const ACTION_AUDIO_FIELDS = [
     "sound",
@@ -63,6 +73,8 @@
     "animationOpacity",
     "animationOffsetX",
     "animationOffsetY",
+    "animationColor",
+    "animationGlow",
   ];
   const ACTION_IMAGE_FIELDS = [
     "imageEnabled",
@@ -73,7 +85,7 @@
     "imageOffsetX",
     "imageOffsetY",
   ];
-  const ACTION_CURSOR_FEEDBACK_FIELDS = ["shake", "cursorOverride", "cursorSize"];
+  const ACTION_CURSOR_FEEDBACK_FIELDS = ["shake", "cursorOverride", "cursorSize", "cursorTrailEnabled", "cursorTrailCount", "cursorTrailOpacity", "cursorGlowColor"];
 
   function pickActionConfigFields(config, fieldNames) {
     return Object.fromEntries(fieldNames.map((fieldName) => [fieldName, config?.[fieldName]]));

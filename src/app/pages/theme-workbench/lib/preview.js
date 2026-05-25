@@ -47,10 +47,17 @@ export const PREVIEW_KEYFRAMES = `
   }
 `;
 
-export function formatPreviewNumber(style) {
-  if (style.includes("中文")) return "三";
-  if (style.includes("英文")) return "three";
-  return "3";
+export function formatPreviewNumber(style, number = 3) {
+  const safeNumber = Math.max(1, Math.round(number || 3));
+  if (style.includes("中文")) {
+    const values = ["一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
+    return values[(safeNumber - 1) % values.length];
+  }
+  if (style.includes("英文")) {
+    const values = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+    return values[(safeNumber - 1) % values.length];
+  }
+  return String(safeNumber);
 }
 
 export function getPreviewText(config, runIndex = 0) {
@@ -65,7 +72,8 @@ export function getPreviewText(config, runIndex = 0) {
     return tags[runIndex % tags.length];
   }
 
-  const previewNumber = formatPreviewNumber(textConfig.textStyle);
+  const numberValue = textConfig.comboEnabled ? Math.max(1, runIndex || 1) : 1;
+  const previewNumber = formatPreviewNumber(textConfig.textStyle, numberValue);
   if (textConfig.textMode === "模板模式") {
     return textConfig.textTemplate.replaceAll("${number}", previewNumber);
   }
@@ -132,11 +140,13 @@ export function getParticleTint(config, index) {
   const particleConfig = getActionParticleConfig(config);
   const textConfig = getActionTextConfig(config);
   if (particleConfig.particleColorMode === "跟随飘字色") return hexToRgba(textConfig.textColor, particleConfig.particleOpacity / 100);
+  const palette = Array.isArray(particleConfig.particlePalette) && particleConfig.particlePalette.length
+    ? particleConfig.particlePalette
+    : ["#FDBA74", "#FDE68A", "#86EFAC", "#93C5FD", "#F9A8D4"];
   if (particleConfig.particleColorMode === "随机轻变化") {
-    const palette = ["#FDBA74", "#FDE68A", "#86EFAC", "#93C5FD", "#F9A8D4"];
     return hexToRgba(palette[index % palette.length], particleConfig.particleOpacity / 100);
   }
-  return hexToRgba("#FBBF24", particleConfig.particleOpacity / 100);
+  return hexToRgba(palette[0] || "#FBBF24", particleConfig.particleOpacity / 100);
 }
 
 export function buildParticleSpecs(config, runIndex) {
@@ -159,11 +169,17 @@ export function buildParticleSpecs(config, runIndex) {
     const angle = startAngle + (visibleCount === 1 ? 0 : (index / (visibleCount - 1)) * sweep);
     const variance = ((runIndex + 5) * (index + 3)) % 11 - 5;
     const distance = spread * (0.58 + index / Math.max(visibleCount * 1.5, 1)) + variance * 1.8;
+    const baseX = Math.cos(angle) * distance;
+    const baseY = Math.sin(angle) * distance;
+    const gravity = (particleConfig.particleGravity || 0) / 100;
+    const wind = (particleConfig.particleWind || 0) / 100;
+    const bounce = (particleConfig.particleBounce || 0) / 100;
     return {
-      x: Math.cos(angle) * distance,
-      y: Math.sin(angle) * distance,
+      x: baseX + wind * spread * 1.2,
+      y: baseY + gravity * spread * 1.6,
       delay: index * 26,
       size: Math.max(6, particleConfig.particleSize * (0.52 + (index % 4) * 0.1)),
+      bounceY: bounce > 0 ? -spread * bounce * 1.0 : 0,
     };
   });
 }
@@ -187,6 +203,55 @@ export function getParticleStyleProps(config, index, size) {
       borderRadius: "38%",
       rotation: -42 + ((index * 13) % 9) * 10,
       boxShadow: `0 4px 10px ${hexToRgba("#0F172A", 0.12)}`,
+    };
+  }
+  if (style === "星光") {
+    return {
+      width: size * 1.5,
+      height: size * 1.5,
+      borderRadius: "0",
+      rotation: ((index * 23) % 9) * 8,
+      clipPath: "polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)",
+      boxShadow: `0 0 10px ${hexToRgba("#FBBF24", 0.38)}`,
+    };
+  }
+  if (style === "钻石") {
+    return {
+      width: size * 1.2,
+      height: size * 1.2,
+      borderRadius: "18%",
+      rotation: 45 + ((index * 11) % 7) * 5,
+      clipPath: "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)",
+      boxShadow: `0 4px 12px ${hexToRgba("#0F172A", 0.16)}`,
+    };
+  }
+  if (style === "心形") {
+    return {
+      width: size * 1.4,
+      height: size * 1.3,
+      borderRadius: "0",
+      rotation: -12 + ((index * 9) % 7) * 6,
+      clipPath: "polygon(50% 15%, 72% 0%, 94% 12%, 94% 38%, 80% 62%, 50% 90%, 20% 62%, 6% 38%, 6% 12%, 28% 0%)",
+      boxShadow: `0 3px 10px ${hexToRgba("#EC4899", 0.22)}`,
+    };
+  }
+  if (style === "方块") {
+    return {
+      width: size * 1.15,
+      height: size * 1.15,
+      borderRadius: "12%",
+      rotation: ((index * 19) % 13) * 7,
+      boxShadow: `0 4px 10px ${hexToRgba("#0F172A", 0.14)}`,
+    };
+  }
+  if (style === "三角") {
+    return {
+      width: size * 1.3,
+      height: size * 1.2,
+      borderRadius: "0",
+      rotation: ((index * 31) % 11) * 16,
+      clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)",
+      boxShadow: `0 3px 9px ${hexToRgba("#0F172A", 0.12)}`,
     };
   }
   return {
@@ -213,6 +278,30 @@ export function buildRippleSpecs(config) {
 
   if (style === "柔和面波") {
     return [{ size, opacity, delay: 0, filled: true }];
+  }
+
+  if (style === "脉冲波纹") {
+    return [
+      { size, opacity, delay: 0, filled: true },
+      { size: size * 1.24, opacity: opacity * 0.52, delay: Math.min(180, rippleConfig.rippleDuration * 0.18), filled: false },
+      { size: size * 1.4, opacity: opacity * 0.26, delay: Math.min(320, rippleConfig.rippleDuration * 0.36), filled: false },
+    ];
+  }
+
+  if (style === "回声环") {
+    return [
+      { size, opacity, delay: 0, filled: false },
+      { size: size * 1.1, opacity: opacity * 0.68, delay: Math.min(90, rippleConfig.rippleDuration * 0.1), filled: false },
+      { size: size * 1.22, opacity: opacity * 0.44, delay: Math.min(180, rippleConfig.rippleDuration * 0.2), filled: false },
+      { size: size * 1.36, opacity: opacity * 0.22, delay: Math.min(280, rippleConfig.rippleDuration * 0.3), filled: false },
+    ];
+  }
+
+  if (style === "能量脉冲") {
+    return [
+      { size, opacity: opacity * 1.1, delay: 0, filled: true },
+      { size: size * 1.16, opacity: opacity * 0.58, delay: Math.min(140, rippleConfig.rippleDuration * 0.14), filled: false },
+    ];
   }
 
   return [{ size, opacity, delay: 0, filled: false }];

@@ -102,11 +102,13 @@
       if (particleConfig.particleColorMode === "跟随飘字色") {
         return hexToRgba(textConfig.textColor, (particleConfig.particleOpacity || 88) / 100);
       }
+      const palette = Array.isArray(particleConfig.particlePalette) && particleConfig.particlePalette.length
+        ? particleConfig.particlePalette
+        : ["#FDBA74", "#FDE68A", "#86EFAC", "#93C5FD", "#F9A8D4"];
       if (particleConfig.particleColorMode === "随机轻变化") {
-        const palette = ["#FDBA74", "#FDE68A", "#86EFAC", "#93C5FD", "#F9A8D4"];
         return hexToRgba(palette[index % palette.length], (particleConfig.particleOpacity || 88) / 100);
       }
-      return hexToRgba("#FBBF24", (particleConfig.particleOpacity || 88) / 100);
+      return hexToRgba(palette[0] || "#FBBF24", (particleConfig.particleOpacity || 88) / 100);
     }
 
     function ensureStyles() {
@@ -353,10 +355,11 @@
         node.style.width = `${layerSize}px`;
         node.style.height = `${layerSize}px`;
         node.style.borderRadius = "999px";
-        node.style.border = filled ? "none" : `${lineWidth}px solid ${hexToRgba("#34D399", layerOpacity)}`;
+        const rippleColor = rippleConfig.rippleColor || "#34D399";
+        node.style.border = filled ? "none" : `${lineWidth}px solid ${hexToRgba(rippleColor, layerOpacity)}`;
         if (filled) {
-          node.style.background = `radial-gradient(circle, ${hexToRgba("#6EE7B7", layerOpacity * 0.34)} 0%, ${hexToRgba("#34D399", layerOpacity * 0.16)} 56%, ${hexToRgba("#34D399", 0)} 100%)`;
-          node.style.boxShadow = `0 0 0 1px ${hexToRgba("#34D399", layerOpacity * 0.22)} inset`;
+          node.style.background = `radial-gradient(circle, ${hexToRgba(rippleColor, layerOpacity * 0.34)} 0%, ${hexToRgba(rippleColor, layerOpacity * 0.16)} 56%, ${hexToRgba(rippleColor, 0)} 100%)`;
+          node.style.boxShadow = `0 0 0 1px ${hexToRgba(rippleColor, layerOpacity * 0.22)} inset`;
         }
 
         animateNode(
@@ -397,6 +400,27 @@
         return;
       }
 
+      if (style === "脉冲波纹") {
+        renderLayer({ scaleFrom: 0.12, scaleMid: 0.58, scaleTo: 0.98, filled: true });
+        renderLayer({ scaleFrom: 0.32, scaleMid: 0.78, scaleTo: 1.2, delay: Math.min(180, duration * 0.18), layerSize: size * 1.24, layerOpacity: opacity * 0.52 });
+        renderLayer({ scaleFrom: 0.48, scaleMid: 0.88, scaleTo: 1.36, delay: Math.min(320, duration * 0.36), layerSize: size * 1.4, layerOpacity: opacity * 0.26 });
+        return;
+      }
+
+      if (style === "回声环") {
+        renderLayer({ scaleFrom: 0.16, scaleMid: 0.62, scaleTo: 0.96 });
+        renderLayer({ scaleFrom: 0.28, scaleMid: 0.72, scaleTo: 1.06, delay: Math.min(90, duration * 0.1), layerSize: size * 1.1, layerOpacity: opacity * 0.68 });
+        renderLayer({ scaleFrom: 0.4, scaleMid: 0.82, scaleTo: 1.18, delay: Math.min(180, duration * 0.2), layerSize: size * 1.22, layerOpacity: opacity * 0.44 });
+        renderLayer({ scaleFrom: 0.52, scaleMid: 0.9, scaleTo: 1.32, delay: Math.min(280, duration * 0.3), layerSize: size * 1.36, layerOpacity: opacity * 0.22 });
+        return;
+      }
+
+      if (style === "能量脉冲") {
+        renderLayer({ scaleFrom: 0.1, scaleMid: 0.56, scaleTo: 0.96, filled: true, layerOpacity: opacity * 1.1 });
+        renderLayer({ scaleFrom: 0.26, scaleMid: 0.74, scaleTo: 1.12, delay: Math.min(140, duration * 0.14), layerSize: size * 1.16, layerOpacity: opacity * 0.58 });
+        return;
+      }
+
       renderLayer({ scaleFrom: 0.18, scaleMid: 0.72, scaleTo: 1 });
     }
 
@@ -410,6 +434,8 @@
       const style = animationConfig.animationStyle || "聚焦脉冲";
       const duration = animationConfig.animationDuration || 720;
       const size = Math.round(56 * scale);
+      const animColor = animationConfig.animationColor || "#34D399";
+      const glow = animationConfig.animationGlow ? `0 0 18px ${hexToRgba(animColor, 0.24)}` : "";
 
       node.className = "cd-effect cd-animation-effect";
       node.style.left = `${x + (animationConfig.animationOffsetX || 0)}px`;
@@ -425,36 +451,79 @@
         node.style.borderRadius = "999px";
         node.style.background = "radial-gradient(circle at 35% 35%, rgba(96,165,250,0.96), rgba(79,70,229,0.94))";
         node.style.boxShadow = "0 16px 30px rgba(79, 70, 229, 0.2)";
+      } else if (style === "漩涡旋转") {
+        node.style.borderRadius = "38%";
+        node.style.background = `linear-gradient(135deg, ${hexToRgba(animColor, 0.92)}, ${hexToRgba(animColor, 0.48)})`;
+        node.style.boxShadow = `0 14px 28px ${hexToRgba(animColor, 0.26)}`;
+      } else if (style === "星光闪耀") {
+        node.style.borderRadius = "0";
+        node.style.clipPath = "polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)";
+        node.style.background = `radial-gradient(circle at 35% 35%, ${hexToRgba(animColor, 0.96)}, ${hexToRgba(animColor, 0.62)})`;
+        if (glow) node.style.boxShadow = glow;
+      } else if (style === "轨道环绕") {
+        node.style.borderRadius = "28%";
+        node.style.background = `conic-gradient(from 0deg, ${hexToRgba(animColor, 0.72)}, ${hexToRgba(animColor, 0)}, ${hexToRgba(animColor, 0.72)})`;
+        if (glow) node.style.boxShadow = glow;
+      } else if (style === "螺旋上升") {
+        node.style.borderRadius = "30% 70% 70% 30% / 30% 30% 70% 70%";
+        node.style.background = `radial-gradient(circle at 35% 35%, ${hexToRgba(animColor, 0.92)}, ${hexToRgba(animColor, 0.28)})`;
+        node.style.boxShadow = `0 12px 26px ${hexToRgba(animColor, 0.22)}`;
       } else {
         node.style.borderRadius = "999px";
-        node.style.background = "radial-gradient(circle, rgba(52,211,153,0.3) 0%, rgba(16,185,129,0.14) 55%, rgba(16,185,129,0) 100%)";
-        node.style.border = "2px solid rgba(16,185,129,0.42)";
+        node.style.background = `radial-gradient(circle, ${hexToRgba(animColor, 0.3)} 0%, ${hexToRgba(animColor, 0.14)} 55%, ${hexToRgba(animColor, 0)} 100%)`;
+        node.style.border = `2px solid ${hexToRgba(animColor, 0.42)}`;
+        if (glow) node.style.boxShadow = glow;
       }
 
-      animateNode(
-        node,
-        style === "斜切闪片"
-          ? [
-              { opacity: 0, transform: "translate3d(-50%, -40%, 0) scale(0.68) rotate(-18deg)" },
-              { opacity, transform: "translate3d(-50%, -50%, 0) scale(1) rotate(-6deg)" },
-              { opacity: 0, transform: "translate3d(calc(-50% + 18px), calc(-50% - 18px), 0) scale(1.08) rotate(12deg)" },
-            ]
-          : style === "弹跳徽记"
-            ? [
-                { opacity: 0, transform: "translate3d(-50%, -24%, 0) scale(0.52)" },
-                { opacity, transform: "translate3d(-50%, -50%, 0) scale(1.04)" },
-                { opacity: 0, transform: "translate3d(-50%, -92%, 0) scale(0.88)" },
-              ]
-            : [
-                { opacity: 0, transform: "translate3d(-50%, -50%, 0) scale(0.42)" },
-                { opacity, transform: "translate3d(-50%, -50%, 0) scale(0.92)" },
-                { opacity: 0, transform: "translate3d(-50%, -50%, 0) scale(1.48)" },
-              ],
-        {
-          duration,
-          easing: getAnimationEasing(animationConfig.animationEasing),
-        }
-      );
+      let keyframes;
+      if (style === "斜切闪片") {
+        keyframes = [
+          { opacity: 0, transform: "translate3d(-50%, -40%, 0) scale(0.68) rotate(-18deg)" },
+          { opacity, transform: "translate3d(-50%, -50%, 0) scale(1) rotate(-6deg)" },
+          { opacity: 0, transform: "translate3d(calc(-50% + 18px), calc(-50% - 18px), 0) scale(1.08) rotate(12deg)" },
+        ];
+      } else if (style === "弹跳徽记") {
+        keyframes = [
+          { opacity: 0, transform: "translate3d(-50%, -24%, 0) scale(0.52)" },
+          { opacity, transform: "translate3d(-50%, -50%, 0) scale(1.04)" },
+          { opacity: 0, transform: "translate3d(-50%, -92%, 0) scale(0.88)" },
+        ];
+      } else if (style === "漩涡旋转") {
+        keyframes = [
+          { opacity: 0, transform: "translate3d(-50%, -50%, 0) scale(0.38) rotate(0deg)" },
+          { opacity, transform: "translate3d(-50%, -50%, 0) scale(1) rotate(180deg)" },
+          { opacity: 0, transform: "translate3d(-50%, -80%, 0) scale(0.62) rotate(360deg)" },
+        ];
+      } else if (style === "星光闪耀") {
+        keyframes = [
+          { opacity: 0, transform: "translate3d(-50%, -44%, 0) scale(0.32)" },
+          { opacity: Math.min(1, opacity * 1.2), transform: "translate3d(-50%, -50%, 0) scale(1.12)" },
+          { opacity: 0, transform: "translate3d(-50%, -94%, 0) scale(0.48)" },
+        ];
+      } else if (style === "轨道环绕") {
+        keyframes = [
+          { opacity: 0, transform: "translate3d(-50%, -50%, 0) scale(0.28) rotate(0deg)" },
+          { opacity, transform: "translate3d(-50%, -50%, 0) scale(1.06) rotate(270deg)" },
+          { opacity: 0, transform: "translate3d(-50%, -84%, 0) scale(0.68) rotate(540deg)" },
+        ];
+      } else if (style === "螺旋上升") {
+        keyframes = [
+          { opacity: 0, transform: "translate3d(-50%, -38%, 0) scale(0.44) rotate(-20deg)" },
+          { opacity, transform: "translate3d(-50%, -50%, 0) scale(1) rotate(8deg)" },
+          { opacity: 0, transform: "translate3d(calc(-50% + 10px), calc(-50% - 86%), 0) scale(0.72) rotate(36deg)" },
+        ];
+      } else {
+        keyframes = [
+          { opacity: 0, transform: "translate3d(-50%, -50%, 0) scale(0.42)" },
+          { opacity, transform: "translate3d(-50%, -50%, 0) scale(0.92)" },
+          { opacity: 0, transform: "translate3d(-50%, -50%, 0) scale(1.48)" },
+        ];
+      }
+
+      animateNode(node, keyframes, {
+        duration,
+        easing: getAnimationEasing(animationConfig.animationEasing),
+      });
     }
 
     function renderImageEffect(x, y, actionConfig) {
@@ -495,6 +564,11 @@
       const count = Math.min(particleConfig.particleCount || 0, 40);
       if (!count) return;
 
+      const gravity = (particleConfig.particleGravity || 0) / 100;
+      const wind = (particleConfig.particleWind || 0) / 100;
+      const bounce = (particleConfig.particleBounce || 0) / 100;
+      const hasTrail = particleConfig.particleTrail;
+
       for (let index = 0; index < count; index += 1) {
         let startAngle = 0;
         let sweep = Math.PI * 2;
@@ -507,44 +581,129 @@
           sweep = Math.PI * 0.76;
         }
 
+        const spread = particleConfig.particleSpread || 52;
         const angle = startAngle + (count === 1 ? 0 : (index / (count - 1)) * sweep);
-        const distance = Math.max(16, (particleConfig.particleSpread || 52) * (0.52 + index / Math.max(count * 1.4, 1)));
-        const tx = Math.cos(angle) * distance;
-        const ty = Math.sin(angle) * distance;
+        const distance = Math.max(16, spread * (0.52 + index / Math.max(count * 1.4, 1)));
+        const baseX = Math.cos(angle) * distance;
+        const baseY = Math.sin(angle) * distance;
+        const tx = baseX + wind * spread * 1.2;
+        const ty = baseY + gravity * spread * 1.6;
+        const bounceY = bounce > 0 ? -spread * bounce * 1.0 : 0;
         const node = document.createElement("span");
         node.className = "cd-effect cd-particle";
         node.style.left = `${x}px`;
         node.style.top = `${y}px`;
         const baseSize = Math.max(4, (particleConfig.particleSize || 10) * (0.52 + (index % 4) * 0.1));
         const particleStyle = particleConfig.particleStyle || "点状粒子";
-        const rotation = particleStyle === "火花"
-          ? -28 + ((index * 17) % 7) * 11
-          : particleStyle === "碎屑粒子"
-            ? -42 + ((index * 13) % 9) * 10
-            : 0;
-        node.style.width = `${particleStyle === "火花" ? baseSize * 1.9 : particleStyle === "碎屑粒子" ? baseSize * 1.35 : baseSize}px`;
-        node.style.height = `${particleStyle === "火花" ? Math.max(3, baseSize * 0.42) : particleStyle === "碎屑粒子" ? Math.max(4, baseSize * 0.72) : baseSize}px`;
-        node.style.borderRadius = particleStyle === "点状粒子" ? "999px" : particleStyle === "火花" ? "999px" : "38%";
-        node.style.background = getParticleColor(actionConfig, index);
-        node.style.boxShadow = particleStyle === "火花"
-          ? `0 0 12px ${hexToRgba("#F59E0B", 0.34)}`
-          : particleStyle === "碎屑粒子"
-            ? `0 4px 10px ${hexToRgba("#0F172A", 0.12)}`
-            : "0 6px 14px rgba(15, 23, 42, 0.12)";
+        const rotation = getParticleRotation(particleStyle, index);
+
+        applyParticleShape(node, particleStyle, baseSize, index, actionConfig);
+
+        const midX = tx * 0.35;
+        const midY = (ty + bounceY) * 0.4;
+        const midTransform = `translate3d(calc(-50% + ${midX}px), calc(-50% + ${midY}px), 0) rotate(${rotation}deg)`;
+        const endTransform = `translate3d(calc(-50% + ${tx}px), calc(-50% + ${ty}px), 0) rotate(${rotation}deg)`;
+        const endScale = particleStyle === "火花" ? 0.52 : particleStyle === "星光" ? 0.38 : 0.65;
 
         animateNode(
           node,
           [
             { opacity: 0, transform: `translate3d(-50%, -50%, 0) rotate(${rotation}deg) scale(0.5)` },
-            { opacity: 0.9, transform: `translate3d(calc(-50% + ${tx * 0.35}px), calc(-50% + ${ty * 0.35}px), 0) rotate(${rotation}deg) scale(1)` },
-            { opacity: 0, transform: `translate3d(calc(-50% + ${tx}px), calc(-50% + ${ty}px), 0) rotate(${rotation}deg) scale(${particleStyle === "火花" ? 0.52 : 0.65})` },
+            { opacity: 0.9, transform: `${midTransform} scale(1)` },
+            { opacity: 0, transform: `${endTransform} scale(${endScale})` },
           ],
           {
             duration: particleConfig.particleDuration || 760,
-            easing: particleStyle === "火花" ? "cubic-bezier(0.22, 1, 0.36, 1)" : "ease-out",
+            easing: particleStyle === "火花" || particleStyle === "星光" ? "cubic-bezier(0.22, 1, 0.36, 1)" : "ease-out",
           }
         );
+
+        if (hasTrail && index % 3 === 0) {
+          for (let t = 1; t <= 2; t++) {
+            const trailNode = document.createElement("span");
+            trailNode.className = "cd-effect cd-particle";
+            trailNode.style.left = `${x}px`;
+            trailNode.style.top = `${y}px`;
+            const trailSize = baseSize * (1 - t * 0.32);
+            const trailTx = tx * 0.24;
+            const trailTy = ty * 0.24;
+            const trailTxEnd = tx * 0.6;
+            const trailTyEnd = ty * 0.6;
+            applyParticleShape(trailNode, particleStyle, trailSize, index + t, actionConfig);
+            trailNode.style.opacity = String(Math.max(0.12, 0.4 - t * 0.14));
+            animateNode(
+              trailNode,
+              [
+                { opacity: 0, transform: `translate3d(-50%, -50%, 0) rotate(${rotation}deg) scale(0.5)` },
+                { opacity: Math.max(0.12, 0.4 - t * 0.14), transform: `translate3d(calc(-50% + ${trailTx}px), calc(-50% + ${trailTy}px), 0) rotate(${rotation}deg) scale(0.68)` },
+                { opacity: 0, transform: `translate3d(calc(-50% + ${trailTxEnd}px), calc(-50% + ${trailTyEnd}px), 0) rotate(${rotation}deg) scale(0.44)` },
+              ],
+              { duration: (particleConfig.particleDuration || 760) * 0.8, easing: "ease-out", delay: t * 40 }
+            );
+          }
+        }
       }
+    }
+
+    function getParticleRotation(style, index) {
+      if (style === "火花") return -28 + ((index * 17) % 7) * 11;
+      if (style === "碎屑粒子") return -42 + ((index * 13) % 9) * 10;
+      if (style === "星光") return ((index * 23) % 9) * 8;
+      if (style === "钻石") return 45 + ((index * 11) % 7) * 5;
+      if (style === "心形") return -12 + ((index * 9) % 7) * 6;
+      if (style === "方块") return ((index * 19) % 13) * 7;
+      if (style === "三角") return ((index * 31) % 11) * 16;
+      return 0;
+    }
+
+    function applyParticleShape(node, style, size, index, actionConfig) {
+      if (style === "火花") {
+        node.style.width = `${size * 1.9}px`;
+        node.style.height = `${Math.max(3, size * 0.42)}px`;
+        node.style.borderRadius = "999px";
+        node.style.boxShadow = `0 0 12px ${hexToRgba("#F59E0B", 0.34)}`;
+      } else if (style === "碎屑粒子") {
+        node.style.width = `${size * 1.35}px`;
+        node.style.height = `${Math.max(4, size * 0.72)}px`;
+        node.style.borderRadius = "38%";
+        node.style.boxShadow = `0 4px 10px ${hexToRgba("#0F172A", 0.12)}`;
+      } else if (style === "星光") {
+        node.style.width = `${size * 1.5}px`;
+        node.style.height = `${size * 1.5}px`;
+        node.style.clipPath = "polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)";
+        node.style.borderRadius = "0";
+        node.style.boxShadow = `0 0 10px ${hexToRgba("#FBBF24", 0.38)}`;
+      } else if (style === "钻石") {
+        node.style.width = `${size * 1.2}px`;
+        node.style.height = `${size * 1.2}px`;
+        node.style.clipPath = "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)";
+        node.style.borderRadius = "18%";
+        node.style.boxShadow = `0 4px 12px ${hexToRgba("#0F172A", 0.16)}`;
+      } else if (style === "心形") {
+        node.style.width = `${size * 1.4}px`;
+        node.style.height = `${size * 1.3}px`;
+        node.style.clipPath = "polygon(50% 15%, 72% 0%, 94% 12%, 94% 38%, 80% 62%, 50% 90%, 20% 62%, 6% 38%, 6% 12%, 28% 0%)";
+        node.style.borderRadius = "0";
+        node.style.boxShadow = `0 3px 10px ${hexToRgba("#EC4899", 0.22)}`;
+      } else if (style === "方块") {
+        node.style.width = `${size * 1.15}px`;
+        node.style.height = `${size * 1.15}px`;
+        node.style.borderRadius = "12%";
+        node.style.boxShadow = `0 4px 10px ${hexToRgba("#0F172A", 0.14)}`;
+      } else if (style === "三角") {
+        node.style.width = `${size * 1.3}px`;
+        node.style.height = `${size * 1.2}px`;
+        node.style.clipPath = "polygon(50% 0%, 0% 100%, 100% 100%)";
+        node.style.borderRadius = "0";
+        node.style.boxShadow = `0 3px 9px ${hexToRgba("#0F172A", 0.12)}`;
+      } else {
+        node.style.width = `${size}px`;
+        node.style.height = `${size}px`;
+        node.style.borderRadius = "999px";
+        node.style.boxShadow = "0 6px 14px rgba(15, 23, 42, 0.12)";
+      }
+
+      node.style.background = getParticleColor(actionConfig, index);
     }
 
     return {

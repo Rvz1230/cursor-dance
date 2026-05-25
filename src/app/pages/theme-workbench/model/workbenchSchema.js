@@ -120,15 +120,55 @@ const FALLBACK_THEMES = [
     summary: "柔和粒子 · 粉色短文案",
     tone: "rose",
   },
+  {
+    id: "star-burst",
+    name: "星光璀璨",
+    kind: "内置",
+    summary: "金色星光粒子 · 脉冲波纹 · 弹跳缓动",
+    tone: "amber",
+  },
+  {
+    id: "neon-city",
+    name: "霓虹都市",
+    kind: "内置",
+    summary: "青紫渐变文字 · 火花粒子 · 轨迹光标",
+    tone: "sky",
+  },
+  {
+    id: "ink-wash",
+    name: "水墨丹青",
+    kind: "内置",
+    summary: "楷体文字 · 灰阶碎屑粒子 · 柔和面波",
+    tone: "slate",
+  },
+  {
+    id: "candy-land",
+    name: "糖果乐园",
+    kind: "内置",
+    summary: "多彩混合粒子 · 回声波纹 · 弹跳反馈",
+    tone: "rose",
+  },
+  {
+    id: "sakura",
+    name: "樱吹雪",
+    kind: "内置",
+    summary: "心形粒子 · 粉白调色板 · 重力飘落",
+    tone: "rose",
+  },
 ];
 
-export const THEME_TONES = ["amber", "teal", "sky", "rose"];
+export const THEME_TONES = ["amber", "teal", "sky", "rose", "slate"];
 
 const THEME_TONE_BY_ID = {
   woodfish: "amber",
   "lite-default": "teal",
   "demo-highlight": "sky",
   petal: "rose",
+  "star-burst": "amber",
+  "neon-city": "sky",
+  "ink-wash": "slate",
+  "candy-land": "rose",
+  sakura: "rose",
 };
 
 export const ACTIONS = [
@@ -169,6 +209,11 @@ const toneMap = {
     chip: "bg-rose-100 text-rose-700 ring-rose-200",
     icon: "bg-rose-100 text-rose-700",
     border: "border-rose-200",
+  },
+  slate: {
+    chip: "bg-slate-100 text-slate-700 ring-slate-200",
+    icon: "bg-slate-200 text-slate-700",
+    border: "border-slate-200",
   },
 };
 
