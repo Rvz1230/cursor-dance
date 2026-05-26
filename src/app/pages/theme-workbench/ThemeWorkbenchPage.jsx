@@ -69,6 +69,8 @@ function ThemeWorkbenchPageContent() {
     resetAllCursorStates,
     setSiteMode,
     setSiteThemeId,
+    addSiteRule,
+    updateSiteRule,
     clearAllSiteRules,
     clearFilteredSiteRules,
     removeSiteRule,
@@ -282,63 +284,73 @@ function ThemeWorkbenchPageContent() {
               ) : null}
 
               {state.workspaceId === "bindings" ? (
-                <BindingsPanel
-                  actionConfigs={draft.actionConfigs}
-                  actionId={selected.actionId}
-                  setActionId={setActionId}
-                  currentConflicts={currentConflicts}
-                />
+                <div className="h-full overflow-y-auto pr-1">
+                  <BindingsPanel
+                    actionConfigs={draft.actionConfigs}
+                    actionId={selected.actionId}
+                    setActionId={setActionId}
+                    currentConflicts={currentConflicts}
+                  />
+                </div>
               ) : null}
 
               {state.workspaceId === "states" ? (
-                <StatesPanel
-                  stateId={selected.cursorStateId}
-                  setStateId={setCursorStateId}
-                  cursorModes={draft.cursorModes}
-                  cursorStateActions={draft.cursorStateActions}
-                  cursorStateAssets={draft.cursorStateAssets}
-                  recentCursorAssets={recentCursorAssets}
-                  actionItems={actionItems}
-                  updateCursorMode={updateCursorMode}
-                  updateCursorStateAction={updateCursorStateAction}
-                  updateCursorStateAsset={updateCursorStateAsset}
-                  updateCursorStateAssetForState={updateCursorStateAssetForState}
-                  rememberRecentCursorAsset={rememberRecentCursorAsset}
-                  copyDefaultCursorStateAsset={copyDefaultCursorStateAsset}
-                  resetCurrentCursorState={resetCurrentCursorState}
-                  resetAllCursorStates={resetAllCursorStates}
-                />
+                <div className="h-full overflow-y-auto pr-1">
+                  <StatesPanel
+                    stateId={selected.cursorStateId}
+                    setStateId={setCursorStateId}
+                    cursorModes={draft.cursorModes}
+                    cursorStateActions={draft.cursorStateActions}
+                    cursorStateAssets={draft.cursorStateAssets}
+                    recentCursorAssets={recentCursorAssets}
+                    actionItems={actionItems}
+                    updateCursorMode={updateCursorMode}
+                    updateCursorStateAction={updateCursorStateAction}
+                    updateCursorStateAsset={updateCursorStateAsset}
+                    updateCursorStateAssetForState={updateCursorStateAssetForState}
+                    rememberRecentCursorAsset={rememberRecentCursorAsset}
+                    copyDefaultCursorStateAsset={copyDefaultCursorStateAsset}
+                    resetCurrentCursorState={resetCurrentCursorState}
+                    resetAllCursorStates={resetAllCursorStates}
+                  />
+                </div>
               ) : null}
 
               {state.workspaceId === "sites" ? (
-                <SitesPanel
-                  filter={state.ui.siteFilter}
-                  setFilter={setSiteFilter}
-                  siteMode={state.siteMode}
-                  setSiteMode={setSiteMode}
-                  siteThemeId={state.siteThemeId}
-                  setSiteThemeId={setSiteThemeId}
-                  themes={themes}
-                  activeThemeName={activeTheme.name}
-                  activeHost={state.site.host}
-                  isSupportedPage={state.site.isSupportedPage}
-                  siteRulesByHost={state.siteRulesByHost}
-                  clearAllSiteRules={clearAllSiteRules}
-                  clearFilteredSiteRules={clearFilteredSiteRules}
-                  removeSiteRule={removeSiteRule}
-                />
+                <div className="h-full overflow-y-auto pr-1">
+                  <SitesPanel
+                    filter={state.ui.siteFilter}
+                    setFilter={setSiteFilter}
+                    siteMode={state.siteMode}
+                    setSiteMode={setSiteMode}
+                    siteThemeId={state.siteThemeId}
+                    setSiteThemeId={setSiteThemeId}
+                    themes={themes}
+                    activeThemeName={activeTheme.name}
+                    activeHost={state.site.host}
+                    isSupportedPage={state.site.isSupportedPage}
+                    siteRulesByHost={state.siteRulesByHost}
+                    addSiteRule={addSiteRule}
+                    updateSiteRule={updateSiteRule}
+                    clearAllSiteRules={clearAllSiteRules}
+                    clearFilteredSiteRules={clearFilteredSiteRules}
+                    removeSiteRule={removeSiteRule}
+                  />
+                </div>
               ) : null}
 
               {state.workspaceId === "diagnostics" ? (
-                <DiagnosticsPanel
-                  workspaceLabel={currentWorkspace?.label || "诊断面板"}
-                  themeName={activeTheme.name}
-                  selectedThemeId={selected.themeId}
-                  actionId={selected.actionId}
-                  site={state.site}
-                  enabled={state.ui.enabled}
-                  unsaved={state.ui.unsaved}
-                />
+                <div className="h-full overflow-y-auto pr-1">
+                  <DiagnosticsPanel
+                    workspaceLabel={currentWorkspace?.label || "诊断面板"}
+                    themeName={activeTheme.name}
+                    selectedThemeId={selected.themeId}
+                    actionId={selected.actionId}
+                    site={state.site}
+                    enabled={state.ui.enabled}
+                    unsaved={state.ui.unsaved}
+                  />
+                </div>
               ) : null}
             </main>
           </div>

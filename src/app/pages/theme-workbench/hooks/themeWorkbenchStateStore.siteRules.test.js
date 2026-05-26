@@ -192,4 +192,161 @@ describe("site rules reducer", () => {
       expect(next.siteThemeId).toBe(state.selection.themeId);
     });
   });
+
+  describe("site-rules/add-host", () => {
+    it("adds a new enabled rule with themePackId", () => {
+      const state = makeState();
+      const next = reducer(state, {
+        type: "site-rules/add-host",
+        payload: { host: "youtube.com", mode: "enabled", themePackId: "petal" },
+      });
+
+      expect(next.siteRulesByHost["youtube.com"]).toEqual({
+        mode: "enabled",
+        themePackId: "petal",
+      });
+      expect(next.ui.unsaved).toBe(true);
+    });
+
+    it("adds a new disabled rule without themePackId", () => {
+      const state = makeState();
+      const next = reducer(state, {
+        type: "site-rules/add-host",
+        payload: { host: "youtube.com", mode: "disabled" },
+      });
+
+      expect(next.siteRulesByHost["youtube.com"]).toEqual({ mode: "disabled" });
+    });
+
+    it("trims and lowercases the host", () => {
+      const state = makeState();
+      const next = reducer(state, {
+        type: "site-rules/add-host",
+        payload: { host: "  YouTube.COM  ", mode: "enabled", themePackId: "petal" },
+      });
+
+      expect(next.siteRulesByHost["youtube.com"]).toBeDefined();
+      expect(next.siteRulesByHost["  YouTube.COM  "]).toBeUndefined();
+    });
+
+    it("updates siteMode when adding rule for current host", () => {
+      const state = makeState({ siteMode: "跟随全局" });
+      const next = reducer(state, {
+        type: "site-rules/add-host",
+        payload: { host: "example.com", mode: "enabled", themePackId: "petal" },
+      });
+
+      expect(next.siteMode).toBe("始终启用");
+      expect(next.siteThemeId).toBe("petal");
+    });
+
+    it("does not change siteMode when adding rule for different host", () => {
+      const state = makeState({ siteMode: "跟随全局" });
+      const next = reducer(state, {
+        type: "site-rules/add-host",
+        payload: { host: "other.com", mode: "disabled" },
+      });
+
+      expect(next.siteMode).toBe("跟随全局");
+    });
+
+    it("is a no-op when host is empty", () => {
+      const state = makeState();
+      const next = reducer(state, {
+        type: "site-rules/add-host",
+        payload: { host: "", mode: "enabled", themePackId: "petal" },
+      });
+
+      expect(next.siteRulesByHost).toEqual(state.siteRulesByHost);
+    });
+
+    it("is a no-op when host is whitespace only", () => {
+      const state = makeState();
+      const next = reducer(state, {
+        type: "site-rules/add-host",
+        payload: { host: "   ", mode: "enabled", themePackId: "petal" },
+      });
+
+      expect(next.siteRulesByHost).toEqual(state.siteRulesByHost);
+    });
+  });
+
+  describe("site-rules/update-host", () => {
+    it("updates mode of an existing rule", () => {
+      const state = makeState({
+        siteRulesByHost: { "youtube.com": { mode: "enabled", themePackId: "woodfish" } },
+      });
+      const next = reducer(state, {
+        type: "site-rules/update-host",
+        payload: { host: "youtube.com", mode: "disabled" },
+      });
+
+      expect(next.siteRulesByHost["youtube.com"]).toEqual({ mode: "disabled" });
+      expect(next.ui.unsaved).toBe(true);
+    });
+
+    it("updates themePackId of an existing rule", () => {
+      const state = makeState({
+        siteRulesByHost: { "youtube.com": { mode: "enabled", themePackId: "woodfish" } },
+      });
+      const next = reducer(state, {
+        type: "site-rules/update-host",
+        payload: { host: "youtube.com", themePackId: "petal" },
+      });
+
+      expect(next.siteRulesByHost["youtube.com"]).toEqual({
+        mode: "enabled",
+        themePackId: "petal",
+      });
+    });
+
+    it("sets mode to enabled when updating themePackId on disabled rule", () => {
+      const state = makeState({
+        siteRulesByHost: { "youtube.com": { mode: "disabled" } },
+      });
+      const next = reducer(state, {
+        type: "site-rules/update-host",
+        payload: { host: "youtube.com", themePackId: "petal" },
+      });
+
+      expect(next.siteRulesByHost["youtube.com"]).toEqual({
+        mode: "enabled",
+        themePackId: "petal",
+      });
+    });
+
+    it("updates siteMode when editing rule for current host", () => {
+      const state = makeState({
+        siteMode: "始终禁用",
+        siteRulesByHost: { "example.com": { mode: "disabled" } },
+      });
+      const next = reducer(state, {
+        type: "site-rules/update-host",
+        payload: { host: "example.com", mode: "enabled", themePackId: "petal" },
+      });
+
+      expect(next.siteMode).toBe("始终启用");
+      expect(next.siteThemeId).toBe("petal");
+    });
+
+    it("is a no-op when host does not exist", () => {
+      const state = makeState();
+      const next = reducer(state, {
+        type: "site-rules/update-host",
+        payload: { host: "nonexistent.com", mode: "enabled" },
+      });
+
+      expect(next).toBe(state);
+    });
+
+    it("is a no-op when host is empty", () => {
+      const state = makeState();
+      const next = reducer(state, {
+        type: "site-rules/update-host",
+        payload: { host: "", mode: "enabled" },
+      });
+
+      expect(next).toBe(state);
+    });
+  });
 });

@@ -319,6 +319,8 @@ export function useThemeWorkbenchState() {
       })),
     setSiteMode: (mode) => dispatch({ type: "site-mode/set", payload: mode }),
     setSiteThemeId: (themeId) => dispatch({ type: "site-theme/set", payload: themeId }),
+    addSiteRule: (host, mode, themePackId) => dispatch({ type: "site-rules/add-host", payload: { host, mode, themePackId } }),
+    updateSiteRule: (host, mode, themePackId) => dispatch({ type: "site-rules/update-host", payload: { host, mode, themePackId } }),
     clearAllSiteRules: () => dispatch({ type: "site-rules/clear-all" }),
     clearFilteredSiteRules: (hosts) => dispatch({ type: "site-rules/remove-hosts", payload: hosts }),
     removeSiteRule: (host) => dispatch({ type: "site-rules/remove-host", payload: host }),

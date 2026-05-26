@@ -212,6 +212,60 @@ export function reducer(state, action) {
         ui: { ...state.ui, unsaved: true, saveError: "" },
       };
     }
+    case "site-rules/add-host": {
+      const { host, mode, themePackId } = action.payload;
+      if (!host) return state;
+      const normalizedHost = host.trim().toLowerCase();
+      if (!normalizedHost) return state;
+      const nextRulesByHost = { ...state.siteRulesByHost };
+      nextRulesByHost[normalizedHost] = {
+        mode,
+        ...(mode === "enabled" && themePackId ? { themePackId } : {}),
+      };
+      const isCurrentHost = normalizedHost === state.site.host;
+      return {
+        ...state,
+        siteRulesByHost: nextRulesByHost,
+        siteMode: isCurrentHost
+          ? (mode === "enabled" ? SITE_MODE_ENABLED : mode === "disabled" ? SITE_MODE_DISABLED : DEFAULT_WORKBENCH_SITE_MODE)
+          : state.siteMode,
+        siteThemeId: isCurrentHost && mode === "enabled" && themePackId
+          ? themePackId
+          : (isCurrentHost ? state.selection.themeId : state.siteThemeId),
+        ui: { ...state.ui, unsaved: true, saveError: "" },
+      };
+    }
+    case "site-rules/update-host": {
+      const { host, mode, themePackId } = action.payload;
+      if (!host) return state;
+      const normalizedHost = host.trim().toLowerCase();
+      if (!normalizedHost || !state.siteRulesByHost[normalizedHost]) return state;
+      const nextRulesByHost = { ...state.siteRulesByHost };
+      const currentRule = { ...nextRulesByHost[normalizedHost] };
+      if (mode !== undefined) {
+        currentRule.mode = mode;
+        if (mode !== "enabled") {
+          delete currentRule.themePackId;
+        }
+      }
+      if (themePackId !== undefined) {
+        currentRule.themePackId = themePackId;
+        currentRule.mode = "enabled";
+      }
+      nextRulesByHost[normalizedHost] = currentRule;
+      const isCurrentHost = normalizedHost === state.site.host;
+      return {
+        ...state,
+        siteRulesByHost: nextRulesByHost,
+        siteMode: isCurrentHost
+          ? (currentRule.mode === "enabled" ? SITE_MODE_ENABLED : currentRule.mode === "disabled" ? SITE_MODE_DISABLED : DEFAULT_WORKBENCH_SITE_MODE)
+          : state.siteMode,
+        siteThemeId: isCurrentHost && currentRule.mode === "enabled" && currentRule.themePackId
+          ? currentRule.themePackId
+          : (isCurrentHost && currentRule.mode !== "enabled" ? state.selection.themeId : state.siteThemeId),
+        ui: { ...state.ui, unsaved: true, saveError: "" },
+      };
+    }
     case "save/start":
       return { ...state, ui: { ...state.ui, isSaving: true, saveError: "" } };
     case "save/success":
