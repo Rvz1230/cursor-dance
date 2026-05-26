@@ -358,6 +358,76 @@ async function callChatCompletionsApi({ apiKey, baseUrl, model, requestState }) 
   return normalizeModelPayload(parsed, "model-chat-completions", requestState);
 }
 
+async function callChatCompletionsApiStreaming({ apiKey, baseUrl, model, requestState, onProgress }) {
+  const maxOutputTokens = getOptionalPositiveInteger(requestState.maxOutputTokens);
+  const response = await fetch(`${trimTrailingSlash(baseUrl)}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: "system", content: buildSystemPrompt(requestState.taskMode) },
+        { role: "user", content: buildUserPrompt(requestState) },
+      ],
+      response_format: { type: "json_object" },
+      stream: true,
+      ...(maxOutputTokens ? { max_tokens: maxOutputTokens } : {}),
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Model API responded with ${response.status}: ${errorText.slice(0, 200)}`);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let accumulatedContent = "";
+  let rawBuffer = "";
+  let lastReply = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      rawBuffer += decoder.decode(value, { stream: true });
+      const lines = rawBuffer.split("\n");
+      rawBuffer = lines.pop() || "";
+
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        const data = line.slice(6).trim();
+        if (!data || data === "[DONE]") continue;
+
+        try {
+          const event = JSON.parse(data);
+          const delta = event?.choices?.[0]?.delta?.content;
+          if (delta) {
+            accumulatedContent += delta;
+            const reply = extractReplyFromPartialJson(accumulatedContent);
+            if (reply && reply !== lastReply) {
+              lastReply = reply;
+              onProgress?.(reply);
+            }
+          }
+        } catch {
+          // Skip unparseable SSE data lines gracefully
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock?.();
+  }
+
+  const parsed = safeJsonParse(accumulatedContent);
+  if (!parsed) throw new Error("Model returned non-JSON streaming output.");
+  return normalizeModelPayload(parsed, "model-chat-completions-streaming", requestState);
+}
+
 export function hasConfiguredModelProvider(env = process.env) {
   return Boolean(env.CURSORDANCE_AI_API_KEY || env.OPENAI_API_KEY);
 }
@@ -392,6 +462,10 @@ export async function generateSchemePatchWithModelStreaming(requestState, env = 
     ...requestState,
     maxOutputTokens: env.CURSORDANCE_AI_MAX_OUTPUT_TOKENS || requestState.maxOutputTokens,
   };
+
+  if (mode === "chat_completions") {
+    return callChatCompletionsApiStreaming({ apiKey, baseUrl, model, requestState: modelRequestState, onProgress });
+  }
 
   return callResponsesApiStreaming({ apiKey, baseUrl, model, requestState: modelRequestState, onProgress });
 }

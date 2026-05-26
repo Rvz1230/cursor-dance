@@ -1,20 +1,21 @@
 {
   "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "functions": {
-    "api/**/*.js": {
-      "runtime": "nodejs22.x"
-    }
-  },
-  "headers": [
+  "builds": [
     {
-      "source": "/api/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-store"
-        }
-      ]
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
     }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "headers": { "Cache-Control": "no-store" }, "dest": "/api/$1" },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }

@@ -916,7 +916,9 @@ export async function requestAiSchemeEditStreaming({ prompt, currentConfig, acti
     throw new Error("Browser fetch is unavailable.");
   }
 
-  const endpoint = (import.meta.env?.VITE_CURSORDANCE_AI_API_ENDPOINT || DEFAULT_API_ENDPOINT).replace(/\/+$/, "") + "/stream";
+  const streamEndpoint = import.meta.env?.VITE_CURSORDANCE_AI_API_STREAM_ENDPOINT;
+  const endpoint = streamEndpoint
+    || (import.meta.env?.VITE_CURSORDANCE_AI_API_ENDPOINT || DEFAULT_API_ENDPOINT).replace(/\/+$/, "") + "/stream";
   const accessToken = import.meta.env?.VITE_CURSORDANCE_AI_API_ACCESS_TOKEN || "";
   const controller = new AbortController();
   const timeoutMs = getAiTimeoutMs();

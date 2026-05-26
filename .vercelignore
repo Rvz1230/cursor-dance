@@ -1,0 +1,10 @@
+node_modules
+.DS_Store
+.env
+.env.local
+.env.*.local
+playwright-report
+test-results
+scripts/load-local-env.mjs
+scripts/check-ai-api.mjs
+scripts/ai-api-server.mjs
