@@ -3,6 +3,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "vercel-build": "echo 'no static build needed'"
+    "vercel-build": "rm -f api server scripts src && cp -r ../api . && cp -r ../server . && cp -r ../scripts . && cp -r ../src . && echo 'ready'"
   }
 }
