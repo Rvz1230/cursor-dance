@@ -7,6 +7,9 @@ import {
   buildStoredConfigFromWorkbench,
   buildStoredThemePackFromWorkbench,
   hydrateWorkbenchState,
+  SITE_MODE_ENABLED,
+  SITE_MODE_DISABLED,
+  SITE_MODE_FOLLOW,
 } from "./themeDraftAdapter.js";
 import { buildThemeExportPayload } from "./extensionStorage.js";
 
@@ -90,7 +93,7 @@ describe("themeDraftAdapter", () => {
     );
 
     expect(state.workspaceId).toBe("workbench");
-    expect(state.siteMode).toBe("当前启用");
+    expect(state.siteMode).toBe(SITE_MODE_ENABLED);
     expect(state.siteThemeId).toBe("woodfish");
     expect(state.selection).toEqual({
       themeId: "woodfish",
@@ -185,7 +188,7 @@ describe("themeDraftAdapter", () => {
       },
       {
         workspaceId: "workbench",
-        siteMode: "当前禁用",
+        siteMode: SITE_MODE_DISABLED,
         siteThemeId: "woodfish",
         themeLibrary: [createThemeLibraryEntry()],
         draftsByTheme: { woodfish: draft },
@@ -258,7 +261,7 @@ describe("themeDraftAdapter", () => {
       },
       {
         workspaceId: "sites",
-        siteMode: "当前启用",
+        siteMode: SITE_MODE_ENABLED,
         siteThemeId: "petal",
         themeLibrary: [
           createThemeLibraryEntry(),
@@ -447,6 +450,81 @@ describe("themeDraftAdapter", () => {
       imageSize: 72,
       imageDuration: 960,
     });
+  });
+
+  it("round-trips site rules through hydrate → modify → buildStoredConfig → rehydrate", () => {
+    const { defaultConfig, runtime } = installPublicConfigRuntime();
+    runtime.setSiteRuleMode = vi.fn((config, host, mode) => {
+      const nextByHost = { ...(config.siteRules?.byHost || {}) };
+      if (mode === "inherit") {
+        delete nextByHost[host];
+      } else {
+        nextByHost[host] = mode === "enabled"
+          ? { mode, themePackId: nextByHost[host]?.themePackId || "woodfish" }
+          : { mode };
+      }
+      return {
+        ...config,
+        siteRules: { ...(config.siteRules || {}), byHost: nextByHost },
+      };
+    });
+    runtime.setSiteRuleThemePackId = vi.fn((config, host, themePackId) => ({
+      ...config,
+      siteRules: {
+        ...(config.siteRules || {}),
+        byHost: {
+          ...(config.siteRules?.byHost || {}),
+          [host]: {
+            ...(config.siteRules?.byHost?.[host] || {}),
+            mode: "enabled",
+            themePackId,
+          },
+        },
+      },
+    }));
+
+    // Start with no site rules
+    const state1 = hydrateWorkbenchState(defaultConfig, { host: "example.com" });
+    expect(state1.siteMode).toBe(SITE_MODE_FOLLOW);
+    expect(state1.siteRulesByHost).toEqual({});
+
+    // Enable site + select theme
+    const draft = createThemeDraft("woodfish");
+    draft.actionConfigs.leftClick.textContent = "roundtrip";
+    const state2 = {
+      ...state1,
+      siteMode: SITE_MODE_ENABLED,
+      siteThemeId: "petal",
+      draftsByTheme: { ...state1.draftsByTheme, woodfish: draft },
+    };
+    const config2 = buildStoredConfigFromWorkbench(defaultConfig, state2);
+    expect(config2.siteRules.byHost["example.com"]).toEqual({ mode: "enabled", themePackId: "petal" });
+
+    // Rehydrate and verify
+    const state3 = hydrateWorkbenchState(config2, { host: "example.com" });
+    expect(state3.siteMode).toBe(SITE_MODE_ENABLED);
+    expect(state3.siteThemeId).toBe("petal");
+    expect(state3.siteRulesByHost["example.com"]).toEqual({ mode: "enabled", themePackId: "petal" });
+
+    // Disable site
+    const state4 = {
+      ...state3,
+      siteMode: SITE_MODE_DISABLED,
+    };
+    const config4 = buildStoredConfigFromWorkbench(config2, state4);
+    expect(config4.siteRules.byHost["example.com"]).toEqual({ mode: "disabled" });
+
+    // Follow global — rule removed
+    const state5 = {
+      ...state4,
+      siteMode: SITE_MODE_FOLLOW,
+    };
+    const config5 = buildStoredConfigFromWorkbench(config4, state5);
+    expect(config5.siteRules.byHost["example.com"]).toBeUndefined();
+
+    // Rehydrate after removal
+    const state6 = hydrateWorkbenchState(config5, { host: "example.com" });
+    expect(state6.siteMode).toBe(SITE_MODE_FOLLOW);
   });
 
   it("stores and rehydrates animation effect fields through workbench drafts", () => {

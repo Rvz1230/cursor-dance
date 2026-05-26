@@ -60,6 +60,35 @@ function getErrorMessage(error, fallback) {
   return error instanceof Error ? error.message : fallback;
 }
 
+export function getEffectiveActiveThemeId(siteRule, activeThemeId) {
+  if (siteRule.mode === "enabled" && siteRule.themePackId) {
+    return siteRule.themePackId;
+  }
+  return activeThemeId;
+}
+
+export function resolveNextConfigForThemeChange(currentConfig, site, themeId, previewActionId) {
+  const runtime = getRuntimeConfig();
+  const currentSiteRule = runtime.getSiteRule(currentConfig, site.host);
+
+  if (currentSiteRule.mode === "enabled" && site.host) {
+    return runtime.setSiteRuleThemePackId(currentConfig, site.host, themeId);
+  }
+  if (currentSiteRule.mode === "disabled" && site.host) {
+    const enabledConfig = runtime.setSiteRuleMode(currentConfig, site.host, "enabled");
+    return runtime.setSiteRuleThemePackId(enabledConfig, site.host, themeId);
+  }
+  return {
+    ...currentConfig,
+    activeThemePackId: themeId,
+    activeSchemeId: themeId,
+    editor: {
+      ...(currentConfig.editor || {}),
+      lastActionId: previewActionId,
+    },
+  };
+}
+
 export function usePopupState() {
   const [config, setConfig] = useState(null);
   const [livePreviewConfig, setLivePreviewConfig] = useState(null);
@@ -129,16 +158,8 @@ export function usePopupState() {
   }, [effectiveConfig, site]);
 
   const activeThemeId = hydrated.selection.themeId;
-  const siteRule = (() => {
-    const runtime = getRuntimeConfig();
-    if (typeof runtime.getSiteRule === "function") {
-      return runtime.getSiteRule(effectiveConfig, site.host);
-    }
-    return { mode: "inherit" };
-  })();
-  const effectiveActiveThemeId = siteRule.mode === "enabled" && siteRule.themePackId
-    ? siteRule.themePackId
-    : activeThemeId;
+  const siteRule = getRuntimeConfig().getSiteRule(effectiveConfig, site.host);
+  const effectiveActiveThemeId = getEffectiveActiveThemeId(siteRule, activeThemeId);
   const previewActionId = getPreviewActionId(effectiveConfig);
   const activeAction = ACTIONS.find((item) => item.id === previewActionId) ?? ACTIONS[0];
 
@@ -207,32 +228,7 @@ export function usePopupState() {
   async function setThemeId(themeId) {
     const savedConfig = await commitConfig(
       "theme",
-      async (currentConfig) => {
-        const runtime = getRuntimeConfig();
-        const currentSiteRule = typeof runtime.getSiteRule === "function"
-          ? runtime.getSiteRule(currentConfig, site.host)
-          : { mode: "inherit" };
-
-        if (currentSiteRule.mode === "enabled" && site.host && typeof runtime.setSiteRuleThemePackId === "function") {
-          return runtime.setSiteRuleThemePackId(currentConfig, site.host, themeId);
-        }
-        if (currentSiteRule.mode === "disabled" && site.host && typeof runtime.setSiteRuleMode === "function") {
-          const enabledConfig = runtime.setSiteRuleMode(currentConfig, site.host, "enabled");
-          if (typeof runtime.setSiteRuleThemePackId === "function") {
-            return runtime.setSiteRuleThemePackId(enabledConfig, site.host, themeId);
-          }
-          return enabledConfig;
-        }
-        return {
-          ...currentConfig,
-          activeThemePackId: themeId,
-          activeSchemeId: themeId,
-          editor: {
-            ...(currentConfig.editor || {}),
-            lastActionId: previewActionId,
-          },
-        };
-      },
+      async (currentConfig) => resolveNextConfigForThemeChange(currentConfig, site, themeId, previewActionId),
       {
         tone: "slate",
         message: "当前主题已切换。",

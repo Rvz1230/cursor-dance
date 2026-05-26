@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MousePointerClick, Pause, Play, RotateCcw, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button.jsx";
 import { cn } from "@/components/ui/utils.js";
+import { SITE_MODE_DISABLED } from "../lib/extensionConfig.js";
 import {
   PREVIEW_KEYFRAMES,
   buildParticleSpecs,
@@ -247,7 +248,7 @@ function PreviewTimeline({ tracks, totalMs }) {
 }
 
 function SimplePreviewStage({ config, siteMode, runId, comboIndex, outputs, playbackSpeed }) {
-  const disabledBySite = siteMode === "当前禁用";
+  const disabledBySite = siteMode === SITE_MODE_DISABLED;
   const textConfig = useMemo(() => getActionTextConfig(config), [config]);
   const particleConfig = useMemo(() => getActionParticleConfig(config), [config]);
   const rippleConfig = useMemo(() => getActionRippleConfig(config), [config]);
@@ -344,7 +345,7 @@ function SimplePreviewStage({ config, siteMode, runId, comboIndex, outputs, play
 }
 
 export function WorkbenchPreviewRail({ actionLabel, config, siteMode, previewMode = false }) {
-  const disabledBySite = siteMode === "当前禁用";
+  const disabledBySite = siteMode === SITE_MODE_DISABLED;
   const [runId, setRunId] = useState(0);
   const [comboIndex, setComboIndex] = useState(1);
   const [autoPlay, setAutoPlay] = useState(true);

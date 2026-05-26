@@ -321,5 +321,6 @@ export function useThemeWorkbenchState() {
     setSiteThemeId: (themeId) => dispatch({ type: "site-theme/set", payload: themeId }),
     clearAllSiteRules: () => dispatch({ type: "site-rules/clear-all" }),
     clearFilteredSiteRules: (hosts) => dispatch({ type: "site-rules/remove-hosts", payload: hosts }),
+    removeSiteRule: (host) => dispatch({ type: "site-rules/remove-host", payload: host }),
   };
 }

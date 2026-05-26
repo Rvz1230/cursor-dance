@@ -1,9 +1,10 @@
 import { useMemo } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { cn } from "@/components/ui/utils.js";
 import { DataPill, Panel, SectionTitle, SmallSelect } from "./WorkbenchControls.jsx";
+import { SITE_MODE_ENABLED, SITE_MODE_DISABLED, SITE_MODE_FOLLOW } from "../lib/extensionConfig.js";
 
 export function SitesPanel({
   filter,
@@ -19,6 +20,7 @@ export function SitesPanel({
   siteRulesByHost,
   clearAllSiteRules,
   clearFilteredSiteRules,
+  removeSiteRule,
 }) {
   const themeNameById = useMemo(
     () => Object.fromEntries((themes || []).map((theme) => [theme.id, theme.name])),
@@ -30,31 +32,40 @@ export function SitesPanel({
   );
 
   const rules = useMemo(() => {
-    const currentStoredRule = siteRulesByHost?.[activeHost] || null;
-    const currentRule = {
-      host: activeHost,
-      mode: siteMode,
-      theme:
-        siteMode === "当前启用"
-          ? (themeNameById[currentStoredRule?.themePackId] || themeNameById[siteThemeId] || activeThemeName)
-          : siteMode === "当前禁用"
-            ? "—"
-            : "跟随全局主题",
-      reason: isSupportedPage ? "当前浏览器标签页" : "当前页不可设置，仍可查看规则",
-    };
     const storedRules = Object.entries(siteRulesByHost || {}).map(([host, rule]) => ({
       host,
-      mode: rule.mode === "enabled" ? "当前启用" : rule.mode === "disabled" ? "当前禁用" : "跟随全局",
+      mode: rule.mode === "enabled" ? SITE_MODE_ENABLED : rule.mode === "disabled" ? SITE_MODE_DISABLED : SITE_MODE_FOLLOW,
       theme:
         rule.mode === "enabled"
           ? (themeNameById[rule.themePackId] || activeThemeName)
           : rule.mode === "disabled"
             ? "—"
-            : "跟随全局主题",
+            : SITE_MODE_FOLLOW,
       reason: host === activeHost ? "当前浏览器标签页" : "已保存站点规则",
+      isCurrentHost: host === activeHost,
     }));
-    const dedupedStoredRules = storedRules.filter((rule) => rule.host !== activeHost);
-    return [currentRule, ...dedupedStoredRules];
+
+    const hasCurrentHostRule = storedRules.some((rule) => rule.host === activeHost);
+
+    if (!hasCurrentHostRule) {
+      return [
+        {
+          host: activeHost,
+          mode: siteMode,
+          theme:
+            siteMode === SITE_MODE_ENABLED
+              ? (themeNameById[siteThemeId] || activeThemeName)
+              : siteMode === SITE_MODE_DISABLED
+                ? "—"
+                : SITE_MODE_FOLLOW,
+          reason: isSupportedPage ? "当前浏览器标签页" : "当前页不可设置，仍可查看规则",
+          isCurrentHost: true,
+        },
+        ...storedRules,
+      ];
+    }
+
+    return storedRules;
   }, [activeHost, activeThemeName, isSupportedPage, siteMode, siteRulesByHost, siteThemeId, themeNameById]);
 
   const filteredRules = useMemo(() => {
@@ -84,15 +95,15 @@ export function SitesPanel({
                 : "当前页不能写入站点规则。"}
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
-              <DataPill tone={siteMode === "当前禁用" ? "amber" : "teal"}>{siteMode}</DataPill>
+              <DataPill tone={siteMode === SITE_MODE_DISABLED ? "amber" : "teal"}>{siteMode}</DataPill>
               <DataPill>
-                {siteMode === "当前禁用"
+                {siteMode === SITE_MODE_DISABLED
                   ? "当前主题：未生效"
                   : `当前主题：${themeNameById[siteThemeId] || activeThemeName}`}
               </DataPill>
             </div>
             <div className="mt-5 space-y-2">
-              {["跟随全局", "当前启用", "当前禁用"].map((item) => (
+              {[SITE_MODE_FOLLOW, SITE_MODE_ENABLED, SITE_MODE_DISABLED].map((item) => (
                 <button
                   key={item}
                   type="button"
@@ -117,7 +128,7 @@ export function SitesPanel({
                 />
               </div>
               <div className="mt-2 text-xs text-slate-500">
-                选择主题后，会自动把当前站点切到“当前启用”，并固定使用这个主题。
+                选择主题后，会自动把当前站点切到"{SITE_MODE_ENABLED}"，并固定使用这个主题。
               </div>
             </div>
           </div>
@@ -135,15 +146,31 @@ export function SitesPanel({
                     <th className="px-4 py-3 font-medium">模式</th>
                     <th className="px-4 py-3 font-medium">主题</th>
                     <th className="px-4 py-3 font-medium">来源</th>
+                    <th className="px-4 py-3 font-medium w-10"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredRules.map((rule) => (
-                    <tr key={rule.host} className="border-t border-slate-100">
-                      <td className="px-4 py-3 font-medium text-slate-900">{rule.host}</td>
-                      <td className="px-4 py-3"><DataPill tone={rule.mode === "当前禁用" ? "amber" : "teal"}>{rule.mode}</DataPill></td>
+                    <tr key={rule.host} className={cn("border-t border-slate-100", rule.isCurrentHost && "bg-amber-50/50")}>
+                      <td className="px-4 py-3 font-medium text-slate-900">
+                        {rule.host}
+                        {rule.isCurrentHost ? (
+                          <span className="ml-1.5 inline-flex items-center rounded-full bg-amber-100 px-1.5 py-px text-[10px] font-medium text-amber-700">当前</span>
+                        ) : null}
+                      </td>
+                      <td className="px-4 py-3"><DataPill tone={rule.mode === SITE_MODE_DISABLED ? "amber" : "teal"}>{rule.mode}</DataPill></td>
                       <td className="px-4 py-3 text-slate-600">{rule.theme}</td>
                       <td className="px-4 py-3 text-slate-500">{rule.reason}</td>
+                      <td className="px-4 py-3">
+                        <button
+                          type="button"
+                          onClick={() => removeSiteRule(rule.host)}
+                          className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                          title={`删除 ${rule.host} 的站点规则`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

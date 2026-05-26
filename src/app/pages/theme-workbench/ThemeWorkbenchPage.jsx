@@ -71,6 +71,7 @@ function ThemeWorkbenchPageContent() {
     setSiteThemeId,
     clearAllSiteRules,
     clearFilteredSiteRules,
+    removeSiteRule,
   } = useThemeWorkbenchState();
   const currentWorkspace = workspaceItems.find((item) => item.id === state.workspaceId);
   const previewActionConfig = getAiProposalNextConfigForAction(previewProposal, selected.actionId, currentActionConfig);
@@ -324,6 +325,7 @@ function ThemeWorkbenchPageContent() {
                   siteRulesByHost={state.siteRulesByHost}
                   clearAllSiteRules={clearAllSiteRules}
                   clearFilteredSiteRules={clearFilteredSiteRules}
+                  removeSiteRule={removeSiteRule}
                 />
               ) : null}
 

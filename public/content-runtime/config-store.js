@@ -117,7 +117,7 @@
 
     function getCurrentSiteRule() {
       const host = getCurrentHost();
-      return (runtimeConfig.getSiteRule || (() => ({ mode: "inherit" })))(getConfig(), host);
+      return runtimeConfig.getSiteRule(getConfig(), host);
     }
 
     function withResolvedCursorAssets(nextConfig, assetEntries) {

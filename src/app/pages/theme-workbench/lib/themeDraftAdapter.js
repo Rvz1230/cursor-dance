@@ -10,7 +10,10 @@ import {
 } from "../model/workbenchSchema.js";
 import { getDefaultConfig, getRuntimeConfig, normalizeStoredConfig } from "./runtimeConfig.js";
 
-export const DEFAULT_WORKBENCH_SITE_MODE = "跟随全局";
+export const SITE_MODE_FOLLOW = "跟随全局";
+export const SITE_MODE_ENABLED = "始终启用";
+export const SITE_MODE_DISABLED = "始终禁用";
+export const DEFAULT_WORKBENCH_SITE_MODE = SITE_MODE_FOLLOW;
 
 function toWorkbenchCursorMode(stateId, mode) {
   if (stateId === "default") return "源";
@@ -116,20 +119,20 @@ export function createWorkbenchThemeState(themeLibrary = THEMES) {
 }
 
 function toWorkbenchSiteMode(mode) {
-  if (mode === "enabled") return "当前启用";
-  if (mode === "disabled") return "当前禁用";
-  return "跟随全局";
+  if (mode === "enabled") return SITE_MODE_ENABLED;
+  if (mode === "disabled") return SITE_MODE_DISABLED;
+  return SITE_MODE_FOLLOW;
 }
 
 function toStoredSiteMode(mode) {
-  if (mode === "当前启用") return "enabled";
-  if (mode === "当前禁用") return "disabled";
+  if (mode === SITE_MODE_ENABLED) return "enabled";
+  if (mode === SITE_MODE_DISABLED) return "disabled";
   return "inherit";
 }
 
 export function hydrateWorkbenchState(config, site) {
   const storedThemePacks = Array.isArray(config?.themePacks) ? config.themePacks : [];
-  const currentSiteRule = getRuntimeConfig().getSiteRule?.(config, site.host) ?? { mode: "inherit" };
+  const currentSiteRule = getRuntimeConfig().getSiteRule(config, site.host);
   const siteMode = currentSiteRule.mode ?? "inherit";
   const workbenchSiteMode = toWorkbenchSiteMode(siteMode);
   const themeLibrary = buildThemeLibrary(config);
@@ -249,9 +252,9 @@ export function buildStoredConfigFromWorkbench(previousConfig, state) {
     },
   };
 
-  if (state.site.host && typeof runtime.setSiteRuleMode === "function") {
+  if (state.site.host) {
     const nextConfigWithMode = runtime.setSiteRuleMode(nextConfig, state.site.host, siteMode);
-    if (siteMode === "enabled" && typeof runtime.setSiteRuleThemePackId === "function") {
+    if (siteMode === "enabled") {
       return normalizeStoredConfig(runtime.setSiteRuleThemePackId(nextConfigWithMode, state.site.host, state.siteThemeId || state.selection.themeId));
     }
     return normalizeStoredConfig(nextConfigWithMode);

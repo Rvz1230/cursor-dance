@@ -5,6 +5,9 @@ import {
 import {
   createWorkbenchThemeState,
   DEFAULT_WORKBENCH_SITE_MODE,
+  SITE_MODE_ENABLED,
+  SITE_MODE_DISABLED,
+  SITE_MODE_FOLLOW,
 } from "../lib/extensionConfig.js";
 
 export const INITIAL_THEME_STATE = createWorkbenchThemeState(THEMES);
@@ -61,7 +64,7 @@ export function reducer(state, action) {
       return {
         ...state,
         selection: { ...state.selection, themeId: action.payload },
-        siteThemeId: state.siteMode === "当前启用" ? state.siteThemeId : action.payload,
+        siteThemeId: state.siteMode === SITE_MODE_ENABLED ? state.siteThemeId : action.payload,
         ui: { ...state.ui, saveError: "" },
       };
     case "theme/library-add": {
@@ -74,7 +77,7 @@ export function reducer(state, action) {
           [theme.id]: draft,
         },
         selection: select ? { ...state.selection, themeId: theme.id } : state.selection,
-        siteThemeId: select && state.siteMode !== "当前启用" ? theme.id : state.siteThemeId,
+        siteThemeId: select && state.siteMode !== SITE_MODE_ENABLED ? theme.id : state.siteThemeId,
         ui: { ...state.ui, unsaved: true, saveError: "" },
       };
     }
@@ -133,14 +136,14 @@ export function reducer(state, action) {
     case "site-mode/set": {
       const nextRulesByHost = { ...state.siteRulesByHost };
       if (state.site.host) {
-        if (action.payload === "跟随全局") {
+        if (action.payload === SITE_MODE_FOLLOW) {
           delete nextRulesByHost[state.site.host];
         } else {
           nextRulesByHost[state.site.host] = {
             ...(nextRulesByHost[state.site.host] || {}),
-            mode: action.payload === "当前启用" ? "enabled" : "disabled",
+            mode: action.payload === SITE_MODE_ENABLED ? "enabled" : "disabled",
           };
-          if (action.payload !== "当前启用") {
+          if (action.payload !== SITE_MODE_ENABLED) {
             delete nextRulesByHost[state.site.host].themePackId;
           } else if (!nextRulesByHost[state.site.host].themePackId) {
             nextRulesByHost[state.site.host].themePackId = state.siteThemeId || state.selection.themeId;
@@ -151,7 +154,7 @@ export function reducer(state, action) {
         ...state,
         siteMode: action.payload,
         siteThemeId:
-          action.payload === "当前启用"
+          action.payload === SITE_MODE_ENABLED
             ? (nextRulesByHost[state.site.host]?.themePackId || state.siteThemeId || state.selection.themeId)
             : state.selection.themeId,
         siteRulesByHost: nextRulesByHost,
@@ -165,15 +168,27 @@ export function reducer(state, action) {
         const currentRule = nextRulesByHost[state.site.host] || {};
         nextRulesByHost[state.site.host] = {
           ...currentRule,
-          mode: currentRule.mode || "enabled",
+          mode: "enabled",
           themePackId: nextThemeId,
         };
       }
       return {
         ...state,
-        siteMode: "当前启用",
+        siteMode: SITE_MODE_ENABLED,
         siteThemeId: nextThemeId,
         siteRulesByHost: nextRulesByHost,
+        ui: { ...state.ui, unsaved: true, saveError: "" },
+      };
+    }
+    case "site-rules/remove-host": {
+      const nextRulesByHost = { ...state.siteRulesByHost };
+      delete nextRulesByHost[action.payload];
+      const currentHostRemoved = action.payload === state.site.host;
+      return {
+        ...state,
+        siteRulesByHost: nextRulesByHost,
+        siteMode: currentHostRemoved ? DEFAULT_WORKBENCH_SITE_MODE : state.siteMode,
+        siteThemeId: currentHostRemoved ? state.selection.themeId : state.siteThemeId,
         ui: { ...state.ui, unsaved: true, saveError: "" },
       };
     }
