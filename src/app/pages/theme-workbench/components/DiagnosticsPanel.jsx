@@ -1,34 +1,80 @@
-import { useEffect, useMemo, useState } from "react";
-import { ActivitySquare, Bug, Eye, RadioTower, RefreshCcw } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ActivitySquare, AlertTriangle, Bug, Eye, Pause, Play, RadioTower, RefreshCcw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button.jsx";
 import { DataPill, Panel } from "./WorkbenchControls.jsx";
 import {
+  clearRuntimeErrors,
+  readDiagnosticDebugFlag,
   readLivePreviewConfig,
+  readRuntimeErrors,
   subscribeLivePreviewConfig,
   subscribeRuntimeDiagnostics,
+  writeDiagnosticDebugFlag,
 } from "../lib/extensionConfig.js";
 import { appendDiagnosticEntry, summarizeLivePreviewConfig } from "../lib/diagnosticsSurface.js";
 import { formatActionLabel } from "../model/workbenchSchema.js";
 
 const DIAGNOSTICS_STORAGE_KEY = "cursordance.debug";
 
+const SCOPE_LABELS = {
+  "runtime.ready": "运行时就绪",
+  "action.skip": "动作跳过",
+  "action.resolve": "动作解析",
+  "action.fire": "动作触发",
+  "action.schedule": "动作调度",
+  "action.arm": "动作就绪",
+  "audio.duck.reassert-scheduled": "音频闪避重确认-已调度",
+  "audio.duck.reasserted": "音频闪避-重确认",
+  "audio.duck.restore-scheduled": "音频恢复-已调度",
+  "audio.duck.restored": "音频恢复",
+  "audio.duck.skip": "音频闪避-跳过",
+  "audio.duck.profile": "音频闪避配置",
+  "audio.duck.scan": "音频闪避扫描",
+  "audio.duck.target-skip": "音频闪避-跳过目标",
+  "audio.duck.target": "音频闪避目标",
+  "audio.skip": "音频跳过",
+  "audio.decision": "音频决策",
+  "audio.play": "音频播放",
+  "trigger-zone.check": "触发区域检查",
+};
+
+const SCOPE_FILTERS = [
+  { key: "all", label: "全部" },
+  { key: "action", label: "动作" },
+  { key: "audio", label: "音频" },
+  { key: "trigger-zone", label: "触发区域" },
+  { key: "runtime", label: "运行时" },
+];
+
+function parseBooleanFlag(value) {
+  if (value === true) return true;
+  if (typeof value !== "string") return false;
+  return ["1", "true", "on", "yes", "debug"].includes(value.trim().toLowerCase());
+}
+
 function readDebugEnabled() {
   if (typeof window === "undefined") return false;
   try {
     const queryFlag = new URL(window.location.href).searchParams.get("cursordance-debug");
-    if (queryFlag && ["1", "true", "on", "yes", "debug"].includes(queryFlag.toLowerCase())) {
-      return true;
-    }
+    if (parseBooleanFlag(queryFlag)) return true;
   } catch {
     // Ignore invalid URL reads.
   }
-
   try {
-    const raw = window.localStorage?.getItem(DIAGNOSTICS_STORAGE_KEY) || "";
-    return ["1", "true", "on", "yes", "debug"].includes(raw.trim().toLowerCase());
+    return parseBooleanFlag(window.localStorage?.getItem(DIAGNOSTICS_STORAGE_KEY) || "");
   } catch {
     return false;
   }
+}
+
+function formatScopeLabel(scope) {
+  if (SCOPE_LABELS[scope]) return SCOPE_LABELS[scope];
+  const dotIndex = scope.indexOf(".");
+  if (dotIndex !== -1) {
+    const prefix = scope.slice(0, dotIndex);
+    if (SCOPE_LABELS[prefix]) return SCOPE_LABELS[prefix];
+  }
+  return scope;
 }
 
 function formatEntryTime(value) {
@@ -65,8 +111,16 @@ function toEntryDetails(entry) {
     blendMode: entry.soundBlendMode,
     volume: entry.volume,
   };
-
   return Object.fromEntries(Object.entries(detail).filter(([, value]) => value != null && value !== ""));
+}
+
+function getScopeFilterPrefix(filterKey) {
+  if (filterKey === "all") return null;
+  if (filterKey === "audio") return "audio.";
+  if (filterKey === "action") return "action.";
+  if (filterKey === "trigger-zone") return "trigger-zone.";
+  if (filterKey === "runtime") return "runtime.";
+  return filterKey;
 }
 
 export function DiagnosticsPanel({
@@ -81,26 +135,44 @@ export function DiagnosticsPanel({
   const [debugEnabled, setDebugEnabled] = useState(readDebugEnabled);
   const [livePreviewConfig, setLivePreviewConfig] = useState(null);
   const [diagnosticEntries, setDiagnosticEntries] = useState([]);
+  const [runtimeErrors, setRuntimeErrors] = useState([]);
+  const [paused, setPaused] = useState(false);
+  const [scopeFilter, setScopeFilter] = useState("all");
+  const pendingWhilePaused = useRef(0);
+  const pausedRef = useRef(false);
+
+  useEffect(() => {
+    pausedRef.current = paused;
+    if (!paused) pendingWhilePaused.current = 0;
+  }, [paused]);
+
+  // Hydrate debug flag from chrome.storage (shared with content script).
+  useEffect(() => {
+    let cancelled = false;
+    readDiagnosticDebugFlag().then((enabled) => {
+      if (!cancelled) setDebugEnabled(enabled);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
 
     void readLivePreviewConfig().then((config) => {
-      if (!cancelled) {
-        setLivePreviewConfig(config);
-      }
+      if (!cancelled) setLivePreviewConfig(config);
     });
 
     const unsubscribePreview = subscribeLivePreviewConfig((config) => {
-      if (!cancelled) {
-        setLivePreviewConfig(config);
-      }
+      if (!cancelled) setLivePreviewConfig(config);
     });
 
     const unsubscribeDiagnostics = subscribeRuntimeDiagnostics((entry) => {
-      if (!cancelled) {
-        setDiagnosticEntries((current) => appendDiagnosticEntry(current, entry));
+      if (cancelled) return;
+      if (pausedRef.current) {
+        pendingWhilePaused.current += 1;
+        return;
       }
+      setDiagnosticEntries((current) => appendDiagnosticEntry(current, entry));
     });
 
     return () => {
@@ -110,23 +182,49 @@ export function DiagnosticsPanel({
     };
   }, []);
 
+  // Load runtime errors on mount.
+  useEffect(() => {
+    let cancelled = false;
+    readRuntimeErrors().then((errors) => {
+      if (!cancelled) setRuntimeErrors(errors);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
   const livePreviewSummary = useMemo(
     () => summarizeLivePreviewConfig(livePreviewConfig, selectedThemeId),
     [livePreviewConfig, selectedThemeId]
   );
 
+  const scopePrefix = getScopeFilterPrefix(scopeFilter);
+  const filteredEntries = useMemo(() => {
+    if (!scopePrefix) return diagnosticEntries;
+    return diagnosticEntries.filter((entry) => entry.scope?.startsWith(scopePrefix));
+  }, [diagnosticEntries, scopePrefix]);
+
+  const scopeCounts = useMemo(() => {
+    const counts = { all: diagnosticEntries.length };
+    diagnosticEntries.forEach((entry) => {
+      const scope = entry.scope || "";
+      const prefix = scope.split(".")[0];
+      if (prefix) counts[prefix] = (counts[prefix] || 0) + 1;
+    });
+    return counts;
+  }, [diagnosticEntries]);
+
   function toggleDebug() {
     const nextEnabled = !debugEnabled;
-    try {
-      if (nextEnabled) {
-        window.localStorage?.setItem(DIAGNOSTICS_STORAGE_KEY, "1");
-      } else {
-        window.localStorage?.removeItem(DIAGNOSTICS_STORAGE_KEY);
-      }
-    } catch {
-      // Ignore storage write failures and still reflect local UI intent.
-    }
+    writeDiagnosticDebugFlag(nextEnabled);
     setDebugEnabled(nextEnabled);
+  }
+
+  function handleClearRuntimeErrors() {
+    clearRuntimeErrors().then(() => setRuntimeErrors([]));
+  }
+
+  function handleResume() {
+    setPaused(false);
+    pendingWhilePaused.current = 0;
   }
 
   return (
@@ -161,6 +259,34 @@ export function DiagnosticsPanel({
         </div>
       </Panel>
 
+      {/* Runtime Errors */}
+      {runtimeErrors.length > 0 ? (
+        <Panel
+          title="运行时错误"
+          icon={AlertTriangle}
+          iconTone="bg-red-100 text-red-700"
+          action={
+            <Button variant="ghost" className="rounded-2xl px-3 text-xs" onClick={handleClearRuntimeErrors}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              清除全部
+            </Button>
+          }
+        >
+          <div className="space-y-2">
+            {runtimeErrors.map((error, index) => (
+              <div key={`error-${error.at}-${index}`} className="rounded-2xl border border-red-200 bg-red-50 p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <DataPill tone="red">{error.type}</DataPill>
+                  <DataPill tone="slate">{formatEntryTime(error.at)}</DataPill>
+                  <span className="text-xs text-slate-500">{error.host}</span>
+                </div>
+                <div className="mt-2 text-sm text-red-800">{error.detail}</div>
+              </div>
+            ))}
+          </div>
+        </Panel>
+      ) : null}
+
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
         <Panel
           title="Live Preview 状态"
@@ -189,8 +315,8 @@ export function DiagnosticsPanel({
           }
         >
           <div className="space-y-3 text-sm leading-6 text-slate-600">
-            <p>这里控制的是 runtime diagnostics 通道。开启后，content runtime 会把 action 解析、trigger-zone 过滤和音频 ducking 事件广播到这个面板。</p>
-            <p>如果你更习惯手动调试，也可以直接执行 `localStorage.setItem('cursordance.debug', '1')`，或者在目标页 URL 上带 `?cursordance-debug=1`。</p>
+            <p>这里控制的是 runtime diagnostics 通道。开启后通过 chrome.storage 同步到各个 content script，action 解析、trigger-zone 过滤和音频 ducking 事件会广播到这个面板。</p>
+            <p>在目标页面也可以手动开启：URL 上带 <code className="bg-slate-200 px-1.5 py-0.5 rounded text-xs">?cursordance-debug=1</code> 或执行 <code className="bg-slate-200 px-1.5 py-0.5 rounded text-xs">localStorage.setItem('cursordance.debug', '1')</code>。</p>
             <p className="text-slate-500">开启后，去目标页面点一次、滚一次或触发音频，再回来看事件流会最直观。</p>
           </div>
         </Panel>
@@ -202,22 +328,68 @@ export function DiagnosticsPanel({
         iconTone="bg-emerald-100 text-emerald-700"
         action={
           <div className="flex items-center gap-2">
-            <DataPill>{diagnosticEntries.length} 条</DataPill>
-            <Button variant="ghost" className="rounded-2xl px-3 text-xs" onClick={() => setDiagnosticEntries([])}>
+            {/* Scope filter chips */}
+            <div className="flex items-center gap-1">
+              {SCOPE_FILTERS.map((filter) => (
+                <button
+                  key={filter.key}
+                  type="button"
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors ${
+                    scopeFilter === filter.key
+                      ? "bg-slate-800 text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                  onClick={() => setScopeFilter(filter.key)}
+                >
+                  {filter.label}
+                  {scopeCounts[filter.key] != null && filter.key !== "all" ? ` ${scopeCounts[filter.key]}` : ""}
+                </button>
+              ))}
+            </div>
+            <DataPill>{filteredEntries.length}/{diagnosticEntries.length} 条</DataPill>
+            <Button
+              variant="ghost"
+              className="rounded-2xl px-3 text-xs"
+              onClick={() => {
+                if (paused) {
+                  handleResume();
+                } else {
+                  setPaused(true);
+                }
+              }}
+            >
+              {paused ? (
+                <>
+                  <Play className="mr-2 h-4 w-4" />
+                  恢复{pendingWhilePaused.current > 0 ? ` (${pendingWhilePaused.current})` : ""}
+                </>
+              ) : (
+                <>
+                  <Pause className="mr-2 h-4 w-4" />
+                  暂停
+                </>
+              )}
+            </Button>
+            <Button variant="ghost" className="rounded-2xl px-3 text-xs" onClick={() => { setDiagnosticEntries([]); pendingWhilePaused.current = 0; }}>
               <RefreshCcw className="mr-2 h-4 w-4" />
               清空列表
             </Button>
           </div>
         }
       >
-        {diagnosticEntries.length ? (
+        {paused && pendingWhilePaused.current > 0 ? (
+          <div className="mb-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+            暂停期间收到 {pendingWhilePaused.current} 条新事件。点击"恢复"以查看。
+          </div>
+        ) : null}
+        {filteredEntries.length ? (
           <div className="space-y-3">
-            {diagnosticEntries.slice().reverse().map((entry, index) => {
+            {filteredEntries.slice().reverse().map((entry, index) => {
               const details = toEntryDetails(entry);
               return (
                 <article key={`${entry.scope}-${entry.at}-${index}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <div className="flex flex-wrap items-center gap-2">
-                    <div className="text-sm font-semibold text-slate-900">{entry.scope}</div>
+                    <div className="text-sm font-semibold text-slate-900">{formatScopeLabel(entry.scope)}</div>
                     <DataPill>{formatEntryTime(entry.at)}</DataPill>
                     {entry.actionId ? <DataPill tone="teal">{formatActionLabel(entry.actionId)}</DataPill> : null}
                   </div>
@@ -233,7 +405,9 @@ export function DiagnosticsPanel({
           </div>
         ) : (
           <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-6 text-sm text-slate-600">
-            还没有收到 runtime diagnostics 事件。开启诊断后，在目标页面触发一次点击、悬停、滚轮或音频播放，这里就会开始滚动显示原因链路。
+            {scopeFilter !== "all"
+              ? '当前过滤条件下还没有事件。试试切换为「全部」查看。'
+              : "还没有收到 runtime diagnostics 事件。开启诊断后，在目标页面触发一次点击、悬停、滚轮或音频播放，这里就会开始滚动显示原因链路。"}
           </div>
         )}
       </Panel>

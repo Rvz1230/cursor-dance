@@ -556,3 +556,67 @@ export async function clearRuntimeErrors() {
     // Best-effort cleanup.
   }
 }
+
+const DIAGNOSTIC_DEBUG_KEY = "cursordance.debug";
+
+export async function readDiagnosticDebugFlag() {
+  const chromeApi = getChromeApi();
+  if (!chromeApi?.storage?.local) {
+    try {
+      const raw = window.localStorage?.getItem(DIAGNOSTIC_DEBUG_KEY) || "";
+      return ["1", "true", "on", "yes", "debug"].includes(raw.trim().toLowerCase());
+    } catch {
+      return false;
+    }
+  }
+  try {
+    const result = await chromeApi.storage.local.get([DIAGNOSTIC_DEBUG_KEY]);
+    return parseBooleanFlag(result[DIAGNOSTIC_DEBUG_KEY]);
+  } catch {
+    return false;
+  }
+}
+
+export async function writeDiagnosticDebugFlag(enabled) {
+  const chromeApi = getChromeApi();
+  // Always write to localStorage for same-origin use (local dev).
+  try {
+    if (enabled) {
+      window.localStorage?.setItem(DIAGNOSTIC_DEBUG_KEY, "1");
+    } else {
+      window.localStorage?.removeItem(DIAGNOSTIC_DEBUG_KEY);
+    }
+  } catch {
+    // Ignore localStorage write failures.
+  }
+
+  if (!chromeApi?.storage?.local) {
+    // BroadcastChannel fallback for local dev mode.
+    try {
+      if (typeof window !== "undefined" && typeof window.BroadcastChannel === "function") {
+        const channel = new window.BroadcastChannel(LOCAL_PREVIEW_CHANNEL_NAME);
+        channel.postMessage({ type: "toggle-debug", enabled });
+        channel.close();
+      }
+    } catch {
+      // Ignore BroadcastChannel failures.
+    }
+    return;
+  }
+
+  try {
+    if (enabled) {
+      await chromeApi.storage.local.set({ [DIAGNOSTIC_DEBUG_KEY]: "1" });
+    } else {
+      await chromeApi.storage.local.remove([DIAGNOSTIC_DEBUG_KEY]);
+    }
+  } catch {
+    // Ignore storage write failures.
+  }
+}
+
+function parseBooleanFlag(value) {
+  if (value === true) return true;
+  if (typeof value !== "string") return false;
+  return ["1", "true", "on", "yes", "debug"].includes(value.trim().toLowerCase());
+}

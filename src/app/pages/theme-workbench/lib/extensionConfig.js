@@ -9,8 +9,10 @@ export {
   readLivePreviewConfig,
   readExtensionConfig,
   readRecentCursorAssets,
+  readDiagnosticDebugFlag,
   readRuntimeErrors,
   subscribeRuntimeDiagnostics,
+  writeDiagnosticDebugFlag,
   subscribeExtensionConfig,
   subscribeLivePreviewConfig,
   writeExtensionConfig,
@@ -19,6 +21,9 @@ export {
 } from "./extensionStorage.js";
 export {
   DEFAULT_WORKBENCH_SITE_MODE,
+  SITE_MODE_ENABLED,
+  SITE_MODE_DISABLED,
+  SITE_MODE_FOLLOW,
   buildPreviewThemePackFromWorkbench,
   buildStoredConfigFromWorkbench,
   buildStoredThemePackFromWorkbench,

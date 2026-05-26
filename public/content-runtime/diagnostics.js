@@ -10,6 +10,7 @@
     const MAX_EVENTS = 200;
     const eventBuffer = [];
     let diagnosticsChannel = null;
+    let _debugEnabled = null;
 
     function parseBooleanFlag(value) {
       if (value === true) return true;
@@ -47,9 +48,49 @@
       }
     }
 
-    function isEnabled() {
+    function computeSyncEnabled() {
       return Boolean(window.__CURSORDANCE_DEBUG__ || readQueryFlag() || readStorageFlag());
     }
+
+    function isEnabled() {
+      return _debugEnabled;
+    }
+
+    // Sync init: try local sources first so the first isEnabled() call is deterministic.
+    _debugEnabled = computeSyncEnabled();
+
+    // Async: override from chrome.storage if the workbench set a value.
+    (function initStorageBridge() {
+      const chromeApi = globalThis.chrome ?? null;
+      if (chromeApi?.storage?.onChanged) {
+        chromeApi.storage.onChanged.addListener(function handleDebugStorageChange(changes, areaName) {
+          if (areaName !== "local" || !(STORAGE_KEY in changes)) return;
+          _debugEnabled = parseBooleanFlag(changes[STORAGE_KEY].newValue);
+        });
+        chromeApi.storage.local.get([STORAGE_KEY]).then(function (result) {
+          if (STORAGE_KEY in result) {
+            _debugEnabled = parseBooleanFlag(result[STORAGE_KEY]);
+          }
+        }).catch(function () {
+          // Ignore — keep sync value.
+        });
+      }
+
+      // BroadcastChannel fallback for local dev (no chrome.storage).
+      if (typeof window.BroadcastChannel === "function") {
+        try {
+          var debugChannel = new window.BroadcastChannel(CHANNEL_NAME);
+          debugChannel.addEventListener("message", function (event) {
+            var message = event.data || {};
+            if (message.type === "toggle-debug") {
+              _debugEnabled = parseBooleanFlag(message.enabled);
+            }
+          });
+        } catch (_) {
+          // Ignore BroadcastChannel setup failures.
+        }
+      }
+    })();
 
     function normalizeClassName(className) {
       if (typeof className === "string") return className.trim();
