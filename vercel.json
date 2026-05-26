@@ -1,7 +1,12 @@
 {
-  "functions": {
-    "api/**/*.js": {
-      "runtime": "nodejs22.x"
+  "builds": [
+    {
+      "src": "api/ai/scheme-proposals.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/ai/scheme-proposals-stream.js",
+      "use": "@vercel/node"
     }
-  }
+  ]
 }
