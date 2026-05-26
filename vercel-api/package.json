@@ -1,0 +1,8 @@
+{
+  "name": "cursor-dance-api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "vercel-build": "echo 'no static build needed'"
+  }
+}
