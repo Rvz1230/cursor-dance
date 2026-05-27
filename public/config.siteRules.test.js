@@ -68,54 +68,6 @@ describe("normalizeSiteRules", () => {
     });
   });
 
-  describe("migration from old byHost format", () => {
-    it("migrates disabled mode to 'disable' action", () => {
-      const result = normalizeSiteRules()({ byHost: { "youtube.com": { mode: "disabled" } } });
-      expect(result).toEqual([
-        { id: "r1", pattern: { type: "exact", value: "youtube.com" }, action: "disable", enabled: true },
-      ]);
-    });
-
-    it("migrates enabled mode with themePackId", () => {
-      const result = normalizeSiteRules()({ byHost: { "example.com": { mode: "enabled", themePackId: "woodfish" } } });
-      expect(result).toEqual([
-        { id: "r1", pattern: { type: "exact", value: "example.com" }, action: { enable: true, theme: "woodfish" }, enabled: true },
-      ]);
-    });
-
-    it("migrates enabled mode without themePackId", () => {
-      const result = normalizeSiteRules()({ byHost: { "example.com": { mode: "enabled" } } });
-      expect(result).toEqual([
-        { id: "r1", pattern: { type: "exact", value: "example.com" }, action: { enable: true }, enabled: true },
-      ]);
-    });
-
-    it("skips inherit mode entries", () => {
-      const result = normalizeSiteRules()({ byHost: { "example.com": { mode: "inherit" } } });
-      expect(result).toEqual([]);
-    });
-
-    it("migrates string rules", () => {
-      const result = normalizeSiteRules()({ byHost: { "example.com": "disabled" } });
-      expect(result).toEqual([
-        { id: "r1", pattern: { type: "exact", value: "example.com" }, action: "disable", enabled: true },
-      ]);
-    });
-
-    it("migrates multiple hosts", () => {
-      const result = normalizeSiteRules()({
-        byHost: {
-          "youtube.com": { mode: "disabled" },
-          "bilibili.com": { mode: "enabled", themePackId: "neon" },
-        },
-      });
-      expect(result).toHaveLength(2);
-      expect(result[0].pattern.value).toBe("youtube.com");
-      expect(result[0].action).toBe("disable");
-      expect(result[1].pattern.value).toBe("bilibili.com");
-      expect(result[1].action).toEqual({ enable: true, theme: "neon" });
-    });
-  });
 
   describe("fallback and edge cases", () => {
     it("returns empty array for null input", () => {
@@ -137,12 +89,10 @@ describe("normalizeSiteRules", () => {
       expect(normalizeSiteRules()(null, fallback)).toEqual(fallback);
     });
 
-    it("migrates fallback byHost when primary is null", () => {
+    it("returns empty array when fallback is non-array", () => {
       const fallback = { byHost: { "example.com": { mode: "disabled" } } };
       const result = normalizeSiteRules()(null, fallback);
-      expect(result).toEqual([
-        { id: "r1", pattern: { type: "exact", value: "example.com" }, action: "disable", enabled: true },
-      ]);
+      expect(result).toEqual([]);
     });
   });
 });

@@ -146,7 +146,9 @@ cursor-dance/
       }
     }
   }],
-  siteRules: { byHost: { "example.com": { mode: "enabled", themePackId: "petal" } } },
+  siteRules: [
+    { id: "r1", pattern: { type: "glob", value: "*.example.com" }, action: { enable: true, theme: "petal" } }
+  ],
   performance: { maxActiveEffects: 48 }
 }
 ```

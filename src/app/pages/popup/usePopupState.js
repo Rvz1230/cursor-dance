@@ -80,26 +80,30 @@ export function resolveNextConfigForThemeChange(currentConfig, site, themeId, pr
   var host = site.host || "";
   var pathname = "/";
   var runtime = getRuntimeConfig();
-  var siteAction = getSiteAction(currentConfig, host, pathname);
+  var rules = Array.isArray(currentConfig.siteRules) ? currentConfig.siteRules : [];
 
-  if (siteAction && siteAction.enable && host) {
-    var nextRules = (Array.isArray(currentConfig.siteRules) ? currentConfig.siteRules : []).map(function (rule) {
-      if (rule.pattern && rule.pattern.type === "exact" && rule.pattern.value === host && rule.action && rule.action.enable) {
-        return { ...rule, action: { ...rule.action, theme: themeId } };
-      }
-      return rule;
-    });
+  var matchedIndex = -1;
+  for (var i = 0; i < rules.length; i++) {
+    var rule = rules[i];
+    if (rule && rule.enabled !== false && typeof runtime.matchPattern === "function" && runtime.matchPattern(host, pathname, rule.pattern)) {
+      matchedIndex = i;
+      break;
+    }
+  }
+
+  if (matchedIndex >= 0 && host) {
+    var matchedRule = rules[matchedIndex];
+    var nextRules = rules.slice();
+    if (matchedRule.action && typeof matchedRule.action === "object" && matchedRule.action.enable) {
+      nextRules[matchedIndex] = { ...matchedRule, action: { ...matchedRule.action, theme: themeId } };
+    } else if (matchedRule.action === "disable") {
+      nextRules[matchedIndex] = { ...matchedRule, action: { enable: true, theme: themeId } };
+    } else {
+      nextRules[matchedIndex] = { ...matchedRule, action: { enable: true, theme: themeId } };
+    }
     return { ...currentConfig, siteRules: nextRules };
   }
-  if (siteAction === "disable" && host) {
-    var nextRulesWithEnable = (Array.isArray(currentConfig.siteRules) ? currentConfig.siteRules : []).map(function (rule) {
-      if (rule.pattern && rule.pattern.type === "exact" && rule.pattern.value === host && rule.action === "disable") {
-        return { ...rule, action: { enable: true, theme: themeId } };
-      }
-      return rule;
-    });
-    return { ...currentConfig, siteRules: nextRulesWithEnable };
-  }
+
   return {
     ...currentConfig,
     activeThemePackId: themeId,

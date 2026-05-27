@@ -39,7 +39,7 @@ ThemeWorkbenchPage
 └── main (by workspaceId)
     ├── workbench            # Action config + preview + optional AI panel
     ├── states (StatesPanel) # Cursor state management (6 states)
-    ├── sites (SitesPanel)   # Per-host site rules
+    ├── sites (SiteRulesPanel)   # Per-host site rules (ordered, glob support)
     └── diagnostics          # Diagnostic event viewer
 ```
 

@@ -288,35 +288,7 @@
       });
     }
 
-    if (siteRules && siteRules.byHost && typeof siteRules.byHost === "object") {
-      var migrated = [];
-      var hostIndex = 0;
-      Object.entries(siteRules.byHost).forEach(function ([host, rule]) {
-        var normalized = typeof rule === "string" ? { mode: rule } : (rule || {});
-        var action;
-        if (normalized.mode === "disabled") {
-          action = "disable";
-        } else if (normalized.mode === "enabled" && normalized.themePackId) {
-          action = { enable: true, theme: normalizeThemePackId(normalized.themePackId) };
-        } else if (normalized.mode === "enabled") {
-          action = { enable: true };
-        } else {
-          return;
-        }
-        hostIndex++;
-        migrated.push({
-          id: "r" + hostIndex,
-          pattern: { type: "exact", value: host },
-          action: action,
-          enabled: true,
-        });
-      });
-      return migrated;
-    }
-
-    var fallback = fallbackSiteRules;
-    if (Array.isArray(fallback)) return fallback;
-    if (fallback && fallback.byHost) return normalizeSiteRules(fallback);
+    if (Array.isArray(fallbackSiteRules)) return fallbackSiteRules;
     return [];
   }
 
