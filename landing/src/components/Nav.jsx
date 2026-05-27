@@ -1,25 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { Menu, X } from "lucide-react";
-import { useToast } from "./Toast.jsx";
-
-const scrollToDemo = () => {
-  const demo = document.querySelector(".cursor-crosshair");
-  if (demo) demo.scrollIntoView({ behavior: "smooth", block: "center" });
-};
-
-const navLinks = [
-  { label: "功能", href: "#features", sectionId: "features" },
-  { label: "上手", href: "#how-it-works", sectionId: "how-it-works" },
-  { label: "主题", href: "#themes", sectionId: "themes" },
-  { label: "关于", href: "/about.html", sectionId: null },
-];
+import InstallButton from "./InstallButton.jsx";
+import { navLinks, scrollToDemo } from "../lib/scroll.js";
 
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("");
   const headerRef = useRef(null);
-  const showToast = useToast();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -96,13 +84,7 @@ export default function Nav() {
               {link.label}
             </a>
           ))}
-          <a
-            href="#"
-            onClick={(e) => { e.preventDefault(); showToast("即将上架 Chrome Web Store，敬请期待"); scrollToDemo(); }}
-            className="bg-violet-500/15 border border-violet-500/25 text-violet-300 px-4 py-2 rounded-full text-sm font-semibold hover:bg-violet-500/25 transition-colors"
-          >
-            安装插件
-          </a>
+          <InstallButton />
         </div>
 
         <button
@@ -126,13 +108,7 @@ export default function Nav() {
               {link.label}
             </a>
           ))}
-          <a
-            href="#"
-            onClick={(e) => { e.preventDefault(); showToast("即将上架 Chrome Web Store，敬请期待"); scrollToDemo(); }}
-            className="bg-violet-500/15 border border-violet-500/25 text-violet-300 px-4 py-2.5 rounded-full text-sm font-semibold text-center hover:bg-violet-500/25 transition-colors"
-          >
-            安装插件
-          </a>
+          <InstallButton variant="secondary" className="px-4 py-2.5 w-full text-center" />
         </div>
       )}
     </header>

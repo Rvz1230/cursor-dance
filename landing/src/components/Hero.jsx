@@ -1,13 +1,7 @@
 import DemoArea from "./DemoArea.jsx";
-import { useToast } from "./Toast.jsx";
-
-const scrollToDemo = () => {
-  const demo = document.querySelector(".cursor-crosshair");
-  if (demo) demo.scrollIntoView({ behavior: "smooth", block: "center" });
-};
+import InstallButton from "./InstallButton.jsx";
 
 export default function Hero({ activePresetId, onPresetChange }) {
-  const showToast = useToast();
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden">
       {/* Grid background */}
@@ -48,13 +42,7 @@ export default function Hero({ activePresetId, onPresetChange }) {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <a
-            href="#"
-            onClick={(e) => { e.preventDefault(); showToast("即将上架 Chrome Web Store，敬请期待"); scrollToDemo(); }}
-            className="inline-flex items-center justify-center bg-white text-gray-900 px-8 py-3.5 rounded-full font-semibold text-base hover:bg-gray-100 transition shadow-lg shadow-violet-500/20"
-          >
-            免费安装
-          </a>
+          <InstallButton className="px-8 py-3.5 text-base" />
           <a
             href="#features"
             className="inline-flex items-center justify-center border border-white/15 text-white/60 px-8 py-3.5 rounded-full font-semibold text-base hover:border-white/30 hover:text-white/80 transition"

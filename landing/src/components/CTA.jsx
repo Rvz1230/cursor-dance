@@ -1,13 +1,7 @@
 import { motion } from "framer-motion";
-import { useToast } from "./Toast.jsx";
-
-const scrollToDemo = () => {
-  const demo = document.querySelector(".cursor-crosshair");
-  if (demo) demo.scrollIntoView({ behavior: "smooth", block: "center" });
-};
+import InstallButton from "./InstallButton.jsx";
 
 export default function CTA() {
-  const showToast = useToast();
   return (
     <section className="py-24 md:py-32 border-t border-white/5">
       <div className="max-w-6xl mx-auto px-6">
@@ -31,13 +25,7 @@ export default function CTA() {
               免费安装，即装即用。让你的每一次点击都充满惊喜。
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a
-                href="#"
-                onClick={(e) => { e.preventDefault(); showToast("即将上架 Chrome Web Store，敬请期待"); }}
-                className="inline-flex items-center justify-center bg-white text-gray-900 px-10 py-4 rounded-full font-semibold text-base hover:bg-gray-100 transition shadow-lg shadow-violet-500/20"
-              >
-                免费安装 &middot; Chrome Web Store
-              </a>
+              <InstallButton className="px-10 py-4 text-base" />
               <a
                 href="https://github.com/Rvz1230/cursor-dance"
                 target="_blank"

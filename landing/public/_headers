@@ -1,0 +1,22 @@
+# Static assets with hashed filenames — cache aggressively
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# HTML pages — no cache (so updates ship immediately)
+/index.html
+  Cache-Control: no-cache
+
+/about.html
+  Cache-Control: no-cache
+
+/privacy.html
+  Cache-Control: no-cache
+
+/support.html
+  Cache-Control: no-cache
+
+# Global security headers
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
