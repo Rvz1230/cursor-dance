@@ -1,0 +1,79 @@
+edition: 3.0.0
+name: cursor-dance-ai-api
+access: default
+
+resources:
+  scheme-proposals:
+    component: fc3
+    props:
+      region: cn-hangzhou
+      functionName: scheme-proposals
+      handler: api/scheme-proposals.cjs.handler
+      runtime: nodejs20
+      code: ../../
+      timeout: 30
+      memorySize: 512
+      environmentVariables:
+        CURSORDANCE_AI_API_KEY: ${CURSORDANCE_AI_API_KEY}
+        CURSORDANCE_AI_API_BASE_URL: https://api.deepseek.com/v1
+        CURSORDANCE_AI_API_MODE: chat_completions
+        CURSORDANCE_AI_MODEL: deepseek-chat
+        CURSORDANCE_AI_API_ACCESS_TOKEN: cursor-dance-rvz-2026
+        CURSORDANCE_ALLOWED_ORIGINS: chrome-extension://*
+      triggers:
+        - qualifier: LATEST
+          triggerName: http-trigger
+          triggerType: http
+          triggerConfig:
+            methods: [POST, OPTIONS]
+            authType: anonymous
+
+  scheme-proposals-stream:
+    component: fc3
+    props:
+      region: cn-hangzhou
+      functionName: scheme-proposals-stream
+      handler: api/scheme-proposals-stream.cjs.handler
+      runtime: nodejs20
+      code: ../../
+      timeout: 60
+      memorySize: 512
+      environmentVariables:
+        CURSORDANCE_AI_API_KEY: ${CURSORDANCE_AI_API_KEY}
+        CURSORDANCE_AI_API_BASE_URL: https://api.deepseek.com/v1
+        CURSORDANCE_AI_API_MODE: chat_completions
+        CURSORDANCE_AI_MODEL: deepseek-chat
+        CURSORDANCE_AI_API_ACCESS_TOKEN: cursor-dance-rvz-2026
+        CURSORDANCE_ALLOWED_ORIGINS: chrome-extension://*
+      triggers:
+        - qualifier: LATEST
+          triggerName: http-trigger
+          triggerType: http
+          triggerConfig:
+            methods: [POST, OPTIONS]
+            authType: anonymous
+
+  agent-run:
+    component: fc3
+    props:
+      region: cn-hangzhou
+      functionName: agent-run
+      handler: api/agent-run.cjs.handler
+      runtime: nodejs20
+      code: ../../
+      timeout: 120
+      memorySize: 768
+      environmentVariables:
+        CURSORDANCE_AI_API_KEY: ${CURSORDANCE_AI_API_KEY}
+        CURSORDANCE_AI_API_BASE_URL: https://api.deepseek.com/v1
+        CURSORDANCE_AI_API_MODE: chat_completions
+        CURSORDANCE_AI_MODEL: deepseek-chat
+        CURSORDANCE_AI_API_ACCESS_TOKEN: cursor-dance-rvz-2026
+        CURSORDANCE_ALLOWED_ORIGINS: chrome-extension://*
+      triggers:
+        - qualifier: LATEST
+          triggerName: http-trigger
+          triggerType: http
+          triggerConfig:
+            methods: [POST, OPTIONS]
+            authType: anonymous

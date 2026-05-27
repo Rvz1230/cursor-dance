@@ -31,6 +31,23 @@ function sendJson(response, statusCode, payload, origin = "") {
 }
 
 async function readJsonBody(request) {
+  // FC3: body is pre-buffered as Buffer, string, or parsed object
+  if (request.body != null) {
+    let raw;
+    if (typeof request.body === "string") {
+      raw = request.body;
+    } else if (typeof request.body === "object" && !Array.isArray(request.body)) {
+      // Already parsed JSON object
+      return { body: request.body, rawBodyLength: Buffer.byteLength(JSON.stringify(request.body), "utf8") };
+    } else {
+      // Buffer or other — try to convert
+      raw = String(request.body);
+    }
+    if (!raw.trim()) return { body: {}, rawBodyLength: 0 };
+    return { body: JSON.parse(raw), rawBodyLength: Buffer.byteLength(raw, "utf8") };
+  }
+
+  // Standard Node HTTP: read from stream
   const chunks = [];
   for await (const chunk of request) {
     chunks.push(chunk);
@@ -43,10 +60,12 @@ async function readJsonBody(request) {
 function sendSseHeaders(response, origin = "") {
   response.writeHead(200, {
     "Content-Type": "text/event-stream; charset=utf-8",
-    "Cache-Control": "no-cache",
+    "Cache-Control": "no-store, no-cache, no-transform, must-revalidate",
     "Connection": "keep-alive",
+    "X-Accel-Buffering": "no",
     ...buildCorsHeaders({ origin }),
   });
+  if (typeof response.flushHeaders === "function") response.flushHeaders();
 }
 
 function sendSseEvent(response, event, data) {
@@ -226,6 +245,8 @@ async function handleSchemeProposalStream(request, response) {
     }
   }
 }
+
+export { handleSchemeProposal, handleSchemeProposalStream, handleAgentRun };
 
 export function createApp() {
   return createServer(async (request, response) => {

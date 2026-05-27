@@ -215,8 +215,9 @@ export async function requestAiSchemeEditStreaming({ prompt, currentConfig, acti
 }
 
 export async function requestAiAgentRun({ prompt, currentConfig, actionLabel, actionId, taskMode, proposalContext, onEvent }) {
+  const agentEndpoint = globalThis.VITE_CURSORDANCE_AI_AGENT_ENDPOINT;
   const baseEndpoint = globalThis.VITE_CURSORDANCE_AI_API_ENDPOINT || DEFAULT_API_ENDPOINT;
-  const endpoint = baseEndpoint.replace(/\/[^/]+$/, "") + "/agent/run";
+  const endpoint = agentEndpoint || baseEndpoint.replace(/\/[^/]+$/, "") + "/agent/run";
   const accessToken = globalThis.VITE_CURSORDANCE_AI_API_ACCESS_TOKEN || "";
   const controller = new AbortController();
   const timeoutMs = Math.max(getAiTimeoutMs() * 3, 60000);

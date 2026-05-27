@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bot, Check, CheckCircle2, ChevronDown, ChevronRight, Eye, Loader2, RotateCcw, Send, Trash2, Wrench, X } from "lucide-react";
+import { Bot, Check, CheckCircle2, ChevronDown, ChevronRight, Eye, Loader2, RotateCcw, Send, Trash2, Wrench, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button.jsx";
 import { cn } from "@/components/ui/utils.js";
 import { getAiRequestErrorMessage, requestAiSchemeEditStreaming, requestAiAgentRun } from "../lib/aiSchemeAssistant.js";
@@ -282,6 +282,71 @@ function AgentTimeline({ steps, isRunning }) {
   );
 }
 
+function ModeSwitcher({ useAgent, onToggle, disabled }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handle = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", handle);
+    return () => document.removeEventListener("mousedown", handle);
+  }, [open]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium text-slate-500 transition-colors hover:bg-slate-100"
+        disabled={disabled}
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        aria-haspopup="listbox"
+      >
+        {useAgent ? <Wrench className="size-3" /> : <Zap className="size-3" />}
+        {useAgent ? "Agent" : "快速"}
+        <ChevronDown className={cn("size-3 opacity-50 transition-transform", open && "rotate-180")} />
+      </button>
+      {open ? (
+        <div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm">
+          <button
+            type="button"
+            role="option"
+            aria-selected={!useAgent}
+            className="w-full rounded-lg px-3 py-2 text-left transition-colors hover:bg-slate-50"
+            onClick={() => { onToggle(false); setOpen(false); }}
+          >
+            <div className="flex items-center gap-2">
+              <Zap className="size-3.5 text-slate-400" />
+              <span className="text-xs font-semibold text-slate-800">快速模式</span>
+              {!useAgent ? <Check className="ml-auto size-3.5 text-slate-600" /> : null}
+            </div>
+            <div className="mt-0.5 text-[11px] leading-4 text-slate-500 text-pretty">
+              一步生成，适合简单需求
+            </div>
+          </button>
+          <button
+            type="button"
+            role="option"
+            aria-selected={useAgent}
+            className="w-full rounded-lg px-3 py-2 text-left transition-colors hover:bg-slate-50 mt-0.5"
+            onClick={() => { onToggle(true); setOpen(false); }}
+          >
+            <div className="flex items-center gap-2">
+              <Wrench className="size-3.5 text-slate-400" />
+              <span className="text-xs font-semibold text-slate-800">Agent 模式</span>
+              {useAgent ? <Check className="ml-auto size-3.5 text-slate-600" /> : null}
+            </div>
+            <div className="mt-0.5 text-[11px] leading-4 text-slate-500 text-pretty">
+              分步推理 · 工具调用，适合复杂需求
+            </div>
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function AiSchemePanel({
   actionId,
   actionLabel,
@@ -515,26 +580,12 @@ export function AiSchemePanel({
       contentClassName={cn("min-h-0 overflow-hidden !p-0", variant === "full" && "flex flex-1 flex-col")}
       action={(
         <div className="flex items-center gap-1.5">
-          <button
-            type="button"
-            className={cn(
-              "inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors",
-              useAgent
-                ? "border-sky-200 bg-sky-50 text-sky-700"
-                : "border-slate-200 bg-slate-50 text-slate-500"
-            )}
-            onClick={() => setUseAgent(!useAgent)}
-            disabled={isGenerating}
-            title={useAgent ? "Agent 模式：分步推理与工具调用" : "快速模式：一步生成配置"}
-          >
-            <Wrench className="size-3" />
-            {useAgent ? "Agent" : "快速"}
-          </button>
+          <ModeSwitcher useAgent={useAgent} onToggle={setUseAgent} disabled={isGenerating} />
           <Button
             type="button"
-            variant="outline"
+            variant="ghost"
             size="icon"
-            className="size-8 rounded-xl"
+            className="size-8 rounded-xl text-slate-400 hover:text-slate-600"
             onClick={clearConversation}
             disabled={isGenerating}
             aria-label="清空 AI 对话"

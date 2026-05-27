@@ -281,7 +281,6 @@ async function callChatCompletionsApiStreaming({ apiKey, baseUrl, model, request
         { role: "system", content: buildSystemPrompt(requestState.taskMode) },
         { role: "user", content: buildUserPrompt(requestState) },
       ],
-      response_format: { type: "json_object" },
       stream: true,
       ...(maxOutputTokens ? { max_tokens: maxOutputTokens } : {}),
     }),
