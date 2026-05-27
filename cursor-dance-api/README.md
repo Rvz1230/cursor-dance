@@ -8,7 +8,7 @@ CursorDance Chrome 扩展的 AI 方案助手后端服务。接收前端的中文
 浏览器扩展（AiSchemePanel）
     │ POST /api/ai/scheme-proposals/stream
     ▼
-阿里云 FC / 本地 Node Server
+阿里云 FC（统一 HTTP 函数）
     │ POST https://api.deepseek.com/v1/chat/completions
     ▼
 DeepSeek API (deepseek-chat)
@@ -21,8 +21,8 @@ DeepSeek API (deepseek-chat)
 
 ```bash
 # 1. 配置环境变量
-cp deploy/aliyun-fc/.env.example .env.local
-# 编辑 .env.local，填入 DEEPSEEK_API_KEY
+cp .env.example .env.local   # 或手动创建 .env.local
+# 编辑 .env.local，填入 CURSORDANCE_AI_API_KEY
 
 # 2. 启动开发服务器
 npm run dev        # 默认 http://127.0.0.1:8787
@@ -31,20 +31,41 @@ npm run dev        # 默认 http://127.0.0.1:8787
 npm run check
 ```
 
-## 生产部署
+## 生产部署（阿里云 FC）
 
-部署到阿里云函数计算 FC：
+### 首次部署
 
 ```bash
-# 使用 Serverless Devs 工具
+# 1. 设置环境变量
+export CURSORDANCE_AI_API_KEY=sk-your-deepseek-key
+export CURSORDANCE_AI_API_ACCESS_TOKEN=your-random-token
+
+# 2. 部署
+cd cursor-dance-api
 s deploy
 ```
 
-部署后配置自定义域名（如 `ai.cursordance.cn`），然后在扩展构建环境变量中设置：
+部署成功后会输出函数域名，格式类似：
+```
+https://cursor-dance-api-<uid>.cn-hangzhou.fcapp.run
+```
+
+### 连接扩展
+
+将域名填入项目根目录 `.env.production`：
 
 ```
-VITE_CURSORDANCE_AI_API_ENDPOINT=https://ai.cursordance.cn/api/ai/scheme-proposals
+VITE_CURSORDANCE_AI_API_ENDPOINT=https://<你的域名>/api/ai/scheme-proposals
+VITE_CURSORDANCE_AI_API_ACCESS_TOKEN=<与 FC 环境变量一致的 token>
 ```
+
+然后构建扩展：
+
+```bash
+npm run build && npm run extension:prepare-manifest
+```
+
+生成的 `dist/` 目录可以直接加载为 Chrome 扩展。
 
 ## 安全清洗管道
 
@@ -52,7 +73,7 @@ VITE_CURSORDANCE_AI_API_ENDPOINT=https://ai.cursordance.cn/api/ai/scheme-proposa
 AI 原始 JSON 输出
   → safeJsonParse（容错解析）
   → sanitizeAiSchemePatch（白名单过滤 + 数值钳位 + 枚举校验 + 类型校验）
-  → repairPatchForUserIntent（30+ 中文意图规则注册表）
+  → repairPatchForUserIntent（19 条中文意图规则注册表）
   → normalizeAiSchemeProposal（标准化为 proposal 对象）
   → 返回浏览器 → 用户预览 → 确认后应用
 ```
@@ -69,9 +90,12 @@ src/
 ├── normalize.js           # Proposal 标准化（前后端通用）
 ├── client.js              # 浏览器 HTTP 客户端（仅前端）
 ├── model-provider.mjs     # DeepSeek API 调用（仅后端）
-├── proposal-service.mjs   # 鉴权/限流/编排（仅后端）
+├── proposal-service.mjs   # 鉴权/限流/CORS/编排（仅后端）
 ├── server.mjs             # HTTP Server（仅后端）
 └── index.mjs              # 统一导出
+
+index.mjs                  # FC3 入口（统一 HTTP 函数）
+s.yaml                     # Serverless Devs 部署配置
 ```
 
 ## 环境变量
@@ -79,12 +103,11 @@ src/
 | 变量 | 用途 | 默认值 |
 |------|------|--------|
 | `CURSORDANCE_AI_API_KEY` | DeepSeek API Key | 无（必填） |
-| `OPENAI_API_KEY` | 兼容 OpenAI 的 Key | 无 |
 | `CURSORDANCE_AI_API_BASE_URL` | API 基础地址 | `https://api.deepseek.com/v1` |
 | `CURSORDANCE_AI_MODEL` | 模型名称 | `deepseek-chat` |
 | `CURSORDANCE_AI_API_MODE` | 固定 `chat_completions` | `chat_completions` |
-| `CURSORDANCE_AI_API_ACCESS_TOKEN` | 访问鉴权 Token | 无 |
+| `CURSORDANCE_AI_API_ACCESS_TOKEN` | 访问鉴权 Token | 无（建议设置） |
 | `CURSORDANCE_AI_API_PORT` | 本地端口 | `8787` |
 | `CURSORDANCE_AI_API_HOST` | 本地地址 | `127.0.0.1` |
-| `CURSORDANCE_ALLOWED_ORIGINS` | CORS 白名单 | `localhost:5173` |
+| `CURSORDANCE_ALLOWED_ORIGINS` | CORS 白名单（生产用 `*`） | `localhost:5173` |
 | `CURSORDANCE_AI_METRICS_LOG` | 指标日志开关（0=关闭） | 开启 |
