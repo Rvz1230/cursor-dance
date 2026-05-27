@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useThemeWorkbenchState } from "./hooks/useThemeWorkbenchState.js";
 import { BindingsPanel } from "./components/BindingsPanel.jsx";
 import { DiagnosticsPanel } from "./components/DiagnosticsPanel.jsx";
-import { SitesPanel } from "./components/SitesPanel.jsx";
+import { SiteRulesPanel } from "./components/SiteRulesPanel.jsx";
 import { StatesPanel } from "./components/StatesPanel.jsx";
 import { WorkbenchHeader } from "./components/WorkbenchHeader.jsx";
 import { AiSchemePanel } from "./components/AiSchemePanel.jsx";
@@ -12,6 +12,7 @@ import { getAiProposalNextConfigForAction } from "./lib/aiSchemeAssistant.js";
 import { ActionTab, ColumnResizeHandle } from "./components/WorkbenchControls.jsx";
 import { WorkbenchPanel } from "./components/WorkbenchPanel.jsx";
 import { WorkbenchPreviewRail } from "./components/WorkbenchPreviewRail.jsx";
+import { getRuntimeConfig } from "./lib/runtimeConfig.js";
 import { ThemeLibrarySidebar } from "./components/ThemeLibrarySidebar.jsx";
 import { cn } from "@/components/ui/utils.js";
 import { ToastProvider, useToast } from "@/components/ui/toast.jsx";
@@ -55,7 +56,12 @@ function ThemeWorkbenchPageContent() {
     renameTheme,
     updateThemeIcon,
     resetCurrentTheme,
-    setSiteFilter,
+    addSiteRule,
+    updateSiteRule,
+    deleteSiteRule,
+    reorderSiteRules,
+    toggleSiteRule,
+    clearAllSiteRules,
     updateActionConfig,
     updateActionConfigs,
     updateCursorMode,
@@ -67,16 +73,10 @@ function ThemeWorkbenchPageContent() {
     copyDefaultCursorStateAsset,
     resetCurrentCursorState,
     resetAllCursorStates,
-    setSiteMode,
-    setSiteThemeId,
-    addSiteRule,
-    updateSiteRule,
-    clearAllSiteRules,
-    clearFilteredSiteRules,
-    removeSiteRule,
   } = useThemeWorkbenchState();
   const currentWorkspace = workspaceItems.find((item) => item.id === state.workspaceId);
   const previewActionConfig = getAiProposalNextConfigForAction(previewProposal, selected.actionId, currentActionConfig);
+  const siteAction = getRuntimeConfig().resolveSiteRule(state.siteRules, state.site.host);
 
   useEffect(() => {
     setPreviewProposal(null);
@@ -239,7 +239,7 @@ function ThemeWorkbenchPageContent() {
                     <WorkbenchPreviewRail
                       actionLabel={formatActionLabel(selected.actionId)}
                       config={previewActionConfig || currentActionConfig}
-                      siteMode={state.siteMode}
+                      disabled={siteAction === "disable"}
                       previewMode={Boolean(previewActionConfig)}
                     />
                   </div>
@@ -318,23 +318,16 @@ function ThemeWorkbenchPageContent() {
 
               {state.workspaceId === "sites" ? (
                 <div className="h-full overflow-y-auto pr-1">
-                  <SitesPanel
-                    filter={state.ui.siteFilter}
-                    setFilter={setSiteFilter}
-                    siteMode={state.siteMode}
-                    setSiteMode={setSiteMode}
-                    siteThemeId={state.siteThemeId}
-                    setSiteThemeId={setSiteThemeId}
+                  <SiteRulesPanel
+                    siteRules={state.siteRules}
                     themes={themes}
-                    activeThemeName={activeTheme.name}
                     activeHost={state.site.host}
-                    isSupportedPage={state.site.isSupportedPage}
-                    siteRulesByHost={state.siteRulesByHost}
                     addSiteRule={addSiteRule}
                     updateSiteRule={updateSiteRule}
+                    deleteSiteRule={deleteSiteRule}
+                    reorderSiteRules={reorderSiteRules}
+                    toggleSiteRule={toggleSiteRule}
                     clearAllSiteRules={clearAllSiteRules}
-                    clearFilteredSiteRules={clearFilteredSiteRules}
-                    removeSiteRule={removeSiteRule}
                   />
                 </div>
               ) : null}

@@ -145,8 +145,9 @@ function HeroPreview({ themePack, actionConfig, themeId }) {
 
 // ── Header ────────────────────────────────────────────────────
 
-function Header({ enabled, siteHost, siteRule, busyKey, setEnabled }) {
-  const siteRuleActive = siteRule?.mode === "enabled" || siteRule?.mode === "disabled";
+function Header({ enabled, siteHost, siteAction, busyKey, setEnabled }) {
+  const siteActionActive = siteAction !== null;
+  const siteDisabled = siteAction === "disable";
   return (
     <header className="flex items-center justify-between gap-2">
       <div className="flex min-w-0 items-center gap-2">
@@ -158,14 +159,14 @@ function Header({ enabled, siteHost, siteRule, busyKey, setEnabled }) {
           <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-500 truncate">
             {siteHost ? <Globe2 className="size-3 shrink-0" /> : null}
             <span className="truncate">{siteHost || "主题切换器"}</span>
-            {siteRuleActive ? (
+            {siteActionActive ? (
               <span className={cn(
                 "ml-0.5 inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-px text-xs font-medium",
-                siteRule.mode === "disabled"
+                siteDisabled
                   ? "bg-rose-100 text-rose-600"
                   : "bg-amber-100 text-amber-700"
               )}>
-                {siteRule.mode === "disabled" ? (
+                {siteDisabled ? (
                   <><AlertTriangle className="size-2.5" />站点已禁用</>
                 ) : (
                   <><Zap className="size-2.5" />站点专属</>
@@ -260,9 +261,9 @@ function ThemeListCard({ theme, themePack, actionConfig, selected, onSelect, dis
 
 // ── ThemeListSection ──────────────────────────────────────────
 
-function ThemeListSection({ items, activeThemeId, siteRule, busyKey, setThemeId }) {
-  const siteRuleActive = siteRule?.mode === "enabled";
-  const siteRuleDisabled = siteRule?.mode === "disabled";
+function ThemeListSection({ items, activeThemeId, siteAction, busyKey, setThemeId }) {
+  const siteActionEnabled = siteAction && siteAction.enable;
+  const siteActionDisabled = siteAction === "disable";
   return (
     <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <div className="mb-1.5 flex items-center justify-between gap-3 px-0.5">
@@ -271,12 +272,12 @@ function ThemeListSection({ items, activeThemeId, siteRule, busyKey, setThemeId 
           <span className="ml-1 font-normal normal-case text-slate-400">{items.length} 个</span>
         </h3>
       </div>
-      {siteRuleActive ? (
+      {siteActionEnabled ? (
         <div className="mb-1.5 rounded-lg border border-amber-200/60 bg-amber-50/70 px-2.5 py-1.5 text-xs text-amber-700">
           此站点已绑定专属主题，切换将更新站点规则。
         </div>
       ) : null}
-      {siteRuleDisabled ? (
+      {siteActionDisabled ? (
         <div className="mb-1.5 rounded-lg border border-rose-200/60 bg-rose-50/70 px-2.5 py-1.5 text-xs text-rose-700">
           此站点的特效已禁用，切换主题将重新启用。
         </div>
@@ -356,7 +357,7 @@ function LoadingShell() {
 // ── PopupPage ─────────────────────────────────────────────────
 
 export default function PopupPage() {
-  const { ready, site, enabled, busyKey, notice, activeAction, activeThemeChoice, themeChoices, siteRule, setEnabled, setThemeId, previewCurrentTheme, openOptionsPage } = usePopupState();
+  const { ready, site, enabled, busyKey, notice, activeAction, activeThemeChoice, themeChoices, siteAction, setEnabled, setThemeId, previewCurrentTheme, openOptionsPage } = usePopupState();
   if (!ready) return <LoadingShell />;
 
   return (
@@ -365,7 +366,7 @@ export default function PopupPage() {
       style={{ width: POPUP_WIDTH, height: POPUP_HEIGHT, fontFamily: '"SF Pro Display","SF Pro Text","PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif' }}
     >
       <div className="flex h-full w-full flex-col gap-2.5 bg-white p-3">
-        <Header enabled={enabled} siteHost={site.host} siteRule={siteRule} busyKey={busyKey} setEnabled={setEnabled} />
+        <Header enabled={enabled} siteHost={site.host} siteAction={siteAction} busyKey={busyKey} setEnabled={setEnabled} />
 
         <CurrentThemeHero
           theme={activeThemeChoice?.theme}
@@ -374,7 +375,7 @@ export default function PopupPage() {
           actionLabel={activeAction?.label || "左键单击"}
         />
 
-        <ThemeListSection items={themeChoices} activeThemeId={activeThemeChoice?.theme?.id} siteRule={siteRule} busyKey={busyKey} setThemeId={setThemeId} />
+        <ThemeListSection items={themeChoices} activeThemeId={activeThemeChoice?.theme?.id} siteAction={siteAction} busyKey={busyKey} setThemeId={setThemeId} />
 
         <FooterActions notice={notice} canPreview={site.isSupportedPage} busyKey={busyKey} previewCurrentTheme={previewCurrentTheme} openOptionsPage={openOptionsPage} />
       </div>

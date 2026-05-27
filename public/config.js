@@ -271,35 +271,53 @@
     };
   }
 
-  function normalizeSiteRule(rule) {
-    if (typeof rule === "string") {
-      return {
-        mode: rule,
-      };
-    }
-    if (!rule || typeof rule !== "object" || Array.isArray(rule)) {
-      return {
-        mode: "inherit",
-      };
-    }
-    return {
-      mode: typeof rule.mode === "string" ? rule.mode : "inherit",
-      themePackId: typeof rule.themePackId === "string" ? normalizeThemePackId(rule.themePackId) : undefined,
-    };
-  }
-
   function normalizeSiteRules(siteRules, fallbackSiteRules) {
-    const mergedByHost = {
-      ...((fallbackSiteRules && fallbackSiteRules.byHost) || {}),
-    };
-    Object.entries((siteRules && siteRules.byHost) || {}).forEach(([host, rule]) => {
-      mergedByHost[host] = normalizeSiteRule(rule);
-    });
-    return {
-      ...(fallbackSiteRules || {}),
-      ...(siteRules || {}),
-      byHost: mergedByHost,
-    };
+    if (Array.isArray(siteRules)) {
+      return siteRules.filter(function (rule) {
+        return rule && typeof rule === "object" && rule.pattern && rule.action;
+      }).map(function (rule, index) {
+        return {
+          id: rule.id || ("r" + (index + 1)),
+          pattern: {
+            type: (rule.pattern && rule.pattern.type) || "exact",
+            value: (rule.pattern && typeof rule.pattern.value === "string") ? rule.pattern.value : "",
+          },
+          action: rule.action,
+          enabled: rule.enabled !== false,
+        };
+      });
+    }
+
+    if (siteRules && siteRules.byHost && typeof siteRules.byHost === "object") {
+      var migrated = [];
+      var hostIndex = 0;
+      Object.entries(siteRules.byHost).forEach(function ([host, rule]) {
+        var normalized = typeof rule === "string" ? { mode: rule } : (rule || {});
+        var action;
+        if (normalized.mode === "disabled") {
+          action = "disable";
+        } else if (normalized.mode === "enabled" && normalized.themePackId) {
+          action = { enable: true, theme: normalizeThemePackId(normalized.themePackId) };
+        } else if (normalized.mode === "enabled") {
+          action = { enable: true };
+        } else {
+          return;
+        }
+        hostIndex++;
+        migrated.push({
+          id: "r" + hostIndex,
+          pattern: { type: "exact", value: host },
+          action: action,
+          enabled: true,
+        });
+      });
+      return migrated;
+    }
+
+    var fallback = fallbackSiteRules;
+    if (Array.isArray(fallback)) return fallback;
+    if (fallback && fallback.byHost) return normalizeSiteRules(fallback);
+    return [];
   }
 
   function normalizeEditorPrefs(editorPrefs, fallbackEditorPrefs) {
@@ -340,7 +358,7 @@
     return {
       ...fallback,
       ...value,
-      schemaVersion: 2,
+      schemaVersion: 3,
       enabled: value?.enabled !== false,
       activeThemePackId,
       activeSchemeId: activeThemePackId,
@@ -357,79 +375,16 @@
 
   function needsMigration(value) {
     if (!value || typeof value !== "object" || Array.isArray(value)) return true;
-    if (value.schemaVersion !== 2) return true;
+    if (value.schemaVersion !== 3) return true;
     if (!Array.isArray(value.themePacks)) return true;
     if (!value.activeThemePackId) return true;
-    return Object.values(value.siteRules?.byHost || {}).some((rule) => typeof rule === "string");
-  }
-
-  function getSiteRule(config, host) {
-    return normalizeSiteRule(config?.siteRules?.byHost?.[host]);
-  }
-
-  function getSiteMode(config, host) {
-    return getSiteRule(config, host).mode;
-  }
-
-  function getSiteThemePackId(config, host) {
-    return getSiteRule(config, host).themePackId;
-  }
-
-  function setSiteRuleMode(config, host, mode) {
-    const nextByHost = {
-      ...(config?.siteRules?.byHost || {}),
-    };
-    if (!host || mode === "inherit") {
-      delete nextByHost[host];
-    } else {
-      const currentRule = normalizeSiteRule(nextByHost[host]);
-      nextByHost[host] = {
-        ...currentRule,
-        mode,
-      };
-    }
-    return {
-      ...config,
-      siteRules: {
-        ...(config?.siteRules || {}),
-        byHost: nextByHost,
-      },
-    };
-  }
-
-  function setSiteRuleThemePackId(config, host, themePackId) {
-    const nextByHost = {
-      ...(config?.siteRules?.byHost || {}),
-    };
-    if (!host) {
-      return {
-        ...config,
-        siteRules: {
-          ...(config?.siteRules || {}),
-          byHost: nextByHost,
-        },
-      };
-    }
-
-    const currentRule = normalizeSiteRule(nextByHost[host]);
-    nextByHost[host] = {
-      ...currentRule,
-      mode: currentRule.mode === "disabled" ? "enabled" : currentRule.mode,
-      themePackId: normalizeThemePackId(themePackId),
-    };
-
-    return {
-      ...config,
-      siteRules: {
-        ...(config?.siteRules || {}),
-        byHost: nextByHost,
-      },
-    };
+    if (value.siteRules && !Array.isArray(value.siteRules)) return true;
+    return false;
   }
 
   const defaultThemePacks = createDefaultThemePacks();
   const defaultConfig = {
-    schemaVersion: 2,
+    schemaVersion: 3,
     enabled: true,
     activeThemePackId: "woodfish",
     activeSchemeId: "woodfish",
@@ -438,9 +393,7 @@
     performance: {
       maxActiveEffects: 48,
     },
-    siteRules: {
-      byHost: {},
-    },
+    siteRules: [],
     editor: {
       mode: "simple",
       lastWorkspace: "workspace",
@@ -469,14 +422,8 @@
     getActionCursorFeedbackConfig,
     mergeThemePackWithFallback,
     mergeCursorStates,
-    normalizeSiteRule,
     normalizeSiteRules,
     normalizeConfig,
     needsMigration,
-    getSiteRule,
-    getSiteMode,
-    getSiteThemePackId,
-    setSiteRuleMode,
-    setSiteRuleThemePackId,
   };
 })();

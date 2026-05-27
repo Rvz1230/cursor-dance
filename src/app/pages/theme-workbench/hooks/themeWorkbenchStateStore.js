@@ -4,10 +4,6 @@ import {
 } from "../model/workbenchSchema.js";
 import {
   createWorkbenchThemeState,
-  DEFAULT_WORKBENCH_SITE_MODE,
-  SITE_MODE_ENABLED,
-  SITE_MODE_DISABLED,
-  SITE_MODE_FOLLOW,
 } from "../lib/extensionConfig.js";
 
 export const INITIAL_THEME_STATE = createWorkbenchThemeState(THEMES);
@@ -19,12 +15,11 @@ export const initialState = {
     actionId: "leftClick",
     cursorStateId: "default",
   },
-  siteMode: DEFAULT_WORKBENCH_SITE_MODE,
-  siteThemeId: "",
+  siteRules: [],
+  siteRulesEditor: { editingRuleId: null, draftRule: null },
   ui: {
     enabled: true,
     unsaved: true,
-    siteFilter: "",
     isHydrated: false,
     isSaving: false,
     saveError: "",
@@ -35,7 +30,6 @@ export const initialState = {
     tabId: null,
   },
   recentCursorAssets: [],
-  siteRulesByHost: {},
   themeLibrary: INITIAL_THEME_STATE.themeLibrary,
   draftsByTheme: INITIAL_THEME_STATE.draftsByTheme,
 };
@@ -64,7 +58,6 @@ export function reducer(state, action) {
       return {
         ...state,
         selection: { ...state.selection, themeId: action.payload },
-        siteThemeId: state.siteMode === SITE_MODE_ENABLED ? state.siteThemeId : action.payload,
         ui: { ...state.ui, saveError: "" },
       };
     case "theme/library-add": {
@@ -77,7 +70,6 @@ export function reducer(state, action) {
           [theme.id]: draft,
         },
         selection: select ? { ...state.selection, themeId: theme.id } : state.selection,
-        siteThemeId: select && state.siteMode !== SITE_MODE_ENABLED ? theme.id : state.siteThemeId,
         ui: { ...state.ui, unsaved: true, saveError: "" },
       };
     }
@@ -93,7 +85,6 @@ export function reducer(state, action) {
           ...state.selection,
           themeId: nextSelectedThemeId || state.selection.themeId,
         },
-        siteThemeId: state.siteThemeId === themeId ? (nextSelectedThemeId || state.selection.themeId) : state.siteThemeId,
         ui: { ...state.ui, unsaved: true, saveError: "" },
       };
     }
@@ -131,141 +122,66 @@ export function reducer(state, action) {
       };
     case "global-enabled/set":
       return { ...state, ui: { ...state.ui, enabled: action.payload, unsaved: true, saveError: "" } };
-    case "site-filter/set":
-      return { ...state, ui: { ...state.ui, siteFilter: action.payload } };
-    case "site-mode/set": {
-      const nextRulesByHost = { ...state.siteRulesByHost };
-      if (state.site.host) {
-        if (action.payload === SITE_MODE_FOLLOW) {
-          delete nextRulesByHost[state.site.host];
-        } else {
-          nextRulesByHost[state.site.host] = {
-            ...(nextRulesByHost[state.site.host] || {}),
-            mode: action.payload === SITE_MODE_ENABLED ? "enabled" : "disabled",
-          };
-          if (action.payload !== SITE_MODE_ENABLED) {
-            delete nextRulesByHost[state.site.host].themePackId;
-          } else if (!nextRulesByHost[state.site.host].themePackId) {
-            nextRulesByHost[state.site.host].themePackId = state.siteThemeId || state.selection.themeId;
-          }
-        }
-      }
+    case "site-rules/add": {
+      const rule = action.payload;
+      if (!rule || !rule.pattern || !rule.action) return state;
+      const newRule = {
+        id: rule.id || ("r" + (Date.now().toString(36) + Math.random().toString(36).slice(2, 6))),
+        pattern: { ...rule.pattern },
+        action: rule.action,
+        enabled: rule.enabled !== false,
+      };
       return {
         ...state,
-        siteMode: action.payload,
-        siteThemeId:
-          action.payload === SITE_MODE_ENABLED
-            ? (nextRulesByHost[state.site.host]?.themePackId || state.siteThemeId || state.selection.themeId)
-            : state.selection.themeId,
-        siteRulesByHost: nextRulesByHost,
+        siteRules: [...state.siteRules, newRule],
         ui: { ...state.ui, unsaved: true, saveError: "" },
       };
     }
-    case "site-theme/set": {
-      const nextThemeId = action.payload;
-      const nextRulesByHost = { ...state.siteRulesByHost };
-      if (state.site.host) {
-        const currentRule = nextRulesByHost[state.site.host] || {};
-        nextRulesByHost[state.site.host] = {
-          ...currentRule,
-          mode: "enabled",
-          themePackId: nextThemeId,
-        };
-      }
+    case "site-rules/update": {
+      const { id, updates } = action.payload;
       return {
         ...state,
-        siteMode: SITE_MODE_ENABLED,
-        siteThemeId: nextThemeId,
-        siteRulesByHost: nextRulesByHost,
+        siteRules: state.siteRules.map((rule) =>
+          rule.id === id ? { ...rule, ...updates } : rule
+        ),
         ui: { ...state.ui, unsaved: true, saveError: "" },
       };
     }
-    case "site-rules/remove-host": {
-      const nextRulesByHost = { ...state.siteRulesByHost };
-      delete nextRulesByHost[action.payload];
-      const currentHostRemoved = action.payload === state.site.host;
+    case "site-rules/delete": {
+      const ruleId = action.payload;
       return {
         ...state,
-        siteRulesByHost: nextRulesByHost,
-        siteMode: currentHostRemoved ? DEFAULT_WORKBENCH_SITE_MODE : state.siteMode,
-        siteThemeId: currentHostRemoved ? state.selection.themeId : state.siteThemeId,
+        siteRules: state.siteRules.filter((rule) => rule.id !== ruleId),
+        ui: { ...state.ui, unsaved: true, saveError: "" },
+      };
+    }
+    case "site-rules/reorder": {
+      const { from, to } = action.payload;
+      const nextRules = [...state.siteRules];
+      const [moved] = nextRules.splice(from, 1);
+      nextRules.splice(to, 0, moved);
+      return {
+        ...state,
+        siteRules: nextRules,
+        ui: { ...state.ui, unsaved: true, saveError: "" },
+      };
+    }
+    case "site-rules/toggle": {
+      const ruleId = action.payload;
+      return {
+        ...state,
+        siteRules: state.siteRules.map((rule) =>
+          rule.id === ruleId ? { ...rule, enabled: !rule.enabled } : rule
+        ),
         ui: { ...state.ui, unsaved: true, saveError: "" },
       };
     }
     case "site-rules/clear-all":
       return {
         ...state,
-        siteMode: DEFAULT_WORKBENCH_SITE_MODE,
-        siteThemeId: state.selection.themeId,
-        siteRulesByHost: {},
+        siteRules: [],
         ui: { ...state.ui, unsaved: true, saveError: "" },
       };
-    case "site-rules/remove-hosts": {
-      const nextRulesByHost = { ...state.siteRulesByHost };
-      action.payload.forEach((host) => delete nextRulesByHost[host]);
-      const currentHostRemoved = action.payload.includes(state.site.host);
-      return {
-        ...state,
-        siteRulesByHost: nextRulesByHost,
-        siteMode: currentHostRemoved ? DEFAULT_WORKBENCH_SITE_MODE : state.siteMode,
-        siteThemeId: currentHostRemoved ? state.selection.themeId : state.siteThemeId,
-        ui: { ...state.ui, unsaved: true, saveError: "" },
-      };
-    }
-    case "site-rules/add-host": {
-      const { host, mode, themePackId } = action.payload;
-      if (!host) return state;
-      const normalizedHost = host.trim().toLowerCase();
-      if (!normalizedHost) return state;
-      const nextRulesByHost = { ...state.siteRulesByHost };
-      nextRulesByHost[normalizedHost] = {
-        mode,
-        ...(mode === "enabled" && themePackId ? { themePackId } : {}),
-      };
-      const isCurrentHost = normalizedHost === state.site.host;
-      return {
-        ...state,
-        siteRulesByHost: nextRulesByHost,
-        siteMode: isCurrentHost
-          ? (mode === "enabled" ? SITE_MODE_ENABLED : mode === "disabled" ? SITE_MODE_DISABLED : DEFAULT_WORKBENCH_SITE_MODE)
-          : state.siteMode,
-        siteThemeId: isCurrentHost && mode === "enabled" && themePackId
-          ? themePackId
-          : (isCurrentHost ? state.selection.themeId : state.siteThemeId),
-        ui: { ...state.ui, unsaved: true, saveError: "" },
-      };
-    }
-    case "site-rules/update-host": {
-      const { host, mode, themePackId } = action.payload;
-      if (!host) return state;
-      const normalizedHost = host.trim().toLowerCase();
-      if (!normalizedHost || !state.siteRulesByHost[normalizedHost]) return state;
-      const nextRulesByHost = { ...state.siteRulesByHost };
-      const currentRule = { ...nextRulesByHost[normalizedHost] };
-      if (mode !== undefined) {
-        currentRule.mode = mode;
-        if (mode !== "enabled") {
-          delete currentRule.themePackId;
-        }
-      }
-      if (themePackId !== undefined) {
-        currentRule.themePackId = themePackId;
-        currentRule.mode = "enabled";
-      }
-      nextRulesByHost[normalizedHost] = currentRule;
-      const isCurrentHost = normalizedHost === state.site.host;
-      return {
-        ...state,
-        siteRulesByHost: nextRulesByHost,
-        siteMode: isCurrentHost
-          ? (currentRule.mode === "enabled" ? SITE_MODE_ENABLED : currentRule.mode === "disabled" ? SITE_MODE_DISABLED : DEFAULT_WORKBENCH_SITE_MODE)
-          : state.siteMode,
-        siteThemeId: isCurrentHost && currentRule.mode === "enabled" && currentRule.themePackId
-          ? currentRule.themePackId
-          : (isCurrentHost && currentRule.mode !== "enabled" ? state.selection.themeId : state.siteThemeId),
-        ui: { ...state.ui, unsaved: true, saveError: "" },
-      };
-    }
     case "save/start":
       return { ...state, ui: { ...state.ui, isSaving: true, saveError: "" } };
     case "save/success":

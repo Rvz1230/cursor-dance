@@ -127,7 +127,7 @@ export function useThemeWorkbenchState() {
       activeSchemeId: state.selection.themeId,
       themePacks: [],
       schemes: [],
-      siteRules: { byHost: {} },
+      siteRules: [],
       editor: {},
     };
     const themePack = buildStoredThemePackFromWorkbench(previousConfig, state, themeId);
@@ -195,7 +195,6 @@ export function useThemeWorkbenchState() {
     renameTheme,
     updateThemeIcon,
     resetCurrentTheme: () => dispatch({ type: "theme/reset-current" }),
-    setSiteFilter: (value) => dispatch({ type: "site-filter/set", payload: value }),
     updateActionConfig: (patch) =>
       updateCurrentTheme((current) => ({
         ...current,
@@ -317,12 +316,11 @@ export function useThemeWorkbenchState() {
         cursorStateActions: buildDefaultCursorStateActions(),
         cursorStateAssets: buildDefaultCursorStateAssets(),
       })),
-    setSiteMode: (mode) => dispatch({ type: "site-mode/set", payload: mode }),
-    setSiteThemeId: (themeId) => dispatch({ type: "site-theme/set", payload: themeId }),
-    addSiteRule: (host, mode, themePackId) => dispatch({ type: "site-rules/add-host", payload: { host, mode, themePackId } }),
-    updateSiteRule: (host, mode, themePackId) => dispatch({ type: "site-rules/update-host", payload: { host, mode, themePackId } }),
+    addSiteRule: (rule) => dispatch({ type: "site-rules/add", payload: rule }),
+    updateSiteRule: (id, updates) => dispatch({ type: "site-rules/update", payload: { id, updates } }),
+    deleteSiteRule: (id) => dispatch({ type: "site-rules/delete", payload: id }),
+    reorderSiteRules: (from, to) => dispatch({ type: "site-rules/reorder", payload: { from, to } }),
+    toggleSiteRule: (id) => dispatch({ type: "site-rules/toggle", payload: id }),
     clearAllSiteRules: () => dispatch({ type: "site-rules/clear-all" }),
-    clearFilteredSiteRules: (hosts) => dispatch({ type: "site-rules/remove-hosts", payload: hosts }),
-    removeSiteRule: (host) => dispatch({ type: "site-rules/remove-host", payload: host }),
   };
 }

@@ -60,23 +60,45 @@ function getErrorMessage(error, fallback) {
   return error instanceof Error ? error.message : fallback;
 }
 
-export function getEffectiveActiveThemeId(siteRule, activeThemeId) {
-  if (siteRule.mode === "enabled" && siteRule.themePackId) {
-    return siteRule.themePackId;
+function getSiteAction(config, host, path) {
+  if (!config) return null;
+  var runtime = getRuntimeConfig();
+  if (typeof runtime.resolveSiteRule === "function") {
+    return runtime.resolveSiteRule(config.siteRules, host, path);
+  }
+  return null;
+}
+
+export function getEffectiveActiveThemeId(siteAction, activeThemeId) {
+  if (siteAction && siteAction.enable && siteAction.theme) {
+    return siteAction.theme;
   }
   return activeThemeId;
 }
 
 export function resolveNextConfigForThemeChange(currentConfig, site, themeId, previewActionId) {
-  const runtime = getRuntimeConfig();
-  const currentSiteRule = runtime.getSiteRule(currentConfig, site.host);
+  var host = site.host || "";
+  var pathname = "/";
+  var runtime = getRuntimeConfig();
+  var siteAction = getSiteAction(currentConfig, host, pathname);
 
-  if (currentSiteRule.mode === "enabled" && site.host) {
-    return runtime.setSiteRuleThemePackId(currentConfig, site.host, themeId);
+  if (siteAction && siteAction.enable && host) {
+    var nextRules = (Array.isArray(currentConfig.siteRules) ? currentConfig.siteRules : []).map(function (rule) {
+      if (rule.pattern && rule.pattern.type === "exact" && rule.pattern.value === host && rule.action && rule.action.enable) {
+        return { ...rule, action: { ...rule.action, theme: themeId } };
+      }
+      return rule;
+    });
+    return { ...currentConfig, siteRules: nextRules };
   }
-  if (currentSiteRule.mode === "disabled" && site.host) {
-    const enabledConfig = runtime.setSiteRuleMode(currentConfig, site.host, "enabled");
-    return runtime.setSiteRuleThemePackId(enabledConfig, site.host, themeId);
+  if (siteAction === "disable" && host) {
+    var nextRulesWithEnable = (Array.isArray(currentConfig.siteRules) ? currentConfig.siteRules : []).map(function (rule) {
+      if (rule.pattern && rule.pattern.type === "exact" && rule.pattern.value === host && rule.action === "disable") {
+        return { ...rule, action: { enable: true, theme: themeId } };
+      }
+      return rule;
+    });
+    return { ...currentConfig, siteRules: nextRulesWithEnable };
   }
   return {
     ...currentConfig,
@@ -158,8 +180,8 @@ export function usePopupState() {
   }, [effectiveConfig, site]);
 
   const activeThemeId = hydrated.selection.themeId;
-  const siteRule = getRuntimeConfig().getSiteRule(effectiveConfig, site.host);
-  const effectiveActiveThemeId = getEffectiveActiveThemeId(siteRule, activeThemeId);
+  var siteAction = getSiteAction(effectiveConfig, site.host, "/");
+  const effectiveActiveThemeId = getEffectiveActiveThemeId(siteAction, activeThemeId);
   const previewActionId = getPreviewActionId(effectiveConfig);
   const activeAction = ACTIONS.find((item) => item.id === previewActionId) ?? ACTIONS[0];
 
@@ -298,7 +320,7 @@ export function usePopupState() {
     activeAction,
     activeThemeChoice,
     themeChoices,
-    siteRule,
+    siteAction,
     runtimeErrors,
     setEnabled,
     setThemeId,

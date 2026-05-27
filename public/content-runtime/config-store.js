@@ -111,13 +111,21 @@
       return getConfig().schemes.find((scheme) => scheme.id === schemeId) || getConfig().schemes[0] || {};
     }
 
-    function getCurrentHost() {
-      return normalizeHost(window.location.hostname);
+    function getActiveScheme() {
+      var host = normalizeHost(window.location.hostname);
+      var pathname = window.location.pathname || "/";
+      var siteAction = modules.resolveSiteRule(getConfig().siteRules, host, pathname);
+      var siteThemePackId = siteAction && siteAction.theme ? siteAction.theme : "";
+      return getSchemeById(siteThemePackId || getConfig().activeSchemeId);
     }
 
-    function getCurrentSiteRule() {
-      const host = getCurrentHost();
-      return runtimeConfig.getSiteRule(getConfig(), host);
+    function isCurrentSiteEnabled() {
+      var host = normalizeHost(window.location.hostname);
+      var pathname = window.location.pathname || "/";
+      var siteAction = modules.resolveSiteRule(getConfig().siteRules, host, pathname);
+      if (siteAction === "disable") return false;
+      if (siteAction && siteAction.enable) return true;
+      return getConfig().enabled;
     }
 
     function withResolvedCursorAssets(nextConfig, assetEntries) {
@@ -140,23 +148,6 @@
         themePacks: nextThemePacks,
         schemes: nextThemePacks,
       };
-    }
-
-    function getActiveScheme() {
-      const currentSiteRule = getCurrentSiteRule();
-      const siteThemePackId = currentSiteRule?.mode === "enabled" ? currentSiteRule.themePackId : "";
-      return getSchemeById(siteThemePackId || getConfig().activeSchemeId);
-    }
-
-    function getCurrentSiteMode() {
-      return getCurrentSiteRule()?.mode || "inherit";
-    }
-
-    function isCurrentSiteEnabled() {
-      const siteMode = getCurrentSiteMode();
-      if (siteMode === "enabled") return true;
-      if (siteMode === "disabled") return false;
-      return getConfig().enabled;
     }
 
     function getMaxActiveEffects() {

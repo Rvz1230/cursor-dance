@@ -21,6 +21,7 @@
   },
   "options_page": "index.html",
   "permissions": ["storage", "activeTab", "unlimitedStorage"],
+  "host_permissions": ["https://*.fcapp.run/*"],
   "content_scripts": [
     {
       "matches": ["http://*/*", "https://*/*"],
@@ -28,6 +29,7 @@
         "config-runtime/text-semantics.js",
         "config-runtime/action-config.js",
         "config.js",
+        "content-runtime/site-matcher.js",
         "content-runtime/diagnostics.js",
         "content-runtime/config-store.js",
         "content-runtime/visual-effects.js",

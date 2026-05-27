@@ -7,9 +7,6 @@ import {
   buildStoredConfigFromWorkbench,
   buildStoredThemePackFromWorkbench,
   hydrateWorkbenchState,
-  SITE_MODE_ENABLED,
-  SITE_MODE_DISABLED,
-  SITE_MODE_FOLLOW,
 } from "./themeDraftAdapter.js";
 import { buildThemeExportPayload } from "./extensionStorage.js";
 
@@ -54,13 +51,7 @@ describe("themeDraftAdapter", () => {
     installWindowStub();
   });
 
-  it("hydrates workbench state through runtime site mode and editor aliases", () => {
-    installWindowStub({
-      CursorDanceConfigRuntime: {
-        getSiteRule: vi.fn(() => ({ mode: "enabled", themePackId: "woodfish" })),
-      },
-    });
-
+  it("hydrates workbench state with siteRules array", () => {
     const savedDraft = createThemeDraft("woodfish");
     savedDraft.actionConfigs.leftClick.textContent = "已保存";
 
@@ -78,11 +69,9 @@ describe("themeDraftAdapter", () => {
             },
           },
         ],
-        siteRules: {
-          byHost: {
-            "example.com": { mode: "enabled" },
-          },
-        },
+        siteRules: [
+          { id: "r1", pattern: { type: "exact", value: "example.com" }, action: "disable" },
+        ],
         editor: {
           lastWorkspace: "workspace",
           lastActionId: "doubleClick",
@@ -93,8 +82,9 @@ describe("themeDraftAdapter", () => {
     );
 
     expect(state.workspaceId).toBe("workbench");
-    expect(state.siteMode).toBe(SITE_MODE_ENABLED);
-    expect(state.siteThemeId).toBe("woodfish");
+    expect(state.siteRules).toEqual([
+      { id: "r1", pattern: { type: "exact", value: "example.com" }, action: "disable" },
+    ]);
     expect(state.selection).toEqual({
       themeId: "woodfish",
       actionId: "doubleClick",
@@ -139,30 +129,7 @@ describe("themeDraftAdapter", () => {
     });
   });
 
-  it("writes stored config through runtime site-rule and normalization adapters", () => {
-    const setSiteRuleMode = vi.fn((config, host, mode) => ({
-      ...config,
-      siteRules: {
-        ...(config.siteRules || {}),
-        byHost: {
-          ...(config.siteRules?.byHost || {}),
-          [host]: { mode },
-        },
-      },
-    }));
-    const setSiteRuleThemePackId = vi.fn((config, host, themePackId) => ({
-      ...config,
-      siteRules: {
-        ...(config.siteRules || {}),
-        byHost: {
-          ...(config.siteRules?.byHost || {}),
-          [host]: {
-            ...(config.siteRules?.byHost?.[host] || {}),
-            themePackId,
-          },
-        },
-      },
-    }));
+  it("writes stored config with siteRules array", () => {
     const normalizeConfig = vi.fn((config) => ({
       ...config,
       normalized: true,
@@ -170,8 +137,6 @@ describe("themeDraftAdapter", () => {
 
     installWindowStub({
       CursorDanceConfigRuntime: {
-        setSiteRuleMode,
-        setSiteRuleThemePackId,
         normalizeConfig,
       },
     });
@@ -179,6 +144,10 @@ describe("themeDraftAdapter", () => {
     const draft = createThemeDraft("woodfish");
     draft.cursorModes.wait = "覆盖";
     draft.cursorStateActions.wait = "doubleClick";
+
+    const siteRules = [
+      { id: "r1", pattern: { type: "exact", value: "example.com" }, action: "disable" },
+    ];
 
     const storedConfig = buildStoredConfigFromWorkbench(
       {
@@ -188,8 +157,7 @@ describe("themeDraftAdapter", () => {
       },
       {
         workspaceId: "workbench",
-        siteMode: SITE_MODE_DISABLED,
-        siteThemeId: "woodfish",
+        siteRules,
         themeLibrary: [createThemeLibraryEntry()],
         draftsByTheme: { woodfish: draft },
         selection: {
@@ -197,13 +165,11 @@ describe("themeDraftAdapter", () => {
           actionId: "doubleClick",
           cursorStateId: "wait",
         },
-        siteRulesByHost: {},
         ui: { enabled: false },
         site: { host: "example.com" },
       }
     );
 
-    expect(setSiteRuleMode).toHaveBeenCalledWith(expect.any(Object), "example.com", "disabled");
     expect(normalizeConfig).toHaveBeenCalledTimes(1);
     expect(storedConfig.normalized).toBe(true);
     expect(storedConfig.editor).toMatchObject({
@@ -213,78 +179,8 @@ describe("themeDraftAdapter", () => {
     });
     expect(storedConfig.activeThemePackId).toBe("woodfish");
     expect(storedConfig.schemes).toEqual(storedConfig.themePacks);
-    expect(storedConfig.siteRules.byHost["example.com"]).toEqual({ mode: "disabled" });
+    expect(storedConfig.siteRules).toEqual(siteRules);
     expect(storedConfig.themePacks[0].cursorStates.wait.mode).toBe("override");
-    expect(setSiteRuleThemePackId).not.toHaveBeenCalled();
-  });
-
-  it("writes enabled site rules with a dedicated theme binding", () => {
-    const setSiteRuleMode = vi.fn((config, host, mode) => ({
-      ...config,
-      siteRules: {
-        ...(config.siteRules || {}),
-        byHost: {
-          ...(config.siteRules?.byHost || {}),
-          [host]: { mode },
-        },
-      },
-    }));
-    const setSiteRuleThemePackId = vi.fn((config, host, themePackId) => ({
-      ...config,
-      siteRules: {
-        ...(config.siteRules || {}),
-        byHost: {
-          ...(config.siteRules?.byHost || {}),
-          [host]: {
-            ...(config.siteRules?.byHost?.[host] || {}),
-            themePackId,
-          },
-        },
-      },
-    }));
-
-    installWindowStub({
-      CursorDanceConfigRuntime: {
-        setSiteRuleMode,
-        setSiteRuleThemePackId,
-        normalizeConfig: (config) => config,
-      },
-    });
-
-    const draft = createThemeDraft("woodfish");
-
-    const storedConfig = buildStoredConfigFromWorkbench(
-      {
-        enabled: true,
-        themePacks: [],
-        editor: {},
-      },
-      {
-        workspaceId: "sites",
-        siteMode: SITE_MODE_ENABLED,
-        siteThemeId: "petal",
-        themeLibrary: [
-          createThemeLibraryEntry(),
-          createThemeLibraryEntry({ id: "petal", name: "花瓣流光", tone: "rose" }),
-        ],
-        draftsByTheme: {
-          woodfish: draft,
-          petal: createThemeDraft("petal"),
-        },
-        selection: {
-          themeId: "woodfish",
-          actionId: "leftClick",
-          cursorStateId: "default",
-        },
-        siteRulesByHost: {},
-        ui: { enabled: true },
-        site: { host: "example.com" },
-      }
-    );
-
-    expect(setSiteRuleMode).toHaveBeenCalledWith(expect.any(Object), "example.com", "enabled");
-    expect(setSiteRuleThemePackId).toHaveBeenCalledWith(expect.any(Object), "example.com", "petal");
-    expect(storedConfig.siteRules.byHost["example.com"]).toEqual({ mode: "enabled", themePackId: "petal" });
   });
 
   it("preserves woodfish number semantics across themePack to draft to stored themePack", () => {
@@ -453,78 +349,53 @@ describe("themeDraftAdapter", () => {
   });
 
   it("round-trips site rules through hydrate → modify → buildStoredConfig → rehydrate", () => {
-    const { defaultConfig, runtime } = installPublicConfigRuntime();
-    runtime.setSiteRuleMode = vi.fn((config, host, mode) => {
-      const nextByHost = { ...(config.siteRules?.byHost || {}) };
-      if (mode === "inherit") {
-        delete nextByHost[host];
-      } else {
-        nextByHost[host] = mode === "enabled"
-          ? { mode, themePackId: nextByHost[host]?.themePackId || "woodfish" }
-          : { mode };
-      }
-      return {
-        ...config,
-        siteRules: { ...(config.siteRules || {}), byHost: nextByHost },
-      };
-    });
-    runtime.setSiteRuleThemePackId = vi.fn((config, host, themePackId) => ({
-      ...config,
-      siteRules: {
-        ...(config.siteRules || {}),
-        byHost: {
-          ...(config.siteRules?.byHost || {}),
-          [host]: {
-            ...(config.siteRules?.byHost?.[host] || {}),
-            mode: "enabled",
-            themePackId,
-          },
-        },
-      },
-    }));
+    const { defaultConfig } = installPublicConfigRuntime();
 
     // Start with no site rules
     const state1 = hydrateWorkbenchState(defaultConfig, { host: "example.com" });
-    expect(state1.siteMode).toBe(SITE_MODE_FOLLOW);
-    expect(state1.siteRulesByHost).toEqual({});
+    expect(state1.siteRules).toEqual([]);
 
-    // Enable site + select theme
-    const draft = createThemeDraft("woodfish");
-    draft.actionConfigs.leftClick.textContent = "roundtrip";
+    // Add a disable rule for example.com
     const state2 = {
       ...state1,
-      siteMode: SITE_MODE_ENABLED,
-      siteThemeId: "petal",
-      draftsByTheme: { ...state1.draftsByTheme, woodfish: draft },
+      siteRules: [
+        { id: "r1", pattern: { type: "exact", value: "example.com" }, action: "disable" },
+      ],
     };
     const config2 = buildStoredConfigFromWorkbench(defaultConfig, state2);
-    expect(config2.siteRules.byHost["example.com"]).toEqual({ mode: "enabled", themePackId: "petal" });
+    expect(config2.siteRules).toEqual([
+      { id: "r1", pattern: { type: "exact", value: "example.com" }, action: "disable", enabled: true },
+    ]);
 
     // Rehydrate and verify
     const state3 = hydrateWorkbenchState(config2, { host: "example.com" });
-    expect(state3.siteMode).toBe(SITE_MODE_ENABLED);
-    expect(state3.siteThemeId).toBe("petal");
-    expect(state3.siteRulesByHost["example.com"]).toEqual({ mode: "enabled", themePackId: "petal" });
+    expect(state3.siteRules).toEqual([
+      { id: "r1", pattern: { type: "exact", value: "example.com" }, action: "disable", enabled: true },
+    ]);
 
-    // Disable site
+    // Add another rule with a theme binding
     const state4 = {
       ...state3,
-      siteMode: SITE_MODE_DISABLED,
+      siteRules: [
+        { id: "r1", pattern: { type: "exact", value: "example.com" }, action: "disable" },
+        { id: "r2", pattern: { type: "glob", value: "*.google.com" }, action: { enable: true, theme: "petal" } },
+      ],
     };
     const config4 = buildStoredConfigFromWorkbench(config2, state4);
-    expect(config4.siteRules.byHost["example.com"]).toEqual({ mode: "disabled" });
+    expect(config4.siteRules).toHaveLength(2);
+    expect(config4.siteRules[1]).toEqual({ id: "r2", pattern: { type: "glob", value: "*.google.com" }, action: { enable: true, theme: "petal" }, enabled: true });
 
-    // Follow global — rule removed
+    // Remove rules — back to empty
     const state5 = {
       ...state4,
-      siteMode: SITE_MODE_FOLLOW,
+      siteRules: [],
     };
     const config5 = buildStoredConfigFromWorkbench(config4, state5);
-    expect(config5.siteRules.byHost["example.com"]).toBeUndefined();
+    expect(config5.siteRules).toEqual([]);
 
     // Rehydrate after removal
     const state6 = hydrateWorkbenchState(config5, { host: "example.com" });
-    expect(state6.siteMode).toBe(SITE_MODE_FOLLOW);
+    expect(state6.siteRules).toEqual([]);
   });
 
   it("stores and rehydrates animation effect fields through workbench drafts", () => {

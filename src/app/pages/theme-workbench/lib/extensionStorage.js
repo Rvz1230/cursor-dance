@@ -309,7 +309,7 @@ export function buildThemeExportPayload(themePack) {
       activeSchemeId: themePack?.id || "",
       themePacks: [themePack],
       schemes: [themePack],
-      siteRules: { byHost: {} },
+      siteRules: [],
       editor: {},
     }).themePacks[0],
   };

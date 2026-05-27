@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MousePointerClick, Pause, Play, RotateCcw, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button.jsx";
 import { cn } from "@/components/ui/utils.js";
-import { SITE_MODE_DISABLED } from "../lib/extensionConfig.js";
 import {
   PREVIEW_KEYFRAMES,
   buildParticleSpecs,
@@ -52,7 +51,7 @@ function buildOutputNames({ textConfig, particleConfig, rippleConfig, audioConfi
 }
 
 function PreviewEffects({
-  disabledBySite,
+  disabled,
   config,
   runId,
   comboIndex,
@@ -69,7 +68,7 @@ function PreviewEffects({
   const animationStyle = getPreviewAnimationStyle(config);
   const imageStyle = getPreviewImageStyle(config);
 
-  if (disabledBySite) return null;
+  if (disabled) return null;
 
   return (
     <>
@@ -247,8 +246,7 @@ function PreviewTimeline({ tracks, totalMs }) {
   );
 }
 
-function SimplePreviewStage({ config, siteMode, runId, comboIndex, outputs, playbackSpeed }) {
-  const disabledBySite = siteMode === SITE_MODE_DISABLED;
+function SimplePreviewStage({ config, disabled, runId, comboIndex, outputs, playbackSpeed }) {
   const textConfig = useMemo(() => getActionTextConfig(config), [config]);
   const particleConfig = useMemo(() => getActionParticleConfig(config), [config]);
   const rippleConfig = useMemo(() => getActionRippleConfig(config), [config]);
@@ -305,7 +303,7 @@ function SimplePreviewStage({ config, siteMode, runId, comboIndex, outputs, play
         <div className="absolute inset-x-8 bottom-9 top-20 flex items-center justify-center">
           <div className="relative h-0 w-0">
             <PreviewEffects
-              disabledBySite={disabledBySite}
+              disabled={disabled}
               config={config}
               runId={runId}
               comboIndex={comboIndex}
@@ -319,7 +317,7 @@ function SimplePreviewStage({ config, siteMode, runId, comboIndex, outputs, play
           </div>
         </div>
 
-        {audioConfig.sound && !disabledBySite ? (
+        {audioConfig.sound && !disabled ? (
           <div className="absolute right-5 top-20 flex items-center gap-1.5 rounded-lg border border-emerald-100 bg-white/95 px-2 py-1 text-xs text-slate-600 shadow-sm">
             <Volume2 className="size-3 text-emerald-700" aria-hidden="true" />
             <span className="max-w-[88px] truncate">{getPreviewSoundFile(config)}</span>
@@ -344,8 +342,7 @@ function SimplePreviewStage({ config, siteMode, runId, comboIndex, outputs, play
   );
 }
 
-export function WorkbenchPreviewRail({ actionLabel, config, siteMode, previewMode = false }) {
-  const disabledBySite = siteMode === SITE_MODE_DISABLED;
+export function WorkbenchPreviewRail({ actionLabel, config, disabled = false, previewMode = false }) {
   const [runId, setRunId] = useState(0);
   const [comboIndex, setComboIndex] = useState(1);
   const [autoPlay, setAutoPlay] = useState(true);
@@ -367,7 +364,7 @@ export function WorkbenchPreviewRail({ actionLabel, config, siteMode, previewMod
   const displayComboIndex = textConfig.comboEnabled ? comboIndex : 1;
 
   const replay = useCallback(() => {
-    if (disabledBySite) return;
+    if (disabled) return;
     const now = Date.now();
     setRunId((v) => v + 1);
     setComboIndex((prev) => {
@@ -375,21 +372,21 @@ export function WorkbenchPreviewRail({ actionLabel, config, siteMode, previewMod
       return 1;
     });
     lastComboFireRef.current = now;
-  }, [disabledBySite, comboWindowMs]);
+  }, [disabled, comboWindowMs]);
 
   const prevConfigRef = useRef(null);
 
   useEffect(() => {
-    if (disabledBySite) return undefined;
+    if (disabled) return undefined;
     const configFingerprint = JSON.stringify(config);
     if (prevConfigRef.current === configFingerprint) return undefined;
     prevConfigRef.current = configFingerprint;
     setRunId((value) => value + 1);
     return undefined;
-  }, [actionLabel, config, disabledBySite]);
+  }, [actionLabel, config, disabled]);
 
   useEffect(() => {
-    if (disabledBySite || !autoPlay) return undefined;
+    if (disabled || !autoPlay) return undefined;
     lastComboFireRef.current = 0;
     setComboIndex(1);
 
@@ -410,7 +407,7 @@ export function WorkbenchPreviewRail({ actionLabel, config, siteMode, previewMod
         timerRef.current = null;
       }
     };
-  }, [autoPlay, disabledBySite, loopDelay, comboWindowMs]);
+  }, [autoPlay, disabled, loopDelay, comboWindowMs]);
 
   return (
     <div className="min-h-0 flex-1">
@@ -424,7 +421,7 @@ export function WorkbenchPreviewRail({ actionLabel, config, siteMode, previewMod
         summary={previewMode ? "正在预览 AI 建议" : undefined}
         action={
           <div className="flex flex-wrap items-center justify-end gap-1.5">
-            <Button variant="outline" size="icon" className="size-8 rounded-lg" onClick={replay} disabled={disabledBySite} aria-label="重播预览" title="重播">
+            <Button variant="outline" size="icon" className="size-8 rounded-lg" onClick={replay} disabled={disabled} aria-label="重播预览" title="重播">
               <RotateCcw className="h-4 w-4" />
             </Button>
             <Button
@@ -432,7 +429,7 @@ export function WorkbenchPreviewRail({ actionLabel, config, siteMode, previewMod
               size="icon"
               className="size-8 rounded-lg"
               onClick={() => setAutoPlay((value) => !value)}
-              disabled={disabledBySite}
+              disabled={disabled}
               aria-label={autoPlay ? "暂停自动播放" : "开启自动播放"}
               title={autoPlay ? "暂停" : "播放"}
             >
@@ -446,7 +443,7 @@ export function WorkbenchPreviewRail({ actionLabel, config, siteMode, previewMod
                 max="2.5"
                 step="0.05"
                 value={playbackSpeed}
-                disabled={disabledBySite}
+                disabled={disabled}
                 onChange={(event) => setPlaybackSpeed(Number(event.target.value))}
                 className="h-1.5 w-full accent-slate-950"
                 aria-label="调整播放速度"
@@ -456,7 +453,7 @@ export function WorkbenchPreviewRail({ actionLabel, config, siteMode, previewMod
           </div>
         }
       >
-        <SimplePreviewStage config={config} siteMode={siteMode} runId={runId} comboIndex={displayComboIndex} outputs={outputs} playbackSpeed={playbackSpeed} />
+        <SimplePreviewStage config={config} disabled={disabled} runId={runId} comboIndex={displayComboIndex} outputs={outputs} playbackSpeed={playbackSpeed} />
       </Panel>
     </div>
   );

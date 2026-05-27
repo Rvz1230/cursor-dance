@@ -8,12 +8,7 @@ import {
   mergeActionConfig,
   pickStoredWorkbenchActionConfigs,
 } from "../model/workbenchSchema.js";
-import { getDefaultConfig, getRuntimeConfig, normalizeStoredConfig } from "./runtimeConfig.js";
-
-export const SITE_MODE_FOLLOW = "跟随全局";
-export const SITE_MODE_ENABLED = "始终启用";
-export const SITE_MODE_DISABLED = "始终禁用";
-export const DEFAULT_WORKBENCH_SITE_MODE = SITE_MODE_FOLLOW;
+import { getDefaultConfig, normalizeStoredConfig } from "./runtimeConfig.js";
 
 function toWorkbenchCursorMode(stateId, mode) {
   if (stateId === "default") return "源";
@@ -118,23 +113,8 @@ export function createWorkbenchThemeState(themeLibrary = THEMES) {
   };
 }
 
-function toWorkbenchSiteMode(mode) {
-  if (mode === "enabled") return SITE_MODE_ENABLED;
-  if (mode === "disabled") return SITE_MODE_DISABLED;
-  return SITE_MODE_FOLLOW;
-}
-
-function toStoredSiteMode(mode) {
-  if (mode === SITE_MODE_ENABLED) return "enabled";
-  if (mode === SITE_MODE_DISABLED) return "disabled";
-  return "inherit";
-}
-
 export function hydrateWorkbenchState(config, site) {
   const storedThemePacks = Array.isArray(config?.themePacks) ? config.themePacks : [];
-  const currentSiteRule = getRuntimeConfig().getSiteRule(config, site.host);
-  const siteMode = currentSiteRule.mode ?? "inherit";
-  const workbenchSiteMode = toWorkbenchSiteMode(siteMode);
   const themeLibrary = buildThemeLibrary(config);
   const baseThemeState = createWorkbenchThemeState(themeLibrary);
   const draftsByTheme = {
@@ -162,16 +142,11 @@ export function hydrateWorkbenchState(config, site) {
       actionId: selectedActionId,
       cursorStateId: selectedCursorStateId,
     },
-    siteMode: workbenchSiteMode,
-    siteThemeId: currentSiteRule.themePackId || selectedThemeId,
+    siteRules: Array.isArray(config.siteRules) ? config.siteRules : [],
     themeLibrary,
-    siteRulesByHost: {
-      ...(config.siteRules?.byHost || {}),
-    },
     ui: {
       enabled: config.enabled !== false,
       unsaved: false,
-      siteFilter: "",
     },
     site,
     draftsByTheme,
@@ -229,8 +204,6 @@ export function buildStoredConfigFromWorkbench(previousConfig, state) {
   );
 
   const workspaceId = state.workspaceId === "workbench" ? "workspace" : state.workspaceId;
-  const siteMode = toStoredSiteMode(state.siteMode);
-  const runtime = getRuntimeConfig();
   const nextConfig = {
     ...previousConfig,
     enabled: state.ui.enabled,
@@ -238,12 +211,7 @@ export function buildStoredConfigFromWorkbench(previousConfig, state) {
     activeSchemeId: state.selection.themeId,
     themePacks: nextThemePacks,
     schemes: nextThemePacks,
-    siteRules: {
-      ...(previousConfig.siteRules || {}),
-      byHost: {
-        ...(state.siteRulesByHost || {}),
-      },
-    },
+    siteRules: Array.isArray(state.siteRules) ? state.siteRules : [],
     editor: {
       ...(previousConfig.editor || {}),
       lastWorkspace: workspaceId,
@@ -251,14 +219,6 @@ export function buildStoredConfigFromWorkbench(previousConfig, state) {
       lastCursorState: state.selection.cursorStateId,
     },
   };
-
-  if (state.site.host) {
-    const nextConfigWithMode = runtime.setSiteRuleMode(nextConfig, state.site.host, siteMode);
-    if (siteMode === "enabled") {
-      return normalizeStoredConfig(runtime.setSiteRuleThemePackId(nextConfigWithMode, state.site.host, state.siteThemeId || state.selection.themeId));
-    }
-    return normalizeStoredConfig(nextConfigWithMode);
-  }
 
   return normalizeStoredConfig(nextConfig);
 }
