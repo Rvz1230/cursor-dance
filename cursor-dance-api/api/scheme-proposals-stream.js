@@ -1,18 +1,20 @@
 import {
   buildCorsHeaders,
-  validateAiApiAccess,
   serializeAiProposal,
-} from "../../server/ai/proposal-service.mjs";
+  validateAiApiAccess,
+} from "../src/proposal-service.mjs";
 import {
   generateSchemePatchWithModelStreaming,
   hasConfiguredModelProvider,
-} from "../../scripts/ai-model-provider.mjs";
+} from "../src/model-provider.mjs";
+import {
+  getAiPatchSanitizeMeta,
+  sanitizeAiSchemePatch,
+} from "../src/sanitize.js";
 import {
   normalizeAiSchemeProposal,
-  sanitizeAiSchemePatch,
-  getAiPatchSanitizeMeta,
   validateAiSchemeRequest,
-} from "../../src/app/pages/theme-workbench/lib/aiSchemeAssistant.js";
+} from "../src/normalize.js";
 
 async function readRequestBody(request) {
   if (request.body && typeof request.body === "object") {
@@ -29,7 +31,7 @@ function sse(response, event, data) {
   response.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 }
 
-export default async function handler(request, response) {
+export async function handler(request, response) {
   const cors = buildCorsHeaders({ origin: request.headers.origin || "" });
 
   if (request.method === "OPTIONS") { response.writeHead(204, cors); response.end(); return; }
@@ -41,8 +43,9 @@ export default async function handler(request, response) {
 
   let payload, rawBodyLength;
   try {
-    const p = await readRequestBody(request);
-    payload = p.body; rawBodyLength = p.rawBodyLength;
+    const parsed = await readRequestBody(request);
+    payload = parsed.body;
+    rawBodyLength = parsed.rawBodyLength;
   } catch {
     response.writeHead(400, { "Content-Type": "application/json", ...cors });
     response.end(JSON.stringify({ error: "Invalid JSON body" }));

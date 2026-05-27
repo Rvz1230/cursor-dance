@@ -58,8 +58,30 @@ Default action configs live in two places:
 
 These must stay in sync. A test at `actionConfigSync.test.js` validates this automatically by comparing both outputs.
 
-### AI Scheme Assistant
-Workbench panel that calls `/api/ai/scheme-proposals` → `scripts/ai-model-provider.mjs` (OpenAI Responses API / Chat Completions API, default model gpt-4.1-mini, configurable via `CURSORDANCE_AI_MODEL`). Full sanitize pipeline in `aiSchemeAssistant.js`: numeric clamping, enum whitelisting, hex color normalization, user intent repair (e.g., "不要声音" → forces `sound: false, volume: 0`).
+### AI Scheme Assistant + Agent
+Workbench panel with two modes:
+- **快速模式** — calls `POST /api/ai/scheme-proposals/stream` (SSE), model generates structured JSON proposal directly
+- **Agent 模式** — calls `POST /api/ai/agent/run` (SSE), model uses Function Calling tools (`apply_config_patch`, `get_current_config`, `finalize_proposal`) in a ReAct loop (max 5 iterations) with per-step observability
+
+Backend (`cursor-dance-api/`) is a standalone Node/FC project:
+```
+cursor-dance-api/src/
+├── field-defs.js          # Shared schema constants (browser + Node)
+├── sanitize.js            # Whitelist filter + numeric clamping + enum validation
+├── errors.js              # Error message mapping
+├── intent-repair.js       # Declarative rule registry (19 Chinese intent rules)
+├── diff.js                # Config diff + change summaries
+├── normalize.js           # Proposal normalization + request validation
+├── client.js              # Browser HTTP client (fetch + SSE)
+├── agent-tools.js         # Tool definitions (OpenAI function-calling format) + tool executor
+├── model-provider.mjs     # DeepSeek API (chat_completions, streaming, tools)
+├── agent-loop.mjs         # ReAct loop: think → act → observe → finalize
+├── proposal-service.mjs   # Auth/rate-limit/CORS/orchestration
+├── server.mjs             # Node HTTP server (local dev + FC entry)
+└── index.mjs              # Unified re-export
+```
+
+Default model: `deepseek-chat` (configurable via `CURSORDANCE_AI_MODEL`). Full safety pipeline: JSON parse → whitelist filter → type/numeric/enum validation → intent repair (e.g., "不要声音" → `sound: false, volume: 0`) → proposal normalization.
 
 ### Runtime effects pipeline
 DOM events (pointerdown/up/move, wheel, contextmenu) → `trigger-handlers.js` resolves cursor state binding and checks trigger zone/throttle/combo windows → `visual-effects.js` renders effects via Web Animations API (not CSS transitions — avoids layout thrashing with `contain`, `will-change`, `transform: translate3d`).

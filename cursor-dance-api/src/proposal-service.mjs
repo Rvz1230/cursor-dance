@@ -1,14 +1,18 @@
 import {
   AI_SCHEMA_VERSION,
+} from "./field-defs.js";
+import {
   getAiPatchSanitizeMeta,
-  normalizeAiSchemeProposal,
   sanitizeAiSchemePatch,
+} from "./sanitize.js";
+import {
+  normalizeAiSchemeProposal,
   validateAiSchemeRequest,
-} from "../../src/app/pages/theme-workbench/lib/aiSchemeAssistant.js";
+} from "./normalize.js";
 import {
   generateSchemePatchWithModel,
   hasConfiguredModelProvider,
-} from "../../scripts/ai-model-provider.mjs";
+} from "./model-provider.mjs";
 
 const DEFAULT_ALLOWED_ORIGINS = [
   "http://localhost:5173",
@@ -77,7 +81,7 @@ export function getAiServiceHealth(env = process.env) {
     ok: true,
     service: "cursor-dance-ai-api",
     modelProviderConfigured: hasConfiguredModelProvider(env),
-    mode: env.CURSORDANCE_AI_API_MODE || "responses",
+    mode: env.CURSORDANCE_AI_API_MODE || "chat_completions",
     model: env.CURSORDANCE_AI_MODEL || null,
     limits: getAiRequestLimits(env),
   };

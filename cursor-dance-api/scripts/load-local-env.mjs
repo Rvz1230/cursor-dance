@@ -10,7 +10,7 @@ function parseEnvLine(line) {
   let value = trimmed.slice(separatorIndex + 1).trim();
   if (!key) return null;
   if (
-    (value.startsWith("\"") && value.endsWith("\""))
+    (value.startsWith('"') && value.endsWith('"'))
     || (value.startsWith("'") && value.endsWith("'"))
   ) {
     value = value.slice(1, -1);

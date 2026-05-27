@@ -1,0 +1,281 @@
+import { createServer } from "node:http";
+import {
+  buildCorsHeaders,
+  createAiSchemeProposal,
+  getAiServiceHealth,
+  validateAiApiAccess,
+  serializeAiProposal,
+} from "./proposal-service.mjs";
+import {
+  generateSchemePatchWithModelStreaming,
+  hasConfiguredModelProvider,
+} from "./model-provider.mjs";
+import {
+  getAiPatchSanitizeMeta,
+  sanitizeAiSchemePatch,
+} from "./sanitize.js";
+import {
+  normalizeAiSchemeProposal,
+  validateAiSchemeRequest,
+} from "./normalize.js";
+import { runAgentLoop } from "./agent-loop.mjs";
+
+const DEPRECATED_ENDPOINTS = ["/api/ai/modify-scheme", "/api/ai/generate-scheme"];
+
+function sendJson(response, statusCode, payload, origin = "") {
+  response.writeHead(statusCode, {
+    "Content-Type": "application/json; charset=utf-8",
+    ...buildCorsHeaders({ origin }),
+  });
+  response.end(JSON.stringify(payload));
+}
+
+async function readJsonBody(request) {
+  const chunks = [];
+  for await (const chunk of request) {
+    chunks.push(chunk);
+  }
+  const buffer = Buffer.concat(chunks);
+  if (!buffer.length) return { body: {}, rawBodyLength: 0 };
+  return { body: JSON.parse(buffer.toString("utf8")), rawBodyLength: buffer.byteLength };
+}
+
+function sendSseHeaders(response, origin = "") {
+  response.writeHead(200, {
+    "Content-Type": "text/event-stream; charset=utf-8",
+    "Cache-Control": "no-cache",
+    "Connection": "keep-alive",
+    ...buildCorsHeaders({ origin }),
+  });
+}
+
+function sendSseEvent(response, event, data) {
+  response.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+}
+
+async function handleAgentRun(request, response) {
+  let payload;
+  let rawBodyLength = 0;
+  try {
+    const parsed = await readJsonBody(request);
+    payload = parsed.body;
+    rawBodyLength = parsed.rawBodyLength;
+  } catch {
+    sendJson(response, 400, { error: "Invalid JSON body" }, request.headers.origin || "");
+    return;
+  }
+
+  const access = validateAiApiAccess({ headers: request.headers, rawBodyLength });
+  if (!access.ok) {
+    sendJson(response, access.status, access.body, request.headers.origin || "");
+    return;
+  }
+
+  const requestState = validateAiSchemeRequest(payload);
+  if (!requestState.ok) {
+    sendJson(response, 400, {
+      error: "Invalid AI agent request",
+      code: "invalid_request",
+      details: requestState.errors,
+    }, request.headers.origin || "");
+    return;
+  }
+
+  if (!hasConfiguredModelProvider(process.env)) {
+    sendJson(response, 503, {
+      error: "AI model provider is not configured",
+      code: "provider_failed",
+    }, request.headers.origin || "");
+    return;
+  }
+
+  sendSseHeaders(response, request.headers.origin || "");
+
+  try {
+    const result = await runAgentLoop({
+      ...requestState.value,
+      env: process.env,
+      onEvent: (event, data) => {
+        if (!response.writableEnded) {
+          sendSseEvent(response, event, data);
+        }
+      },
+    });
+
+    if (!response.writableEnded && result.ok) {
+      sendSseEvent(response, "result", {
+        proposal: serializeAiProposal(result.proposal),
+        steps: result.steps.length,
+        totalTokens: result.totalTokens,
+        durationMs: result.durationMs,
+      });
+    } else if (!response.writableEnded && !result.ok) {
+      sendSseEvent(response, "error", {
+        error: result.error || "Agent loop failed",
+        steps: result.steps?.length || 0,
+      });
+    }
+  } catch (error) {
+    if (!response.writableEnded) {
+      sendSseEvent(response, "error", {
+        error: "Agent run failed",
+        details: error instanceof Error ? error.message : "Unknown error.",
+      });
+    }
+  } finally {
+    if (!response.writableEnded) {
+      response.end();
+    }
+  }
+}
+
+async function handleSchemeProposal(request, response) {
+  let payload;
+  let rawBodyLength = 0;
+  try {
+    const parsed = await readJsonBody(request);
+    payload = parsed.body;
+    rawBodyLength = parsed.rawBodyLength;
+  } catch {
+    sendJson(response, 400, { error: "Invalid JSON body" }, request.headers.origin || "");
+    return;
+  }
+
+  const access = validateAiApiAccess({ headers: request.headers, rawBodyLength });
+  if (!access.ok) {
+    sendJson(response, access.status, access.body, request.headers.origin || "");
+    return;
+  }
+
+  const result = await createAiSchemeProposal(payload);
+  sendJson(response, result.status, result.body, request.headers.origin || "");
+}
+
+async function handleSchemeProposalStream(request, response) {
+  let payload;
+  let rawBodyLength = 0;
+  try {
+    const parsed = await readJsonBody(request);
+    payload = parsed.body;
+    rawBodyLength = parsed.rawBodyLength;
+  } catch {
+    sendJson(response, 400, { error: "Invalid JSON body" }, request.headers.origin || "");
+    return;
+  }
+
+  const access = validateAiApiAccess({ headers: request.headers, rawBodyLength });
+  if (!access.ok) {
+    sendJson(response, access.status, access.body, request.headers.origin || "");
+    return;
+  }
+
+  const requestState = validateAiSchemeRequest(payload);
+  if (!requestState.ok) {
+    sendJson(response, 400, {
+      error: "Invalid AI scheme request",
+      code: "invalid_request",
+      details: requestState.errors,
+    }, request.headers.origin || "");
+    return;
+  }
+
+  if (!hasConfiguredModelProvider(process.env)) {
+    sendJson(response, 503, {
+      error: "AI model provider is not configured",
+      code: "provider_failed",
+    }, request.headers.origin || "");
+    return;
+  }
+
+  sendSseHeaders(response, request.headers.origin || "");
+
+  try {
+    const result = await generateSchemePatchWithModelStreaming(
+      requestState.value,
+      process.env,
+      (replyText) => {
+        if (!response.writableEnded) {
+          sendSseEvent(response, "progress", { reply: replyText });
+        }
+      }
+    );
+
+    const sanitizedPatch = sanitizeAiSchemePatch(result.patch);
+    const proposal = normalizeAiSchemeProposal(
+      {
+        ...result,
+        patch: sanitizedPatch,
+        sanitizeMeta: getAiPatchSanitizeMeta(result.patch, sanitizedPatch),
+      },
+      requestState.value
+    );
+
+    if (!response.writableEnded) {
+      sendSseEvent(response, "result", serializeAiProposal(proposal));
+    }
+  } catch (error) {
+    if (!response.writableEnded) {
+      sendSseEvent(response, "error", {
+        error: "AI model provider streaming failed",
+        details: error instanceof Error ? error.message : "Unknown error.",
+      });
+    }
+  } finally {
+    if (!response.writableEnded) {
+      response.end();
+    }
+  }
+}
+
+export function createApp() {
+  return createServer(async (request, response) => {
+    if (request.method === "OPTIONS") {
+      sendJson(response, 204, {}, request.headers.origin || "");
+      return;
+    }
+
+    // Deprecated endpoint redirects
+    if (DEPRECATED_ENDPOINTS.includes(request.url)) {
+      sendJson(response, 308, {
+        error: "This endpoint is deprecated. Use /api/ai/scheme-proposals instead.",
+        code: "deprecated",
+        redirect: "/api/ai/scheme-proposals",
+      }, request.headers.origin || "");
+      return;
+    }
+
+    // Health check
+    if (request.method === "GET" && request.url === "/api/health") {
+      sendJson(response, 200, getAiServiceHealth(), request.headers.origin || "");
+      return;
+    }
+
+    // Non-streaming scheme proposal
+    if (request.method === "POST" && request.url === "/api/ai/scheme-proposals") {
+      await handleSchemeProposal(request, response);
+      return;
+    }
+
+    // Streaming scheme proposal
+    if (request.method === "POST" && request.url === "/api/ai/scheme-proposals/stream") {
+      await handleSchemeProposalStream(request, response);
+      return;
+    }
+
+    // Agent run
+    if (request.method === "POST" && request.url === "/api/ai/agent/run") {
+      await handleAgentRun(request, response);
+      return;
+    }
+
+    sendJson(response, 404, { error: "Not found" }, request.headers.origin || "");
+  });
+}
+
+export function startServer(port = 8787, host = "127.0.0.1") {
+  const server = createApp();
+  server.listen(port, host, () => {
+    console.log(`CursorDance AI API listening on http://${host}:${port}`);
+  });
+  return server;
+}

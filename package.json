@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "ai:dev": "node scripts/ai-api-server.mjs",
-    "ai:check": "node scripts/check-ai-api.mjs",
+    "ai:dev": "node cursor-dance-api/scripts/dev-server.mjs",
+    "ai:check": "node cursor-dance-api/scripts/check-api.mjs",
     "build": "vite build",
     "extension:prepare-manifest": "node scripts/prepare-extension-manifest.mjs",
     "preview": "vite preview",

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bot, Check, CheckCircle2, Eye, Loader2, RotateCcw, Send, Trash2, X } from "lucide-react";
+import { Bot, Check, CheckCircle2, ChevronDown, ChevronRight, Eye, Loader2, RotateCcw, Send, Trash2, Wrench, X } from "lucide-react";
 import { Button } from "@/components/ui/button.jsx";
 import { cn } from "@/components/ui/utils.js";
-import { getAiRequestErrorMessage, requestAiSchemeEditStreaming } from "../lib/aiSchemeAssistant.js";
+import { getAiRequestErrorMessage, requestAiSchemeEditStreaming, requestAiAgentRun } from "../lib/aiSchemeAssistant.js";
 import { Panel } from "./WorkbenchControls.jsx";
 
 const PROMPT_EXAMPLES = [
@@ -171,6 +171,117 @@ function ProposalCard({ result, previewActive }) {
   );
 }
 
+function ToolCallBadge({ toolCall, toolResult }) {
+  const [expanded, setExpanded] = useState(false);
+  const name = toolCall?.name || "未知工具";
+  const args = toolCall?.arguments || {};
+  const isFinalize = name === "finalize_proposal";
+
+  const labels = {
+    apply_config_patch: "修改配置",
+    get_current_config: "读取配置",
+    finalize_proposal: "生成方案",
+    rollback: "回滚",
+  };
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white text-xs">
+      <button
+        type="button"
+        className="flex w-full items-center gap-2 px-2.5 py-2 text-left hover:bg-slate-50 transition-colors"
+        onClick={() => setExpanded(!expanded)}
+      >
+        {expanded ? <ChevronDown className="size-3.5 shrink-0 text-slate-400" /> : <ChevronRight className="size-3.5 shrink-0 text-slate-400" />}
+        <Wrench className="size-3.5 shrink-0 text-slate-500" />
+        <span className="font-medium text-slate-700">{labels[name] || name}</span>
+        {toolResult?.ok === false ? (
+          <span className="ml-auto rounded-full bg-rose-100 px-1.5 py-0.5 text-rose-700 text-[10px] font-medium">失败</span>
+        ) : toolResult?.ok ? (
+          <span className="ml-auto rounded-full bg-emerald-100 px-1.5 py-0.5 text-emerald-700 text-[10px] font-medium">完成</span>
+        ) : null}
+      </button>
+      {expanded ? (
+        <div className="border-t border-slate-100 px-3 py-2 space-y-1.5">
+          {!isFinalize && Object.keys(args).length > 0 ? (
+            <div className="text-slate-500">
+              <span className="text-slate-400">参数 </span>
+              {Object.entries(args).map(([key, val]) => (
+                <span key={key} className="inline-flex gap-1 ml-1">
+                  <code className="rounded bg-slate-100 px-1 py-0.5 font-mono text-slate-600">{key}</code>
+                  <span className="text-slate-400">=</span>
+                  <span className="text-slate-700">{typeof val === "object" ? JSON.stringify(val).slice(0, 120) : String(val).slice(0, 80)}</span>
+                </span>
+              ))}
+            </div>
+          ) : null}
+          {toolResult?.summary ? (
+            <div className={cn("leading-5", toolResult.ok === false ? "text-rose-700" : "text-slate-600")}>{toolResult.summary}</div>
+          ) : null}
+          {toolResult?.effect ? (
+            <div className="text-slate-500 leading-5">{toolResult.effect}</div>
+          ) : null}
+          {toolResult?.error ? (
+            <div className="text-rose-600 leading-5">{toolResult.error}</div>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function AgentTimeline({ steps, isRunning }) {
+  if (!steps?.length && !isRunning) return null;
+
+  return (
+    <div className="rounded-2xl border border-sky-100 bg-sky-50/50 p-3">
+      <div className="mb-2 flex items-center gap-2">
+        <Bot className="size-4 text-sky-600" />
+        <span className="text-sm font-semibold text-sky-800">Agent 步骤</span>
+        {isRunning ? (
+          <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-100 px-2 py-0.5 text-[11px] font-medium text-sky-700">
+            <Loader2 className="size-3 animate-spin" />
+            运行中
+          </span>
+        ) : (
+          <span className="ml-auto rounded-full border border-sky-200 bg-sky-100 px-2 py-0.5 text-[11px] font-medium text-sky-700">{steps.length} 步</span>
+        )}
+      </div>
+      <div className="space-y-2">
+        {steps.map((step) => (
+          <div key={step.index} className="rounded-xl border border-sky-100 bg-white p-2.5">
+            <div className="flex items-start gap-2">
+              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-sky-100 text-[11px] font-bold text-sky-700">{step.index}</span>
+              <div className="min-w-0 flex-1">
+                {step.thought ? (
+                  <div className="text-xs leading-5 text-slate-600 line-clamp-2">{step.thought}</div>
+                ) : (
+                  <div className="text-xs text-slate-400">思考中…</div>
+                )}
+              </div>
+              {step.durationMs ? (
+                <span className="shrink-0 text-[11px] text-slate-400">{step.durationMs}ms</span>
+              ) : null}
+            </div>
+            {step.toolCalls?.length > 0 ? (
+              <div className="mt-2 space-y-1.5">
+                {step.toolCalls.map((tc, i) => (
+                  <ToolCallBadge key={`${tc.name}-${i}`} toolCall={tc} toolResult={step.toolResults?.[i]?.result} />
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ))}
+        {isRunning && (!steps?.length || steps[steps.length - 1]?.toolCalls?.length > 0) ? (
+          <div className="flex items-center gap-2 rounded-xl border border-sky-100 bg-white p-2.5">
+            <Loader2 className="size-4 animate-spin text-sky-400" />
+            <span className="text-xs text-slate-400">等待模型响应…</span>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export function AiSchemePanel({
   actionId,
   actionLabel,
@@ -194,6 +305,9 @@ export function AiSchemePanel({
   const [pendingResult, setPendingResult] = useState(null);
   const [lastPrompt, setLastPrompt] = useState("");
   const [taskMode, setTaskMode] = useState("modify_action");
+  const [useAgent, setUseAgent] = useState(false);
+  const [agentSteps, setAgentSteps] = useState([]);
+  const [agentRunning, setAgentRunning] = useState(false);
 
   const canSubmit = useMemo(() => prompt.trim().length > 0 && !isGenerating, [prompt, isGenerating]);
   const previewActive = Boolean(pendingResult && previewProposal === pendingResult);
@@ -203,7 +317,7 @@ export function AiSchemePanel({
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, isGenerating, streamingReply]);
+  }, [messages, isGenerating, streamingReply, agentSteps]);
 
   async function submitPrompt(nextPrompt = prompt, modeOverride = taskMode) {
     const trimmedPrompt = nextPrompt.trim();
@@ -219,34 +333,116 @@ export function AiSchemePanel({
     setMessages((current) => [...current, { role: "user", content: trimmedPrompt }]);
 
     try {
-      setStreamingReply("");
-      const result = await requestAiSchemeEditStreaming({
-        prompt: trimmedPrompt,
-        currentConfig,
-        actionLabel,
-        actionId,
-        taskMode: modeOverride,
-        proposalContext,
-        onProgress: (replyText) => {
-          setStreamingReply(replyText);
-        },
-      });
+      if (useAgent) {
+        // Agent mode: step-by-step reasoning + tool calls
+        setAgentSteps([]);
+        setAgentRunning(true);
+        setStreamingReply("");
 
-      setStreamingReply("");
-      const proposal = {
-        ...result,
-        actionId,
-        taskMode: modeOverride,
-        proposalId: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-      };
-      setPendingResult(proposal);
-      setMessages((current) => [...current, { role: "assistant", content: proposal.reply }]);
-      notify?.({
-        tone: "info",
-        title: "AI 已生成方案提案",
-        description: result.scheme?.summary || result.diffSummary?.[0] || "请确认后再应用。",
-      });
+        const rawResult = await requestAiAgentRun({
+          prompt: trimmedPrompt,
+          currentConfig,
+          actionLabel,
+          actionId,
+          taskMode: modeOverride,
+          proposalContext,
+          onEvent: (eventType, data) => {
+            if (eventType === "progress" || eventType === "stream_token") {
+              setStreamingReply(data.text || data.reply || "");
+            } else if (eventType === "step") {
+              setAgentSteps((prev) => {
+                const last = prev[prev.length - 1];
+                if (last && last.index === data.index) {
+                  // Update existing step
+                  const updated = { ...last };
+                  if (data.toolCall) {
+                    updated.toolCalls = [...(updated.toolCalls || []), { name: data.toolCall, arguments: {} }];
+                  }
+                  if (data.toolResult) {
+                    const lastTc = updated.toolCalls?.[updated.toolCalls.length - 1];
+                    if (lastTc) {
+                      updated.toolResults = [...(updated.toolResults || []), { name: lastTc.name, result: { ok: data.toolResult === "success", summary: data.summary || "" } }];
+                    }
+                  }
+                  if (data.durationMs) updated.durationMs = data.durationMs;
+                  return [...prev.slice(0, -1), updated];
+                }
+                // New step
+                return [...prev, {
+                  index: data.index,
+                  thought: data.status === "acting" ? prev[prev.length - 1]?.thought || "" : "",
+                  toolCalls: [],
+                  toolResults: [],
+                }];
+              });
+            } else if (eventType === "tool_result") {
+              setAgentSteps((prev) => {
+                const last = prev[prev.length - 1];
+                if (!last) return prev;
+                const updated = { ...last };
+                updated.toolResults = [...(updated.toolResults || []), { name: data.toolName, result: data.result }];
+                if (data.result?.summary) updated.thought = data.result.summary;
+                return [...prev.slice(0, -1), updated];
+              });
+            } else if (eventType === "step_end") {
+              setAgentSteps((prev) => {
+                const last = prev[prev.length - 1];
+                if (!last) return prev;
+                return [...prev.slice(0, -1), { ...last, durationMs: data.durationMs || last.durationMs }];
+              });
+            }
+          },
+        });
+
+        setAgentRunning(false);
+        setStreamingReply("");
+
+        const proposal = {
+          ...rawResult,
+          actionId,
+          taskMode: modeOverride,
+          source: "agent",
+          proposalId: rawResult.proposalId || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        };
+        setPendingResult(proposal);
+        setMessages((current) => [...current, { role: "assistant", content: proposal.reply || "Agent 已完成方案生成。" }]);
+        notify?.({
+          tone: "info",
+          title: "Agent 已生成方案提案",
+          description: proposal.scheme?.summary || proposal.diffSummary?.[0] || "请确认后再应用。",
+        });
+      } else {
+        // Fast mode: one-shot streaming
+        setStreamingReply("");
+        const result = await requestAiSchemeEditStreaming({
+          prompt: trimmedPrompt,
+          currentConfig,
+          actionLabel,
+          actionId,
+          taskMode: modeOverride,
+          proposalContext,
+          onProgress: (replyText) => {
+            setStreamingReply(replyText);
+          },
+        });
+
+        setStreamingReply("");
+        const proposal = {
+          ...result,
+          actionId,
+          taskMode: modeOverride,
+          proposalId: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        };
+        setPendingResult(proposal);
+        setMessages((current) => [...current, { role: "assistant", content: proposal.reply }]);
+        notify?.({
+          tone: "info",
+          title: "AI 已生成方案提案",
+          description: result.scheme?.summary || result.diffSummary?.[0] || "请确认后再应用。",
+        });
+      }
     } catch (caughtError) {
+      setAgentRunning(false);
       const message = getAiRequestErrorMessage(caughtError);
       setError(message);
     } finally {
@@ -288,6 +484,8 @@ export function AiSchemePanel({
     setError("");
     setPendingResult(null);
     setLastPrompt("");
+    setAgentSteps([]);
+    setAgentRunning(false);
     setMessages(getInitialMessages());
     onClearPreview?.();
     notify?.({
@@ -316,18 +514,35 @@ export function AiSchemePanel({
       className={cn("shadow-sm", variant === "full" ? "flex h-full min-h-0 flex-col" : "max-h-[380px] shrink-0")}
       contentClassName={cn("min-h-0 overflow-hidden !p-0", variant === "full" && "flex flex-1 flex-col")}
       action={(
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          className="size-8 rounded-xl"
-          onClick={clearConversation}
-          disabled={isGenerating}
-          aria-label="清空 AI 对话"
-          title="清空 AI 对话"
-        >
-          <Trash2 className="size-4" aria-hidden="true" />
-        </Button>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors",
+              useAgent
+                ? "border-sky-200 bg-sky-50 text-sky-700"
+                : "border-slate-200 bg-slate-50 text-slate-500"
+            )}
+            onClick={() => setUseAgent(!useAgent)}
+            disabled={isGenerating}
+            title={useAgent ? "Agent 模式：分步推理与工具调用" : "快速模式：一步生成配置"}
+          >
+            <Wrench className="size-3" />
+            {useAgent ? "Agent" : "快速"}
+          </button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="size-8 rounded-xl"
+            onClick={clearConversation}
+            disabled={isGenerating}
+            aria-label="清空 AI 对话"
+            title="清空 AI 对话"
+          >
+            <Trash2 className="size-4" aria-hidden="true" />
+          </Button>
+        </div>
       )}
     >
       <div className={cn("flex min-h-0 flex-col bg-white", variant === "full" && "flex-1")}>
@@ -343,12 +558,14 @@ export function AiSchemePanel({
                 ) : (
                   <span className="inline-flex items-center gap-2 text-slate-500">
                     <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-                    正在生成配置建议
+                    {useAgent && agentRunning ? "Agent 正在分析需求…" : "正在生成配置建议"}
                   </span>
                 )}
               </div>
             </div>
           ) : null}
+
+          <AgentTimeline steps={agentSteps} isRunning={agentRunning} />
 
           <ProposalCard result={pendingResult} previewActive={previewActive} />
           <SanitizeHint meta={pendingResult?.sanitizeMeta} />

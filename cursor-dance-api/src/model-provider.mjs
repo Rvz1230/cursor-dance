@@ -1,8 +1,10 @@
-import { normalizeAiSchemeProposal } from "../src/app/pages/theme-workbench/lib/aiSchemeAssistant.js";
+import { normalizeAiSchemeProposal } from "./normalize.js";
+import { AGENT_TOOLS, AGENT_SYSTEM_PROMPT_EXTENSION } from "./agent-tools.js";
 
-const DEFAULT_RESPONSES_BASE_URL = "https://api.openai.com/v1";
-const DEFAULT_RESPONSES_MODEL = "gpt-4.1-mini";
-const DEFAULT_CHAT_MODEL = "gpt-4.1-mini";
+const DEFAULT_BASE_URL = "https://api.deepseek.com/v1";
+const DEFAULT_MODEL = "deepseek-chat";
+const DEFAULT_MODE = "chat_completions";
+const MAX_AGENT_ITERATIONS = 5;
 
 const RESPONSE_SCHEMA = {
   type: "object",
@@ -196,23 +198,28 @@ function safeJsonParse(text) {
   }
 }
 
-function extractResponsesText(payload) {
-  if (typeof payload?.output_text === "string") return payload.output_text;
-  const parts = [];
-  for (const output of payload?.output || []) {
-    for (const content of output?.content || []) {
-      if (typeof content?.text === "string") parts.push(content.text);
-      if (typeof content?.output_text === "string") parts.push(content.output_text);
-    }
-  }
-  return parts.join("\n");
+function extractReplyFromPartialJson(text) {
+  const match = text.match(/"reply"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+  if (!match) return null;
+  return match[1].replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\\\/g, '\\');
 }
 
 function normalizeModelPayload(payload, source, requestState) {
-  return normalizeAiSchemeProposal({
-    ...payload,
-    source,
-  }, requestState);
+  return normalizeAiSchemeProposal({ ...payload, source }, requestState);
+}
+
+function buildAgentSystemPrompt(taskMode = "modify_action") {
+  return [
+    buildSystemPrompt(taskMode),
+    AGENT_SYSTEM_PROMPT_EXTENSION,
+  ].join("\n");
+}
+
+function buildAgentMessages({ prompt, actionId, actionLabel, currentConfig, taskMode, proposalContext, extensionVersion, schemaVersion }) {
+  return [
+    { role: "system", content: buildAgentSystemPrompt(taskMode) },
+    { role: "user", content: buildUserPrompt({ prompt, actionId, actionLabel, currentConfig, taskMode, proposalContext, extensionVersion, schemaVersion }) },
+  ];
 }
 
 async function postJson(url, apiKey, body) {
@@ -234,114 +241,17 @@ async function postJson(url, apiKey, body) {
   return payload;
 }
 
-async function callResponsesApi({ apiKey, baseUrl, model, requestState }) {
-  const maxOutputTokens = getOptionalPositiveInteger(requestState.maxOutputTokens);
-  const payload = await postJson(`${trimTrailingSlash(baseUrl)}/responses`, apiKey, {
-    model,
-    input: [
-      { role: "system", content: buildSystemPrompt(requestState.taskMode) },
-      { role: "user", content: buildUserPrompt(requestState) },
-    ],
-    text: {
-      format: {
-        type: "json_schema",
-        name: "cursor_dance_scheme_edit",
-        strict: false,
-        schema: RESPONSE_SCHEMA,
-      },
-    },
-    ...(maxOutputTokens ? { max_output_tokens: maxOutputTokens } : {}),
-  });
+function getApiConfig(env = process.env) {
+  const mode = env.CURSORDANCE_AI_API_MODE || DEFAULT_MODE;
+  const apiKey = env.CURSORDANCE_AI_API_KEY || env.OPENAI_API_KEY;
+  const baseUrl = env.CURSORDANCE_AI_API_BASE_URL || DEFAULT_BASE_URL;
+  const model = env.CURSORDANCE_AI_MODEL || DEFAULT_MODEL;
+  const maxOutputTokens = getOptionalPositiveInteger(env.CURSORDANCE_AI_MAX_OUTPUT_TOKENS);
 
-  const parsed = safeJsonParse(extractResponsesText(payload));
-  if (!parsed) throw new Error("Model returned non-JSON output.");
-  return normalizeModelPayload(parsed, "model-responses-api", requestState);
+  return { mode, apiKey, baseUrl, model, maxOutputTokens };
 }
 
-function extractReplyFromPartialJson(text) {
-  const match = text.match(/"reply"\s*:\s*"((?:[^"\\]|\\.)*)"/);
-  if (!match) return null;
-  return match[1].replace(/\\"/g, '"').replace(/\\n/g, '\n').replace(/\\\\/g, '\\');
-}
-
-async function callResponsesApiStreaming({ apiKey, baseUrl, model, requestState, onProgress }) {
-  const maxOutputTokens = getOptionalPositiveInteger(requestState.maxOutputTokens);
-  const response = await fetch(`${trimTrailingSlash(baseUrl)}/responses`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      input: [
-        { role: "system", content: buildSystemPrompt(requestState.taskMode) },
-        { role: "user", content: buildUserPrompt(requestState) },
-      ],
-      text: {
-        format: {
-          type: "json_schema",
-          name: "cursor_dance_scheme_edit",
-          strict: false,
-          schema: RESPONSE_SCHEMA,
-        },
-      },
-      stream: true,
-      ...(maxOutputTokens ? { max_output_tokens: maxOutputTokens } : {}),
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Model API responded with ${response.status}: ${errorText.slice(0, 200)}`);
-  }
-
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let accumulatedDeltas = "";
-  let rawBuffer = "";
-  let lastReply = "";
-
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      rawBuffer += decoder.decode(value, { stream: true });
-      const lines = rawBuffer.split("\n");
-      rawBuffer = lines.pop() || "";
-
-      for (const line of lines) {
-        if (!line.startsWith("data: ")) continue;
-        const data = line.slice(6).trim();
-        if (!data || data === "[DONE]") continue;
-
-        try {
-          const event = JSON.parse(data);
-          if (event.type === "response.output_text.delta" && event.delta) {
-            accumulatedDeltas += event.delta;
-            const reply = extractReplyFromPartialJson(accumulatedDeltas);
-            if (reply && reply !== lastReply) {
-              lastReply = reply;
-              onProgress?.(reply);
-            }
-          }
-        } catch {
-          // Skip unparseable SSE data lines gracefully
-        }
-      }
-    }
-  } finally {
-    reader.releaseLock?.();
-  }
-
-  const parsed = safeJsonParse(accumulatedDeltas);
-  if (!parsed) throw new Error("Model returned non-JSON streaming output.");
-  return normalizeModelPayload(parsed, "model-responses-api-streaming", requestState);
-}
-
-async function callChatCompletionsApi({ apiKey, baseUrl, model, requestState }) {
-  const maxOutputTokens = getOptionalPositiveInteger(requestState.maxOutputTokens);
+async function callChatCompletionsApi({ apiKey, baseUrl, model, requestState, maxOutputTokens }) {
   const payload = await postJson(`${trimTrailingSlash(baseUrl)}/chat/completions`, apiKey, {
     model,
     messages: [
@@ -358,8 +268,7 @@ async function callChatCompletionsApi({ apiKey, baseUrl, model, requestState }) 
   return normalizeModelPayload(parsed, "model-chat-completions", requestState);
 }
 
-async function callChatCompletionsApiStreaming({ apiKey, baseUrl, model, requestState, onProgress }) {
-  const maxOutputTokens = getOptionalPositiveInteger(requestState.maxOutputTokens);
+async function callChatCompletionsApiStreaming({ apiKey, baseUrl, model, requestState, maxOutputTokens, onProgress }) {
   const response = await fetch(`${trimTrailingSlash(baseUrl)}/chat/completions`, {
     method: "POST",
     headers: {
@@ -432,40 +341,160 @@ export function hasConfiguredModelProvider(env = process.env) {
   return Boolean(env.CURSORDANCE_AI_API_KEY || env.OPENAI_API_KEY);
 }
 
+async function callChatCompletionsApiWithTools({ apiKey, baseUrl, model, messages, tools, maxOutputTokens }) {
+  const payload = await postJson(`${trimTrailingSlash(baseUrl)}/chat/completions`, apiKey, {
+    model,
+    messages,
+    tools,
+    tool_choice: "auto",
+    ...(maxOutputTokens ? { max_tokens: maxOutputTokens } : {}),
+  });
+
+  const choice = payload?.choices?.[0];
+  const message = choice?.message;
+  if (!message) throw new Error("Model returned empty response.");
+
+  const toolCalls = message.tool_calls?.map((tc) => ({
+    id: tc.id,
+    name: tc.function?.name,
+    arguments: safeJsonParse(tc.function?.arguments) || {},
+  })) || [];
+
+  return {
+    content: message.content || "",
+    toolCalls,
+    finishReason: choice.finish_reason || "stop",
+    usage: payload.usage || null,
+  };
+}
+
+async function callChatCompletionsApiWithToolsStreaming({ apiKey, baseUrl, model, messages, tools, maxOutputTokens, onEvent }) {
+  const response = await fetch(`${trimTrailingSlash(baseUrl)}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages,
+      tools,
+      tool_choice: "auto",
+      stream: true,
+      ...(maxOutputTokens ? { max_tokens: maxOutputTokens } : {}),
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Model API responded with ${response.status}: ${errorText.slice(0, 200)}`);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let accumulatedContent = "";
+  let rawBuffer = "";
+  const toolCallsAcc = {};
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      rawBuffer += decoder.decode(value, { stream: true });
+      const lines = rawBuffer.split("\n");
+      rawBuffer = lines.pop() || "";
+
+      for (const line of lines) {
+        if (!line.startsWith("data: ")) continue;
+        const data = line.slice(6).trim();
+        if (!data || data === "[DONE]") continue;
+
+        try {
+          const event = JSON.parse(data);
+          const delta = event?.choices?.[0]?.delta;
+          if (!delta) continue;
+
+          if (delta.content) {
+            accumulatedContent += delta.content;
+            onEvent?.({ type: "content", text: delta.content });
+          }
+
+          if (delta.tool_calls) {
+            for (const tc of delta.tool_calls) {
+              const idx = tc.index ?? 0;
+              if (!toolCallsAcc[idx]) {
+                toolCallsAcc[idx] = { id: tc.id || "", name: "", arguments: "" };
+              }
+              if (tc.id) toolCallsAcc[idx].id = tc.id;
+              if (tc.function?.name) toolCallsAcc[idx].name += tc.function.name;
+              if (tc.function?.arguments) toolCallsAcc[idx].arguments += tc.function.arguments;
+            }
+          }
+
+          if (event?.choices?.[0]?.finish_reason) {
+            onEvent?.({ type: "finish", reason: event.choices[0].finish_reason });
+          }
+        } catch {
+          // Skip unparseable SSE data
+        }
+      }
+    }
+  } finally {
+    reader.releaseLock?.();
+  }
+
+  const toolCalls = Object.values(toolCallsAcc).map((tc) => ({
+    id: tc.id,
+    name: tc.name,
+    arguments: safeJsonParse(tc.arguments) || {},
+  }));
+
+  return {
+    content: accumulatedContent,
+    toolCalls,
+    finishReason: toolCalls.length > 0 ? "tool_calls" : "stop",
+  };
+}
+
+export function buildAgentMessagesFromState(requestState) {
+  return buildAgentMessages(requestState);
+}
+
+export { buildAgentSystemPrompt };
+
+export async function generateAgentResponse({ messages, tools, env = process.env, onEvent }) {
+  const { apiKey, baseUrl, model, maxOutputTokens } = getApiConfig(env);
+  if (!apiKey) throw new Error("AI model provider is not configured");
+
+  if (onEvent) {
+    return callChatCompletionsApiWithToolsStreaming({
+      apiKey, baseUrl, model, messages, tools, maxOutputTokens, onEvent,
+    });
+  }
+  return callChatCompletionsApiWithTools({ apiKey, baseUrl, model, messages, tools, maxOutputTokens });
+}
+
 export async function generateSchemePatchWithModel(requestState, env = process.env) {
-  const apiKey = env.CURSORDANCE_AI_API_KEY || env.OPENAI_API_KEY;
+  const { apiKey, baseUrl, model, maxOutputTokens } = getApiConfig(env);
   if (!apiKey) return null;
 
-  const mode = env.CURSORDANCE_AI_API_MODE || "responses";
-  const baseUrl = env.CURSORDANCE_AI_API_BASE_URL || DEFAULT_RESPONSES_BASE_URL;
-  const model = env.CURSORDANCE_AI_MODEL || (mode === "chat_completions" ? DEFAULT_CHAT_MODEL : DEFAULT_RESPONSES_MODEL);
   const modelRequestState = {
     ...requestState,
     maxOutputTokens: env.CURSORDANCE_AI_MAX_OUTPUT_TOKENS || requestState.maxOutputTokens,
   };
 
-  if (mode === "chat_completions") {
-    return callChatCompletionsApi({ apiKey, baseUrl, model, requestState: modelRequestState });
-  }
-
-  return callResponsesApi({ apiKey, baseUrl, model, requestState: modelRequestState });
+  return callChatCompletionsApi({ apiKey, baseUrl, model, requestState: modelRequestState, maxOutputTokens });
 }
 
 export async function generateSchemePatchWithModelStreaming(requestState, env = process.env, onProgress) {
-  const apiKey = env.CURSORDANCE_AI_API_KEY || env.OPENAI_API_KEY;
+  const { apiKey, baseUrl, model, maxOutputTokens } = getApiConfig(env);
   if (!apiKey) return null;
 
-  const mode = env.CURSORDANCE_AI_API_MODE || "responses";
-  const baseUrl = env.CURSORDANCE_AI_API_BASE_URL || DEFAULT_RESPONSES_BASE_URL;
-  const model = env.CURSORDANCE_AI_MODEL || (mode === "chat_completions" ? DEFAULT_CHAT_MODEL : DEFAULT_RESPONSES_MODEL);
   const modelRequestState = {
     ...requestState,
     maxOutputTokens: env.CURSORDANCE_AI_MAX_OUTPUT_TOKENS || requestState.maxOutputTokens,
   };
 
-  if (mode === "chat_completions") {
-    return callChatCompletionsApiStreaming({ apiKey, baseUrl, model, requestState: modelRequestState, onProgress });
-  }
-
-  return callResponsesApiStreaming({ apiKey, baseUrl, model, requestState: modelRequestState, onProgress });
+  return callChatCompletionsApiStreaming({ apiKey, baseUrl, model, requestState: modelRequestState, maxOutputTokens, onProgress });
 }

@@ -1,0 +1,71 @@
+ROSTemplateFormatVersion: '2015-09-01'
+Transform: 'Aliyun::Serverless-2018-04-03'
+Resources:
+  cursor-dance-ai-api:
+    Type: 'Aliyun::Serverless::Service'
+    Properties:
+      Description: 'CursorDance AI API — DeepSeek-powered scheme proposals'
+      InternetAccess: true
+
+    scheme-proposals:
+      Type: 'Aliyun::Serverless::Function'
+      Properties:
+        Handler: api/scheme-proposals.handler
+        Runtime: nodejs22
+        CodeUri: ./
+        Timeout: 30
+        EnvironmentVariables:
+          CURSORDANCE_AI_API_KEY: ${DEEPSEEK_API_KEY}
+          CURSORDANCE_AI_API_BASE_URL: https://api.deepseek.com/v1
+          CURSORDANCE_AI_API_MODE: chat_completions
+          CURSORDANCE_AI_MODEL: deepseek-chat
+          CURSORDANCE_AI_API_ACCESS_TOKEN: ${ACCESS_TOKEN}
+          CURSORDANCE_ALLOWED_ORIGINS: chrome-extension://*
+        Events:
+          http-trigger:
+            Type: HTTP
+            Properties:
+              AuthType: ANONYMOUS
+              Methods: ['POST', 'OPTIONS']
+
+    scheme-proposals-stream:
+      Type: 'Aliyun::Serverless::Function'
+      Properties:
+        Handler: api/scheme-proposals-stream.handler
+        Runtime: nodejs22
+        CodeUri: ./
+        Timeout: 60
+        EnvironmentVariables:
+          CURSORDANCE_AI_API_KEY: ${DEEPSEEK_API_KEY}
+          CURSORDANCE_AI_API_BASE_URL: https://api.deepseek.com/v1
+          CURSORDANCE_AI_API_MODE: chat_completions
+          CURSORDANCE_AI_MODEL: deepseek-chat
+          CURSORDANCE_AI_API_ACCESS_TOKEN: ${ACCESS_TOKEN}
+          CURSORDANCE_ALLOWED_ORIGINS: chrome-extension://*
+        Events:
+          http-trigger:
+            Type: HTTP
+            Properties:
+              AuthType: ANONYMOUS
+              Methods: ['POST', 'OPTIONS']
+
+    agent-run:
+      Type: 'Aliyun::Serverless::Function'
+      Properties:
+        Handler: api/agent-run.handler
+        Runtime: nodejs22
+        CodeUri: ./
+        Timeout: 120
+        EnvironmentVariables:
+          CURSORDANCE_AI_API_KEY: ${DEEPSEEK_API_KEY}
+          CURSORDANCE_AI_API_BASE_URL: https://api.deepseek.com/v1
+          CURSORDANCE_AI_API_MODE: chat_completions
+          CURSORDANCE_AI_MODEL: deepseek-chat
+          CURSORDANCE_AI_API_ACCESS_TOKEN: ${ACCESS_TOKEN}
+          CURSORDANCE_ALLOWED_ORIGINS: chrome-extension://*
+        Events:
+          http-trigger:
+            Type: HTTP
+            Properties:
+              AuthType: ANONYMOUS
+              Methods: ['POST', 'OPTIONS']

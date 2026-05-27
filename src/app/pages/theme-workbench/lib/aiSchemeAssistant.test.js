@@ -76,16 +76,12 @@ describe("aiSchemeAssistant", () => {
   });
 
   it("requires the remote AI API instead of falling back to local rules", async () => {
-    const originalWindow = globalThis.window;
-    globalThis.window = {
-      fetch: async () => ({
-        ok: false,
-        status: 503,
-        json: async () => ({ error: "AI model provider is not configured" }),
-      }),
-      setTimeout,
-      clearTimeout,
-    };
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => ({
+      ok: false,
+      status: 503,
+      json: async () => ({ error: "AI model provider is not configured" }),
+    });
 
     await expect(requestAiSchemeEdit({
       prompt: "低调蓝色，不要声音",
@@ -95,27 +91,23 @@ describe("aiSchemeAssistant", () => {
       taskMode: "modify_action",
     })).rejects.toThrow("AI model provider is not configured");
 
-    globalThis.window = originalWindow;
+    globalThis.fetch = originalFetch;
   });
 
   it("sends only slim request context to the remote AI API", async () => {
-    const originalWindow = globalThis.window;
+    const originalFetch = globalThis.fetch;
     let requestBody = null;
-    globalThis.window = {
-      fetch: async (_url, options) => {
-        requestBody = JSON.parse(options.body);
-        return {
-          ok: true,
-          json: async () => ({
-            schemaVersion: AI_SCHEMA_VERSION,
-            mode: "tune_proposal",
-            targets: [{ type: "action", actionId: "leftClick", label: "左键单击", patch: { sound: false } }],
-            reply: "已微调。",
-          }),
-        };
-      },
-      setTimeout,
-      clearTimeout,
+    globalThis.fetch = async (_url, options) => {
+      requestBody = JSON.parse(options.body);
+      return {
+        ok: true,
+        json: async () => ({
+          schemaVersion: AI_SCHEMA_VERSION,
+          mode: "tune_proposal",
+          targets: [{ type: "action", actionId: "leftClick", label: "左键单击", patch: { sound: false } }],
+          reply: "已微调。",
+        }),
+      };
     };
 
     await requestAiSchemeEdit({
@@ -143,7 +135,7 @@ describe("aiSchemeAssistant", () => {
     expect(requestBody.proposalContext.diffItems).toBeUndefined();
     expect(requestBody.proposalContext.targets[0].patch).toEqual({ sound: true });
 
-    globalThis.window = originalWindow;
+    globalThis.fetch = originalFetch;
   });
 
   it("normalizes AI responses into proposal contract", () => {

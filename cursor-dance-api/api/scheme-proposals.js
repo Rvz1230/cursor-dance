@@ -2,7 +2,7 @@ import {
   buildCorsHeaders,
   createAiSchemeProposal,
   validateAiApiAccess,
-} from "../../server/ai/proposal-service.mjs";
+} from "../src/proposal-service.mjs";
 
 async function readRequestBody(request) {
   if (request.body && typeof request.body === "object") {
@@ -15,19 +15,23 @@ async function readRequestBody(request) {
   return { body: JSON.parse(buffer.toString("utf8")), rawBodyLength: buffer.byteLength };
 }
 
-export default async function handler(request, response) {
+export async function handler(request, response) {
   response.setHeader("Content-Type", "application/json; charset=utf-8");
   const cors = buildCorsHeaders({ origin: request.headers.origin || "" });
-  Object.entries(cors).forEach(([k, v]) => response.setHeader(k, v));
+  Object.entries(cors).forEach(([key, value]) => response.setHeader(key, value));
 
   if (request.method === "OPTIONS") { response.status(204).end(); return; }
   if (request.method !== "POST") { response.status(405).json({ error: "Method not allowed" }); return; }
 
   let payload, rawBodyLength;
   try {
-    const p = await readRequestBody(request);
-    payload = p.body; rawBodyLength = p.rawBodyLength;
-  } catch { response.status(400).json({ error: "Invalid JSON body" }); return; }
+    const parsed = await readRequestBody(request);
+    payload = parsed.body;
+    rawBodyLength = parsed.rawBodyLength;
+  } catch {
+    response.status(400).json({ error: "Invalid JSON body" });
+    return;
+  }
 
   const access = validateAiApiAccess({ headers: request.headers, rawBodyLength });
   if (!access.ok) { response.status(access.status).json(access.body); return; }
