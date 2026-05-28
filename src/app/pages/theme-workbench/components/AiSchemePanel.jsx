@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Bot, Check, CheckCircle2, ChevronDown, ChevronRight, Eye, Loader2, RotateCcw, Send, Square, Trash2, Wrench, X, Zap } from "lucide-react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Bot, Check, CheckCircle2, ChevronDown, ChevronRight, Copy, Eye, Loader2, RotateCcw, Send, Square, Trash2, Wrench, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button.jsx";
 import { cn } from "@/components/ui/utils.js";
 import { getAiRequestErrorMessage, requestAiSchemeEditStreaming, requestAiAgentRun } from "../lib/aiSchemeAssistant.js";
@@ -46,17 +46,46 @@ function buildPromptExamples(currentConfig) {
 
 function MessageBubble({ message }) {
   const isAssistant = message.role === "assistant";
+  const [copied, setCopied] = useState(false);
+  const copyTimerRef = useRef(null);
+
+  useEffect(() => {
+    return () => clearTimeout(copyTimerRef.current);
+  }, []);
+
+  function handleCopy() {
+    if (!navigator?.clipboard?.writeText) return;
+    navigator.clipboard.writeText(message.content).then(() => {
+      setCopied(true);
+      clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = setTimeout(() => setCopied(false), 1500);
+    }).catch(() => {
+      // Clipboard write failed — silently ignore
+    });
+  }
+
   return (
-    <div className={cn("flex", isAssistant ? "justify-start" : "justify-end")}>
+    <div className={cn("flex group", isAssistant ? "justify-start" : "justify-end")}>
       <div
         className={cn(
-          "max-w-[86%] rounded-2xl px-3 py-2 text-xs leading-5 text-pretty",
+          "max-w-[86%] rounded-2xl px-3 py-2 text-xs leading-5 text-pretty relative",
           isAssistant
             ? "border border-slate-200 bg-slate-50 text-slate-700"
             : "bg-slate-900 text-white"
         )}
       >
         {message.content}
+        {isAssistant ? (
+          <button
+            type="button"
+            className="absolute -top-1 -right-1 size-6 rounded-full border border-slate-200 bg-white text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:text-slate-600 hover:border-slate-300"
+            onClick={handleCopy}
+            aria-label="复制消息"
+            title="复制"
+          >
+            {copied ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
+          </button>
+        ) : null}
       </div>
     </div>
   );
@@ -486,12 +515,14 @@ export function AiSchemePanel({
   const scrollRef = useRef(null);
   const textareaRef = useRef(null);
 
-  // Auto-resize textarea
-  useEffect(() => {
+  // Auto-resize textarea (useLayoutEffect avoids initial paint flash)
+  useLayoutEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
+    // Reset to "auto" so scrollHeight reflects actual content, not a previously clamped height
     el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 112)}px`;
+    // Clamp to [min-h-[48px], max-h-[112px]]
+    el.style.height = `${Math.min(Math.max(el.scrollHeight, 48), 112)}px`;
   }, [prompt]);
 
   // Auto-focus textarea after generation completes
@@ -624,7 +655,6 @@ export function AiSchemePanel({
       }
     } catch (caughtError) {
       setAgentRunning(false);
-      abortRef.current = null;
       // Skip error display if user cancelled
       if (caughtError?.code !== "abort") {
         const message = getAiRequestErrorMessage(caughtError);
@@ -648,7 +678,7 @@ export function AiSchemePanel({
   }
 
   function handleKeyDown(event) {
-    if (event.key === "Enter" && !event.shiftKey) {
+    if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
       event.preventDefault();
       submitPrompt();
     }
@@ -741,7 +771,7 @@ export function AiSchemePanel({
       )}
     >
       <div className={cn("flex min-h-0 flex-col bg-white", variant === "full" && "flex-1")}>
-        <div ref={scrollRef} className={cn("min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3", variant === "full" ? "h-full" : "max-h-[220px]")}>
+        <div ref={scrollRef} className={cn("min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3 scroll-smooth", variant === "full" ? "h-full" : "max-h-[220px]")}>
           {messages.map((message, index) => (
             <MessageBubble key={`${message.role}-${index}-${message.content}`} message={message} />
           ))}
@@ -805,8 +835,8 @@ export function AiSchemePanel({
               ))}
             </div>
           ) : !pendingResult && !isGenerating ? (
-            <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-center text-xs text-slate-400">
-              Enter 发送，Shift+Enter 换行，AI 将根据描述生成配置方案
+            <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-500">
+              描述你想要的鼠标效果，AI 将生成可直接预览和应用的配置方案。
             </div>
           ) : null}
         </div>
@@ -860,7 +890,7 @@ export function AiSchemePanel({
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="描述你想要的鼠标效果，Enter 发送、Shift+Enter 换行"
+              placeholder="例如：科技感一点、低调、不要声音、粒子少一点"
               rows={1}
               className="max-h-[112px] min-h-[48px] w-full resize-none bg-transparent px-1 py-1.5 text-sm leading-5 text-slate-800 outline-none placeholder:text-slate-400"
               disabled={isGenerating}
@@ -876,7 +906,7 @@ export function AiSchemePanel({
                 <Square className="size-3.5" aria-hidden="true" />
               </button>
             ) : (
-              <Button className="absolute bottom-2 right-2 size-9 rounded-xl px-0" type="submit" disabled={!canSubmit} aria-label="发送给 AI 方案助手" title="发送 (Enter)">
+              <Button className="absolute bottom-2 right-2 size-9 rounded-xl px-0 disabled:opacity-30 transition-opacity" type="submit" disabled={!canSubmit} aria-label="发送给 AI 方案助手" title="发送 (⌘↵)">
                 <Send className="size-4" aria-hidden="true" />
               </Button>
             )}
