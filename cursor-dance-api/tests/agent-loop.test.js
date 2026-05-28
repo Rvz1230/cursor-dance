@@ -147,8 +147,8 @@ describe("createToolExecutor", () => {
 });
 
 describe("AGENT_TOOLS", () => {
-  it("has three tool definitions", () => {
-    assert.equal(AGENT_TOOLS.length, 3);
+  it("has four tool definitions", () => {
+    assert.equal(AGENT_TOOLS.length, 4);
   });
 
   it("all tools have required fields", () => {
