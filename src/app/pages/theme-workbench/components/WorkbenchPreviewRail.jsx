@@ -7,6 +7,8 @@ import {
   buildParticleSpecs,
   buildRippleSpecs,
   getAnimationEasingCss,
+  getAnimationKeyframeName,
+  getAnimationVisualProps,
   getParticleStyleProps,
   getParticleTint,
   getPreviewAnimationStyle,
@@ -23,6 +25,7 @@ import {
 import {
   getActionAnimationConfig,
   getActionAudioConfig,
+  getActionCursorFeedbackConfig,
   getActionImageConfig,
   getActionParticleConfig,
   getActionRippleConfig,
@@ -50,11 +53,19 @@ function buildOutputNames({ textConfig, particleConfig, rippleConfig, audioConfi
   return outputs;
 }
 
+function getCursorOverrideProps(cursorOverride) {
+  if (cursorOverride === "木鱼（增强态）") return { text: "击", background: "radial-gradient(circle at 35% 35%, rgba(253,224,71,0.95), rgba(180,83,9,0.94))", borderRadius: "999px" };
+  if (cursorOverride === "木鱼（按压态）") return { text: "压", background: "radial-gradient(circle at 35% 35%, rgba(251,191,36,0.92), rgba(146,64,14,0.96))", borderRadius: "38% 38% 58% 58% / 42% 42% 56% 56%" };
+  if (cursorOverride === "木鱼（继承默认）") return { text: "咚", background: "radial-gradient(circle at 35% 35%, rgba(252,211,77,0.94), rgba(180,83,9,0.92))", borderRadius: "999px" };
+  return null;
+}
+
 function PreviewEffects({
   disabled,
   config,
   runId,
   comboIndex,
+  actionId,
   textConfig,
   particleConfig,
   rippleConfig,
@@ -62,11 +73,13 @@ function PreviewEffects({
   imageConfig,
   playbackSpeed,
 }) {
-  const accentText = getPreviewText(config, comboIndex);
+  const accentText = getPreviewText(config, comboIndex, actionId);
   const particles = useMemo(() => buildParticleSpecs(config, runId), [config, runId]);
   const ripples = useMemo(() => buildRippleSpecs(config), [config]);
   const animationStyle = getPreviewAnimationStyle(config);
   const imageStyle = getPreviewImageStyle(config);
+  const animVisual = useMemo(() => getAnimationVisualProps(config), [config]);
+  const animKeyframe = getAnimationKeyframeName(animationConfig.animationStyle || "聚焦脉冲");
 
   if (disabled) return null;
 
@@ -86,6 +99,9 @@ function PreviewEffects({
                   ? `radial-gradient(circle, ${hexToRgba(rippleConfig.rippleColor || "#34D399", ripple.opacity * 0.34)} 0%, ${hexToRgba(rippleConfig.rippleColor || "#34D399", ripple.opacity * 0.16)} 56%, ${hexToRgba(rippleConfig.rippleColor || "#34D399", 0)} 100%)`
                   : "transparent",
                 boxShadow: ripple.filled ? `0 0 0 1px ${hexToRgba(rippleConfig.rippleColor || "#34D399", ripple.opacity * 0.22)} inset` : undefined,
+                "--ripple-from": ripple.scaleFrom,
+                "--ripple-mid": ripple.scaleMid,
+                "--ripple-to": ripple.scaleTo,
                 animation: `cursorDancePreviewRipple ${scalePreviewTime(rippleConfig.rippleDuration, playbackSpeed)}ms ${getAnimationEasingCss(rippleConfig.rippleEasing)} ${scalePreviewTime(ripple.delay, playbackSpeed)}ms forwards`,
               }}
             />
@@ -95,7 +111,7 @@ function PreviewEffects({
       {particleConfig.particle
         ? particles.map((particle, index) => {
             const shape = getParticleStyleProps(config, index, particle.size);
-            return (
+            const mainParticle = (
               <div
                 key={`particle-${runId}-${index}`}
                 className="absolute left-1/2 top-1/2"
@@ -105,6 +121,7 @@ function PreviewEffects({
                   borderRadius: shape.borderRadius,
                   backgroundColor: getParticleTint(config, index),
                   boxShadow: shape.boxShadow,
+                  clipPath: shape.clipPath || undefined,
                   "--particle-x": `${particle.x}px`,
                   "--particle-y": `${particle.y}px`,
                   animation: `cursorDancePreviewParticle ${scalePreviewTime(particleConfig.particleDuration, playbackSpeed)}ms ease-out ${scalePreviewTime(particle.delay, playbackSpeed)}ms forwards`,
@@ -112,6 +129,34 @@ function PreviewEffects({
                 }}
               />
             );
+
+            if (!particleConfig.particleTrail || index % 3 !== 0) return mainParticle;
+
+            const trailElements = [1, 2].map((t) => {
+              const trailScale = 1 - t * 0.32;
+              const trailOpacity = Math.max(0.12, 0.4 - t * 0.14);
+              return (
+                <div
+                  key={`particle-trail-${runId}-${index}-${t}`}
+                  className="absolute left-1/2 top-1/2"
+                  style={{
+                    width: `${shape.width * trailScale}px`,
+                    height: `${shape.height * trailScale}px`,
+                    borderRadius: shape.borderRadius,
+                    clipPath: shape.clipPath || undefined,
+                    backgroundColor: getParticleTint(config, index + t),
+                    boxShadow: shape.boxShadow,
+                    opacity: trailOpacity,
+                    "--particle-x": `${particle.x * 0.6}px`,
+                    "--particle-y": `${particle.y * 0.6}px`,
+                    animation: `cursorDancePreviewParticle ${scalePreviewTime(particleConfig.particleDuration * 0.8, playbackSpeed)}ms ease-out ${scalePreviewTime(particle.delay + t * 40, playbackSpeed)}ms forwards`,
+                    transform: `rotate(${shape.rotation}deg)`,
+                  }}
+                />
+              );
+            });
+
+            return [mainParticle, ...trailElements];
           })
         : null}
 
@@ -121,13 +166,13 @@ function PreviewEffects({
             key={`text-${runId}`}
             className="whitespace-nowrap text-center tabular-nums"
             style={{
-              color: hexToRgba(textConfig.textColor, textConfig.textOpacity / 100),
+              color: hexToRgba(textConfig.textColor || "#ec4899", (textConfig.textOpacity || 100) / 100),
               fontFamily: getTextFontFamilyValue(textConfig.textFontFamily),
-              fontSize: `${textConfig.fontSize}px`,
+              fontSize: `${textConfig.fontSize || 22}px`,
               fontWeight: getTextWeightValue(textConfig.textWeight),
               textShadow: getTextShadowValue(config),
               WebkitTextStroke: textConfig.textOutlineWidth ? `${textConfig.textOutlineWidth}px ${hexToRgba("#FFFFFF", 0.82)}` : undefined,
-              animation: `cursorDancePreviewFloat ${scalePreviewTime(textConfig.textDuration, playbackSpeed)}ms ${getAnimationEasingCss(textConfig.textEasing)} forwards`,
+              animation: `cursorDancePreviewFloat ${scalePreviewTime(textConfig.textDuration || 950, playbackSpeed)}ms ${getAnimationEasingCss(textConfig.textEasing)} forwards`,
             }}
           >
             {accentText}
@@ -138,12 +183,16 @@ function PreviewEffects({
       {animationConfig.animationEnabled ? (
         <div
           key={`animation-${runId}`}
-          className="absolute left-1/2 top-1/2 rounded-full"
+          className="absolute left-1/2 top-1/2"
           style={{
             ...animationStyle,
-            border: `2px solid ${hexToRgba(animationConfig.animationColor || "#34D399", 0.42)}`,
-            background: `radial-gradient(circle, ${hexToRgba(animationConfig.animationColor || "#34D399", 0.3)} 0%, ${hexToRgba(animationConfig.animationColor || "#34D399", 0.14)} 55%, ${hexToRgba(animationConfig.animationColor || "#34D399", 0)} 100%)`,
-            animation: `cursorDancePreviewAnimation ${scalePreviewTime(animationConfig.animationDuration, playbackSpeed)}ms ${getAnimationEasingCss(animationConfig.animationEasing)} forwards`,
+            "--anim-opacity": animationStyle.opacity,
+            animation: `${animKeyframe} ${scalePreviewTime(animationConfig.animationDuration, playbackSpeed)}ms ${getAnimationEasingCss(animationConfig.animationEasing)} forwards`,
+            borderRadius: animVisual.borderRadius,
+            background: animVisual.background,
+            clipPath: animVisual.clipPath || undefined,
+            boxShadow: animVisual.boxShadow || undefined,
+            border: animVisual.border || undefined,
           }}
         />
       ) : null}
@@ -164,6 +213,35 @@ function PreviewEffects({
           />
         </div>
       ) : null}
+
+      {(() => {
+        const cursorFeedbackConfig = getActionCursorFeedbackConfig(config);
+        const cursorProps = getCursorOverrideProps(cursorFeedbackConfig.cursorOverride);
+        if (!cursorProps) return null;
+        const cursorSize = cursorFeedbackConfig.cursorSize || 48;
+        return (
+          <div
+            key={`cursor-${runId}`}
+            className="absolute left-1/2 top-1/2 flex items-center justify-center"
+            style={{
+              width: `${cursorSize}px`,
+              height: `${cursorSize}px`,
+              background: cursorProps.background,
+              borderRadius: cursorProps.borderRadius,
+              border: cursorProps.borderRadius === "999px" ? "1px solid rgba(255,255,255,0.72)" : undefined,
+              boxShadow: "0 14px 34px rgba(15, 23, 42, 0.18)",
+              color: "#fff",
+              fontSize: `${Math.round(cursorSize * 0.27)}px`,
+              fontWeight: 700,
+              letterSpacing: "0.04em",
+              backdropFilter: "blur(6px)",
+              animation: `cursorDancePreviewCursorBounce 260ms cubic-bezier(0.22, 1, 0.36, 1) forwards`,
+            }}
+          >
+            {cursorProps.text}
+          </div>
+        );
+      })()}
     </>
   );
 }
@@ -246,7 +324,7 @@ function PreviewTimeline({ tracks, totalMs }) {
   );
 }
 
-function SimplePreviewStage({ config, disabled, runId, comboIndex, outputs, playbackSpeed }) {
+function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, outputs, playbackSpeed }) {
   const textConfig = useMemo(() => getActionTextConfig(config), [config]);
   const particleConfig = useMemo(() => getActionParticleConfig(config), [config]);
   const rippleConfig = useMemo(() => getActionRippleConfig(config), [config]);
@@ -307,6 +385,7 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, outputs, play
               config={config}
               runId={runId}
               comboIndex={comboIndex}
+              actionId={actionId}
               textConfig={textConfig}
               particleConfig={particleConfig}
               rippleConfig={rippleConfig}
@@ -342,7 +421,7 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, outputs, play
   );
 }
 
-export function WorkbenchPreviewRail({ actionLabel, config, disabled = false, previewMode = false }) {
+export function WorkbenchPreviewRail({ actionLabel, actionId = "leftClick", config, disabled = false, previewMode = false }) {
   const [runId, setRunId] = useState(0);
   const [comboIndex, setComboIndex] = useState(1);
   const [autoPlay, setAutoPlay] = useState(true);
@@ -453,7 +532,7 @@ export function WorkbenchPreviewRail({ actionLabel, config, disabled = false, pr
           </div>
         }
       >
-        <SimplePreviewStage config={config} disabled={disabled} runId={runId} comboIndex={displayComboIndex} outputs={outputs} playbackSpeed={playbackSpeed} />
+        <SimplePreviewStage config={config} disabled={disabled} runId={runId} comboIndex={displayComboIndex} actionId={actionId} outputs={outputs} playbackSpeed={playbackSpeed} />
       </Panel>
     </div>
   );

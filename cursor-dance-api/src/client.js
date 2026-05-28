@@ -8,6 +8,21 @@ function getAiTimeoutMs() {
   return Number.isFinite(parsed) && parsed >= 3000 ? parsed : 12000;
 }
 
+function combineSignals(...signals) {
+  const filtered = signals.filter(Boolean);
+  if (filtered.length <= 1) return filtered[0] || null;
+
+  const controller = new AbortController();
+  for (const signal of filtered) {
+    if (signal.aborted) {
+      controller.abort(signal.reason);
+      return controller.signal;
+    }
+    signal.addEventListener("abort", () => controller.abort(signal.reason), { once: true });
+  }
+  return controller.signal;
+}
+
 function isRetryableError(error) {
   if (error?.code === "timeout") return true;
   if (error?.code === "network") return true;
@@ -114,14 +129,23 @@ export async function requestAiSchemeEdit({ prompt, currentConfig, actionLabel, 
   return requestRemoteAiSchemeEdit({ prompt, currentConfig, actionLabel, actionId, taskMode, proposalContext });
 }
 
-async function parseSseStream(response, onProgress) {
+async function parseSseStream(response, onProgress, signal) {
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
   let currentEventType = "message";
 
+  function checkAborted() {
+    if (signal?.aborted) {
+      const cancelError = new Error("AI 请求已取消。");
+      cancelError.code = "abort";
+      throw cancelError;
+    }
+  }
+
   try {
     while (true) {
+      checkAborted();
       const { done, value } = await reader.read();
       if (done) throw new Error("Unexpected end of SSE stream without result.");
 
@@ -158,7 +182,7 @@ async function parseSseStream(response, onProgress) {
   }
 }
 
-export async function requestAiSchemeEditStreaming({ prompt, currentConfig, actionLabel, actionId, taskMode, proposalContext, onProgress }) {
+export async function requestAiSchemeEditStreaming({ prompt, currentConfig, actionLabel, actionId, taskMode, proposalContext, onProgress, signal: externalSignal }) {
   const streamEndpoint = globalThis.VITE_CURSORDANCE_AI_API_STREAM_ENDPOINT;
   const baseEndpoint = globalThis.VITE_CURSORDANCE_AI_API_ENDPOINT || DEFAULT_API_ENDPOINT;
   const endpoint = streamEndpoint || baseEndpoint.replace(/\/+$/, "") + "/stream";
@@ -166,6 +190,7 @@ export async function requestAiSchemeEditStreaming({ prompt, currentConfig, acti
   const controller = new AbortController();
   const timeoutMs = getAiTimeoutMs();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const signal = combineSignals(controller.signal, externalSignal);
 
   try {
     const response = await fetch(endpoint, {
@@ -184,7 +209,7 @@ export async function requestAiSchemeEditStreaming({ prompt, currentConfig, acti
         extensionVersion: AI_EXTENSION_VERSION,
         schemaVersion: AI_SCHEMA_VERSION,
       }),
-      signal: controller.signal,
+      signal,
     });
 
     if (!response.ok) {
@@ -196,7 +221,7 @@ export async function requestAiSchemeEditStreaming({ prompt, currentConfig, acti
       throw new Error(errorMessage);
     }
 
-    const result = await parseSseStream(response, onProgress);
+    const result = await parseSseStream(response, onProgress, signal);
     return { result, abort: () => controller.abort() };
   } catch (error) {
     if (error?.name === "AbortError") {
@@ -215,7 +240,7 @@ export async function requestAiSchemeEditStreaming({ prompt, currentConfig, acti
   }
 }
 
-export async function requestAiAgentRun({ prompt, currentConfig, actionLabel, actionId, taskMode, proposalContext, onEvent }) {
+export async function requestAiAgentRun({ prompt, currentConfig, actionLabel, actionId, taskMode, proposalContext, onEvent, signal: externalSignal }) {
   const agentEndpoint = globalThis.VITE_CURSORDANCE_AI_AGENT_ENDPOINT;
   const baseEndpoint = globalThis.VITE_CURSORDANCE_AI_API_ENDPOINT || DEFAULT_API_ENDPOINT;
   const endpoint = agentEndpoint || baseEndpoint.replace(/\/[^/]+$/, "") + "/agent/run";
@@ -223,6 +248,7 @@ export async function requestAiAgentRun({ prompt, currentConfig, actionLabel, ac
   const controller = new AbortController();
   const timeoutMs = Math.max(getAiTimeoutMs() * 3, 60000);
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  const signal = combineSignals(controller.signal, externalSignal);
 
   try {
     const response = await fetch(endpoint, {
@@ -241,7 +267,7 @@ export async function requestAiAgentRun({ prompt, currentConfig, actionLabel, ac
         extensionVersion: AI_EXTENSION_VERSION,
         schemaVersion: AI_SCHEMA_VERSION,
       }),
-      signal: controller.signal,
+      signal,
     });
 
     if (!response.ok) {
@@ -253,7 +279,7 @@ export async function requestAiAgentRun({ prompt, currentConfig, actionLabel, ac
       throw new Error(errorMessage);
     }
 
-    const result = await parseAgentSseStream(response, onEvent);
+    const result = await parseAgentSseStream(response, onEvent, signal);
     return { result, abort: () => controller.abort() };
   } catch (error) {
     if (error?.name === "AbortError") {
@@ -272,15 +298,24 @@ export async function requestAiAgentRun({ prompt, currentConfig, actionLabel, ac
   }
 }
 
-async function parseAgentSseStream(response, onEvent) {
+async function parseAgentSseStream(response, onEvent, signal) {
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
   let currentEventType = "message";
   let finalResult = null;
 
+  function checkAborted() {
+    if (signal?.aborted) {
+      const cancelError = new Error("AI 请求已取消。");
+      cancelError.code = "abort";
+      throw cancelError;
+    }
+  }
+
   try {
     while (true) {
+      checkAborted();
       const { done, value } = await reader.read();
       if (done) break;
 

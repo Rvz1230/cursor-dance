@@ -553,7 +553,7 @@
       );
     }
 
-    function renderParticles(x, y, actionConfig) {
+    function renderParticles(x, y, actionConfig, runIndex) {
       const particleConfig = configStore.getActionParticleConfig(actionConfig);
       if (!particleConfig.particle) return;
 
@@ -577,9 +577,10 @@
           sweep = Math.PI * 0.76;
         }
 
-        const spread = particleConfig.particleSpread || 52;
+        const spread = Math.max(0, Math.min(particleConfig.particleSpread || 52, 90));
         const angle = startAngle + (count === 1 ? 0 : (index / (count - 1)) * sweep);
-        const distance = Math.max(16, spread * (0.52 + index / Math.max(count * 1.4, 1)));
+        const variance = (((runIndex || 0) + 5) * (index + 3)) % 11 - 5;
+        const distance = Math.max(16, spread * (0.55 + index / Math.max(count * 1.45, 1)) + variance * 1.8);
         const baseX = Math.cos(angle) * distance;
         const baseY = Math.sin(angle) * distance;
         const tx = baseX + wind * spread * 1.2;
@@ -611,6 +612,7 @@
           {
             duration: particleConfig.particleDuration || 760,
             easing: particleStyle === "火花" || particleStyle === "星光" ? "cubic-bezier(0.22, 1, 0.36, 1)" : "ease-out",
+            delay: index * 26,
           }
         );
 

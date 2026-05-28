@@ -185,7 +185,7 @@
         target: diagnostics?.describeTarget(coords.target),
       });
       visualEffects.renderRipple(coords.x, coords.y, actionConfig);
-      visualEffects.renderParticles(coords.x, coords.y, actionConfig);
+      visualEffects.renderParticles(coords.x, coords.y, actionConfig, runIndex);
       visualEffects.renderText(coords.x, coords.y, actionConfig, resolvedActionId, comboIndex);
       visualEffects.renderAnimationEffect(coords.x, coords.y, actionConfig);
       visualEffects.renderImageEffect(coords.x, coords.y, actionConfig);

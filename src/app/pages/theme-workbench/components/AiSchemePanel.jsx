@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Bot, Check, CheckCircle2, ChevronDown, ChevronRight, Copy, Eye, Loader2, RotateCcw, Send, Square, Trash2, Wrench, X, Zap } from "lucide-react";
+import { Bot, Check, CheckCircle2, ChevronDown, ChevronRight, Copy, Eye, Loader2, PenLine, RotateCcw, Send, Square, Trash2, Wrench, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button.jsx";
 import { cn } from "@/components/ui/utils.js";
 import { getAiRequestErrorMessage, requestAiSchemeEditStreaming, requestAiAgentRun } from "../lib/aiSchemeAssistant.js";
@@ -44,7 +44,7 @@ function buildPromptExamples(currentConfig) {
   return [...examples.slice(0, 3), ...fallbacks].slice(0, 4);
 }
 
-function MessageBubble({ message }) {
+function MessageBubble({ message, onEdit }) {
   const isAssistant = message.role === "assistant";
   const [copied, setCopied] = useState(false);
   const copyTimerRef = useRef(null);
@@ -65,25 +65,39 @@ function MessageBubble({ message }) {
   }
 
   return (
-    <div className={cn("flex group", isAssistant ? "justify-start" : "justify-end")}>
+    <div className={cn("flex flex-col gap-0.5 group", isAssistant ? "items-start" : "items-end")}>
       <div
         className={cn(
-          "max-w-[86%] rounded-2xl px-3 py-2 text-xs leading-5 text-pretty relative",
+          "max-w-[86%] rounded-2xl px-3 py-2 text-xs leading-5 text-pretty",
           isAssistant
             ? "border border-slate-200 bg-slate-50 text-slate-700"
             : "bg-slate-900 text-white"
         )}
       >
         {message.content}
-        {isAssistant ? (
+      </div>
+      <div className={cn(
+        "flex items-center gap-0 px-1",
+        "opacity-0 group-hover:opacity-100 transition-opacity"
+      )}>
+        <button
+          type="button"
+          className="inline-flex items-center rounded-md p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+          onClick={handleCopy}
+          aria-label="复制"
+          title="复制"
+        >
+          {copied ? <Check className="size-3.5 text-emerald-500" /> : <Copy className="size-3.5 shrink-0" />}
+        </button>
+        {!isAssistant ? (
           <button
             type="button"
-            className="absolute -top-1 -right-1 size-6 rounded-full border border-slate-200 bg-white text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center hover:text-slate-600 hover:border-slate-300"
-            onClick={handleCopy}
-            aria-label="复制消息"
-            title="复制"
+            className="inline-flex items-center rounded-md p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            onClick={() => onEdit?.(message.content)}
+            aria-label="编辑"
+            title="编辑"
           >
-            {copied ? <Check className="size-3 text-emerald-500" /> : <Copy className="size-3" />}
+            <PenLine className="size-3.5 shrink-0" />
           </button>
         ) : null}
       </div>
@@ -460,15 +474,15 @@ export function AiSchemePanel({
   const [streamingPhase, setStreamingPhase] = useState(0);
   const abortRef = useRef(null);
 
-  // Cycle streaming phase indicator
+  // Cycle streaming phase indicator (fast mode only — agent uses AgentTimeline)
   useEffect(() => {
-    if (!isGenerating || streamingReply) return;
+    if (!isGenerating || streamingReply || useAgent) return;
     const phases = ["正在分析需求", "正在生成配置", "正在验证方案"];
     const timer = setInterval(() => {
       setStreamingPhase((p) => (p + 1) % phases.length);
     }, 2000);
     return () => clearInterval(timer);
-  }, [isGenerating, streamingReply]);
+  }, [isGenerating, streamingReply, useAgent]);
 
   // Persist conversation state when switching between actions
   const actionIdRef = useRef(actionId);
@@ -519,6 +533,11 @@ export function AiSchemePanel({
   useLayoutEffect(() => {
     const el = textareaRef.current;
     if (!el) return;
+    // When empty, let CSS default handle the height — avoids wrong initial scrollHeight
+    if (!prompt) {
+      el.style.height = "";
+      return;
+    }
     // Reset to "auto" so scrollHeight reflects actual content, not a previously clamped height
     el.style.height = "auto";
     // Clamp to [min-h-[48px], max-h-[112px]]
@@ -534,9 +553,15 @@ export function AiSchemePanel({
     wasGenerating.current = isGenerating;
   }, [isGenerating]);
 
+  // Auto-scroll to bottom only when user is already near the bottom
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    const el = scrollRef.current;
+    if (!el) return;
+    // Only auto-scroll if user is within 50px of the bottom
+    const threshold = 50;
+    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+    if (isNearBottom) {
+      el.scrollTop = el.scrollHeight;
     }
   }, [messages, isGenerating, streamingReply, agentSteps]);
 
@@ -553,6 +578,10 @@ export function AiSchemePanel({
     setLastPrompt(trimmedPrompt);
     setMessages((current) => [...current, { role: "user", content: trimmedPrompt }]);
 
+    // Create AbortController before async work so cancel is immediately available
+    const controller = new AbortController();
+    abortRef.current = () => controller.abort();
+
     try {
       if (useAgent) {
         // Agent mode: step-by-step reasoning + tool calls
@@ -560,16 +589,28 @@ export function AiSchemePanel({
         setAgentRunning(true);
         setStreamingReply("");
 
-        const { result: rawResult, abort } = await requestAiAgentRun({
+        const { result: rawResult } = await requestAiAgentRun({
           prompt: trimmedPrompt,
           currentConfig,
           actionLabel,
           actionId,
           taskMode: modeOverride,
           proposalContext,
+          signal: controller.signal,
           onEvent: (eventType, data) => {
             if (eventType === "progress" || eventType === "stream_token") {
-              setStreamingReply(data.text || data.reply || "");
+              setStreamingReply((prev) => prev + (data.text || data.reply || ""));
+              // Accumulate incremental token text into the current step's thought
+              if (data.text) {
+                setAgentSteps((prev) => {
+                  const last = prev[prev.length - 1];
+                  if (!last) return prev;
+                  return [
+                    ...prev.slice(0, -1),
+                    { ...last, thought: last.thought + data.text },
+                  ];
+                });
+              }
             } else if (eventType === "step_start") {
               setAgentSteps((prev) => [
                 ...prev,
@@ -603,8 +644,6 @@ export function AiSchemePanel({
           },
         });
 
-        abortRef.current = abort;
-
         setAgentRunning(false);
         setStreamingReply("");
 
@@ -625,19 +664,19 @@ export function AiSchemePanel({
       } else {
         // Fast mode: one-shot streaming
         setStreamingReply("");
-        const { result, abort } = await requestAiSchemeEditStreaming({
+        const { result } = await requestAiSchemeEditStreaming({
           prompt: trimmedPrompt,
           currentConfig,
           actionLabel,
           actionId,
           taskMode: modeOverride,
           proposalContext,
+          signal: controller.signal,
           onProgress: (replyText) => {
             setStreamingReply(replyText);
           },
         });
 
-        abortRef.current = abort;
         setStreamingReply("");
         const proposal = {
           ...result,
@@ -655,8 +694,9 @@ export function AiSchemePanel({
       }
     } catch (caughtError) {
       setAgentRunning(false);
-      // Skip error display if user cancelled
-      if (caughtError?.code !== "abort") {
+      if (controller.signal.aborted) {
+        // User cancelled — silently ignore the error
+      } else {
         const message = getAiRequestErrorMessage(caughtError);
         setError(message);
       }
@@ -773,7 +813,7 @@ export function AiSchemePanel({
       <div className={cn("flex min-h-0 flex-col bg-white", variant === "full" && "flex-1")}>
         <div ref={scrollRef} className={cn("min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3 scroll-smooth", variant === "full" ? "h-full" : "max-h-[220px]")}>
           {messages.map((message, index) => (
-            <MessageBubble key={`${message.role}-${index}-${message.content}`} message={message} />
+            <MessageBubble key={`${message.role}-${index}-${message.content}`} message={message} onEdit={setPrompt} />
           ))}
           {isGenerating ? (
             <div className="flex justify-start">
