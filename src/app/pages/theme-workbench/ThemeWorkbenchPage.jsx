@@ -1,5 +1,5 @@
 import { formatActionLabel } from "./model/workbenchSchema.js";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useThemeWorkbenchState } from "./hooks/useThemeWorkbenchState.js";
 import { BindingsPanel } from "./components/BindingsPanel.jsx";
