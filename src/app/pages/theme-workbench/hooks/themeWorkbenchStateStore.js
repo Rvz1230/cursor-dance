@@ -23,6 +23,7 @@ export const initialState = {
     isHydrated: false,
     isSaving: false,
     saveError: "",
+    dirtyThemes: {},
   },
   site: {
     host: "example.com",
@@ -46,6 +47,7 @@ export function reducer(state, action) {
           isHydrated: true,
           isSaving: false,
           saveError: "",
+          dirtyThemes: {},
         },
       };
     case "workspace/set":
@@ -77,6 +79,8 @@ export function reducer(state, action) {
       const { themeId, nextSelectedThemeId } = action.payload;
       const nextDraftsByTheme = { ...state.draftsByTheme };
       delete nextDraftsByTheme[themeId];
+      const nextDirtyThemes = { ...state.ui.dirtyThemes };
+      delete nextDirtyThemes[themeId];
       return {
         ...state,
         themeLibrary: state.themeLibrary.filter((theme) => theme.id !== themeId),
@@ -85,7 +89,7 @@ export function reducer(state, action) {
           ...state.selection,
           themeId: nextSelectedThemeId || state.selection.themeId,
         },
-        ui: { ...state.ui, unsaved: true, saveError: "" },
+        ui: { ...state.ui, unsaved: true, saveError: "", dirtyThemes: nextDirtyThemes },
       };
     }
     case "theme/library-rename": {
@@ -95,7 +99,7 @@ export function reducer(state, action) {
         themeLibrary: state.themeLibrary.map((theme) =>
           theme.id === themeId ? { ...theme, name } : theme
         ),
-        ui: { ...state.ui, unsaved: true, saveError: "" },
+        ui: { ...state.ui, unsaved: true, saveError: "", dirtyThemes: { ...state.ui.dirtyThemes, [themeId]: true } },
       };
     }
     case "theme/library-update-icon": {
@@ -105,7 +109,7 @@ export function reducer(state, action) {
         themeLibrary: state.themeLibrary.map((theme) =>
           theme.id === themeId ? { ...theme, icon } : theme
         ),
-        ui: { ...state.ui, unsaved: true, saveError: "" },
+        ui: { ...state.ui, unsaved: true, saveError: "", dirtyThemes: { ...state.ui.dirtyThemes, [themeId]: true } },
       };
     }
     case "action/select":
@@ -185,7 +189,10 @@ export function reducer(state, action) {
     case "save/start":
       return { ...state, ui: { ...state.ui, isSaving: true, saveError: "" } };
     case "save/success":
-      return { ...state, ui: { ...state.ui, unsaved: false, isSaving: false, saveError: "" } };
+      return {
+        ...state,
+        ui: { ...state.ui, unsaved: false, isSaving: false, saveError: "", dirtyThemes: {} },
+      };
     case "save/error":
       return { ...state, ui: { ...state.ui, isSaving: false, saveError: action.payload || "保存失败" } };
     case "recent-assets/set":
@@ -194,7 +201,7 @@ export function reducer(state, action) {
       const themeId = state.selection.themeId;
       return {
         ...state,
-        ui: { ...state.ui, unsaved: true, saveError: "" },
+        ui: { ...state.ui, unsaved: true, saveError: "", dirtyThemes: { ...state.ui.dirtyThemes, [themeId]: true } },
         draftsByTheme: {
           ...state.draftsByTheme,
           [themeId]: action.payload(state.draftsByTheme[themeId]),
@@ -205,12 +212,26 @@ export function reducer(state, action) {
       const themeId = state.selection.themeId;
       return {
         ...state,
-        ui: { ...state.ui, unsaved: true, saveError: "" },
+        ui: { ...state.ui, unsaved: true, saveError: "", dirtyThemes: { ...state.ui.dirtyThemes, [themeId]: true } },
         draftsByTheme: {
           ...state.draftsByTheme,
           [themeId]: {
             ...createThemeDraft(themeId),
           },
+        },
+      };
+    }
+    case "theme/discard-changes": {
+      const { themeId, draft } = action.payload;
+      const nextDirtyThemes = { ...state.ui.dirtyThemes };
+      delete nextDirtyThemes[themeId];
+      const hasDirty = Object.keys(nextDirtyThemes).length > 0;
+      return {
+        ...state,
+        ui: { ...state.ui, unsaved: hasDirty, dirtyThemes: nextDirtyThemes },
+        draftsByTheme: {
+          ...state.draftsByTheme,
+          [themeId]: draft,
         },
       };
     }

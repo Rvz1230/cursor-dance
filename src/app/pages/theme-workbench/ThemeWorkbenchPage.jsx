@@ -57,6 +57,7 @@ function ThemeWorkbenchPageContent() {
     renameTheme,
     updateThemeIcon,
     resetCurrentTheme,
+    discardThemeChanges,
     addSiteRule,
     updateSiteRule,
     deleteSiteRule,
@@ -190,6 +191,9 @@ function ThemeWorkbenchPageContent() {
               renameTheme={renameTheme}
               updateThemeIcon={updateThemeIcon}
               notify={toast}
+              dirtyThemes={state.ui.dirtyThemes}
+              saveChanges={saveChanges}
+              discardThemeChanges={discardThemeChanges}
             />
 
             <main className={cn("min-w-0 flex-1 overflow-hidden bg-slate-50 px-2.5 py-2.5", isWorkbench && "overflow-hidden")}>

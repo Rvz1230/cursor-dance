@@ -5,6 +5,7 @@ import {
   WORKSPACES,
   buildDefaultCursorStateActions,
   buildDefaultCursorStateAssets,
+  createThemeDraft,
   getConflictsForAction,
 } from "../model/workbenchSchema.js";
 import {
@@ -14,6 +15,7 @@ import {
   buildThemeExportPayload,
   clearLivePreviewConfig,
   downloadThemePackExport,
+  draftFromThemePack,
   previewThemePack,
   readExtensionConfig,
   writeRecentCursorAsset,
@@ -65,6 +67,13 @@ export function useThemeWorkbenchState() {
       dispatch({ type: "save/error", payload: message });
       return { ok: false, error: message };
     }
+  }
+
+  function discardThemeChanges(themeId) {
+    const storedConfig = configRef.current;
+    const themePack = storedConfig?.themePacks?.find((tp) => tp.id === themeId);
+    const draft = themePack ? draftFromThemePack(themePack) : createThemeDraft(themeId);
+    dispatch({ type: "theme/discard-changes", payload: { themeId, draft } });
   }
 
   async function previewActiveTheme() {
@@ -186,6 +195,7 @@ export function useThemeWorkbenchState() {
     setCursorStateId: (value) => dispatch({ type: "cursor-state/select", payload: value }),
     setEnabled: (value) => dispatch({ type: "global-enabled/set", payload: value }),
     saveChanges,
+    discardThemeChanges,
     previewActiveTheme,
     createTheme,
     duplicateTheme,

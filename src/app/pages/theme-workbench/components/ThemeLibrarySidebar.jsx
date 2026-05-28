@@ -202,11 +202,16 @@ export function ThemeLibrarySidebar({
   renameTheme,
   updateThemeIcon,
   notify,
+  dirtyThemes,
+  saveChanges,
+  discardThemeChanges,
 }) {
   const [query, setQuery] = useState("");
   const [composerMode, setComposerMode] = useState("");
   const [actionError, setActionError] = useState("");
   const [pendingDeleteTheme, setPendingDeleteTheme] = useState(null);
+  const [pendingSwitchThemeId, setPendingSwitchThemeId] = useState(null);
+  const [isSwitching, setIsSwitching] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
   const filteredThemes = useMemo(() => {
@@ -251,6 +256,49 @@ export function ThemeLibrarySidebar({
     setPendingDeleteTheme(null);
     notify?.({ tone: "success", title: "已移除主题", description: `${deletedName} 将在保存后从配置中删除。` });
   }
+
+  function handleThemeClick(targetThemeId) {
+    if (targetThemeId !== themeId && dirtyThemes?.[themeId]) {
+      setPendingSwitchThemeId(targetThemeId);
+      return;
+    }
+    setThemeId(targetThemeId);
+  }
+
+  async function handleSaveAndSwitch() {
+    if (!pendingSwitchThemeId) return;
+    setIsSwitching(true);
+    try {
+      const result = await saveChanges();
+      if (result.ok) {
+        setThemeId(pendingSwitchThemeId);
+        notify?.({ tone: "success", title: "已保存并切换主题" });
+      } else {
+        notify?.({ tone: "error", title: "保存失败", description: result.error || "请稍后重试" });
+      }
+    } catch {
+      notify?.({ tone: "error", title: "保存失败", description: "请稍后重试" });
+    } finally {
+      setIsSwitching(false);
+      setPendingSwitchThemeId(null);
+    }
+  }
+
+  function handleDiscardAndSwitch() {
+    if (!pendingSwitchThemeId) return;
+    discardThemeChanges?.(themeId);
+    setThemeId(pendingSwitchThemeId);
+    setPendingSwitchThemeId(null);
+  }
+
+  function handleCancelSwitch() {
+    setPendingSwitchThemeId(null);
+  }
+
+  const pendingSwitchTheme = pendingSwitchThemeId
+    ? themes.find((t) => t.id === pendingSwitchThemeId)
+    : null;
+  const currentThemeName = themes.find((t) => t.id === themeId)?.name || "当前主题";
 
   return (
     <aside className={cn("flex shrink-0 flex-col border-r border-slate-200 bg-slate-100 transition-[width] duration-200", collapsed ? "w-[76px]" : "w-[304px]")}>
@@ -323,7 +371,8 @@ export function ThemeLibrarySidebar({
                 theme={theme}
                 selected={theme.id === themeId}
                 canDelete={theme.kind !== "内置" && themes.length > 1}
-                onClick={() => setThemeId(theme.id)}
+                isDirty={dirtyThemes?.[theme.id] || false}
+                onClick={() => handleThemeClick(theme.id)}
                 onDuplicate={() => handleDuplicateTheme(theme.id)}
                 onExport={() => handleExportTheme(theme.id)}
                 onDelete={() => setPendingDeleteTheme(theme)}
@@ -374,6 +423,41 @@ export function ThemeLibrarySidebar({
               onClick={handleDeleteTheme}
             >
               删除主题
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={Boolean(pendingSwitchThemeId)} onOpenChange={(open) => {
+        if (!open) setPendingSwitchThemeId(null);
+      }}>
+        <AlertDialogContent>
+          <AlertDialogTitle className="text-base font-semibold text-slate-950">
+            「{currentThemeName}」有未保存的更改
+          </AlertDialogTitle>
+          <AlertDialogDescription className="mt-2 text-sm leading-6 text-slate-600 text-pretty">
+            切换主题前要保存这些更改吗？不保存的更改不会丢失，但关闭页面后会消失。
+          </AlertDialogDescription>
+          <div className="mt-5 flex justify-end gap-2">
+            <AlertDialogCancel
+              className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+              onClick={handleCancelSwitch}
+            >
+              取消
+            </AlertDialogCancel>
+            <button
+              type="button"
+              className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+              onClick={handleDiscardAndSwitch}
+            >
+              不保存直接切换
+            </button>
+            <AlertDialogAction
+              className="inline-flex h-9 items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-medium text-white transition-colors hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 disabled:opacity-60"
+              onClick={handleSaveAndSwitch}
+              disabled={isSwitching}
+            >
+              {isSwitching ? "保存中..." : "保存并切换"}
             </AlertDialogAction>
           </div>
         </AlertDialogContent>
