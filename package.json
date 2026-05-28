@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "workspaces": ["cursor-dance-api", "landing"],
   "scripts": {
     "dev": "vite",
     "ai:dev": "node cursor-dance-api/scripts/dev-server.mjs",

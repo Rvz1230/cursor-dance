@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Menu, X } from "lucide-react";
 import InstallButton from "./InstallButton.jsx";
-import { navLinks, scrollToDemo } from "../lib/scroll.js";
+import { navLinks } from "../lib/scroll.js";
 
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false);

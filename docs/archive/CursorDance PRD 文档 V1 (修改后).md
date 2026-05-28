@@ -1,3 +1,5 @@
+> **ARCHIVED**: 此文档为项目早期规划的历史记录，不再维护。保留仅供参考。
+>
 # CursorDance PRD 文档 V1
 
 - 文档名称：CursorDance PRD 文档 V1

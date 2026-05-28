@@ -34,6 +34,7 @@ export { repairPatchForUserIntent } from "./intent-repair.js";
 // Diff — 浏览器 + Node 通用
 export {
   buildAiSchemeDiffItems,
+  describeDiff,
   formatDiffValue,
 } from "./diff.js";
 

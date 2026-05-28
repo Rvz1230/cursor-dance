@@ -31,6 +31,7 @@ function ThemeWorkbenchPageContent() {
   const [columnWeights, setColumnWeights] = useState({ config: 1.05, preview: 1.25, ai: 1 });
   const [previewProposal, setPreviewProposal] = useState(null);
   const [aiSnapshot, setAiSnapshot] = useState(null);
+  const conversationCache = useRef(new Map());
   const {
     state,
     selected,
@@ -260,7 +261,6 @@ function ThemeWorkbenchPageContent() {
                           transition={{ duration: 0.2, ease: "easeOut" }}
                         >
                           <AiSchemePanel
-                            key={selected.actionId}
                             actionId={selected.actionId}
                             actionLabel={formatActionLabel(selected.actionId)}
                             currentConfig={currentActionConfig}
@@ -273,6 +273,7 @@ function ThemeWorkbenchPageContent() {
                             aiSnapshot={aiSnapshot}
                             onRevertAiChanges={handleRevertAiChanges}
                             onClearAiSnapshot={() => setAiSnapshot(null)}
+                            conversationCache={conversationCache}
                             variant="full"
                           />
                         </motion.div>

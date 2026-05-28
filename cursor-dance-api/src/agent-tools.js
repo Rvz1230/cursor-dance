@@ -105,6 +105,20 @@ export const AGENT_TOOLS = [
   {
     type: "function",
     function: {
+      name: "rollback",
+      description:
+        "Undo the most recent apply_config_patch. Use this when a config change didn't produce the expected effect and you need to revert it before trying a different approach.",
+      parameters: {
+        type: "object",
+        properties: {},
+        required: [],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "finalize_proposal",
       description:
         "Finalize the proposal after making all necessary config changes. Wraps up the agent run and returns the full proposal. Call when satisfied or when the user's intent is fully addressed.",
@@ -153,8 +167,9 @@ export const AGENT_TOOLS = [
 export const AGENT_SYSTEM_PROMPT_EXTENSION = [
   "你是一个 Agent，可以用工具读取和修改鼠标反馈配置。",
   "遵循 ReAct 模式：先思考用户需求，再调用工具执行修改，观察结果，必要时再调整。",
-  "流程：get_current_config 查看现状 → apply_config_patch 修改 → 评估 → finalize_proposal 结束。",
+  "流程：get_current_config 查看现状 → apply_config_patch 修改 → 评估 → 如果效果不对则 rollback 回退 → finalize_proposal 结束。",
   "每次 apply_config_patch 只修改真正需要改变的字段，不要重写整个配置。",
+  "修改后如果效果不符合预期，用 rollback 撤销最近一次修改，然后换一种方式重试。",
   "数字飘字 +1：textEnabled=true, textKind='数字飘字', textStyle='阿拉伯数字 (1, 2, 3)', textMode='默认模式 (+1)', textContent='+1', textTemplate='${number}', textTags=[], comboEnabled=false。",
   "文本飘字：textEnabled=true, textKind='文本飘字', comboEnabled=false。",
   "不要声音 → sound: false, volume: 0。关闭粒子 → particle: false, particleCount: 0。",

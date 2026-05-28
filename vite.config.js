@@ -1,6 +1,28 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import fs from "node:fs";
+
+function removeTestFiles(dir) {
+  if (!fs.existsSync(dir)) return;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      removeTestFiles(full);
+    } else if (entry.name.includes(".test.") || entry.name.includes(".spec.")) {
+      fs.rmSync(full);
+    }
+  }
+}
+
+function excludeTestFilesPlugin() {
+  return {
+    name: "exclude-test-files",
+    closeBundle() {
+      removeTestFiles(path.resolve(__dirname, "dist"));
+    },
+  };
+}
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "VITE_");
@@ -8,7 +30,7 @@ export default defineConfig(({ mode }) => {
   return {
     base: "./",
     appType: "mpa",
-    plugins: [react()],
+    plugins: [react(), excludeTestFilesPlugin()],
     define: {
       "globalThis.VITE_CURSORDANCE_AI_API_ENDPOINT": JSON.stringify(
         env.VITE_CURSORDANCE_AI_API_ENDPOINT || ""
@@ -33,6 +55,7 @@ export default defineConfig(({ mode }) => {
         "public/**/*.test.js",
         "scripts/**/*.test.js",
         "server/**/*.test.js",
+        "landing/src/**/*.test.js",
       ],
       deps: {
         inline: ["**/public/config-runtime/*.js"],

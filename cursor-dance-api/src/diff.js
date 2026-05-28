@@ -8,7 +8,7 @@ export function formatDiffValue(value) {
   return String(value);
 }
 
-function describeDiff(patch) {
+export function describeDiff(patch) {
   const summary = [];
   if (patch.textEnabled === false) summary.push("关闭飘字，降低视觉打扰");
   if (patch.textEnabled === true) summary.push("启用文本飘字并设置文案");

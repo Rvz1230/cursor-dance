@@ -252,7 +252,8 @@ export async function requestAiAgentRun({ prompt, currentConfig, actionLabel, ac
       throw new Error(errorMessage);
     }
 
-    return await parseAgentSseStream(response, onEvent);
+    const result = await parseAgentSseStream(response, onEvent);
+    return { result, abort: () => controller.abort() };
   } catch (error) {
     if (error?.name === "AbortError") {
       const timeoutError = new Error("AI Agent 请求超时，请稍后重试。");
@@ -301,6 +302,12 @@ async function parseAgentSseStream(response, onEvent) {
 
           if (currentEventType === "result" && data.proposal) {
             finalResult = data.proposal;
+            if (data.totalTokens != null) {
+              finalResult.totalTokens = data.totalTokens;
+            }
+            if (data.durationMs != null) {
+              finalResult.durationMs = data.durationMs;
+            }
           }
           if (currentEventType === "error") {
             throw new Error(data.error || data.details || "Agent run error");

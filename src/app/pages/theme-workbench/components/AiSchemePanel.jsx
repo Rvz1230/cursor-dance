@@ -1,15 +1,48 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bot, Check, CheckCircle2, ChevronDown, ChevronRight, Eye, Loader2, RotateCcw, Send, Trash2, Wrench, X, Zap } from "lucide-react";
+import { Bot, Check, CheckCircle2, ChevronDown, ChevronRight, Eye, Loader2, RotateCcw, Send, Square, Trash2, Wrench, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button.jsx";
 import { cn } from "@/components/ui/utils.js";
 import { getAiRequestErrorMessage, requestAiSchemeEditStreaming, requestAiAgentRun } from "../lib/aiSchemeAssistant.js";
 import { Panel } from "./WorkbenchControls.jsx";
 
-const PROMPT_EXAMPLES = [
-  "适合写代码的简约蓝色点击效果，不要声音",
-  "赛博朋克一点，但不要太花",
-  "再低调一点，粒子少一点",
-];
+function buildPromptExamples(currentConfig) {
+  const examples = [];
+  const config = currentConfig || {};
+
+  if (config.sound && config.volume > 40) {
+    examples.push("关掉声音效果");
+  }
+  if (!config.sound) {
+    examples.push("加一点音效反馈");
+  }
+  if (config.particleCount > 25) {
+    examples.push("粒子少一点，低调一些");
+  }
+  if (!config.particle) {
+    examples.push("加一些粒子特效");
+  }
+  if (config.rippleSize > 90) {
+    examples.push("波纹小一点");
+  }
+  if (config.shake > 30) {
+    examples.push("去掉光标震动");
+  }
+  if (config.textKind === "数字飘字") {
+    examples.push("改成文本飘字");
+  }
+  if (config.textKind === "文本飘字") {
+    examples.push("切换回数字 +1 模式");
+  }
+
+  // Always include fallback examples
+  const fallbacks = [
+    "适合写代码的简约蓝色点击效果",
+    "赛博朋克风格，但不要太花",
+  ];
+
+  // Take up to 3 contextual examples, fill with fallbacks
+  return [...examples.slice(0, 3), ...fallbacks].slice(0, 4);
+}
 
 function MessageBubble({ message }) {
   const isAssistant = message.role === "assistant";
@@ -167,6 +200,14 @@ function ProposalCard({ result, previewActive }) {
           这次没有生成可应用的配置差异。
         </div>
       )}
+
+      {result.totalTokens != null ? (
+        <div className="mt-2 flex items-center gap-2 text-[11px] text-slate-400">
+          <span>本次消耗 ~{result.totalTokens.toLocaleString()} tokens</span>
+          <span className="text-slate-300">·</span>
+          <span>约 ¥{(result.totalTokens / 500000).toFixed(4)}</span>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -260,6 +301,9 @@ function AgentTimeline({ steps, isRunning }) {
               </div>
               {step.durationMs ? (
                 <span className="shrink-0 text-[11px] text-slate-400">{step.durationMs}ms</span>
+              ) : null}
+              {step.tokenUsage?.total_tokens ? (
+                <span className="shrink-0 text-[11px] text-slate-400">{step.tokenUsage.total_tokens} tk</span>
               ) : null}
             </div>
             {step.toolCalls?.length > 0 ? (
@@ -360,6 +404,7 @@ export function AiSchemePanel({
   aiSnapshot,
   onRevertAiChanges,
   onClearAiSnapshot,
+  conversationCache,
   variant = "dock",
 }) {
   const [prompt, setPrompt] = useState("");
@@ -369,10 +414,61 @@ export function AiSchemePanel({
   const [error, setError] = useState("");
   const [pendingResult, setPendingResult] = useState(null);
   const [lastPrompt, setLastPrompt] = useState("");
-  const [taskMode, setTaskMode] = useState("modify_action");
   const [useAgent, setUseAgent] = useState(false);
   const [agentSteps, setAgentSteps] = useState([]);
   const [agentRunning, setAgentRunning] = useState(false);
+  const [streamingPhase, setStreamingPhase] = useState(0);
+  const abortRef = useRef(null);
+
+  // Cycle streaming phase indicator
+  useEffect(() => {
+    if (!isGenerating || streamingReply) return;
+    const phases = ["正在分析需求…", "正在生成配置…", "正在验证方案…"];
+    const timer = setInterval(() => {
+      setStreamingPhase((p) => (p + 1) % phases.length);
+    }, 2000);
+    return () => clearInterval(timer);
+  }, [isGenerating, streamingReply]);
+
+  // Persist conversation state when switching between actions
+  const actionIdRef = useRef(actionId);
+  const stateRef = useRef({ messages, pendingResult, lastPrompt, agentSteps, useAgent });
+  stateRef.current = { messages, pendingResult, lastPrompt, agentSteps, useAgent };
+
+  useEffect(() => {
+    const prevId = actionIdRef.current;
+    // Save previous actionId's state
+    if (prevId && prevId !== actionId && conversationCache) {
+      conversationCache.current.set(prevId, { ...stateRef.current });
+    }
+    // Restore or reset for new actionId
+    if (conversationCache) {
+      const saved = conversationCache.current.get(actionId);
+      if (saved) {
+        setMessages(saved.messages ?? getInitialMessages());
+        setPendingResult(saved.pendingResult ?? null);
+        setLastPrompt(saved.lastPrompt ?? "");
+        setAgentSteps(saved.agentSteps ?? []);
+        setUseAgent(saved.useAgent ?? false);
+      } else {
+        setMessages(getInitialMessages());
+        setPendingResult(null);
+        setLastPrompt("");
+        setAgentSteps([]);
+      }
+    }
+    // Always reset transient state on action switch
+    setPrompt("");
+    setError("");
+    setStreamingReply("");
+    setIsGenerating(false);
+    setAgentRunning(false);
+    abortRef.current = null;
+
+    actionIdRef.current = actionId;
+  }, [actionId, conversationCache]);
+
+  const promptExamples = useMemo(() => buildPromptExamples(currentConfig), [currentConfig]);
 
   const canSubmit = useMemo(() => prompt.trim().length > 0 && !isGenerating, [prompt, isGenerating]);
   const previewActive = Boolean(pendingResult && previewProposal === pendingResult);
@@ -384,7 +480,7 @@ export function AiSchemePanel({
     }
   }, [messages, isGenerating, streamingReply, agentSteps]);
 
-  async function submitPrompt(nextPrompt = prompt, modeOverride = taskMode) {
+  async function submitPrompt(nextPrompt = prompt, modeOverride = "modify_action") {
     const trimmedPrompt = nextPrompt.trim();
     if (!trimmedPrompt || isGenerating) return;
 
@@ -404,7 +500,7 @@ export function AiSchemePanel({
         setAgentRunning(true);
         setStreamingReply("");
 
-        const rawResult = await requestAiAgentRun({
+        const { result: rawResult, abort } = await requestAiAgentRun({
           prompt: trimmedPrompt,
           currentConfig,
           actionLabel,
@@ -414,40 +510,28 @@ export function AiSchemePanel({
           onEvent: (eventType, data) => {
             if (eventType === "progress" || eventType === "stream_token") {
               setStreamingReply(data.text || data.reply || "");
-            } else if (eventType === "step") {
+            } else if (eventType === "step_start") {
+              setAgentSteps((prev) => [
+                ...prev,
+                { index: data.step, thought: "", toolCalls: [], toolResults: [], durationMs: 0 },
+              ]);
+            } else if (eventType === "tool_call") {
               setAgentSteps((prev) => {
                 const last = prev[prev.length - 1];
-                if (last && last.index === data.index) {
-                  // Update existing step
-                  const updated = { ...last };
-                  if (data.toolCall) {
-                    updated.toolCalls = [...(updated.toolCalls || []), { name: data.toolCall, arguments: {} }];
-                  }
-                  if (data.toolResult) {
-                    const lastTc = updated.toolCalls?.[updated.toolCalls.length - 1];
-                    if (lastTc) {
-                      updated.toolResults = [...(updated.toolResults || []), { name: lastTc.name, result: { ok: data.toolResult === "success", summary: data.summary || "" } }];
-                    }
-                  }
-                  if (data.durationMs) updated.durationMs = data.durationMs;
-                  return [...prev.slice(0, -1), updated];
-                }
-                // New step
-                return [...prev, {
-                  index: data.index,
-                  thought: data.status === "acting" ? prev[prev.length - 1]?.thought || "" : "",
-                  toolCalls: [],
-                  toolResults: [],
-                }];
+                if (!last) return prev;
+                return [
+                  ...prev.slice(0, -1),
+                  { ...last, toolCalls: [...last.toolCalls, { name: data.toolName, arguments: data.arguments || {} }] },
+                ];
               });
             } else if (eventType === "tool_result") {
               setAgentSteps((prev) => {
                 const last = prev[prev.length - 1];
                 if (!last) return prev;
-                const updated = { ...last };
-                updated.toolResults = [...(updated.toolResults || []), { name: data.toolName, result: data.result }];
-                if (data.result?.summary) updated.thought = data.result.summary;
-                return [...prev.slice(0, -1), updated];
+                return [
+                  ...prev.slice(0, -1),
+                  { ...last, toolResults: [...last.toolResults, { name: data.toolName, result: data.result }] },
+                ];
               });
             } else if (eventType === "step_end") {
               setAgentSteps((prev) => {
@@ -458,6 +542,8 @@ export function AiSchemePanel({
             }
           },
         });
+
+        abortRef.current = abort;
 
         setAgentRunning(false);
         setStreamingReply("");
@@ -508,11 +594,27 @@ export function AiSchemePanel({
       }
     } catch (caughtError) {
       setAgentRunning(false);
-      const message = getAiRequestErrorMessage(caughtError);
-      setError(message);
+      abortRef.current = null;
+      // Skip error display if user cancelled
+      if (caughtError?.code !== "abort") {
+        const message = getAiRequestErrorMessage(caughtError);
+        setError(message);
+      }
     } finally {
       setIsGenerating(false);
+      abortRef.current = null;
     }
+  }
+
+  function cancelAgent() {
+    if (abortRef.current) {
+      abortRef.current();
+      abortRef.current = null;
+    }
+    setAgentRunning(false);
+    setIsGenerating(false);
+    setStreamingReply("");
+    setMessages((current) => [...current, { role: "assistant", content: "已取消本次生成。" }]);
   }
 
   function handleSubmit(event) {
@@ -551,7 +653,12 @@ export function AiSchemePanel({
     setLastPrompt("");
     setAgentSteps([]);
     setAgentRunning(false);
+    setIsGenerating(false);
+    setStreamingReply("");
     setMessages(getInitialMessages());
+    if (conversationCache) {
+      conversationCache.current.delete(actionId);
+    }
     onClearPreview?.();
     notify?.({
       tone: "info",
@@ -609,10 +716,22 @@ export function AiSchemePanel({
                 ) : (
                   <span className="inline-flex items-center gap-2 text-slate-500">
                     <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-                    {useAgent && agentRunning ? "Agent 正在分析需求…" : "正在生成配置建议"}
+                    {useAgent && agentRunning
+                      ? "Agent 正在分析需求…"
+                      : ["正在分析需求…", "正在生成配置…", "正在验证方案…"][streamingPhase]}
                   </span>
                 )}
               </div>
+              {useAgent && agentRunning ? (
+                <button
+                  type="button"
+                  className="ml-2 inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-600 transition-colors hover:bg-rose-100 active:scale-[0.97]"
+                  onClick={cancelAgent}
+                >
+                  <Square className="size-3" />
+                  取消
+                </button>
+              ) : null}
             </div>
           ) : null}
 
@@ -630,7 +749,6 @@ export function AiSchemePanel({
                   type="button"
                   className="rounded-full border border-sky-100 bg-sky-50 px-3 py-1.5 text-xs font-medium text-sky-700 transition-[transform,color,background-color,border-color,box-shadow] hover:bg-white active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
                   onClick={() => {
-                    setTaskMode("tune_proposal");
                     submitPrompt(option, "tune_proposal");
                   }}
                   disabled={isGenerating}
@@ -641,7 +759,7 @@ export function AiSchemePanel({
             </div>
           ) : messages.length <= 1 ? (
             <div className="flex flex-wrap gap-2">
-              {PROMPT_EXAMPLES.map((example) => (
+              {promptExamples.map((example) => (
                 <button
                   key={example}
                   type="button"
@@ -710,7 +828,23 @@ export function AiSchemePanel({
               {isGenerating ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Send className="size-4" aria-hidden="true" />}
             </Button>
           </div>
-          {error ? <div className="rounded-xl border border-rose-100 bg-rose-50 px-3 py-2 text-xs text-rose-700">{error}</div> : null}
+          {error ? (
+            <div className="flex items-start gap-2 rounded-xl border border-rose-100 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+              <span className="flex-1 text-pretty">{error}</span>
+              {lastPrompt ? (
+                <button
+                  type="button"
+                  className="shrink-0 rounded-lg border border-rose-200 bg-white px-2 py-1 text-xs font-medium text-rose-600 transition-colors hover:bg-rose-100 active:scale-[0.97]"
+                  onClick={() => {
+                    setError("");
+                    submitPrompt(lastPrompt);
+                  }}
+                >
+                  重试
+                </button>
+              ) : null}
+            </div>
+          ) : null}
         </form>
       </div>
     </Panel>
