@@ -296,7 +296,14 @@ function AgentTimeline({ steps, isRunning }) {
                 {step.thought ? (
                   <div className="text-xs leading-5 text-slate-600 line-clamp-2">{step.thought}</div>
                 ) : (
-                  <div className="text-xs text-slate-400">思考中…</div>
+                  <span className="inline-flex items-center gap-1 text-xs text-slate-400">
+                    思考中
+                    <span className="flex gap-0.5">
+                      <span className="size-1 rounded-full bg-slate-400 animate-bounce [animation-delay:0ms]" />
+                      <span className="size-1 rounded-full bg-slate-400 animate-bounce [animation-delay:150ms]" />
+                      <span className="size-1 rounded-full bg-slate-400 animate-bounce [animation-delay:300ms]" />
+                    </span>
+                  </span>
                 )}
               </div>
               {step.durationMs ? (
@@ -317,8 +324,12 @@ function AgentTimeline({ steps, isRunning }) {
         ))}
         {isRunning && (!steps?.length || steps[steps.length - 1]?.toolCalls?.length > 0) ? (
           <div className="flex items-center gap-2 rounded-xl border border-sky-100 bg-white p-2.5">
-            <Loader2 className="size-4 animate-spin text-sky-400" />
-            <span className="text-xs text-slate-400">等待模型响应…</span>
+            <span className="flex gap-1">
+              <span className="size-1.5 rounded-full bg-sky-400 animate-bounce [animation-delay:0ms]" />
+              <span className="size-1.5 rounded-full bg-sky-400 animate-bounce [animation-delay:150ms]" />
+              <span className="size-1.5 rounded-full bg-sky-400 animate-bounce [animation-delay:300ms]" />
+            </span>
+            <span className="text-xs text-slate-400">等待模型响应</span>
           </div>
         ) : null}
       </div>
@@ -423,7 +434,7 @@ export function AiSchemePanel({
   // Cycle streaming phase indicator
   useEffect(() => {
     if (!isGenerating || streamingReply) return;
-    const phases = ["正在分析需求…", "正在生成配置…", "正在验证方案…"];
+    const phases = ["正在分析需求", "正在生成配置", "正在验证方案"];
     const timer = setInterval(() => {
       setStreamingPhase((p) => (p + 1) % phases.length);
     }, 2000);
@@ -473,6 +484,24 @@ export function AiSchemePanel({
   const canSubmit = useMemo(() => prompt.trim().length > 0 && !isGenerating, [prompt, isGenerating]);
   const previewActive = Boolean(pendingResult && previewProposal === pendingResult);
   const scrollRef = useRef(null);
+  const textareaRef = useRef(null);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 112)}px`;
+  }, [prompt]);
+
+  // Auto-focus textarea after generation completes
+  const wasGenerating = useRef(false);
+  useEffect(() => {
+    if (wasGenerating.current && !isGenerating) {
+      textareaRef.current?.focus();
+    }
+    wasGenerating.current = isGenerating;
+  }, [isGenerating]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -565,7 +594,7 @@ export function AiSchemePanel({
       } else {
         // Fast mode: one-shot streaming
         setStreamingReply("");
-        const result = await requestAiSchemeEditStreaming({
+        const { result, abort } = await requestAiSchemeEditStreaming({
           prompt: trimmedPrompt,
           currentConfig,
           actionLabel,
@@ -577,6 +606,7 @@ export function AiSchemePanel({
           },
         });
 
+        abortRef.current = abort;
         setStreamingReply("");
         const proposal = {
           ...result,
@@ -606,7 +636,7 @@ export function AiSchemePanel({
     }
   }
 
-  function cancelAgent() {
+  function cancelGeneration() {
     if (abortRef.current) {
       abortRef.current();
       abortRef.current = null;
@@ -615,6 +645,13 @@ export function AiSchemePanel({
     setIsGenerating(false);
     setStreamingReply("");
     setMessages((current) => [...current, { role: "assistant", content: "已取消本次生成。" }]);
+  }
+
+  function handleKeyDown(event) {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      submitPrompt();
+    }
   }
 
   function handleSubmit(event) {
@@ -714,24 +751,20 @@ export function AiSchemePanel({
                 {streamingReply ? (
                   <span>{streamingReply}<span className="ml-0.5 inline-block h-3.5 w-0.5 animate-pulse bg-sky-400 align-middle" /></span>
                 ) : (
-                  <span className="inline-flex items-center gap-2 text-slate-500">
-                    <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-                    {useAgent && agentRunning
-                      ? "Agent 正在分析需求…"
-                      : ["正在分析需求…", "正在生成配置…", "正在验证方案…"][streamingPhase]}
+                  <span className="inline-flex items-center gap-1.5 text-slate-500">
+                    <span className="flex gap-1">
+                      <span className="size-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:0ms]" />
+                      <span className="size-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:150ms]" />
+                      <span className="size-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:300ms]" />
+                    </span>
+                    <span className="text-slate-400">
+                      {useAgent && agentRunning
+                        ? "Agent 正在分析需求"
+                        : ["正在分析需求", "正在生成配置", "正在验证方案"][streamingPhase]}
+                    </span>
                   </span>
                 )}
               </div>
-              {useAgent && agentRunning ? (
-                <button
-                  type="button"
-                  className="ml-2 inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-600 transition-colors hover:bg-rose-100 active:scale-[0.97]"
-                  onClick={cancelAgent}
-                >
-                  <Square className="size-3" />
-                  取消
-                </button>
-              ) : null}
             </div>
           ) : null}
 
@@ -772,8 +805,8 @@ export function AiSchemePanel({
               ))}
             </div>
           ) : !pendingResult && !isGenerating ? (
-            <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-500">
-              描述你想要的鼠标效果，AI 将生成可直接预览和应用的配置方案。
+            <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-2 text-center text-xs text-slate-400">
+              Enter 发送，Shift+Enter 换行，AI 将根据描述生成配置方案
             </div>
           ) : null}
         </div>
@@ -815,18 +848,38 @@ export function AiSchemePanel({
 
         <form className="border-t border-slate-100 p-3" onSubmit={handleSubmit}>
           <label className="sr-only" htmlFor="ai-scheme-prompt">描述想要的鼠标效果</label>
-          <div className="relative rounded-2xl border border-slate-200 bg-slate-50 p-2 pr-12 shadow-inner shadow-slate-200/50 focus-within:border-slate-300 focus-within:ring-2 focus-within:ring-slate-950/10">
+          <div className={cn(
+            "relative rounded-2xl border bg-slate-50 p-2 pr-12 shadow-inner shadow-slate-200/50 transition-[border-color,box-shadow]",
+            isGenerating
+              ? "border-sky-200 shadow-inner shadow-sky-100/50"
+              : "border-slate-200 focus-within:border-slate-300 focus-within:ring-2 focus-within:ring-slate-950/10"
+          )}>
             <textarea
+              ref={textareaRef}
               id="ai-scheme-prompt"
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}
-              placeholder="例如：科技感一点、低调、不要声音、粒子少一点"
-              rows={2}
+              onKeyDown={handleKeyDown}
+              placeholder="描述你想要的鼠标效果，Enter 发送、Shift+Enter 换行"
+              rows={1}
               className="max-h-[112px] min-h-[48px] w-full resize-none bg-transparent px-1 py-1.5 text-sm leading-5 text-slate-800 outline-none placeholder:text-slate-400"
+              disabled={isGenerating}
             />
-            <Button className="absolute bottom-2 right-2 size-9 rounded-xl px-0" type="submit" disabled={!canSubmit} aria-label="发送给 AI 方案助手">
-              {isGenerating ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Send className="size-4" aria-hidden="true" />}
-            </Button>
+            {isGenerating ? (
+              <button
+                type="button"
+                className="absolute bottom-2 right-2 inline-flex size-9 items-center justify-center rounded-xl bg-rose-500 text-white transition-[transform,background-color] hover:bg-rose-600 active:scale-[0.97]"
+                onClick={cancelGeneration}
+                aria-label="停止生成"
+                title="停止生成"
+              >
+                <Square className="size-3.5" aria-hidden="true" />
+              </button>
+            ) : (
+              <Button className="absolute bottom-2 right-2 size-9 rounded-xl px-0" type="submit" disabled={!canSubmit} aria-label="发送给 AI 方案助手" title="发送 (Enter)">
+                <Send className="size-4" aria-hidden="true" />
+              </Button>
+            )}
           </div>
           {error ? (
             <div className="flex items-start gap-2 rounded-xl border border-rose-100 bg-rose-50 px-3 py-2 text-xs text-rose-700">

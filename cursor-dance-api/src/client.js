@@ -196,12 +196,13 @@ export async function requestAiSchemeEditStreaming({ prompt, currentConfig, acti
       throw new Error(errorMessage);
     }
 
-    return await parseSseStream(response, onProgress);
+    const result = await parseSseStream(response, onProgress);
+    return { result, abort: () => controller.abort() };
   } catch (error) {
     if (error?.name === "AbortError") {
-      const timeoutError = new Error("AI 流式请求超时，请稍后重试。");
-      timeoutError.code = "timeout";
-      throw timeoutError;
+      const cancelError = new Error("AI 请求已取消。");
+      cancelError.code = "abort";
+      throw cancelError;
     }
     if (error instanceof TypeError && error.message.includes("fetch")) {
       const networkError = new Error("后端未连接，请确认 AI API 服务已启动。");

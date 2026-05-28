@@ -99,14 +99,16 @@ cursor-dance-api/src/
 ├── server.mjs             # Node HTTP server (local dev + FC entry)
 └── index.mjs              # Unified re-export
 
-cursor-dance-api/tests/    # 96 tests across 7 files (node --test)
-├── sanitize.test.js       # 30 tests — clampNumber, normalizeHexColor, sanitizeAiSchemePatch, mergeActionConfig
-├── errors.test.js         # 8 tests — timeout, network, auth, body size, schema, provider errors
-├── field-defs.test.js     # 6 tests — NUMERIC_LIMITS, ENUM_OPTIONS, AI_SCHEME_PATCH_FIELDS completeness
-├── diff.test.js           # 7 tests — formatDiffValue, buildAiSchemeDiffItems
-├── intent-repair.test.js  # 10 tests — soundOff, shakeOff, rippleOnly, particleOff, etc.
-├── normalize.test.js      # 12 tests — validateAiSchemeRequest, normalizeAiSchemeProposal, buildAiProposalContext
-└── agent-loop.test.js     # Existing — agent loop integration tests
+cursor-dance-api/tests/    # 157 tests across 9 files (node --test)
+├── sanitize.test.js            # 30 tests — clampNumber, normalizeHexColor, sanitizeAiSchemePatch, mergeActionConfig
+├── errors.test.js              # 8 tests — timeout, network, auth, body size, schema, provider errors
+├── field-defs.test.js          # 6 tests — NUMERIC_LIMITS, ENUM_OPTIONS, AI_SCHEME_PATCH_FIELDS completeness
+├── diff.test.js                # 7 tests — formatDiffValue, buildAiSchemeDiffItems
+├── intent-repair.test.js       # 10 tests — soundOff, shakeOff, rippleOnly, particleOff, etc.
+├── normalize.test.js           # 12 tests — validateAiSchemeRequest, normalizeAiSchemeProposal, buildAiProposalContext
+├── proposal-service.test.js    # 31 tests — CORS, auth, request limits, health, serialization
+├── agent-tools.test.js         # 30 tests — tool definitions, describeAgentToolCall, createToolExecutor, rollback
+└── agent-loop.test.js          # Existing — agent loop integration tests
 ```
 
 Default model: `deepseek-chat` (configurable via `CURSORDANCE_AI_MODEL`). Full safety pipeline: JSON parse → whitelist filter → type/numeric/enum validation → intent repair (e.g., "不要声音" → `sound: false, volume: 0`) → proposal normalization.
@@ -115,7 +117,7 @@ Default model: `deepseek-chat` (configurable via `CURSORDANCE_AI_MODEL`). Full s
 DOM events (pointerdown/up/move, wheel, contextmenu) → `trigger-handlers.js` resolves cursor state binding and checks trigger zone/throttle/combo windows → `visual-effects.js` renders effects via Web Animations API (not CSS transitions — avoids layout thrashing with `contain`, `will-change`, `transform: translate3d`).
 
 ### Landing page (`landing/`)
-Independent Vite + React build for the public website. Shares `framer-motion` version with root (`^10.16.4`). Has its own test suite:
+Independent Vite + React build for the public website. Shares `framer-motion` version with root (`^10.16.4`). Uses `src/shared-entry.jsx` for MPA entry point deduplication. Has its own test suite:
 - `landing/src/lib/utils.test.js` — 6 tests for `cn()` (keep in sync with `src/components/ui/utils.js`)
 - `landing/src/lib/presets.test.js` — 7 tests for PRESETS data integrity
 - `landing/src/lib/scroll.test.js` — 4 tests for navLinks structure
