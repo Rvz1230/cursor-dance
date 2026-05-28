@@ -15,9 +15,10 @@ import {
   SmallSelect,
 } from "../WorkbenchControls.jsx";
 
-export function AnimationFeedbackCard({ config, updateActionConfig }) {
+export function AnimationFeedbackCard({ config, updateActionConfig, panelId }) {
   return (
     <Panel
+      id={panelId}
       title="基础动画反馈"
       icon={PANEL_META.animation.icon}
       iconTone={PANEL_META.animation.tone}

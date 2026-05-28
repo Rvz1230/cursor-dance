@@ -14,9 +14,10 @@ import {
   SmallSelect,
 } from "../WorkbenchControls.jsx";
 
-export function ParticleFeedbackCard({ config, updateActionConfig }) {
+export function ParticleFeedbackCard({ config, updateActionConfig, panelId }) {
   return (
     <Panel
+      id={panelId}
       title="粒子反馈"
       icon={PANEL_META.particles.icon}
       iconTone={PANEL_META.particles.tone}

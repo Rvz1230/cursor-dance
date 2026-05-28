@@ -47,14 +47,14 @@ export function WorkbenchPanel({ actionId, config, updateActionConfig, conflicts
       ) : null}
 
       <div className="space-y-3">
-        <TriggerBehaviorCard actionId={actionId} config={config} updateActionConfig={updateActionConfig} />
-        <TextFeedbackCard config={config} updateActionConfig={updateActionConfig} />
-        <AnimationFeedbackCard config={config} updateActionConfig={updateActionConfig} />
-        <ImageFeedbackCard config={config} updateActionConfig={updateActionConfig} />
-        <ParticleFeedbackCard config={config} updateActionConfig={updateActionConfig} />
-        <RippleFeedbackCard config={config} updateActionConfig={updateActionConfig} />
-        <AudioFeedbackCard config={config} updateActionConfig={updateActionConfig} />
-        <CursorFeedbackCard config={config} updateActionConfig={updateActionConfig} />
+        <TriggerBehaviorCard actionId={actionId} config={config} updateActionConfig={updateActionConfig} panelId="card-trigger" />
+        <TextFeedbackCard config={config} updateActionConfig={updateActionConfig} panelId="card-text" />
+        <AnimationFeedbackCard config={config} updateActionConfig={updateActionConfig} panelId="card-animation" />
+        <ImageFeedbackCard config={config} updateActionConfig={updateActionConfig} panelId="card-image" />
+        <ParticleFeedbackCard config={config} updateActionConfig={updateActionConfig} panelId="card-particle" />
+        <RippleFeedbackCard config={config} updateActionConfig={updateActionConfig} panelId="card-ripple" />
+        <AudioFeedbackCard config={config} updateActionConfig={updateActionConfig} panelId="card-audio" />
+        <CursorFeedbackCard config={config} updateActionConfig={updateActionConfig} panelId="card-cursor" />
       </div>
     </div>
   );

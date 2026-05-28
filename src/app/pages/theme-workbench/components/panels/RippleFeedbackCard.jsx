@@ -14,9 +14,10 @@ import {
   SmallSelect,
 } from "../WorkbenchControls.jsx";
 
-export function RippleFeedbackCard({ config, updateActionConfig }) {
+export function RippleFeedbackCard({ config, updateActionConfig, panelId }) {
   return (
     <Panel
+      id={panelId}
       title="波纹反馈"
       icon={PANEL_META.ripple.icon}
       iconTone={PANEL_META.ripple.tone}

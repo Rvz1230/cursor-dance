@@ -14,9 +14,10 @@ import {
   SmallSelect,
 } from "../WorkbenchControls.jsx";
 
-export function AudioFeedbackCard({ config, updateActionConfig }) {
+export function AudioFeedbackCard({ config, updateActionConfig, panelId }) {
   return (
     <Panel
+      id={panelId}
       title="音频反馈"
       icon={PANEL_META.audio.icon}
       iconTone={PANEL_META.audio.tone}

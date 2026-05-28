@@ -41,16 +41,16 @@ function formatPlaybackSpeed(value) {
   return `${Number(value).toFixed(value % 1 === 0 ? 0 : 1)}x`;
 }
 
-function buildOutputNames({ textConfig, particleConfig, rippleConfig, audioConfig, animationConfig, imageConfig, config }) {
-  const outputs = [];
-  if (textConfig.textEnabled) outputs.push("飘字");
-  if (rippleConfig.ripple) outputs.push("波纹");
-  if (particleConfig.particle) outputs.push("粒子");
-  if (audioConfig.sound) outputs.push("音效");
-  if (animationConfig.animationEnabled) outputs.push("动画");
-  if (imageConfig.imageEnabled && imageConfig.imageDataUrl) outputs.push("贴纸");
-  if (config.cursorOverride && config.cursorOverride !== "跟随当前状态") outputs.push("光标");
-  return outputs;
+function buildOutputTags({ textConfig, particleConfig, rippleConfig, audioConfig, animationConfig, imageConfig, config }) {
+  const tags = [];
+  if (textConfig.textEnabled) tags.push({ id: "card-text", label: "飘字" });
+  if (rippleConfig.ripple) tags.push({ id: "card-ripple", label: "波纹" });
+  if (particleConfig.particle) tags.push({ id: "card-particle", label: "粒子" });
+  if (audioConfig.sound) tags.push({ id: "card-audio", label: "音效" });
+  if (animationConfig.animationEnabled) tags.push({ id: "card-animation", label: "动画" });
+  if (imageConfig.imageEnabled && imageConfig.imageDataUrl) tags.push({ id: "card-image", label: "贴纸" });
+  if (config.cursorOverride && config.cursorOverride !== "跟随当前状态") tags.push({ id: "card-cursor", label: "光标" });
+  return tags;
 }
 
 function getCursorOverrideProps(cursorOverride) {
@@ -365,10 +365,17 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, out
             <div className="mt-1 text-xs text-slate-500 text-pretty">{getPreviewTriggerSummary(config)}</div>
           </div>
           <div className="flex max-w-[55%] flex-wrap justify-end gap-1.5">
-            {outputs.length ? outputs.map((output) => (
-              <span key={output} className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-600">
-                {output}
-              </span>
+            {outputs.length ? outputs.map((tag) => (
+              <button
+                key={tag.id}
+                type="button"
+                onClick={() => {
+                  document.getElementById(tag.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-slate-400 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
+              >
+                {tag.label}
+              </button>
             )) : (
               <span className="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700">暂无输出</span>
             )}
@@ -435,7 +442,7 @@ export function WorkbenchPreviewRail({ actionLabel, actionId = "leftClick", conf
   const animationConfig = useMemo(() => getActionAnimationConfig(config), [config]);
   const imageConfig = useMemo(() => getActionImageConfig(config), [config]);
   const outputs = useMemo(
-    () => buildOutputNames({ textConfig, particleConfig, rippleConfig, audioConfig, animationConfig, imageConfig, config }),
+    () => buildOutputTags({ textConfig, particleConfig, rippleConfig, audioConfig, animationConfig, imageConfig, config }),
     [textConfig, particleConfig, rippleConfig, audioConfig, animationConfig, imageConfig, config]
   );
   const loopDelay = scalePreviewTime(getPreviewLoopDelay(config), playbackSpeed);

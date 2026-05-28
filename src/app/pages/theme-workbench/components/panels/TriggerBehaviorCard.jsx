@@ -1,12 +1,13 @@
 import { getTimingFieldMeta, TRIGGER_OPTIONS, PANEL_META } from "../../model/workbenchSchema.js";
 import { ControlSlider, FieldRow, Panel, SmallSelect } from "../WorkbenchControls.jsx";
 
-export function TriggerBehaviorCard({ actionId, config, updateActionConfig }) {
+export function TriggerBehaviorCard({ actionId, config, updateActionConfig, panelId }) {
   const triggerMeta = TRIGGER_OPTIONS[actionId];
   const timingMeta = getTimingFieldMeta(actionId);
 
   return (
     <Panel
+      id={panelId}
       title="触发行为"
       icon={PANEL_META.trigger.icon}
       iconTone={PANEL_META.trigger.tone}

@@ -25,7 +25,7 @@ function buildImagePreviewStyle(config) {
   };
 }
 
-export function ImageFeedbackCard({ config, updateActionConfig }) {
+export function ImageFeedbackCard({ config, updateActionConfig, panelId }) {
   const fileInputRef = useRef(null);
   const [assetMessage, setAssetMessage] = useState("");
   const [assetTone, setAssetTone] = useState("slate");
@@ -58,6 +58,7 @@ export function ImageFeedbackCard({ config, updateActionConfig }) {
 
   return (
     <Panel
+      id={panelId}
       title="图片贴纸反馈"
       icon={PANEL_META.image.icon}
       iconTone={PANEL_META.image.tone}

@@ -26,11 +26,12 @@ function getFontPresetValue(value) {
   return TEXT_FONT_PRESETS.includes(value) ? value : "自定义";
 }
 
-export function TextFeedbackCard({ config, updateActionConfig }) {
+export function TextFeedbackCard({ config, updateActionConfig, panelId }) {
   const fontPresetValue = getFontPresetValue(config.textFontFamily || "系统默认");
 
   return (
     <Panel
+      id={panelId}
       title="飘字反馈"
       icon={PANEL_META.text.icon}
       iconTone={PANEL_META.text.tone}

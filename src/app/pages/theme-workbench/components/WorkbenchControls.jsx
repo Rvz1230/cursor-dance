@@ -22,6 +22,7 @@ export function Panel({
   defaultOpen = true,
   summary,
   enabled,
+  id,
 }) {
   const header = (
     <div className="flex min-w-0 items-center gap-3">
@@ -41,7 +42,7 @@ export function Panel({
 
   if (collapsible) {
     return (
-      <Accordion key={defaultOpen ? "open" : "closed"} type="single" collapsible defaultValue={defaultOpen ? "content" : undefined} className={className}>
+      <Accordion key={defaultOpen ? "open" : "closed"} type="single" collapsible defaultValue={defaultOpen ? "content" : undefined} className={className} id={id}>
         <AccordionItem value="content" className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
             <AccordionTrigger className="group flex min-w-0 flex-1 items-center justify-between gap-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
@@ -57,7 +58,7 @@ export function Panel({
   }
 
   return (
-    <section className={cn("overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm", className)}>
+    <section id={id} className={cn("overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm", className)}>
       <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 px-4 py-3">
         <div className="min-w-0 flex-1">{header}</div>
         {action ? <div className="flex max-w-full shrink-0 items-center self-center">{action}</div> : null}
@@ -388,7 +389,7 @@ export function SettingSection({ disabled = false, children }) {
   );
 }
 
-export function ThemeCard({ theme, selected, onClick, onDuplicate, onExport, onDelete, onRename, onUpdateIcon, canDelete = true, collapsed = false }) {
+export function ThemeCard({ theme, selected, onClick, onDuplicate, onExport, onDelete, onRename, onUpdateIcon, canDelete = true, collapsed = false, isDirty = false }) {
   const tones = toneClasses(theme.tone);
   const [editingName, setEditingName] = useState("");
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
@@ -422,6 +423,7 @@ export function ThemeCard({ theme, selected, onClick, onDuplicate, onExport, onD
           <ThemeIcon className="size-4" />
         </span>
         {selected ? <span className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full bg-teal-500 ring-2 ring-white" aria-hidden="true" /> : null}
+        {isDirty ? <span className="absolute -right-0.5 -bottom-0.5 size-2 rounded-full bg-amber-400 ring-2 ring-white" aria-label="有未保存的更改" /> : null}
       </button>
     );
   }
@@ -434,6 +436,7 @@ export function ThemeCard({ theme, selected, onClick, onDuplicate, onExport, onD
       )}
     >
       {selected ? <div className="absolute inset-y-3 left-0 w-1 rounded-r-full bg-slate-950" aria-hidden="true" /> : null}
+      {isDirty ? <span className="absolute right-10 top-3 size-1.5 rounded-full bg-amber-400" aria-label="有未保存的更改" /> : null}
       <button type="button" onClick={onClick} className="w-full px-3 py-2.5 pr-11 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2">
         <div className="flex items-start gap-2.5">
           <Popover open={iconPickerOpen} onOpenChange={setIconPickerOpen}>

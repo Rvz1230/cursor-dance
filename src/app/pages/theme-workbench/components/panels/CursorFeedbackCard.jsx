@@ -5,9 +5,10 @@ import {
 } from "../../model/workbenchSchema.js";
 import { ColorOptions, ControlSlider, FieldRow, Panel, SectionTitle, SettingSection, SmallSelect } from "../WorkbenchControls.jsx";
 
-export function CursorFeedbackCard({ config, updateActionConfig }) {
+export function CursorFeedbackCard({ config, updateActionConfig, panelId }) {
   return (
     <Panel
+      id={panelId}
       title="光标与命中反馈"
       icon={PANEL_META.cursor.icon}
       iconTone={PANEL_META.cursor.tone}
