@@ -1,265 +1,222 @@
-# CursorDance Project Stabilization TODO
+# CursorDance 项目稳定化 TODO
 
-Last updated: 2026-05-14
+最后更新：2026-05-14
 
-## Goal
+## 目标
 
-This document turns the current architecture and feature gaps into an execution-ready task list.
+本文档将当前架构和功能缺口转化为可执行的任务列表。
 
-The project is no longer in a structurally unstable state. The next phase should shift from broad refactoring to:
+项目已不再处于结构不稳定的状态。下一阶段应从大范围重构转向：
 
-1. locking in behavior with tests
-2. reducing the runtime maintenance risk in `public/content.js`
-3. completing the remaining product features
+1. 用测试锁定行为
+2. 降低 `public/content.js` 的运行时维护风险
+3. 完成剩余的产品功能
 
-## Current Baseline
+## 当前基线
 
-- Config semantics are mostly unified across `popup`, `workbench`, and `content runtime`.
-- Storage, live preview, and draft adaptation have already been separated into dedicated modules.
-- Action config semantics now have shared grouping helpers used by adapter, preview, and runtime reads.
-- `public/content.js` has been reduced to a runtime assembly layer, with focused modules under `public/content-runtime/`.
-- The project now has `vitest` unit coverage and Playwright smoke coverage exposed through `package.json`.
+- 配置语义在 Popup、工作台和内容运行时之间已基本统一。
+- 存储、实时预览和草稿适配已分离为独立模块。
+- 动作配置语义现在有共享的分组辅助函数，供适配器、预览和运行时读取使用。
+- `public/content.js` 已精简为运行时装配层，聚焦模块放在 `public/content-runtime/` 下。
+- 项目现在有通过 `package.json` 暴露的 `vitest` 单元测试覆盖和 Playwright 冒烟测试覆盖。
 
-## Completion Snapshot
+## 完成快照
 
-The stabilization plan defined in this document has been completed.
+本文档中定义的稳定化计划已完成。
 
-- `P0-1` done: lightweight unit testing added with `vitest`, plus `test` / `test:watch` scripts.
-- `P0-2` done: config conversion invariants and adapter regressions are covered.
-- `P0-3` done: browser-level smoke coverage exists for popup/workbench/runtime sync.
-- `P1-1` done: `public/content.js` has been split into focused runtime modules.
-- `P1-2` done: `actionConfig` storage and editor boundaries are formalized.
-- `P1-3` done: switchable runtime diagnostics exist and can be viewed from the workbench.
-- `P2-1` done: theme duplicate / delete / export lifecycle is complete.
-- `P2-2` done: image effect editing, preview, storage, and runtime rendering are connected.
-- `P2-3` done: a basic animation effect path works across editor, popup selection, and runtime.
-- `P2-4` done: asset center and diagnostics surfaces are visible in dedicated workspaces.
-- `P2-5` done: bilibili-oriented audio ducking validation now has a site-specific profile plus local smoke regression coverage.
+- `P0-1` 完成：使用 `vitest` 添加了轻量级单元测试，以及 `test` / `test:watch` 脚本。
+- `P0-2` 完成：配置转换不变量和适配器回归已覆盖。
+- `P0-3` 完成：浏览器级冒烟测试覆盖了 popup/workbench/runtime 同步。
+- `P1-1` 完成：`public/content.js` 已拆分为聚焦的运行时模块。
+- `P1-2` 完成：`actionConfig` 存储和编辑器边界已规范化。
+- `P1-3` 完成：可切换的运行时诊断已实现，可从工作台查看。
+- `P2-1` 完成：主题复制/删除/导出生命周期已完整。
+- `P2-2` 完成：图片特效编辑、预览、存储和运行时渲染已打通。
+- `P2-3` 完成：基础动画特效路径在编辑器、Popup 选择和运行时之间已打通。
+- `P2-4` 完成：素材中心和诊断面板在工作区中可见。
+- `P2-5` 完成：B 站音频压低验证现在有站点特定配置和本地冒烟回归覆盖。
 
-## Priority Order
+## 优先级排序
 
-### P0: Stabilize Behavior Before Further Refactors
+### P0：在进一步重构前稳定行为
 
-#### Task P0-1: Add unit test tooling
+#### 任务 P0-1：添加单元测试工具
 
-Status: Done on 2026-05-14
+状态：已完成（2026-05-14）
 
-- Scope:
-  - add a lightweight test runner for config and adapter logic
-  - add `test` and `test:watch` scripts in `package.json`
-- Suggested target:
-  - `vitest`
-- Files likely involved:
+- 范围：
+  - 为配置和适配器逻辑添加轻量级测试运行器
+  - 在 `package.json` 中添加 `test` 和 `test:watch` 脚本
+- 建议工具：`vitest`
+- 涉及文件：
   - `package.json`
   - `vite.config.js`
   - `src/app/pages/theme-workbench/lib/runtimeConfig.js`
   - `src/app/pages/theme-workbench/lib/themeDraftAdapter.js`
-- Definition of done:
-  - local test command exists and runs successfully
-  - project can execute isolated logic tests without browser extension packaging
+- 完成定义：本地测试命令存在且正常运行；项目可在不需要浏览器扩展打包的情况下执行独立的逻辑测试
 
-#### Task P0-2: Cover config conversion invariants
+#### 任务 P0-2：覆盖配置转换不变量
 
-Status: Done on 2026-05-14
+状态：已完成（2026-05-14）
 
-- Scope:
-  - verify `themePack -> workbenchDraft -> stored themePack` round-trip behavior
-  - verify live-preview overlay does not overwrite persisted config semantics
-  - verify text-effect inference for number/text modes
-- Files likely involved:
+- 范围：
+  - 验证 `themePack -> workbenchDraft -> stored themePack` 往返行为
+  - 验证实时预览覆盖不会覆盖已持久化的配置语义
+  - 验证数字/文本模式的文字特效推断
+- 涉及文件：
   - `src/app/pages/theme-workbench/lib/themeDraftAdapter.js`
   - `src/app/pages/theme-workbench/lib/runtimeConfig.js`
   - `public/config.js`
-- Suggested test cases:
-  - woodfish text config preserves number mode semantics
-  - custom text tags preserve order and primary text
-  - `comboEnabled` is respected after fallback inference
-  - cursor state inheritance remains stable after hydration
-- Definition of done:
-  - regression cases for previously fixed popup/content mismatches are covered
+- 建议测试用例：
+  - 木鱼方案文字配置保留数字模式语义
+  - 自定义文字标签保留顺序和主文本
+  - `comboEnabled` 在回退推断后得到正确遵守
+  - 光标状态继承在水合后保持稳定
+- 完成定义：之前修复的 popup/content 不匹配问题的回归用例已覆盖
 
-#### Task P0-3: Add runtime behavior smoke tests
+#### 任务 P0-3：添加运行时行为冒烟测试
 
-Status: Done on 2026-05-14
+状态：已完成（2026-05-14）
 
-- Scope:
-  - validate theme switching, live preview, and persisted reload flow
-  - validate popup-selected theme matches content runtime effect output
-- Suggested target:
-  - Playwright or another browser-level smoke tool
-- Files likely involved:
+- 范围：
+  - 验证主题切换、实时预览和持久化重载流程
+  - 验证 Popup 选中的主题与内容运行时效果输出匹配
+- 建议工具：Playwright 或其他浏览器级冒烟工具
+- 涉及文件：
   - `public/content.js`
   - `src/app/pages/popup/usePopupState.js`
   - `src/app/pages/theme-workbench/hooks/useThemeWorkbenchState.js`
   - `src/app/pages/theme-workbench/lib/extensionStorage.js`
-- Definition of done:
-  - at least one automated flow covers:
-    - select theme in popup
-    - observe runtime effect
-    - edit draft in workbench without saving
-    - observe live preview override
-    - close/reset draft and observe fallback to saved state
+- 完成定义：至少一个自动化流程覆盖：在 Popup 中选择主题 → 观察运行时效果 → 在工作台中编辑草稿但不保存 → 观察实时预览覆盖 → 关闭/重置草稿并观察回退到已保存状态
 
-### P1: Reduce Runtime Maintenance Risk
+### P1：降低运行时维护风险
 
-#### Task P1-1: Split `public/content.js` into internal runtime modules
+#### 任务 P1-1：将 `public/content.js` 拆分为内部运行时模块
 
-Status: Done on 2026-05-14
+状态：已完成（2026-05-14）
 
-- Why:
-  - this is still the single largest maintenance hotspot
-- Suggested split:
+- 原因：这仍是最大的单一维护热点
+- 建议拆分：
   - `runtime-config-read`
   - `runtime-trigger-handlers`
   - `runtime-visual-effects`
   - `runtime-audio`
   - `runtime-cursor-overlay`
-- Constraint:
-  - keep external behavior unchanged
-  - keep extension packaging output compatible with current manifest usage
-- Files likely involved:
+- 约束：保持外部行为不变；保持扩展打包输出与当前清单使用兼容
+- 涉及文件：
   - `public/content.js`
   - `public/config.js`
-- Definition of done:
-  - event wiring, rendering, audio, and cursor overlay logic are not all mixed in one file
-  - each module has one obvious responsibility
+- 完成定义：事件接线、渲染、音频和光标覆盖逻辑不再混在一个文件中；每个模块有且仅有一个明确职责
 
-#### Task P1-2: Formalize `actionConfig` model boundaries
+#### 任务 P1-2：规范化 `actionConfig` 模型边界
 
-Status: Done on 2026-05-14
+状态：已完成（2026-05-14）
 
-- Why:
-  - grouping helpers exist, but storage shape is still a large flat object
-- Scope:
-  - document which fields are:
-    - runtime semantics
-    - editor-only form state
-    - preview-only derived state
-  - remove any remaining duplicated or derived fields from stored draft shape where safe
-- Files likely involved:
+- 原因：分组辅助函数已存在，但存储形状仍是大而扁的对象
+- 范围：
+  - 记录哪些字段是运行时语义、编辑器专用表单状态、仅预览派生状态
+  - 在安全的前提下移除存储草稿中重复或派生的字段
+- 涉及文件：
   - `src/app/pages/theme-workbench/model/actionConfigSchema.js`
   - `src/app/pages/theme-workbench/lib/themeDraftAdapter.js`
   - `src/app/pages/theme-workbench/lib/preview.js`
-- Definition of done:
-  - new action fields have a single obvious home
-  - adapter logic does not need to guess whether a field is canonical or derived
+- 完成定义：新增动作字段有且仅有一个明确的归属；适配器逻辑无需猜测字段是规范字段还是派生字段
 
-#### Task P1-3: Add optional runtime diagnostics
+#### 任务 P1-3：添加可选的运行时诊断
 
-Status: Done on 2026-05-14
+状态：已完成（2026-05-14）
 
-- Scope:
-  - build on backlog item `CD-002`
-  - add a switchable debug channel for action resolution, trigger-zone filtering, and media ducking
-- Files likely involved:
+- 范围：
+  - 基于待办项 `CD-002` 构建
+  - 为动作解析、触发区域过滤和媒体压低添加可切换的调试通道
+- 涉及文件：
   - `public/content.js`
-  - future debug setting entry in workbench or hidden flag
-- Definition of done:
-  - a developer can explain why an action did or did not fire without manual guesswork
+  - 工作台中未来的调试设置入口或隐藏开关
+- 完成定义：开发者可以不用手动猜测来解释某个动作为何触发或未触发
 
-### P2: Complete Missing Product Features
+### P2：完成缺失的产品功能
 
-#### Task P2-1: Theme management completeness
+#### 任务 P2-1：主题管理完整性
 
-Status: Done on 2026-05-14
+状态：已完成（2026-05-14）
 
-- Scope:
-  - duplicate theme
-  - delete theme
-  - export theme JSON
-- Files likely involved:
+- 范围：复制主题、删除主题、导出主题 JSON
+- 涉及文件：
   - `src/app/pages/theme-workbench/components/ThemeLibrarySidebar.jsx`
   - `src/app/pages/theme-workbench/hooks/useThemeWorkbenchState.js`
   - `src/app/pages/theme-workbench/lib/extensionStorage.js`
-- Definition of done:
-  - user can fully manage theme lifecycle without hand-editing storage
+- 完成定义：用户可以完整管理主题生命周期，无需手动编辑存储
 
-#### Task P2-2: Add image effect panel
+#### 任务 P2-2：添加图片特效面板
 
-Status: Done on 2026-05-14
+状态：已完成（2026-05-14）
 
-- Scope:
-  - image-based click feedback in workbench
-  - storage + preview + runtime support
-- Dependencies:
-  - recommended after `P1-2`
-- Definition of done:
-  - one image effect can be configured, previewed, saved, and rendered in content runtime
+- 范围：工作台中的基于图片的点击反馈；存储 + 预览 + 运行时支持
+- 依赖：建议在 `P1-2` 之后进行
+- 完成定义：一个图片特效可在内容运行时中配置、预览、保存和渲染
 
-#### Task P2-3: Add basic animation effect panel
+#### 任务 P2-3：添加基础动画特效面板
 
-Status: Done on 2026-05-14
+状态：已完成（2026-05-14）
 
-- Scope:
-  - lightweight animation effect separate from text / particle / ripple
-- Dependencies:
-  - recommended after `P1-2`
-- Definition of done:
-  - at least one animation effect path works across editor, popup selection, and runtime
+- 范围：独立于文字/粒子/波纹的轻量级动画特效
+- 依赖：建议在 `P1-2` 之后进行
+- 完成定义：至少一条动画特效路径在编辑器、Popup 选择和运行时之间打通
 
-#### Task P2-4: Build asset center and diagnostics surfaces
+#### 任务 P2-4：构建素材中心和诊断面板
 
-Status: Done on 2026-05-14
+状态：已完成（2026-05-14）
 
-- Scope:
-  - asset management page or workspace
-  - diagnostics page or panel
-- Dependencies:
-  - diagnostics should align with `P1-3`
-- Definition of done:
-  - users and developers have a visible place to inspect assets and debug state
+- 范围：素材管理页面或工作区；诊断页面或面板
+- 依赖：诊断应与 `P1-3` 对齐
+- 完成定义：用户和开发者有一个可视化入口来查看素材和调试状态
 
-#### Task P2-5: Site-specific audio validation
+#### 任务 P2-5：站点特定音频验证
 
-Status: Done on 2026-05-14
+状态：已完成（2026-05-14）
 
-- Scope:
-  - continue investigation from backlog item `CD-001`
-  - validate bilibili media ducking behavior after diagnostics tooling exists
-- Definition of done:
-  - three `soundBlendMode` values are perceptibly distinct on bilibili
+- 范围：继续待办项 `CD-001` 中的调查；在诊断工具就绪后验证 B 站媒体压低行为
+- 完成定义：三种 `soundBlendMode` 值在 B 站上感知差异明显
 
-## Recommended Execution Sequence
+## 推荐执行顺序
 
-1. Finish `P0-1` to `P0-3`
-2. Only then start `P1-1`
-3. Finish `P1-2` before adding new effect types
-4. Use `P1-3` diagnostics to support `P2-5`
-5. Deliver `P2-1` before broader feature expansion, because theme lifecycle is a core user path
+1. 完成 `P0-1` 至 `P0-3`
+2. 之后才启动 `P1-1`
+3. 在添加新特效类型前完成 `P1-2`
+4. 使用 `P1-3` 诊断工具支持 `P2-5`
+5. 在扩展更多功能前先交付 `P2-1`，因为主题生命周期是核心用户路径
 
-## Stop Conditions
+## 停止条件
 
-The project can be treated as "engineering-stable enough to focus on features" when all of the following are true:
+当以下所有条件满足时，项目可视为「工程上已足够稳定，可以专注于功能开发」：
 
-- config conversion tests exist and pass
-- at least one browser-level smoke test covers popup/workbench/runtime sync
-- `public/content.js` is no longer a single large mixed-responsibility file
-- theme lifecycle actions cover create, import, duplicate, delete, and export
+- 配置转换测试存在且通过
+- 至少一个浏览器级冒烟测试覆盖 popup/workbench/runtime 同步
+- `public/content.js` 不再是一个大的混合职责文件
+- 主题生命周期操作覆盖创建、导入、复制、删除和导出
 
-Current status:
+当前状态：截至 2026-05-14 已满足以上全部停止条件。
 
-- All stop conditions above are satisfied as of 2026-05-14.
+## 本阶段明确不做的事
 
-## Explicit Non-Goals For This Phase
+- 与架构或缺失功能交付无关的大范围视觉重设计
+- 没有测试基础设施的投机性状态模型重写
+- 再次替换 popup/workbench/content 数据流，除非测试显示了具体缺陷
 
-- large visual redesigns unrelated to architecture or missing feature delivery
-- speculative state model rewrites without a test harness
-- replacing popup/workbench/content data flow again unless tests reveal a concrete defect
+## 推荐的后续重点
 
-## Recommended Next Focus
+稳定化计划完成后，下一阶段应优先选择小型、低风险的清理，而非新的架构变动。
 
-Now that the stabilization plan is complete, the next phase should prefer small, low-risk cleanups over new architecture churn.
+1. 拆分 `public/config.js` 中的热点辅助函数，减少运行时适配器蔓延。
+2. 将 `useThemeWorkbenchState.js` 拆分为水合、主题生命周期和实时预览副作用等更窄的 hook。
+3. 将 `actionConfigSchema.js` 拆分为字段组、预设值和存储辅助函数，避免新特效卡片不断扩展同一个文件。
+4. 如果引入另一个重要的运行时特效，考虑按特效类型拆分 `visual-effects.js`。
 
-1. Split hotspot helpers inside `public/config.js` to reduce runtime adapter sprawl.
-2. Break `useThemeWorkbenchState.js` into narrower hooks for hydration, theme lifecycle, and live preview side effects.
-3. Separate `actionConfigSchema.js` into field groups, presets, and storage helpers so new effect cards do not keep expanding one file.
-4. Consider splitting `visual-effects.js` by effect type if another major runtime effect is introduced.
+## 当前热点文件
 
-## Current Hotspots
+截至 2026-05-14，最大的文件为：
 
-As of 2026-05-14, the largest remaining files are:
-
-- `public/config.js`: 694 lines
-- `src/app/pages/theme-workbench/model/actionConfigSchema.js`: 632 lines
-- `src/app/pages/theme-workbench/hooks/useThemeWorkbenchState.js`: 605 lines
-- `public/content-runtime/visual-effects.js`: 544 lines
+- `public/config.js`：694 行
+- `src/app/pages/theme-workbench/model/actionConfigSchema.js`：632 行
+- `src/app/pages/theme-workbench/hooks/useThemeWorkbenchState.js`：605 行
+- `public/content-runtime/visual-effects.js`：544 行

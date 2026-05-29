@@ -1,105 +1,99 @@
-# CursorDance Engineering Backlog
+# CursorDance 工程待办
 
-Last updated: 2026-05-14
+最后更新：2026-05-14
 
-## Related Planning Docs
+## 相关规划文档
 
-- Main execution roadmap: `docs/project-stabilization-todo.md`
+- 主执行路线图：`docs/project-stabilization-todo.md`
 
 ## Ticket CD-001
 
-- Type: Bug
-- Title: `soundBlendMode` on bilibili does not produce clearly distinguishable media ducking behavior
-- Status: Resolved
-- Priority: P2
-- Severity: Major
-- Area: `content runtime` / `audio mixing`
-- Reported in: local extension validation on bilibili
-- Environment:
-  - Browser extension built from `dist/`
-  - Options page driven by React workbench
-  - Validation date: 2026-05-10
+- 类型：Bug
+- 标题：B 站上 `soundBlendMode` 三种混音方式感知差异不明显
+- 状态：已解决
+- 优先级：P2
+- 严重程度：Major
+- 区域：`content runtime` / `audio mixing`
+- 发现于：本地扩展在 B 站上的验证
+- 环境：
+  - 基于 `dist/` 构建的浏览器扩展
+  - React 工作台驱动的选项页
+  - 验证日期：2026-05-10
 
-### Summary
+### 摘要
 
-When the user switches `混音方式` between `保持原音量`, `压低页面音频`, and `仅插件音效` on bilibili, the perceived behavior is almost identical.
+用户在 B 站上将 `混音方式` 在「保持原音量」「压低页面音频」「仅插件音效」之间切换时，感知上的行为几乎相同。
 
-### Steps To Reproduce
+### 复现步骤
 
-1. Load the unpacked extension from `dist/`.
-2. Open a bilibili page with active video playback.
-3. In the options workbench, enable audio feedback for an action.
-4. Save once with `保持原音量`.
-5. Save once with `压低页面音频`.
-6. Save once with `仅插件音效`.
-7. Trigger the configured action on the bilibili page after each save.
+1. 从 `dist/` 加载未打包的扩展。
+2. 打开正在播放视频的 B 站页面。
+3. 在选项工作台中为某个动作启用音频反馈。
+4. 分别以「保持原音量」「压低页面音频」「仅插件音效」各保存一次。
+5. 每次保存后在 B 站页面上触发该动作。
 
-### Expected Result
+### 预期结果
 
-- `保持原音量`: page media keeps its current volume.
-- `压低页面音频`: page media audibly ducks for a noticeable period.
-- `仅插件音效`: page media is temporarily muted or near-muted while the plugin sound plays.
+- 「保持原音量」：页面媒体保持当前音量不变。
+- 「压低页面音频」：页面媒体在可感知的时间段内明显压低。
+- 「仅插件音效」：插件音效播放期间页面媒体被暂时静音或接近静音。
 
-### Actual Result
+### 实际结果
 
-The three modes feel very similar on bilibili, with little or no perceptible difference.
+三种模式在 B 站上感知差异非常小，几乎无法区分。
 
-### Resolution Summary
+### 解决方案摘要
 
-- Added a site-specific audio duck profile layer in `public/content-runtime/audio-duck-profile.js`.
-- `bilibili` now uses stronger duck targets, longer duck duration, and periodic reassertion to reduce player-side state takeback.
-- Diagnostics now expose site key, duck profile, and reassert activity so media mixing behavior is explainable.
-- Local smoke coverage now simulates bilibili-like media state reassertion and verifies all three `soundBlendMode` values remain distinguishable.
+- 在 `public/content-runtime/audio-duck-profile.js` 中添加了站点特定音频压低配置层。
+- B 站现在使用更强的压低目标、更长的压低时长和周期性重新施加，以减少播放器端状态覆盖。
+- 诊断系统现在会暴露站点标识、压低配置和重新施加活动，使媒体混音行为可追溯。
+- 本地冒烟测试现在模拟了类似 B 站的媒体状态重新施加，并验证三种 `soundBlendMode` 值保持可区分。
 
-### Known Scope / Limitation
+### 已知范围 / 局限
 
-- This does not necessarily reproduce on plain HTML5 media pages.
-- The issue is likely site-specific or player-specific rather than a total failure of the generic ducking implementation.
+- 此问题在普通 HTML5 媒体页面上不一定复现。
+- 问题大概率是站点或播放器特定的，而非通用压低实现的完全失败。
 
-### Suspected Root Causes
+### 疑似根因
 
-1. bilibili player may reassert volume state after script changes.
-2. bilibili may not expose all audible playback through directly controllable media elements.
-3. The timing window for ducking may still not align well with user perception on that site.
+1. B 站播放器可能在脚本修改后重新施加音量状态。
+2. B 站可能不通过可直接控制的媒体元素暴露所有可听的播放内容。
+3. 压低的时间窗口在该站点上仍可能与用户感知不完全对齐。
 
-### Validation Notes
+### 验证说明
 
-- Validated by unit coverage for duck profile selection.
-- Validated by local smoke coverage for a bilibili-like reasserting media element.
-- A direct manual check on live bilibili pages is still recommended during future release validation, but the issue is no longer unguarded by automated regression coverage.
+- 通过单元测试覆盖压低配置选择。
+- 通过本地冒烟测试覆盖类似 B 站重新施加场景。
+- 在后续发版时仍建议在 B 站实况页面上手动验证，但此问题已不再缺乏自动化回归覆盖。
 
-### Acceptance Criteria For Fix
+### 修复验收标准
 
-- On bilibili, the three `soundBlendMode` values become perceptibly distinct during action-triggered playback.
-- The fix does not regress ducking on ordinary HTML5 media pages.
+- 在 B 站上三种 `soundBlendMode` 值在动作触发播放时感知差异明显。
+- 修复不会导致普通 HTML5 媒体页面的压低行为回退。
 
-Result:
-
-- Accepted on 2026-05-14 for the current stabilization phase.
+结果：2026-05-14 验收通过。
 
 ## Ticket CD-002
 
-- Type: Task
-- Title: Add optional runtime diagnostics for action execution and media ducking
-- Status: Resolved
-- Priority: P3
-- Area: `content runtime` / `debuggability`
+- 类型：任务
+- 标题：为动作执行和媒体压低添加可选的运行时诊断
+- 状态：已解决
+- 优先级：P3
+- 区域：`content runtime` / `debuggability`
 
-### Goal
+### 目标
 
-Provide a switchable debug mode so future site-specific runtime issues can be diagnosed without relying only on manual perception.
+提供一个可切换的调试模式，使后续站点特定运行时问题可以不依赖纯人工感知来诊断。
 
-### Suggested Scope
+### 建议范围
 
-1. Log selected action id, trigger source, and filtered trigger-zone result.
-2. Log audio trigger mode decisions and ducking targets.
-3. Log detected media element count and restore timing.
+1. 记录选中的动作 ID、触发来源和过滤后的触发区域结果。
+2. 记录音频触发模式决策和压低目标。
+3. 记录检测到的媒体元素数量和恢复时机。
 
-### Acceptance Criteria
+### 验收标准
 
-- Debug logging can be enabled without changing production defaults.
-- Logs are sufficient to trace why a given action did or did not produce visible/audio output.
+- 调试日志可在不改变生产默认值的情况下启用。
+- 日志足以追踪某个动作为何产生或未产生可见/音频输出。
 
-Result:
-
-- Accepted on 2026-05-14.
+结果：2026-05-14 验收通过。

@@ -1,19 +1,19 @@
-# CursorDance AI API Local Setup
+# CursorDance AI API 本地搭建
 
-CursorDance uses a small local AI API server during development. The workbench calls `/api/ai/modify-scheme`; Vite proxies that path to the local server.
+CursorDance 在开发阶段使用一个小型本地 AI API 服务器。工作台通过 Vite 代理将 `/api/ai/scheme-proposals/stream` 请求转发至本地服务器。
 
-## Start Local Prototype
+## 启动本地开发
 
 ```bash
 npm run ai:dev
 npm run dev
 ```
 
-The AI assistant requires a configured model provider. Without a model API key, the server returns `503` instead of generating a local placeholder response.
+AI 助手需要配置模型服务商。未配置 API Key 时，服务器返回 `503` 而非生成本地占位响应。
 
-The request body is intentionally narrow: `prompt`, `currentConfig`, slim `proposalContext`, `taskMode`, `extensionVersion`, and `schemaVersion`. The frontend does not send the full visible chat history.
+请求体设计精简：仅包含 `prompt`、`currentConfig`、精简的 `proposalContext`、`taskMode`、`extensionVersion` 和 `schemaVersion`。前端不会发送完整的可见聊天历史。
 
-## Use OpenAI Responses API
+## 使用 OpenAI Responses API
 
 ```bash
 export OPENAI_API_KEY="your_api_key"
@@ -22,9 +22,9 @@ export CURSORDANCE_AI_MODEL="gpt-4.1-mini"
 npm run ai:dev
 ```
 
-## Use OpenAI-Compatible Chat Completions
+## 使用 OpenAI 兼容的 Chat Completions
 
-Use this mode for providers that expose an OpenAI-compatible `/chat/completions` endpoint.
+适用于暴露 OpenAI 兼容 `/chat/completions` 端点的服务商。
 
 ```bash
 export CURSORDANCE_AI_API_KEY="your_provider_key"
@@ -34,21 +34,21 @@ export CURSORDANCE_AI_MODEL="deepseek-chat"
 npm run ai:dev
 ```
 
-## Production Readiness Boundary
+## 生产就绪边界
 
-The model never writes directly to the workbench config. Its output is parsed as JSON, reduced to a whitelisted patch, sanitized by field type, clamped by numeric ranges, then presented as a proposal. The frontend only writes the patch after the user previews or confirms it.
+模型永远不能直接写入工作台配置。其输出经过 JSON 解析 → 白名单字段过滤 → 按字段类型清洗 → 按数值范围钳位 → 以提案形式展示给用户。前端仅在用户预览并确认后才写入补丁。
 
-The assistant is considered connected only when the proposal source is `model-chat-completions` or `model-responses-api`. API failures must stay visible to the user and must not silently fall back to deterministic local rules.
+AI 助手仅在提案来源为 `model-chat-completions` 或 `model-responses-api` 时视为已连接。API 调用失败必须向用户显示可见错误，不能静默降级为确定性本地规则。
 
-## Privacy And Cost Controls
+## 隐私与成本控制
 
-The backend must not log full user prompts, full configs, model prompts, or model responses. Metrics logs contain only counts and operational fields: mode, versions, prompt length, config/context byte sizes, raw body bytes, target count, dropped field count, duration, status, and error code. Disable metrics logs with:
+后端不得记录完整的用户提示、完整配置、模型提示或模型响应。指标日志仅包含计数和运维字段：模式、版本号、提示长度、配置/上下文字节大小、原始请求体大小、目标数量、丢弃字段数、耗时、状态码和错误码。关闭指标日志：
 
 ```bash
 export CURSORDANCE_AI_METRICS_LOG=0
 ```
 
-Configurable request limits:
+可配置的请求限制：
 
 ```bash
 export CURSORDANCE_AI_MAX_REQUEST_BYTES=51200
@@ -58,14 +58,14 @@ export CURSORDANCE_AI_MAX_PROPOSAL_CONTEXT_BYTES=8192
 export CURSORDANCE_AI_MAX_OUTPUT_TOKENS=900
 ```
 
-For shared-token protection, set the same token in the backend and extension build environment:
+共享 Token 保护（后端和扩展构建需设置相同的值）：
 
 ```bash
 export CURSORDANCE_AI_API_ACCESS_TOKEN="server_token"
 export VITE_CURSORDANCE_AI_API_ACCESS_TOKEN="server_token"
 ```
 
-Required response shape:
+要求的响应格式：
 
 ```json
 {

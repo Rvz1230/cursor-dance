@@ -1,28 +1,28 @@
-# CursorDance AI Backend Production Plan
+# CursorDance AI 后端生产部署计划
 
-## What Vercel Is
+## 什么是 Vercel
 
-Vercel is a cloud platform for deploying frontend apps and serverless API endpoints. In this project, Vercel can host:
+Vercel 是用于部署前端应用和无服务器 API 端点的云平台。在本项目中，Vercel 可以托管：
 
-- the built options/popup frontend from `dist`
-- API functions from `api/**`
-- environment variables such as the DeepSeek API key
-- HTTPS endpoints for the browser extension to call
+- `dist/` 中的构建后的选项页/Popup 前端
+- `api/**` 中的 API 函数
+- DeepSeek API Key 等环境变量
+- 浏览器扩展调用的 HTTPS 端点
 
-For CursorDance, Vercel is not the AI model provider. It is the secure middle layer between the extension and DeepSeek.
+对于 CursorDance，Vercel 不是 AI 模型服务商，而是扩展与 DeepSeek 之间的安全中间层。
 
 ```text
-Chrome Extension
+Chrome 扩展
   -> https://your-domain.com/api/ai/scheme-proposals
   -> Vercel Function
   -> DeepSeek
-  -> schema guardrails
-  -> proposal JSON
+  -> schema 安全护栏
+  -> 提案 JSON
 ```
 
-## Recommended Shape
+## 推荐结构
 
-Keep the backend inside the current project for the first production version.
+首个生产版本将后端保留在当前项目中。
 
 ```text
 api/
@@ -36,11 +36,11 @@ scripts/
   ai-api-server.mjs
 ```
 
-This keeps the extension UI, AI schema guardrails, local server, and production API versioned together.
+这样可以保持扩展 UI、AI schema 安全护栏、本地服务器和生产 API 的版本一致。
 
-## Production Environment Variables
+## 生产环境变量
 
-Set these in Vercel Project Settings:
+在 Vercel 项目设置中配置：
 
 ```bash
 CURSORDANCE_AI_API_KEY=your_deepseek_key
@@ -57,30 +57,30 @@ CURSORDANCE_AI_MAX_OUTPUT_TOKENS=900
 CURSORDANCE_AI_METRICS_LOG=1
 ```
 
-Set this when building the extension frontend:
+构建扩展前端时设置：
 
 ```bash
 VITE_CURSORDANCE_AI_API_ENDPOINT=https://YOUR_API_DOMAIN/api/ai/scheme-proposals
 VITE_CURSORDANCE_AI_API_ACCESS_TOKEN=optional_shared_token
 ```
 
-## Extension Manifest
+## 扩展清单
 
-Source `public/manifest.json` should not contain broad remote host permissions. Once the production API domain is known, build and prepare the packaged manifest:
+源文件 `public/manifest.json` 不应包含宽泛的远程主机权限。确定生产 API 域名后，构建并准备打包清单：
 
 ```bash
 npm run build
 CURSORDANCE_EXTENSION_HOST_PERMISSIONS=https://YOUR_API_DOMAIN/* npm run extension:prepare-manifest
 ```
 
-Alternatively, the script can derive the host permission from `VITE_CURSORDANCE_AI_API_ENDPOINT` when it is an absolute URL:
+也可以从 `VITE_CURSORDANCE_AI_API_ENDPOINT` 自动派生主机权限（当它是绝对 URL 时）：
 
 ```bash
 VITE_CURSORDANCE_AI_API_ENDPOINT=https://YOUR_API_DOMAIN/api/ai/scheme-proposals npm run build
 VITE_CURSORDANCE_AI_API_ENDPOINT=https://YOUR_API_DOMAIN/api/ai/scheme-proposals npm run extension:prepare-manifest
 ```
 
-The resulting `dist/manifest.json` should contain:
+生成的 `dist/manifest.json` 应包含：
 
 ```json
 {
@@ -90,48 +90,48 @@ The resulting `dist/manifest.json` should contain:
 }
 ```
 
-Avoid broad patterns such as `https://*/*` for the AI API because extension store review may treat them as excessive.
+避免对 AI API 使用 `https://*/*` 等宽泛模式，扩展商店审核可能视为权限过大。
 
-## Local Development
+## 本地开发
 
 ```bash
 npm run ai:dev
 npm run dev
 ```
 
-Local frontend calls:
+本地前端调用：
 
 ```text
 /api/ai/scheme-proposals
 ```
 
-Vite proxies this to:
+Vite 将其代理到：
 
 ```text
 http://localhost:8787/api/ai/scheme-proposals
 ```
 
-## Deployment Checklist
+## 部署清单
 
-1. Create a Vercel project from this repository.
-2. Add the production environment variables.
-3. Deploy and verify `GET /api/health`.
-4. Verify `POST /api/ai/scheme-proposals` with a small test payload.
-5. Build the extension with `VITE_CURSORDANCE_AI_API_ENDPOINT` pointing to the Vercel API.
-6. Run `npm run extension:prepare-manifest` to add the exact API domain to `host_permissions`.
-7. Load the built extension locally and test AI proposal generation.
-8. Prepare privacy policy and extension store data-use disclosures.
-9. Confirm production logs do not contain full `prompt`, `currentConfig`, model prompt, or model response bodies.
+1. 从此仓库创建 Vercel 项目。
+2. 添加生产环境变量。
+3. 部署并验证 `GET /api/health`。
+4. 用小型测试负载验证 `POST /api/ai/scheme-proposals`。
+5. 用指向 Vercel API 的 `VITE_CURSORDANCE_AI_API_ENDPOINT` 构建扩展。
+6. 运行 `npm run extension:prepare-manifest` 将精确 API 域名添加到 `host_permissions`。
+7. 加载构建后的扩展并在本地测试 AI 提案生成。
+8. 准备隐私政策和扩展商店数据使用披露。
+9. 确认生产日志不包含完整的 `prompt`、`currentConfig`、模型提示或模型响应体。
 
-## Production Acceptance Criteria
+## 生产验收标准
 
-- DeepSeek key never appears in the extension bundle.
-- `/api/health` returns `modelProviderConfigured: true`.
-- AI proposal source is `model-chat-completions`.
-- Failed model calls return visible errors instead of local fallback proposals.
-- Numeric `+1` mode and other core intents are repaired by schema guardrails when needed.
-- Request body size is limited.
-- Prompt length, config size, proposal context size, and model output tokens are limited.
-- Logs contain only privacy-safe metrics and never full user text or configs.
-- CORS allowlist is configured for the extension ID and official domains.
-- Chrome Web Store review notes, privacy policy draft, and support page draft are ready.
+- DeepSeek Key 不出现在扩展包中。
+- `/api/health` 返回 `modelProviderConfigured: true`。
+- AI 提案来源为 `model-chat-completions`。
+- 失败的模型调用返回可见错误，不静默降级为本地回退提案。
+- 数值 `+1` 模式和其他核心意图在需要时由 schema 安全护栏修复。
+- 请求体大小受限。
+- 提示长度、配置大小、提案上下文大小和模型输出 token 数受限。
+- 日志仅包含隐私安全的指标，不包含完整用户文本或配置。
+- CORS 白名单已配置扩展 ID 和官方域名。
+- Chrome Web Store 审核备忘、隐私政策草稿和支持页面草稿已就绪。

@@ -1,35 +1,35 @@
-# CursorDance Privacy Policy Draft
+# CursorDance 隐私政策草稿
 
-Last updated: 2026-05-20
+最后更新：2026-05-20
 
-CursorDance helps users customize cursor states and mouse feedback effects on webpages.
+CursorDance 帮助用户在网页上自定义光标状态和鼠标反馈效果。
 
-## Information Stored Locally
+## 本地存储的信息
 
-CursorDance stores configuration locally in Chrome extension storage, including selected themes, effect settings, per-site rules, and user-provided cursor or effect assets.
+CursorDance 在本地 Chrome 扩展存储中保存配置，包括已选主题、特效设置、站点规则和用户提供的光标或特效素材。
 
-## AI Scheme Assistant
+## AI 方案助手
 
-The AI scheme assistant is optional. When a user submits an AI request, CursorDance sends the user's prompt, current action config, task mode, schema version, extension version, and a slim pending proposal context to the CursorDance AI backend.
+AI 方案助手是可选的。当用户提交 AI 请求时，CursorDance 将用户的提示、当前动作配置、任务模式、schema 版本、扩展版本和精简的待处理提案上下文发送至 CursorDance AI 后端。
 
-CursorDance does not send the full visible chat history. Clearing the AI conversation removes local AI panel messages and pending proposal context without changing applied settings.
+CursorDance 不会发送完整的可见聊天历史。清除 AI 对话会移除本地 AI 面板消息和待处理提案上下文，不会影响已应用的设置。
 
-The backend forwards the request to the configured AI model provider and returns a JSON proposal. The proposal is sanitized before display and is not applied unless the user confirms it.
+后端将请求转发至配置的 AI 模型服务商，并返回 JSON 提案。提案在展示前经过清洗，且仅在用户确认后应用。
 
-## Logs
+## 日志
 
-CursorDance backend logs must not contain full prompts, full configs, model prompts, raw model responses, or model provider API keys. Operational logs may include privacy-safe metrics such as request size, prompt length, task mode, status code, error code, duration, and dropped field count.
+CursorDance 后端日志不得包含完整提示、完整配置、模型提示、模型原始响应或模型服务商 API 密钥。运维日志可包含隐私安全的指标，如请求大小、提示长度、任务模式、状态码、错误码、耗时和丢弃字段数。
 
-## Data Sharing
+## 数据共享
 
-CursorDance does not sell user data. CursorDance does not use user data for advertising.
+CursorDance 不出售用户数据。不使用用户数据用于广告。
 
-AI requests may be processed by the configured model provider solely to generate the requested CursorDance proposal.
+AI 请求可能由配置的模型服务商处理，仅用于生成所请求的 CursorDance 提案。
 
-## User Controls
+## 用户控制
 
-Users can disable CursorDance, change or delete themes, remove uploaded assets, clear AI conversation state, and uninstall the extension at any time.
+用户可随时禁用 CursorDance、修改或删除主题、移除上传的素材、清除 AI 对话状态以及卸载扩展。
 
-## Contact And Support
+## 联系与支持
 
-For support, use the support contact or support page listed in the Chrome Web Store listing.
+如有问题，请使用 Chrome Web Store 列表中列出的支持联系方式或支持页面。

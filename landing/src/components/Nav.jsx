@@ -3,11 +3,19 @@ import { Menu, X } from "lucide-react";
 import InstallButton from "./InstallButton.jsx";
 import { navLinks } from "../lib/scroll.js";
 
+const isHome =
+  window.location.pathname === "/" ||
+  window.location.pathname === "/index.html" ||
+  window.location.pathname === "";
+
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("");
   const headerRef = useRef(null);
+
+  const resolveHref = (href) =>
+    href.startsWith("#") && !isHome ? `/${href}` : href;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -74,7 +82,7 @@ export default function Nav() {
           {navLinks.map((link) => (
             <a
               key={link.href}
-              href={link.href}
+              href={resolveHref(link.href)}
               className={`text-sm font-medium transition-colors ${
                 activeSection === link.sectionId
                   ? "text-white/80"
@@ -101,7 +109,7 @@ export default function Nav() {
           {navLinks.map((link) => (
             <a
               key={link.href}
-              href={link.href}
+              href={resolveHref(link.href)}
               onClick={() => setMobileOpen(false)}
               className="text-sm font-medium text-white/60 hover:text-white transition-colors"
             >

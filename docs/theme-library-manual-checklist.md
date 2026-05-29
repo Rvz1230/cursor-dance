@@ -1,107 +1,107 @@
-# Theme Library Manual Checklist
+# 主题库手动验证清单
 
-Updated: 2026-05-11
+更新日期：2026-05-11
 
-Use this checklist to validate the new theme library flows in the local workbench at `http://localhost:5173/`.
+使用本清单在本地工作台 `http://localhost:5173/` 中验证新的主题库流程。
 
-## Test Data
+## 测试数据
 
-- Import sample:
+- 导入样本：
   - [theme-import-sample.json](/Users/rvz/Projects/cursor-dance/docs/theme-import-sample.json)
 
-## Flow A: Create Theme
+## 流程 A：新建主题
 
-1. Open the theme library sidebar and click `新建`.
-2. In the modal, keep `起始模板` as `空白主题`, enter:
-   - Theme name: `Studio Verify A`
-   - Description: `Manual validation theme`
-3. Click `创建主题`.
+1. 打开主题库侧栏，点击「新建」。
+2. 在弹窗中，保持「起始模板」为「空白主题」，输入：
+   - 主题名称：`Studio Verify A`
+   - 描述：`手动验证主题`
+3. 点击「创建主题」。
 
-Expected:
+预期结果：
 
-- Modal closes.
-- A new theme card named `Studio Verify A` appears in the left list.
-- The new theme is automatically selected.
-- The workbench remains editable and does not crash.
+- 弹窗关闭。
+- 左侧列表出现名为 `Studio Verify A` 的新主题卡片。
+- 新主题自动被选中。
+- 工作台保持可编辑状态，不崩溃。
 
-## Flow B: Create From Existing Theme
+## 流程 B：从已有主题创建
 
-1. Click `新建` again.
-2. Set `起始模板` to any existing theme, for example `木鱼方案`.
-3. Name it `Woodfish Clone Check`.
-4. Click `创建主题`.
+1. 再次点击「新建」。
+2. 将「起始模板」设为任意已有主题，例如「木鱼方案」。
+3. 命名为 `Woodfish Clone Check`。
+4. 点击「创建主题」。
 
-Expected:
+预期结果：
 
-- New theme appears in the list and is selected.
-- Core action settings are copied from the base theme instead of resetting to empty defaults.
-- Changing a setting on the clone does not mutate the original theme card when you switch back.
+- 新主题出现在列表中并被选中。
+- 核心动作设置从基础主题复制，而非重置为空默认值。
+- 在克隆主题上修改设置后切换回去，不会影响原始主题卡片。
 
-## Flow C: Import Theme JSON
+## 流程 C：导入主题 JSON
 
-1. Click `导入`.
-2. Choose [theme-import-sample.json](/Users/rvz/Projects/cursor-dance/docs/theme-import-sample.json).
+1. 点击「导入」。
+2. 选择 [theme-import-sample.json](/Users/rvz/Projects/cursor-dance/docs/theme-import-sample.json)。
 
-Expected:
+预期结果：
 
-- Imported theme appears in the list as `Mint Lab Demo`.
-- The imported theme is automatically selected.
-- `leftClick`, `doubleClick`, `wheel`, and `hover` configurations show non-default values from the file.
-- Preview rail updates without throwing UI errors.
+- 导入的主题以 `Mint Lab Demo` 的名称出现在列表中。
+- 导入的主题自动被选中。
+- `leftClick`、`doubleClick`、`wheel` 和 `hover` 配置显示文件中的非默认值。
+- 预览轨道更新时不抛出 UI 错误。
 
-## Flow D: Save And Refresh
+## 流程 D：保存并刷新
 
-1. After creating or importing a theme, click the top `保存`.
-2. Refresh the page.
+1. 创建或导入主题后，点击顶部的「保存」。
+2. 刷新页面。
 
-Expected:
+预期结果：
 
-- Newly created/imported themes still exist after refresh.
-- The selected theme remains available in the list.
-- Switching between built-in and custom/imported themes still works.
+- 新建/导入的主题在刷新后仍然存在。
+- 选中的主题在列表中仍然可用。
+- 在内置主题和自定义/导入主题之间切换仍然正常。
 
-## Flow E: Trigger Configuration Persistence
+## 流程 E：触发器配置持久化
 
-On the imported theme:
+在导入的主题上：
 
-1. Switch to `doubleClick`.
-2. Confirm `触发时机` is `第二次抬起后`.
-3. Confirm `波纹样式` is `柔和面波`.
-4. Confirm `粒子形态` is `火花`.
-5. Click `保存`, then refresh.
+1. 切换到 `doubleClick`。
+2. 确认「触发时机」为「第二次抬起后」。
+3. 确认「波纹样式」为「柔和面波」。
+4. 确认「粒子形态」为「火花」。
+5. 点击「保存」，然后刷新。
 
-Expected:
+预期结果：
 
-- The same values remain selected after refresh.
-- Preview still renders without layout or console-breaking errors.
+- 刷新后相同的值仍然保持选中。
+- 预览渲染时没有布局错误或控制台错误。
 
-## Flow F: Invalid Import Guard
+## 流程 F：无效导入防护
 
-1. Create a temporary file with invalid JSON, for example:
+1. 创建一个包含无效 JSON 的临时文件，例如：
 
 ```json
 { "themePack": }
 ```
 
-2. Import it through the modal.
+2. 通过弹窗导入。
 
-Expected:
+预期结果：
 
-- Modal stays open.
-- A readable error message appears in the import panel.
-- Existing themes are not removed or replaced.
+- 弹窗保持打开。
+- 导入面板中显示可读的错误信息。
+- 已有主题不被移除或替换。
 
-## Optional Runtime Check
+## 可选的运行时检查
 
-If the extension options page is loaded inside Chrome as a real extension options view:
+如果在 Chrome 中作为真实扩展选项页加载：
 
-1. Select `Mint Lab Demo`.
-2. Click `保存`.
-3. Trigger `leftClick`, `doubleClick`, `wheel`, and `hover` on a normal `http/https` page.
+1. 选择 `Mint Lab Demo`。
+2. 点击「保存」。
+3. 在普通 `http/https` 页面上触发 `leftClick`、`doubleClick`、`wheel` 和 `hover`。
 
-Expected:
+预期结果：
 
-- `leftClick` shows text + ripple + particles.
-- `doubleClick` uses stronger combo feedback.
-- `wheel` only reacts on downward scroll for the sample theme.
-- `hover` only reacts on buttons/links after a short delay.
+- `leftClick` 显示文字 + 波纹 + 粒子。
+- `doubleClick` 使用更强的组合反馈。
+- `wheel` 在样本主题中仅响应向下滚动。
+- `hover` 仅在按钮/链接上经过短暂延迟后触发。

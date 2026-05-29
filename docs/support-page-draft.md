@@ -1,37 +1,37 @@
-# CursorDance Support Page Draft
+# CursorDance 支持页面草稿
 
-## CursorDance Support
+## CursorDance 支持
 
-CursorDance customizes cursor states and mouse feedback effects on webpages.
+CursorDance 为网页添加可定制光标状态和鼠标反馈效果。
 
-## Common Questions
+## 常见问题
 
-### How do I turn CursorDance off?
+### 如何关闭 CursorDance？
 
-Open the CursorDance popup and use the main enable switch.
+打开 CursorDance Popup，使用主开关即可关闭。
 
-### Where are my settings stored?
+### 设置存储在哪里？
 
-Settings and uploaded cursor assets are stored locally in Chrome extension storage.
+设置和上传的光标素材存储在本地 Chrome 扩展存储中。
 
-### Does the AI assistant change settings automatically?
+### AI 助手会自动修改设置吗？
 
-No. AI output is shown as a proposal. It is only applied when you confirm it.
+不会。AI 输出仅作为提案展示，只有在您确认后才会应用。
 
-### What data does the AI assistant send?
+### AI 助手发送什么数据？
 
-Only the prompt you submit, the current action config, task mode, schema and extension versions, and a slim pending proposal context. CursorDance does not send the full visible chat history.
+仅发送您提交的提示、当前动作配置、任务模式、schema 和扩展版本号，以及精简的待处理提案上下文。CursorDance 不会发送完整的可见聊天历史。
 
-### Why does CursorDance run on websites?
+### 为什么 CursorDance 需要在网站上运行？
 
-CursorDance needs content scripts on webpages to render cursor states, click text, particles, ripples, and optional sound feedback.
+CursorDance 需要在网页上注入内容脚本才能渲染光标状态、点击飘字、粒子、波纹和可选音效反馈。
 
-## Troubleshooting
+## 故障排查
 
-- If effects do not appear, refresh the target page after changing settings.
-- If AI proposals fail, check that the AI backend is reachable and that any access token is configured correctly.
-- If uploaded cursor images fail to save, use a smaller PNG or WebP image.
+- 如果特效不显示，请在修改设置后刷新目标页面。
+- 如果 AI 提案失败，请检查 AI 后端是否可达，以及访问 Token 是否配置正确。
+- 如果上传的光标图片保存失败，请使用更小的 PNG 或 WebP 图片。
 
-## Contact
+## 联系方式
 
-Add the production support email or issue tracker URL before publishing the Chrome Web Store listing.
+发布 Chrome Web Store 前请在此添加生产环境的支持邮箱或 Issue 跟踪地址。
