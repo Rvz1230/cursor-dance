@@ -636,10 +636,6 @@ export function getConflictsForAction(actionId, actionConfigs) {
     conflicts.push("长按和左键单击都在使用音效，后续需要明确谁先触发。");
   }
 
-  if (actionId === "hover" && (current.ripple || current.particle)) {
-    conflicts.push("悬停已经带视觉反馈，后续要明确是否覆盖 pointer 状态。");
-  }
-
   if (!current.textEnabled && !current.particle && !current.ripple && !current.sound && !current.animationEnabled && !current.imageEnabled) {
     conflicts.push("当前动作没有绑定任何反馈，用户点击时会感觉没效果。");
   }

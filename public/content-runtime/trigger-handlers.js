@@ -212,7 +212,15 @@
       const scheme = configStore.getActiveScheme();
       const leftClickConfig = configStore.getActionConfig(scheme, "leftClick");
       const leftClickTriggerConfig = configStore.getActionTriggerConfig(leftClickConfig);
-      if (leftClickTriggerConfig.triggerTiming === "按下时") {
+
+      const longPressConfig = configStore.getActionConfig(scheme, "longPress");
+      const longPressTriggerConfig = configStore.getActionTriggerConfig(longPressConfig);
+      const longPressArmed = longPressConfig && configStore.matchesTriggerZone(event.target, longPressTriggerConfig.triggerZone, event, {
+        actionId: "longPress",
+        triggerSource: "longpress-arm",
+      });
+
+      if (leftClickTriggerConfig.triggerTiming === "按下时" && !longPressArmed) {
         scheduleActionTrigger("leftClick", makeCoordsFromEvent(event), scheme, getActionTimingMs("leftClick", leftClickConfig), {
           triggerSource: "left-pointer-down",
         });
@@ -241,12 +249,7 @@
         state.lastLeftPointerDownAt = now;
       }
 
-      const longPressConfig = configStore.getActionConfig(scheme, "longPress");
-      const longPressTriggerConfig = configStore.getActionTriggerConfig(longPressConfig);
-      if (!longPressConfig || !configStore.matchesTriggerZone(event.target, longPressTriggerConfig.triggerZone, event, {
-        actionId: "longPress",
-        triggerSource: "longpress-arm",
-      })) return;
+      if (!longPressArmed) return;
 
       state.longPressState = {
         startedAt: Date.now(),
@@ -313,12 +316,22 @@
     function handlePointerUp(event) {
       if (event.button === 0) {
         const scheme = configStore.getActiveScheme();
-        const leftClickConfig = configStore.getActionConfig(scheme, "leftClick");
-        const leftClickTriggerConfig = configStore.getActionTriggerConfig(leftClickConfig);
-        if (leftClickTriggerConfig.triggerTiming !== "按下时") {
-          scheduleActionTrigger("leftClick", makeCoordsFromEvent(event), scheme, getActionTimingMs("leftClick", leftClickConfig), {
-            triggerSource: "left-pointer-up",
-          });
+        const lpState = state.longPressState;
+        const longPressFired = lpState && (
+          lpState.triggered ||
+          (lpState.releaseMode && (Date.now() - lpState.startedAt) >= lpState.thresholdMs)
+        );
+
+        finishLongPress(event);
+
+        if (!longPressFired) {
+          const leftClickConfig = configStore.getActionConfig(scheme, "leftClick");
+          const leftClickTriggerConfig = configStore.getActionTriggerConfig(leftClickConfig);
+          if (leftClickTriggerConfig.triggerTiming !== "按下时" || lpState) {
+            scheduleActionTrigger("leftClick", makeCoordsFromEvent(event), scheme, getActionTimingMs("leftClick", leftClickConfig), {
+              triggerSource: "left-pointer-up",
+            });
+          }
         }
 
         const doubleClickConfig = configStore.getActionConfig(scheme, "doubleClick");
@@ -343,7 +356,6 @@
       } else {
         state.lastLeftPointerUpAt = now;
         }
-        finishLongPress(event);
       }
     }
 
