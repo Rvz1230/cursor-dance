@@ -5,7 +5,7 @@ export default function AboutPage() {
     <PageLayout>
       <div className="max-w-3xl mx-auto px-6 py-12">
         <h1 className="text-3xl md:text-4xl font-extrabold mb-2">关于 CursorDance</h1>
-        <p className="text-white/25 text-sm mb-10">让你的光标跳起舞来</p>
+        <p className="text-white/40 text-sm mb-10">让你的光标跳起舞来</p>
 
         <div className="space-y-10 text-white/50 leading-relaxed">
           <section>

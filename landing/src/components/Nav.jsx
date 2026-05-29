@@ -45,19 +45,24 @@ export default function Nav() {
     return () => observer.disconnect();
   }, []);
 
-  // Close mobile menu on outside click
+  // Close mobile menu on outside click or Escape
   useEffect(() => {
     if (!mobileOpen) return;
-    const handler = (e) => {
+    const onOutside = (e) => {
       if (headerRef.current && !headerRef.current.contains(e.target)) {
         setMobileOpen(false);
       }
     };
-    document.addEventListener("mousedown", handler);
-    document.addEventListener("touchstart", handler);
+    const onKey = (e) => {
+      if (e.key === "Escape") setMobileOpen(false);
+    };
+    document.addEventListener("mousedown", onOutside);
+    document.addEventListener("touchstart", onOutside);
+    document.addEventListener("keydown", onKey);
     return () => {
-      document.removeEventListener("mousedown", handler);
-      document.removeEventListener("touchstart", handler);
+      document.removeEventListener("mousedown", onOutside);
+      document.removeEventListener("touchstart", onOutside);
+      document.removeEventListener("keydown", onKey);
     };
   }, [mobileOpen]);
 
@@ -83,7 +88,7 @@ export default function Nav() {
             <a
               key={link.href}
               href={resolveHref(link.href)}
-              className={`text-sm font-medium transition-colors ${
+              className={`text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-violet-400 rounded-md outline-none ${
                 activeSection === link.sectionId
                   ? "text-white/80"
                   : "text-white/45 hover:text-white/80"
@@ -96,9 +101,10 @@ export default function Nav() {
         </div>
 
         <button
-          className="md:hidden p-2 text-white/60 hover:text-white"
+          className="md:hidden p-2 text-white/60 hover:text-white focus-visible:ring-2 focus-visible:ring-violet-400 rounded-lg outline-none"
           onClick={() => setMobileOpen(!mobileOpen)}
-          aria-label="Toggle menu"
+          aria-label={mobileOpen ? "关闭菜单" : "打开菜单"}
+          aria-expanded={mobileOpen}
         >
           {mobileOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
@@ -111,7 +117,7 @@ export default function Nav() {
               key={link.href}
               href={resolveHref(link.href)}
               onClick={() => setMobileOpen(false)}
-              className="text-sm font-medium text-white/60 hover:text-white transition-colors"
+              className="text-sm font-medium text-white/60 hover:text-white transition-colors focus-visible:ring-2 focus-visible:ring-violet-400 rounded-md outline-none"
             >
               {link.label}
             </a>

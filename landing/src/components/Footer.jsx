@@ -10,7 +10,7 @@ export default function Footer() {
             <span className="text-sm font-medium text-white/40">CursorDance</span>
           </div>
 
-          <div className="flex items-center gap-6 text-sm text-white/25">
+          <div className="flex items-center gap-6 text-sm text-white/40">
             <a href="/privacy.html" className="hover:text-white/50 transition-colors">
               隐私政策
             </a>
@@ -28,7 +28,7 @@ export default function Footer() {
             </a>
           </div>
 
-          <p className="text-xs text-white/15">
+          <p className="text-xs text-white/30">
             &copy; {new Date().getFullYear()} CursorDance. All rights reserved.
           </p>
         </div>

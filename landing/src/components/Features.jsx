@@ -57,7 +57,7 @@ export default function Features() {
           <h2 className="text-3xl md:text-4xl font-bold mb-3">
             一切皆可定制
           </h2>
-          <p className="text-white/25 text-lg max-w-xl mx-auto">
+          <p className="text-white/40 text-lg max-w-xl mx-auto">
             6 种光标状态 &times; 50+ 可调参数 &times; 无限主题组合
           </p>
         </motion.div>
@@ -75,7 +75,7 @@ export default function Features() {
                 <f.icon size={22} className="text-violet-400" />
               </div>
               <h3 className="font-semibold text-lg mb-2.5">{f.title}</h3>
-              <p className="text-white/25 text-sm leading-relaxed">
+              <p className="text-white/40 text-sm leading-relaxed">
                 {f.description}
               </p>
             </motion.div>

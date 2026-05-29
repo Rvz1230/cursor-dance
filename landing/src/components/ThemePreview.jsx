@@ -267,8 +267,31 @@ const PREVIEWS = {
   ocean: OceanPreview,
 };
 
+function useIsVisible() {
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setVisible(entry.isIntersecting),
+      { threshold: 0 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return [ref, visible];
+}
+
 export default function ThemePreview({ themeId }) {
+  const [ref, visible] = useIsVisible();
   const Comp = PREVIEWS[themeId];
   if (!Comp) return null;
-  return <Comp />;
+  return (
+    <div ref={ref} className="absolute inset-0">
+      {visible && <Comp />}
+    </div>
+  );
 }

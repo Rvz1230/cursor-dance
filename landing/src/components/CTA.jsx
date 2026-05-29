@@ -21,7 +21,7 @@ export default function CTA() {
               <span className="text-gradient"> 跳舞 </span>
               了吗？
             </h2>
-            <p className="text-white/30 text-lg mb-10 max-w-md mx-auto">
+            <p className="text-white/45 text-lg mb-10 max-w-md mx-auto">
               免费安装，即装即用。让你的每一次点击都充满惊喜。
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">

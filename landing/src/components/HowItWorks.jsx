@@ -52,7 +52,7 @@ export default function HowItWorks() {
           <h2 className="text-3xl md:text-4xl font-bold mb-3">
             三步，开始跳舞
           </h2>
-          <p className="text-white/25 text-lg max-w-xl mx-auto">
+          <p className="text-white/40 text-lg max-w-xl mx-auto">
             从安装到生效，三分钟搞定
           </p>
         </motion.div>
@@ -74,7 +74,7 @@ export default function HowItWorks() {
               </div>
               <div className="text-xs font-bold text-violet-500/50 mb-2">{s.num}</div>
               <h3 className="font-semibold text-lg mb-2">{s.title}</h3>
-              <p className="text-white/25 text-sm leading-relaxed max-w-xs mx-auto">
+              <p className="text-white/40 text-sm leading-relaxed max-w-xs mx-auto">
                 {s.description}
               </p>
             </motion.div>

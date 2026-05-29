@@ -5,7 +5,7 @@ export default function PrivacyPage() {
     <PageLayout>
       <div className="max-w-3xl mx-auto px-6 py-12">
         <h1 className="text-3xl md:text-4xl font-extrabold mb-2">隐私政策</h1>
-        <p className="text-white/25 text-sm mb-10">最后更新：2026 年 5 月 29 日</p>
+        <p className="text-white/40 text-sm mb-10">最后更新：2026 年 5 月 29 日</p>
 
         <div className="space-y-8 text-white/50 leading-relaxed">
           <section>

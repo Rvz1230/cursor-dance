@@ -125,7 +125,7 @@ export default function DemoArea({ activePresetId, onPresetChange }) {
           <button
             key={preset.id}
             onClick={() => handlePresetChange(preset)}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all focus-visible:ring-2 focus-visible:ring-violet-400 outline-none ${
               activePreset.id === preset.id
                 ? "bg-violet-500/20 border border-violet-500/30 text-violet-300"
                 : "bg-white/[0.03] border border-white/[0.06] text-white/30 hover:text-white/50 hover:border-white/15"
@@ -140,6 +140,8 @@ export default function DemoArea({ activePresetId, onPresetChange }) {
       <div
         ref={containerRef}
         className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.02] cursor-crosshair select-none"
+        role="region"
+        aria-label="交互演示区 — 点击查看粒子、波纹和飘字效果"
         onClick={handleClick}
         onContextMenu={handleContextMenu}
       >
@@ -150,7 +152,7 @@ export default function DemoArea({ activePresetId, onPresetChange }) {
             <div className="w-2.5 h-2.5 rounded-full bg-yellow-400/60" />
             <div className="w-2.5 h-2.5 rounded-full bg-green-400/60" />
           </div>
-          <div className="flex-1 mx-3 bg-white/[0.04] rounded-md px-3 py-1 text-[11px] text-white/15 text-center font-medium">
+          <div className="flex-1 mx-3 bg-white/[0.04] rounded-md px-3 py-1 text-[11px] text-white/25 text-center font-medium">
             any-website.com
           </div>
         </div>
@@ -165,7 +167,7 @@ export default function DemoArea({ activePresetId, onPresetChange }) {
             }}
           />
 
-          <div className="relative z-10">
+          <div className="relative z-10 select-text">
             <h3 className="text-white/60 text-lg font-semibold mb-1.5">欢迎体验</h3>
             <p className="text-white/20 text-sm leading-relaxed max-w-md">
               当前预设：
@@ -175,16 +177,16 @@ export default function DemoArea({ activePresetId, onPresetChange }) {
           </div>
 
           <div className="relative z-10 flex gap-3">
-            <span className="inline-flex items-center px-4 py-2 rounded-full bg-white/[0.05] border border-white/[0.06] text-white/35 text-xs font-medium">
+            <span className="inline-flex items-center px-4 py-2 rounded-full bg-white/[0.05] border border-white/[0.06] text-white/50 text-xs font-medium">
               点击这里
             </span>
-            <span className="inline-flex items-center px-4 py-2 rounded-full bg-white/[0.05] border border-white/[0.06] text-white/35 text-xs font-medium">
+            <span className="inline-flex items-center px-4 py-2 rounded-full bg-white/[0.05] border border-white/[0.06] text-white/50 text-xs font-medium">
               试试双击
             </span>
           </div>
 
-          <div className="relative z-10 max-w-xs rounded-xl bg-white/[0.03] border border-white/[0.05] p-4">
-            <p className="text-white/15 text-xs leading-relaxed">
+          <div className="relative z-10 max-w-xs rounded-xl bg-white/[0.03] border border-white/[0.05] p-4 select-text">
+            <p className="text-white/25 text-xs leading-relaxed">
               右键点击触发另一种效果。上方按钮可切换不同主题预设。
             </p>
           </div>
@@ -260,7 +262,7 @@ export default function DemoArea({ activePresetId, onPresetChange }) {
             })}
           </AnimatePresence>
 
-          <div className="absolute bottom-3 right-4 z-20 text-white/10 text-[10px] pointer-events-none">
+          <div className="absolute bottom-3 right-4 z-20 text-white/20 text-[10px] pointer-events-none select-text">
             点击任意位置查看效果
           </div>
         </div>

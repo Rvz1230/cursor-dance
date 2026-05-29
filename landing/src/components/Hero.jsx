@@ -35,7 +35,7 @@ export default function Hero({ activePresetId, onPresetChange }) {
           <span className="text-gradient">跳起舞来</span>
         </h1>
 
-        <p className="text-lg md:text-xl text-white/35 max-w-lg mx-auto mb-10 leading-relaxed">
+        <p className="text-lg md:text-xl text-white/50 max-w-lg mx-auto mb-10 leading-relaxed">
           为你的浏览器注入灵魂。粒子、光晕、波纹——
           <br />
           每一个点击都是一场微型演出。
