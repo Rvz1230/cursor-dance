@@ -14,17 +14,32 @@ function buildAgentSystemPrompt() {
     "",
     "可用动作 ID：leftClick（左键点击）、rightClick（右键点击）、doubleClick（双击）、longPress（长按）、wheel（滚轮）、hover（悬停）。",
     "",
+    "重要：你只能处理与鼠标点击效果、光标反馈、页面交互视觉特效相关的需求。",
+    "如果用户的需求与这些完全无关（例如问天气、写代码、闲聊、写诗、翻译等），",
+    "直接调用 finalize_proposal，targets 返回空数组，reply 中礼貌说明你只能处理鼠标反馈配置，",
+    "tuningOptions 给出 3 个与鼠标反馈相关的引导性示例，不要调用 apply_config_patch。",
+    "",
     "重要：你必须在 2-3 步内完成所有操作并调用 finalize_proposal。不要在多个步骤间反复读取配置而不做修改。",
     "当所有配置修改完成并确认效果后，立即调用 finalize_proposal 输出最终方案。",
   ].join("\n");
 }
 
-function buildAgentUserPrompt({ prompt, actionId, actionLabel, currentConfig }) {
+function buildAgentUserPrompt({ prompt, actionId, actionLabel, currentConfig, taskMode, proposalContext }) {
+  const contextLines = [];
+  if (taskMode) {
+    contextLines.push(`任务模式：${taskMode}`);
+  }
+  if (proposalContext) {
+    contextLines.push("上一版 proposal 精简上下文 JSON：");
+    contextLines.push(JSON.stringify(proposalContext));
+  }
+
   return [
     `当前动作 ID：${actionId || "leftClick"}`,
     `当前动作名称：${actionLabel || "当前动作"}`,
+    ...contextLines,
     "当前配置 JSON：",
-    JSON.stringify(currentConfig || {}, null, 2),
+    JSON.stringify(currentConfig || {}),
     "",
     "用户需求：",
     prompt,
@@ -51,6 +66,7 @@ export async function runAgentLoop({
   actionLabel = "左键点击",
   currentConfig = {},
   taskMode = "modify_action",
+  proposalContext = null,
   schemaVersion,
   extensionVersion,
   env = process.env,
@@ -67,7 +83,7 @@ export async function runAgentLoop({
 
   const messages = [
     { role: "system", content: buildAgentSystemPrompt() },
-    { role: "user", content: buildAgentUserPrompt({ prompt, actionId, actionLabel, currentConfig }) },
+    { role: "user", content: buildAgentUserPrompt({ prompt, actionId, actionLabel, currentConfig, taskMode, proposalContext }) },
   ];
 
   let finished = false;

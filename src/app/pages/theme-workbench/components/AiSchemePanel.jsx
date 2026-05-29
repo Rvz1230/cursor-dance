@@ -248,7 +248,7 @@ function ProposalCard({ result, previewActive }) {
         <div className="mt-2 flex items-center gap-2 text-[11px] text-slate-400">
           <span>本次消耗 ~{result.totalTokens.toLocaleString()} tokens</span>
           <span className="text-slate-300">·</span>
-          <span>约 ¥{(result.totalTokens / 500000).toFixed(4)}</span>
+          <span>约 ¥{((result.totalTokens / 1000000) * 1.5).toFixed(4)}</span>
         </div>
       ) : null}
     </div>
@@ -473,6 +473,9 @@ export function AiSchemePanel({
   const [agentRunning, setAgentRunning] = useState(false);
   const [streamingPhase, setStreamingPhase] = useState(0);
   const abortRef = useRef(null);
+  // Use ref for atomic submit lock — React state batching could allow
+  // double-submit when tuningOptions chips are clicked in rapid succession.
+  const generatingRef = useRef(false);
 
   // Cycle streaming phase indicator (fast mode only — agent uses AgentTimeline)
   useEffect(() => {
@@ -567,11 +570,12 @@ export function AiSchemePanel({
 
   async function submitPrompt(nextPrompt = prompt, modeOverride = "modify_action") {
     const trimmedPrompt = nextPrompt.trim();
-    if (!trimmedPrompt || isGenerating) return;
+    if (!trimmedPrompt || generatingRef.current) return;
 
     const proposalContext = pendingResult;
     setPrompt("");
     setError("");
+    generatingRef.current = true;
     setIsGenerating(true);
     onClearPreview?.();
     onClearAiSnapshot?.();
@@ -701,6 +705,7 @@ export function AiSchemePanel({
         setError(message);
       }
     } finally {
+      generatingRef.current = false;
       setIsGenerating(false);
       abortRef.current = null;
     }
@@ -711,6 +716,7 @@ export function AiSchemePanel({
       abortRef.current();
       abortRef.current = null;
     }
+    generatingRef.current = false;
     setAgentRunning(false);
     setIsGenerating(false);
     setStreamingReply("");
@@ -759,6 +765,7 @@ export function AiSchemePanel({
     setPendingResult(null);
     setLastPrompt("");
     setAgentSteps([]);
+    generatingRef.current = false;
     setAgentRunning(false);
     setIsGenerating(false);
     setStreamingReply("");
