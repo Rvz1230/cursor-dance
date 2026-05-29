@@ -22,9 +22,9 @@ export const PREVIEW_KEYFRAMES = `
     100% { opacity: 0; transform: translate3d(-50%, -50%, 0) scale(var(--ripple-to, 1)); }
   }
   @keyframes cursorDancePreviewParticle {
-    0% { opacity: 0; transform: translate3d(0, 0, 0) scale(0.4); }
-    18% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
-    100% { opacity: 0; transform: translate3d(var(--particle-x), var(--particle-y), 0) scale(0.72); }
+    0% { opacity: 0; transform: translate3d(-50%, -50%, 0) scale(0.4) rotate(var(--particle-rotation, 0deg)); }
+    18% { opacity: 1; transform: translate3d(-50%, -50%, 0) scale(1) rotate(var(--particle-rotation, 0deg)); }
+    100% { opacity: 0; transform: translate3d(calc(-50% + var(--particle-x, 0px)), calc(-50% + var(--particle-y, 0px)), 0) scale(0.72) rotate(var(--particle-rotation, 0deg)); }
   }
   @keyframes cursorDancePreviewImage {
     0% { opacity: 0; transform: translate3d(-50%, -30%, 0) scale(0.72) rotate(-8deg); }
@@ -253,6 +253,7 @@ export function getParticleTint(config, index) {
 
 export function buildParticleSpecs(config, runIndex) {
   const particleConfig = getActionParticleConfig(config);
+  const baseDelay = particleConfig.particleDelay || 0;
   const visibleCount = Math.min(particleConfig.particleCount, 40);
   const spread = Math.max(0, Math.min(particleConfig.particleSpread || 52, 90));
 
@@ -279,7 +280,7 @@ export function buildParticleSpecs(config, runIndex) {
     return {
       x: baseX + wind * spread * 1.2,
       y: baseY + gravity * spread * 1.6,
-      delay: index * 26,
+      delay: baseDelay + index * 26,
       size: Math.max(4, (particleConfig.particleSize || 10) * (0.52 + (index % 4) * 0.1)),
       bounceY: bounce > 0 ? -spread * bounce * 1.0 : 0,
     };
@@ -367,46 +368,47 @@ export function getParticleStyleProps(config, index, size) {
 
 export function buildRippleSpecs(config) {
   const rippleConfig = getActionRippleConfig(config);
+  const baseDelay = rippleConfig.rippleDelay || 0;
   const size = rippleConfig.rippleSize;
   const opacity = rippleConfig.rippleOpacity / 100;
   const style = rippleConfig.rippleStyle || "单环";
 
   if (style === "双环") {
     return [
-      { size, opacity, delay: 0, filled: false, scaleFrom: 0.16, scaleMid: 0.62, scaleTo: 0.96 },
-      { size: size * 1.12, opacity: opacity * 0.82, delay: Math.min(120, rippleConfig.rippleDuration * 0.12), filled: false, scaleFrom: 0.28, scaleMid: 0.84, scaleTo: 1.14 },
+      { size, opacity, delay: baseDelay, filled: false, scaleFrom: 0.16, scaleMid: 0.62, scaleTo: 0.96 },
+      { size: size * 1.12, opacity: opacity * 0.82, delay: baseDelay + Math.min(120, rippleConfig.rippleDuration * 0.12), filled: false, scaleFrom: 0.28, scaleMid: 0.84, scaleTo: 1.14 },
     ];
   }
 
   if (style === "柔和面波") {
-    return [{ size, opacity, delay: 0, filled: true, scaleFrom: 0.22, scaleMid: 0.7, scaleTo: 1.06 }];
+    return [{ size, opacity, delay: baseDelay, filled: true, scaleFrom: 0.22, scaleMid: 0.7, scaleTo: 1.06 }];
   }
 
   if (style === "脉冲波纹") {
     return [
-      { size, opacity, delay: 0, filled: true, scaleFrom: 0.12, scaleMid: 0.58, scaleTo: 0.98 },
-      { size: size * 1.24, opacity: opacity * 0.52, delay: Math.min(180, rippleConfig.rippleDuration * 0.18), filled: false, scaleFrom: 0.32, scaleMid: 0.78, scaleTo: 1.2 },
-      { size: size * 1.4, opacity: opacity * 0.26, delay: Math.min(320, rippleConfig.rippleDuration * 0.36), filled: false, scaleFrom: 0.48, scaleMid: 0.88, scaleTo: 1.36 },
+      { size, opacity, delay: baseDelay, filled: true, scaleFrom: 0.12, scaleMid: 0.58, scaleTo: 0.98 },
+      { size: size * 1.24, opacity: opacity * 0.52, delay: baseDelay + Math.min(180, rippleConfig.rippleDuration * 0.18), filled: false, scaleFrom: 0.32, scaleMid: 0.78, scaleTo: 1.2 },
+      { size: size * 1.4, opacity: opacity * 0.26, delay: baseDelay + Math.min(320, rippleConfig.rippleDuration * 0.36), filled: false, scaleFrom: 0.48, scaleMid: 0.88, scaleTo: 1.36 },
     ];
   }
 
   if (style === "回声环") {
     return [
-      { size, opacity, delay: 0, filled: false, scaleFrom: 0.16, scaleMid: 0.62, scaleTo: 0.96 },
-      { size: size * 1.1, opacity: opacity * 0.68, delay: Math.min(90, rippleConfig.rippleDuration * 0.1), filled: false, scaleFrom: 0.28, scaleMid: 0.72, scaleTo: 1.06 },
-      { size: size * 1.22, opacity: opacity * 0.44, delay: Math.min(180, rippleConfig.rippleDuration * 0.2), filled: false, scaleFrom: 0.4, scaleMid: 0.82, scaleTo: 1.18 },
-      { size: size * 1.36, opacity: opacity * 0.22, delay: Math.min(280, rippleConfig.rippleDuration * 0.3), filled: false, scaleFrom: 0.52, scaleMid: 0.9, scaleTo: 1.32 },
+      { size, opacity, delay: baseDelay, filled: false, scaleFrom: 0.16, scaleMid: 0.62, scaleTo: 0.96 },
+      { size: size * 1.1, opacity: opacity * 0.68, delay: baseDelay + Math.min(90, rippleConfig.rippleDuration * 0.1), filled: false, scaleFrom: 0.28, scaleMid: 0.72, scaleTo: 1.06 },
+      { size: size * 1.22, opacity: opacity * 0.44, delay: baseDelay + Math.min(180, rippleConfig.rippleDuration * 0.2), filled: false, scaleFrom: 0.4, scaleMid: 0.82, scaleTo: 1.18 },
+      { size: size * 1.36, opacity: opacity * 0.22, delay: baseDelay + Math.min(280, rippleConfig.rippleDuration * 0.3), filled: false, scaleFrom: 0.52, scaleMid: 0.9, scaleTo: 1.32 },
     ];
   }
 
   if (style === "能量脉冲") {
     return [
-      { size, opacity: opacity * 1.1, delay: 0, filled: true, scaleFrom: 0.1, scaleMid: 0.56, scaleTo: 0.96 },
-      { size: size * 1.16, opacity: opacity * 0.58, delay: Math.min(140, rippleConfig.rippleDuration * 0.14), filled: false, scaleFrom: 0.26, scaleMid: 0.74, scaleTo: 1.12 },
+      { size, opacity: opacity * 1.1, delay: baseDelay, filled: true, scaleFrom: 0.1, scaleMid: 0.56, scaleTo: 0.96 },
+      { size: size * 1.16, opacity: opacity * 0.58, delay: baseDelay + Math.min(140, rippleConfig.rippleDuration * 0.14), filled: false, scaleFrom: 0.26, scaleMid: 0.74, scaleTo: 1.12 },
     ];
   }
 
-  return [{ size, opacity, delay: 0, filled: false, scaleFrom: 0.18, scaleMid: 0.72, scaleTo: 1 }];
+  return [{ size, opacity, delay: baseDelay, filled: false, scaleFrom: 0.18, scaleMid: 0.72, scaleTo: 1 }];
 }
 
 export function getPreviewLoopDelay(config) {
@@ -419,12 +421,12 @@ export function getPreviewLoopDelay(config) {
 
   return (
     Math.max(
-      textConfig.textEnabled ? textConfig.textDuration : 0,
-      animationConfig.animationEnabled ? animationConfig.animationDuration : 0,
-      imageConfig.imageEnabled ? imageConfig.imageDuration : 0,
-      particleConfig.particle ? particleConfig.particleDuration : 0,
-      rippleConfig.ripple ? rippleConfig.rippleDuration : 0,
-      audioConfig.sound ? 880 : 0,
+      textConfig.textEnabled ? (textConfig.textDelay || 0) + textConfig.textDuration : 0,
+      animationConfig.animationEnabled ? (animationConfig.animationDelay || 0) + animationConfig.animationDuration : 0,
+      imageConfig.imageEnabled ? (imageConfig.imageDelay || 0) + imageConfig.imageDuration : 0,
+      particleConfig.particle ? (particleConfig.particleDelay || 0) + particleConfig.particleDuration : 0,
+      rippleConfig.ripple ? (rippleConfig.rippleDelay || 0) + rippleConfig.rippleDuration : 0,
+      audioConfig.sound ? (audioConfig.soundDelay || 0) + 880 : 0,
       1400
     ) + 900
   );
