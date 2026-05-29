@@ -1,7 +1,16 @@
 {
   "name": "cursor-dance",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.6.0",
+  "license": "AGPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Rvz1230/cursor-dance"
+  },
+  "bugs": {
+    "url": "https://github.com/Rvz1230/cursor-dance/issues"
+  },
+  "homepage": "https://github.com/Rvz1230/cursor-dance#readme",
   "type": "module",
   "workspaces": ["cursor-dance-api", "landing"],
   "scripts": {

@@ -51,7 +51,7 @@ export default defineConfig(({ mode }) => {
     test: {
       environment: "node",
       include: [
-        "src/**/*.test.js",
+        "src/**/*.test.{js,ts,tsx}",
         "public/**/*.test.js",
         "scripts/**/*.test.js",
         "server/**/*.test.js",
