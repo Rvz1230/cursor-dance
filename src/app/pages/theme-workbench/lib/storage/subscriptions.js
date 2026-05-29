@@ -112,6 +112,35 @@ export function subscribeLivePreviewConfig(onChange) {
 }
 
 export function subscribeRuntimeDiagnostics(onChange) {
+  const seenKeys = new Set();
+
+  function emitNewEntries(entries) {
+    if (!Array.isArray(entries)) return;
+    for (let i = 0; i < entries.length; i++) {
+      const entry = entries[i];
+      if (!entry || typeof entry !== "object") continue;
+      const dedupKey = `${entry.scope || ""}::${entry.at || ""}`;
+      if (seenKeys.has(dedupKey)) continue;
+      seenKeys.add(dedupKey);
+      onChange(entry);
+    }
+  }
+
+  // Primary: chrome.storage.local onChanged (works cross-origin in extensions).
+  const chromeApi = getChromeApi();
+  if (chromeApi?.storage?.onChanged) {
+    async function handleChanges(changes, areaName) {
+      if (areaName !== "local" || !changes["cursordance.diagnosticEvents"]) return;
+      const nextValue = changes["cursordance.diagnosticEvents"].newValue;
+      if (Array.isArray(nextValue)) {
+        emitNewEntries(nextValue);
+      }
+    }
+    chromeApi.storage.onChanged.addListener(handleChanges);
+    return () => chromeApi.storage.onChanged.removeListener(handleChanges);
+  }
+
+  // Fallback: BroadcastChannel (localhost dev where workbench & page share origin).
   if (typeof window === "undefined" || typeof window.BroadcastChannel !== "function") {
     return () => {};
   }
@@ -120,7 +149,11 @@ export function subscribeRuntimeDiagnostics(onChange) {
   const handleMessage = (event) => {
     const message = event.data || {};
     if (message.type !== DIAGNOSTIC_EVENT_MESSAGE_TYPE || !message.entry) return;
-    onChange(message.entry);
+    const entry = message.entry;
+    const dedupKey = `${entry.scope || ""}::${entry.at || ""}`;
+    if (seenKeys.has(dedupKey)) return;
+    seenKeys.add(dedupKey);
+    onChange(entry);
   };
 
   channel.addEventListener("message", handleMessage);

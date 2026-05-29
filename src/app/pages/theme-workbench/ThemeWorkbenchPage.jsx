@@ -247,6 +247,7 @@ function ThemeWorkbenchPageContent() {
                       config={previewActionConfig || currentActionConfig}
                       disabled={siteAction === "disable"}
                       previewMode={Boolean(previewActionConfig)}
+                      updateActionConfig={updateActionConfig}
                     />
                   </div>
 
@@ -341,13 +342,7 @@ function ThemeWorkbenchPageContent() {
               {state.workspaceId === "diagnostics" ? (
                 <div className="h-full overflow-y-auto pr-1">
                   <DiagnosticsPanel
-                    workspaceLabel={currentWorkspace?.label || "诊断面板"}
-                    themeName={activeTheme.name}
                     selectedThemeId={selected.themeId}
-                    actionId={selected.actionId}
-                    site={state.site}
-                    enabled={state.ui.enabled}
-                    unsaved={state.ui.unsaved}
                   />
                 </div>
               ) : null}

@@ -28,4 +28,5 @@ export {
   clearRuntimeErrors,
   readDiagnosticDebugFlag,
   writeDiagnosticDebugFlag,
+  readRuntimeDiagnostics,
 } from "./storage/extras.js";

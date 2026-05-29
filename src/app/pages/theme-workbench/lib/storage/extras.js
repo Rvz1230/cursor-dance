@@ -170,6 +170,17 @@ export async function readDiagnosticDebugFlag() {
   }
 }
 
+export async function readRuntimeDiagnostics() {
+  const chromeApi = getChromeApi();
+  if (!chromeApi?.storage?.local) return [];
+  try {
+    const result = await chromeApi.storage.local.get(["cursordance.diagnosticEvents"]);
+    return Array.isArray(result["cursordance.diagnosticEvents"]) ? result["cursordance.diagnosticEvents"] : [];
+  } catch {
+    return [];
+  }
+}
+
 export async function writeDiagnosticDebugFlag(enabled) {
   const chromeApi = getChromeApi();
   try {

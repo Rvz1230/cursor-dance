@@ -11,6 +11,7 @@ export {
   readRecentCursorAssets,
   readDiagnosticDebugFlag,
   readRuntimeErrors,
+  readRuntimeDiagnostics,
   subscribeRuntimeDiagnostics,
   writeDiagnosticDebugFlag,
   subscribeExtensionConfig,

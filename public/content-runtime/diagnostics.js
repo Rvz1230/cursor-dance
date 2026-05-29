@@ -7,10 +7,14 @@
     const EVENT_NAME = "cursordance:diagnostic";
     const CHANNEL_NAME = "cursordance.local-preview";
     const CHANNEL_MESSAGE_TYPE = "diagnostic-event";
+    const DIAGNOSTIC_EVENTS_STORAGE_KEY = "cursordance.diagnosticEvents";
     const MAX_EVENTS = 200;
+    const STORAGE_FLUSH_MS = 300;
     const eventBuffer = [];
     let diagnosticsChannel = null;
     let _debugEnabled = null;
+    let storageFlushTimer = null;
+    const chromeApi = globalThis.chrome ?? null;
 
     function parseBooleanFlag(value) {
       if (value === true) return true;
@@ -128,6 +132,19 @@
       };
     }
 
+    function scheduleStorageFlush() {
+      if (!chromeApi?.storage?.local) return;
+      if (storageFlushTimer) return;
+      storageFlushTimer = window.setTimeout(function () {
+        storageFlushTimer = null;
+        try {
+          chromeApi.storage.local.set({ [DIAGNOSTIC_EVENTS_STORAGE_KEY]: eventBuffer.slice() });
+        } catch {
+          // Best-effort diagnostics persistence.
+        }
+      }, STORAGE_FLUSH_MS);
+    }
+
     function log(scope, payload = {}) {
       if (!isEnabled()) return;
       const entry = {
@@ -165,6 +182,8 @@
       } catch {
         // Ignore diagnostics bridge failures.
       }
+
+      scheduleStorageFlush();
     }
 
     return {
