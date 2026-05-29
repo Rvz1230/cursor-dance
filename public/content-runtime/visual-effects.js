@@ -560,26 +560,45 @@
       const count = Math.min(particleConfig.particleCount || 0, 40);
       if (!count) return;
 
+      const particleDelay = particleConfig.particleDelay || 0;
       const gravity = (particleConfig.particleGravity || 0) / 100;
       const wind = (particleConfig.particleWind || 0) / 100;
       const bounce = (particleConfig.particleBounce || 0) / 100;
       const hasTrail = particleConfig.particleTrail;
 
+      const direction = particleConfig.particleDirection || "四周扩散";
+
+      // 构建角度顺序：旋转扫射不 shuffle（依次扫射），其余模式 shuffle（随机空间顺序）
+      const angleOrder = Array.from({ length: count }, (_, i) => i);
+      if (direction !== "旋转扫射") {
+        for (let i = angleOrder.length - 1; i > 0; i--) {
+          const j = (runIndex * 7 + i * 13) % (i + 1);
+          [angleOrder[i], angleOrder[j]] = [angleOrder[j], angleOrder[i]];
+        }
+      }
+
       for (let index = 0; index < count; index += 1) {
         let startAngle = 0;
         let sweep = Math.PI * 2;
 
-        if (particleConfig.particleDirection === "向上喷发") {
+        if (direction === "向上喷发") {
           startAngle = -Math.PI * 0.95;
           sweep = Math.PI * 0.9;
-        } else if (particleConfig.particleDirection === "沿点击方向") {
-          startAngle = -Math.PI * 0.38;
-          sweep = Math.PI * 0.76;
         }
 
         const spread = Math.max(0, Math.min(particleConfig.particleSpread || 52, 90));
-        const angle = startAngle + (count === 1 ? 0 : (index / (count - 1)) * sweep);
-        const variance = (((runIndex || 0) + 5) * (index + 3)) % 11 - 5;
+
+        let angle;
+        if (direction === "随机散射") {
+          // 伪随机角度，每个粒子方向完全随机
+          angle = ((runIndex * 13 + index * 7 + (index % 5) * 19) % 360) * (Math.PI / 180);
+        } else {
+          const angleIndex = angleOrder[index];
+          angle = startAngle + (count === 1 ? 0 : (angleIndex / (count - 1)) * sweep);
+        }
+
+        const angleForVariance = direction === "随机散射" ? index : angleOrder[index];
+        const variance = (((runIndex || 0) + 5) * (angleForVariance + 3)) % 11 - 5;
         const distance = Math.max(16, spread * (0.55 + index / Math.max(count * 1.45, 1)) + variance * 1.8);
         const baseX = Math.cos(angle) * distance;
         const baseY = Math.sin(angle) * distance;
@@ -612,7 +631,7 @@
           {
             duration: particleConfig.particleDuration || 760,
             easing: particleStyle === "火花" || particleStyle === "星光" ? "cubic-bezier(0.22, 1, 0.36, 1)" : "ease-out",
-            delay: index * 26,
+            delay: particleDelay + index * (particleConfig.particleStagger ?? 26),
           }
         );
 
@@ -636,7 +655,7 @@
                 { opacity: Math.max(0.12, 0.4 - t * 0.14), transform: `translate3d(calc(-50% + ${trailTx}px), calc(-50% + ${trailTy}px), 0) rotate(${rotation}deg) scale(0.68)` },
                 { opacity: 0, transform: `translate3d(calc(-50% + ${trailTxEnd}px), calc(-50% + ${trailTyEnd}px), 0) rotate(${rotation}deg) scale(0.44)` },
               ],
-              { duration: (particleConfig.particleDuration || 760) * 0.8, easing: "ease-out", delay: t * 40 }
+              { duration: (particleConfig.particleDuration || 760) * 0.8, easing: "ease-out", delay: particleDelay + t * 40 }
             );
           }
         }

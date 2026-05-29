@@ -117,6 +117,8 @@ function PreviewEffects({
       {particleConfig.particle
         ? particles.map((particle, index) => {
             const shape = getParticleStyleProps(config, index, particle.size);
+            const style = particleConfig.particleStyle || "点状粒子";
+            const easing = style === "火花" || style === "星光" ? "cubic-bezier(0.22, 1, 0.36, 1)" : "ease-out";
             const mainParticle = (
               <div
                 key={`particle-${runId}-${index}`}
@@ -130,8 +132,11 @@ function PreviewEffects({
                   clipPath: shape.clipPath || undefined,
                   "--particle-x": `${particle.x}px`,
                   "--particle-y": `${particle.y}px`,
+                  "--particle-mid-x": `${particle.midX}px`,
+                  "--particle-mid-y": `${particle.midY}px`,
                   "--particle-rotation": `${shape.rotation}deg`,
-                  animation: `cursorDancePreviewParticle ${scalePreviewTime(particleConfig.particleDuration, playbackSpeed)}ms ease-out ${scalePreviewTime(particleDelay + particle.delay, playbackSpeed)}ms both`,
+                  "--particle-end-scale": particle.endScale,
+                  animation: `cursorDancePreviewParticle ${scalePreviewTime(particleConfig.particleDuration, playbackSpeed)}ms ${easing} ${scalePreviewTime(particleDelay + particle.delay, playbackSpeed)}ms both`,
                 }}
               />
             );
@@ -155,7 +160,10 @@ function PreviewEffects({
                     opacity: trailOpacity,
                     "--particle-x": `${particle.x * 0.6}px`,
                     "--particle-y": `${particle.y * 0.6}px`,
+                    "--particle-mid-x": `${particle.x * 0.24}px`,
+                    "--particle-mid-y": `${particle.y * 0.24}px`,
                     "--particle-rotation": `${shape.rotation}deg`,
+                    "--particle-end-scale": "0.44",
                     animation: `cursorDancePreviewParticle ${scalePreviewTime(particleConfig.particleDuration * 0.8, playbackSpeed)}ms ease-out ${scalePreviewTime(particleDelay + particle.delay + t * 40, playbackSpeed)}ms both`,
                   }}
                 />
@@ -263,7 +271,7 @@ function buildTimelineTracks({ textConfig, particleConfig, rippleConfig, audioCo
 
   const ripples = rippleConfig.ripple ? buildRippleSpecs(config) : [];
   const rippleEnd = rippleDelay + ripples.reduce((max, ripple) => Math.max(max, ripple.delay + rippleConfig.rippleDuration), 0);
-  const particleEnd = particleConfig.particle ? particleDelay + particleConfig.particleDuration + Math.min(520, Math.max(0, particleConfig.particleCount - 1) * 26) : 0;
+  const particleEnd = particleConfig.particle ? particleDelay + particleConfig.particleDuration + Math.min(520, Math.max(0, particleConfig.particleCount - 1) * (particleConfig.particleStagger ?? 26)) : 0;
 
   if (textConfig.textEnabled) tracks.push({ id: "text", label: "飘字", tone: "rose", start: textDelay, end: textDelay + textConfig.textDuration, configuredDuration: textConfig.textDuration, markers: [{ label: "出现", at: textDelay }, { label: "峰值", at: textDelay + Math.round(textConfig.textDuration * 0.18) }, { label: "淡出", at: textDelay + textConfig.textDuration }] });
   if (rippleConfig.ripple) tracks.push({ id: "ripple", label: "波纹", tone: "teal", start: rippleDelay, end: rippleEnd, configuredDuration: rippleConfig.rippleDuration, markers: [{ label: "扩散", at: rippleDelay }, { label: "最大", at: rippleEnd }] });

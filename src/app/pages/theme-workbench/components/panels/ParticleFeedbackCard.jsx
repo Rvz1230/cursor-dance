@@ -90,6 +90,11 @@ export function ParticleFeedbackCard({ config, updateActionConfig, panelId }) {
             hint="方向。"
             control={<SmallSelect value={config.particleDirection} options={PARTICLE_DIRECTION_OPTIONS} onChange={config.particle ? (value) => updateActionConfig({ particleDirection: value, particle: true }) : undefined} />}
           />
+          <FieldRow
+            label="发射间隔"
+            hint="每个粒子之间的发射延迟，0 表示同时发射。在「旋转扫射」模式下效果最明显。"
+            control={<ControlSlider disabled={!config.particle} value={config.particleStagger ?? 26} min={0} max={100} onValueChange={(value) => updateActionConfig({ particleStagger: value[0] })} suffix="ms/个" label="发射间隔" />}
+          />
         </SettingSection>
 
         <SettingSection disabled={!config.particle}>

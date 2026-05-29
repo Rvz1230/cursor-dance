@@ -43,6 +43,8 @@
     "particleWind",
     "particleBounce",
     "particleTrail",
+    "particleDelay",
+    "particleStagger",
   ];
   const ACTION_RIPPLE_FIELDS = [
     "ripple",

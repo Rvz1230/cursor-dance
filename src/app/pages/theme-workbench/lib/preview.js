@@ -22,9 +22,9 @@ export const PREVIEW_KEYFRAMES = `
     100% { opacity: 0; transform: translate3d(-50%, -50%, 0) scale(var(--ripple-to, 1)); }
   }
   @keyframes cursorDancePreviewParticle {
-    0% { opacity: 0; transform: translate3d(-50%, -50%, 0) scale(0.4) rotate(var(--particle-rotation, 0deg)); }
-    18% { opacity: 1; transform: translate3d(-50%, -50%, 0) scale(1) rotate(var(--particle-rotation, 0deg)); }
-    100% { opacity: 0; transform: translate3d(calc(-50% + var(--particle-x, 0px)), calc(-50% + var(--particle-y, 0px)), 0) scale(0.72) rotate(var(--particle-rotation, 0deg)); }
+    0% { opacity: 0; transform: translate3d(-50%, -50%, 0) scale(0.5) rotate(var(--particle-rotation, 0deg)); }
+    20% { opacity: 0.9; transform: translate3d(calc(-50% + var(--particle-mid-x, 0px)), calc(-50% + var(--particle-mid-y, 0px)), 0) scale(1) rotate(var(--particle-rotation, 0deg)); }
+    100% { opacity: 0; transform: translate3d(calc(-50% + var(--particle-x, 0px)), calc(-50% + var(--particle-y, 0px)), 0) scale(var(--particle-end-scale, 0.65)) rotate(var(--particle-rotation, 0deg)); }
   }
   @keyframes cursorDancePreviewImage {
     0% { opacity: 0; transform: translate3d(-50%, -30%, 0) scale(0.72) rotate(-8deg); }
@@ -257,32 +257,55 @@ export function buildParticleSpecs(config, runIndex) {
   const visibleCount = Math.min(particleConfig.particleCount, 40);
   const spread = Math.max(0, Math.min(particleConfig.particleSpread || 52, 90));
 
+  const direction = particleConfig.particleDirection || "四周扩散";
+
+  // 构建角度顺序：旋转扫射不 shuffle（依次扫射），其余模式 shuffle（随机空间顺序）
+  const angleOrder = Array.from({ length: visibleCount }, (_, i) => i);
+  if (direction !== "旋转扫射") {
+    for (let i = angleOrder.length - 1; i > 0; i--) {
+      const j = (runIndex * 7 + i * 13) % (i + 1);
+      [angleOrder[i], angleOrder[j]] = [angleOrder[j], angleOrder[i]];
+    }
+  }
+
   return Array.from({ length: visibleCount }, (_, index) => {
     let startAngle = 0;
     let sweep = Math.PI * 2;
 
-    if (particleConfig.particleDirection === "向上喷发") {
+    if (direction === "向上喷发") {
       startAngle = -Math.PI * 0.95;
       sweep = Math.PI * 0.9;
-    } else if (particleConfig.particleDirection === "沿点击方向") {
-      startAngle = -Math.PI * 0.38;
-      sweep = Math.PI * 0.76;
     }
 
-    const angle = startAngle + (visibleCount === 1 ? 0 : (index / (visibleCount - 1)) * sweep);
-    const variance = ((runIndex + 5) * (index + 3)) % 11 - 5;
+    let angle;
+    if (direction === "随机散射") {
+      // 伪随机角度，每个粒子方向完全随机
+      angle = ((runIndex * 13 + index * 7 + (index % 5) * 19) % 360) * (Math.PI / 180);
+    } else {
+      const angleIndex = angleOrder[index];
+      angle = startAngle + (visibleCount === 1 ? 0 : (angleIndex / (visibleCount - 1)) * sweep);
+    }
+
+    const angleForVariance = direction === "随机散射" ? index : angleOrder[index];
+    const variance = ((runIndex + 5) * (angleForVariance + 3)) % 11 - 5;
     const distance = Math.max(16, spread * (0.55 + index / Math.max(visibleCount * 1.45, 1)) + variance * 1.8);
     const baseX = Math.cos(angle) * distance;
     const baseY = Math.sin(angle) * distance;
     const gravity = (particleConfig.particleGravity || 0) / 100;
     const wind = (particleConfig.particleWind || 0) / 100;
     const bounce = (particleConfig.particleBounce || 0) / 100;
+    const bounceY = bounce > 0 ? -spread * bounce * 1.0 : 0;
+    const tx = baseX + wind * spread * 1.2;
+    const ty = baseY + gravity * spread * 1.6;
+    const style = particleConfig.particleStyle || "点状粒子";
     return {
-      x: baseX + wind * spread * 1.2,
-      y: baseY + gravity * spread * 1.6,
-      delay: baseDelay + index * 26,
+      x: tx,
+      y: ty,
+      midX: tx * 0.35,
+      midY: (ty + bounceY) * 0.4,
+      delay: baseDelay + index * (particleConfig.particleStagger ?? 26),
       size: Math.max(4, (particleConfig.particleSize || 10) * (0.52 + (index % 4) * 0.1)),
-      bounceY: bounce > 0 ? -spread * bounce * 1.0 : 0,
+      endScale: style === "火花" ? 0.52 : style === "星光" ? 0.38 : 0.65,
     };
   });
 }
