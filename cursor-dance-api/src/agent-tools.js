@@ -34,7 +34,7 @@ const PATCH_FIELD_HINTS = [
   "rippleLineWidth (1-6)",
   "sound (boolean)",
   "volume (0-100)",
-  "soundFile ('woodfish-soft.wav' | 'woodfish-deep.wav' | 'tick-light.wav')",
+  "soundFile ('woodfish-soft.wav' | 'woodfish-deep.wav' | 'tick-light.wav' | 'chime-bright.wav' | 'pop-soft.wav' | 'swipe-whoosh.wav')",
   "soundTriggerMode ('每次触发' | '连击叠加' | '节流播放')",
   "shake (0-90)",
   "cursorSize (32-64)",

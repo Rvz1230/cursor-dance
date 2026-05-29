@@ -50,7 +50,7 @@ const ENUM_OPTIONS = {
   rippleEasing: ["线性", "缓出", "缓入缓出", "弹性"],
   soundTriggerMode: ["每次触发", "连击叠加", "节流播放"],
   soundBlendMode: ["保持原音量", "压低页面音频", "仅插件音效"],
-  soundFile: ["woodfish-soft.wav", "woodfish-deep.wav", "tick-light.wav"],
+  soundFile: ["woodfish-soft.wav", "woodfish-deep.wav", "tick-light.wav", "chime-bright.wav", "pop-soft.wav", "swipe-whoosh.wav"],
   cursorOverride: ["跟随当前状态", "木鱼（继承默认）", "木鱼（增强态）", "木鱼（按压态）", "切换到 pointer"],
   animationStyle: ["聚焦脉冲", "斜切闪片", "弹跳徽记", "漩涡旋转", "星光闪耀", "轨道环绕", "螺旋上升"],
 };

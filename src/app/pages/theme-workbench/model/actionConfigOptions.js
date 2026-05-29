@@ -25,7 +25,7 @@ export const TRIGGER_OPTIONS = {
   },
 };
 
-export const SOUND_FILE_OPTIONS = ["woodfish-soft.wav", "woodfish-deep.wav", "tick-light.wav"];
+export const SOUND_FILE_OPTIONS = ["woodfish-soft.wav", "woodfish-deep.wav", "tick-light.wav", "chime-bright.wav", "pop-soft.wav", "swipe-whoosh.wav"];
 
 export const CURSOR_OVERRIDE_OPTIONS = [
   "跟随当前状态",
@@ -56,6 +56,28 @@ export const ANIMATION_STYLE_OPTIONS = ["聚焦脉冲", "斜切闪片", "弹跳�
 export const ANIMATION_EASING_OPTIONS = ["线性", "缓出", "缓入缓出", "弹性"];
 export const PARTICLE_PHYSICS_PRESET_OPTIONS = ["无", "重力飘落", "风场漂移", "弹跳迸发", "旋转扩散"];
 
+export const PARTICLE_PHYSICS_PRESET_VALUES = {
+  "无": { particleGravity: 0, particleWind: 0, particleBounce: 0, particleTrail: false },
+  "重力飘落": { particleGravity: 24, particleWind: 4, particleBounce: 6, particleTrail: false },
+  "风场漂移": { particleGravity: 6, particleWind: 22, particleBounce: 0, particleTrail: false },
+  "弹跳迸发": { particleGravity: 14, particleWind: 0, particleBounce: 36, particleTrail: true },
+  "旋转扩散": { particleGravity: -8, particleWind: 8, particleBounce: 0, particleTrail: true },
+};
+
+export const PARTICLE_PALETTE_PRESETS = {
+  "暖金": ["#FBBF24", "#F59E0B", "#FDE68A", "#FCD34D", "#FEF3C7"],
+  "青绿": ["#14B8A6", "#0F766E", "#5EEAD4", "#99F6E4", "#CCFBF1"],
+  "紫韵": ["#A78BFA", "#7C3AED", "#C4B5FD", "#DDD6FE", "#EDE9FE"],
+  "水墨": ["#334155", "#475569", "#64748B", "#94A3B8", "#CBD5E1"],
+  "糖果": ["#F43F5E", "#FB923C", "#FACC15", "#34D399", "#60A5FA", "#C084FC"],
+  "樱花": ["#FDA4AF", "#F9A8D4", "#FBCFE8", "#FCE7F3", "#FDF2F8"],
+  "霓虹": ["#06B6D4", "#22D3EE", "#818CF8", "#A78BFA", "#38BDF8"],
+  "日落": ["#F97316", "#FB923C", "#FBBF24", "#F59E0B", "#FCD34D"],
+  "森林": ["#14532D", "#166534", "#22C55E", "#86EFAC", "#DCFCE7"],
+  "海洋": ["#1E3A5F", "#1E40AF", "#3B82F6", "#93C5FD", "#DBEAFE"],
+  "暮光": ["#4C1D95", "#7C3AED", "#C084FC", "#F59E0B", "#FDE68A"],
+};
+
 export const ACTION_TRIGGER_FIELDS = ["triggerTiming", "triggerZone", "holdMs"];
 export const ACTION_TEXT_FIELDS = [
   "textKind",
@@ -82,6 +104,7 @@ export const ACTION_TEXT_FIELDS = [
   "textGradientStart",
   "textGradientEnd",
   "comboWindowMs",
+  "textDelay",
 ];
 export const ACTION_PARTICLE_FIELDS = [
   "particle",
@@ -98,6 +121,7 @@ export const ACTION_PARTICLE_FIELDS = [
   "particleWind",
   "particleBounce",
   "particleTrail",
+  "particleDelay",
 ];
 export const ACTION_RIPPLE_FIELDS = [
   "ripple",
@@ -108,6 +132,7 @@ export const ACTION_RIPPLE_FIELDS = [
   "rippleLineWidth",
   "rippleOpacity",
   "rippleColor",
+  "rippleDelay",
 ];
 export const ACTION_AUDIO_FIELDS = [
   "sound",
@@ -130,6 +155,7 @@ export const ACTION_ANIMATION_FIELDS = [
   "animationOffsetY",
   "animationColor",
   "animationGlow",
+  "animationDelay",
 ];
 export const ACTION_IMAGE_FIELDS = [
   "imageEnabled",
@@ -139,6 +165,7 @@ export const ACTION_IMAGE_FIELDS = [
   "imageOpacity",
   "imageOffsetX",
   "imageOffsetY",
+  "imageDelay",
 ];
 export const ACTION_CURSOR_FEEDBACK_FIELDS = ["shake", "cursorOverride", "cursorSize", "cursorTrailEnabled", "cursorTrailCount", "cursorTrailOpacity", "cursorGlowColor"];
 export const ACTION_RUNTIME_FIELDS = Array.from(
@@ -179,6 +206,11 @@ export const LEFT_CLICK_BEHAVIOR_CANONICAL_FIELDS = [
   "ripple",
   "rippleSize",
   "rippleDuration",
+  "textDelay",
+  "rippleDelay",
+  "particleDelay",
+  "animationDelay",
+  "imageDelay",
   "holdMs",
 ];
 

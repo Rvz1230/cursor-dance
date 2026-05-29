@@ -1,8 +1,12 @@
 import { Switch } from "@/components/ui/switch.jsx";
+import { cn } from "@/components/ui/utils.js";
 import {
   PANEL_META,
   PARTICLE_COLOR_MODE_OPTIONS,
   PARTICLE_DIRECTION_OPTIONS,
+  PARTICLE_PALETTE_PRESETS,
+  PARTICLE_PHYSICS_PRESET_OPTIONS,
+  PARTICLE_PHYSICS_PRESET_VALUES,
   PARTICLE_STYLE_OPTIONS,
 } from "../../model/workbenchSchema.js";
 import {
@@ -13,6 +17,42 @@ import {
   SettingSection,
   SmallSelect,
 } from "../WorkbenchControls.jsx";
+
+function PaletteSwatches({ presets, value, onChange }) {
+  const currentKey = Object.entries(presets).find(
+    ([, colors]) => JSON.stringify(colors) === JSON.stringify(value)
+  )?.[0] || null;
+
+  return (
+    <div className="space-y-1.5">
+      {Object.entries(presets).map(([name, colors]) => {
+        const isActive = name === currentKey;
+        return (
+          <button
+            key={name}
+            type="button"
+            onClick={() => onChange([...colors])}
+            className={cn(
+              "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-slate-50",
+              isActive && "bg-slate-100"
+            )}
+          >
+            <span className="text-xs text-slate-600 w-10 shrink-0">{name}</span>
+            <div className="flex gap-1">
+              {colors.map((color) => (
+                <span
+                  key={color}
+                  className="size-4 rounded-full ring-1 ring-black/10"
+                  style={{ backgroundColor: color }}
+                />
+              ))}
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export function ParticleFeedbackCard({ config, updateActionConfig, panelId }) {
   return (
@@ -74,10 +114,26 @@ export function ParticleFeedbackCard({ config, updateActionConfig, panelId }) {
             hint="颜色来源。"
             control={<SmallSelect value={config.particleColorMode} options={PARTICLE_COLOR_MODE_OPTIONS} onChange={config.particle ? (value) => updateActionConfig({ particleColorMode: value }) : undefined} />}
           />
+          <FieldRow
+            label="预设色板"
+            hint={config.particleColorMode === "跟随飘字色" ? "当前模式不使用色板。" : "点击选择预设色板。修改后将自动切换为自定义色板。"}
+            control={
+              <PaletteSwatches
+                presets={PARTICLE_PALETTE_PRESETS}
+                value={config.particlePalette}
+                onChange={(palette) => updateActionConfig({ particlePalette: palette })}
+              />
+            }
+          />
         </SettingSection>
 
         <SettingSection disabled={!config.particle}>
           <SectionTitle>物理</SectionTitle>
+          <FieldRow
+            label="物理预设"
+            hint="一键应用重力、风力和弹跳的组合。"
+            control={<SmallSelect value="" options={PARTICLE_PHYSICS_PRESET_OPTIONS} onChange={config.particle ? (value) => { if (value && PARTICLE_PHYSICS_PRESET_VALUES[value]) { updateActionConfig({ ...PARTICLE_PHYSICS_PRESET_VALUES[value], particle: true }); } } : undefined} label="物理预设" />}
+          />
           <FieldRow
             label="重力强度"
             hint="粒子下落力度。"

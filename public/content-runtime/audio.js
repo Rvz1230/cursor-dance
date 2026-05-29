@@ -203,6 +203,33 @@
           decay: 0.04,
         };
       }
+      if (soundFile === "chime-bright.wav") {
+        return {
+          waveform: "sine",
+          frequency: 880,
+          overtone: 1320,
+          durationMs: 140,
+          decay: 0.10,
+        };
+      }
+      if (soundFile === "pop-soft.wav") {
+        return {
+          waveform: "sine",
+          frequency: 520,
+          overtone: 780,
+          durationMs: 50,
+          decay: 0.02,
+        };
+      }
+      if (soundFile === "swipe-whoosh.wav") {
+        return {
+          waveform: "sawtooth",
+          frequency: 160,
+          overtone: 240,
+          durationMs: 180,
+          decay: 0.05,
+        };
+      }
       return {
         waveform: "sine",
         frequency: 262,

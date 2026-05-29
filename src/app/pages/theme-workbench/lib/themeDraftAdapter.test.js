@@ -283,7 +283,7 @@ describe("themeDraftAdapter", () => {
     expect(storedLeftClickDraft).toHaveProperty("textEnabled", true);
     expect(storedLeftClickDraft).toHaveProperty("ripple", true);
     expect(storedLeftClickDraft).toHaveProperty("particle", true);
-    expect(storedLeftClickDraft).toHaveProperty("holdMs", 80);
+    expect(storedLeftClickDraft).toHaveProperty("holdMs", 0);
   });
 
   it("rehydrates left-click config from workbench draft", () => {
@@ -299,7 +299,7 @@ describe("themeDraftAdapter", () => {
     expect(leftClickConfig.textEnabled).toBe(true);
     expect(leftClickConfig.ripple).toBe(true);
     expect(leftClickConfig.particle).toBe(true);
-    expect(leftClickConfig.holdMs).toBe(80);
+    expect(leftClickConfig.holdMs).toBe(0);
     expect(leftClickConfig.textEasing).toBe("弹性");
     expect(leftClickConfig.sound).toBe(true);
     expect(leftClickConfig.triggerTiming).toBe("抬起时");
