@@ -326,6 +326,8 @@ export function usePopupState() {
     themeChoices,
     siteAction,
     runtimeErrors,
+    hydrated,
+    effectiveConfig,
     setEnabled,
     setThemeId,
     previewCurrentTheme,

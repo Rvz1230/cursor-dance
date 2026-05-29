@@ -1,355 +1,369 @@
-import { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { AlertTriangle, Globe2, Play, Settings, Zap } from "lucide-react";
-import { Button } from "@/components/ui/button.jsx";
-import { Switch } from "@/components/ui/switch.jsx";
+import { useCallback, useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { AlertTriangle, ChevronLeft, ChevronRight, Play, Settings, Zap } from "lucide-react";
 import { cn } from "@/components/ui/utils.js";
 import { createBuiltinCursorAsset } from "../theme-workbench/lib/cursorAssetPresets.js";
 import { usePopupState } from "./usePopupState.js";
+import { previewThemePack } from "../theme-workbench/lib/extensionStorage.js";
 
-const POPUP_PREVIEW_KEYFRAMES = `
-  @keyframes cursorDancePopupPulse {
-    0% { opacity: 0.92; transform: translate3d(0, 0, 0) scale(0.96); }
-    50% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
-    100% { opacity: 0.92; transform: translate3d(0, 0, 0) scale(0.96); }
-  }
-  @keyframes cursorDancePopupRipple {
-    0% { opacity: 0; transform: translate3d(-50%, -50%, 0) scale(0.82); }
-    20% { opacity: 0.55; transform: translate3d(-50%, -50%, 0) scale(0.94); }
-    100% { opacity: 0; transform: translate3d(-50%, -50%, 0) scale(1.08); }
-  }
-  @keyframes cursorDancePopupParticle {
-    0% { opacity: 0; transform: translate3d(0, 0, 0) scale(0.72); }
-    18% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
-    100% { opacity: 0; transform: translate3d(var(--particle-x), var(--particle-y), 0) scale(0.82); }
-  }
-`;
+// ═══════════════════════════════════════════════════════════════
+// "Quick Switch v4" — theme detail card + coverflow carousel
+// ═══════════════════════════════════════════════════════════════
 
-const FALLBACK_DEFAULT_CURSOR = createBuiltinCursorAsset("default", "system");
-const FALLBACK_POINTER_CURSOR = createBuiltinCursorAsset("pointer", "system");
-const POPUP_WIDTH = 360;
-const POPUP_HEIGHT = 540;
+const W = 360;
+const H = 540;
+const FALLBACK = createBuiltinCursorAsset("default", "system");
 
 // ── helpers ───────────────────────────────────────────────────
 
-function countEnabledEffects(actionConfig) {
-  if (!actionConfig) return 0;
-  return [actionConfig.textEnabled, actionConfig.particle, actionConfig.ripple, actionConfig.sound].filter(Boolean).length;
+function cursorUrl(pack, stateId = "default") {
+  return pack?.cursorStates?.[stateId]?.imageDataUrl || FALLBACK.imageDataUrl;
 }
 
-function resolveThemeCursorAsset(themePack, stateId = "default") {
-  const cursorState = themePack?.cursorStates?.[stateId];
-  if (cursorState?.imageDataUrl) return { imageDataUrl: cursorState.imageDataUrl };
-  const fallback = stateId === "pointer" ? FALLBACK_POINTER_CURSOR : FALLBACK_DEFAULT_CURSOR;
-  return { imageDataUrl: fallback.imageDataUrl };
+function themeAccent(ac) {
+  if (ac?.particlePalette?.[0]) return ac.particlePalette[0];
+  if (ac?.rippleColor) return ac.rippleColor;
+  if (ac?.textColor) return ac.textColor;
+  return "#94A3B8";
 }
 
-function buildParticleDots(actionConfig) {
-  if (!actionConfig?.particle) return [];
-  const count = actionConfig.particleCount ?? 5;
-  const spread = (actionConfig.particleSpread ?? 56) * 0.7;
-  const dots = [];
-  for (let i = 0; i < count; i++) {
-    const angle = (2 * Math.PI * i) / count;
-    dots.push({
-      x: Math.round(Math.cos(angle) * spread),
-      y: Math.round(Math.sin(angle) * spread),
-      delay: i * Math.round(180 / Math.max(count, 1)),
+function effectSummary(ac) {
+  if (!ac) return [];
+  const s = [];
+  if (ac.textEnabled) s.push("飘字");
+  if (ac.ripple) s.push("波纹");
+  if (ac.particle) s.push("粒子");
+  if (ac.sound) s.push("音效");
+  return s;
+}
+
+// ── build detail rows from action config ──────────────────────
+
+const DIR_LABELS = { spread: "扩散", up: "向上", down: "向下", left: "向左", right: "向右" };
+
+function buildDetails(ac) {
+  if (!ac) return [];
+  const items = [];
+
+  if (ac.textEnabled) {
+    items.push({
+      key: "text",
+      icon: "T",
+      label: "飘字反馈",
+      values: [
+        ac.textContent ? `"${ac.textContent.slice(0, 6)}"` : null,
+        ac.textSize ? `${ac.textSize}px` : null,
+      ].filter(Boolean),
+      color: ac.textColor || undefined,
     });
   }
-  return dots;
+  if (ac.ripple) {
+    items.push({
+      key: "ripple",
+      icon: "◉",
+      label: "波纹反馈",
+      values: [
+        ac.rippleSize ? `${ac.rippleSize}px` : null,
+        ac.rippleDuration ? `${ac.rippleDuration}ms` : null,
+      ].filter(Boolean),
+      color: ac.rippleColor || undefined,
+    });
+  }
+  if (ac.particle) {
+    const dir = DIR_LABELS[ac.particleDirection] || null;
+    items.push({
+      key: "particle",
+      icon: "◆",
+      label: "粒子反馈",
+      values: [
+        ac.particleShape || null,
+        ac.particleCount ? `${ac.particleCount}个` : null,
+        dir,
+      ].filter(Boolean),
+      color: ac.particlePalette?.[0] || undefined,
+    });
+  }
+  if (ac.sound) {
+    const file = ac.soundFile ? ac.soundFile.replace(/\.[^.]+$/, "") : null;
+    items.push({
+      key: "sound",
+      icon: "♪",
+      label: "音频反馈",
+      values: [
+        file ? (file.length > 12 ? file.slice(0, 11) + "…" : file) : null,
+        ac.soundVolume != null ? `${ac.soundVolume}%` : null,
+      ].filter(Boolean),
+      color: undefined,
+    });
+  }
+
+  return items;
 }
 
-function useReducedMotion() {
-  const [reducedMotion, setReducedMotion] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia?.("(prefers-reduced-motion: reduce)");
-    const update = () => setReducedMotion(Boolean(mq?.matches));
-    update();
-    mq?.addEventListener?.("change", update);
-    return () => mq?.removeEventListener?.("change", update);
-  }, []);
-  return reducedMotion;
-}
+// ── ThemeDetail — replaces the old preview canvas ─────────────
 
-function usePreviewTick(themeId, actionConfig) {
-  const [tick, setTick] = useState(0);
-  const reducedMotion = useReducedMotion();
-  const effectCount = countEnabledEffects(actionConfig);
-
-  useEffect(() => {
-    if (!themeId) return;
-    function handle(event) { if (event.detail?.themeId === themeId) setTick((v) => v + 1); }
-    window.addEventListener("CURSORDANCE_POPUP_PREVIEW", handle);
-    return () => window.removeEventListener("CURSORDANCE_POPUP_PREVIEW", handle);
-  }, [themeId]);
-
-  useEffect(() => {
-    if (!themeId || reducedMotion || effectCount === 0) return;
-    setTick((v) => v + 1);
-    const timer = window.setInterval(() => setTick((v) => v + 1), 2600);
-    return () => window.clearInterval(timer);
-  }, [effectCount, reducedMotion, themeId]);
-
-  return { tick, reducedMotion };
-}
-
-// ── HeroPreview ───────────────────────────────────────────────
-
-function HeroPreview({ themePack, actionConfig, themeId }) {
-  const defaultCursor = resolveThemeCursorAsset(themePack, "default");
-  const particles = useMemo(() => buildParticleDots(actionConfig), [actionConfig]);
-  const { tick, reducedMotion } = usePreviewTick(themeId, actionConfig);
-  const hasRipple = Boolean(actionConfig?.ripple);
-  const hasParticle = Boolean(actionConfig?.particle);
-  const hasText = Boolean(actionConfig?.textEnabled && actionConfig?.textContent);
-  const particleColor = actionConfig?.particlePalette?.[0] ?? "#94A3B8";
-  const isDualRipple = actionConfig?.rippleStyle === "双环";
-  const hasAnyEffect = hasRipple || hasParticle || hasText;
+function ThemeDetail({ actionConfig, cursorImg, accent }) {
+  const details = buildDetails(actionConfig);
+  const noop = details.length === 0;
 
   return (
-    <div className="relative flex h-[80px] items-center justify-center rounded-xl bg-slate-50">
-      <style>{POPUP_PREVIEW_KEYFRAMES}</style>
+    <div className="relative h-full w-full" style={{ perspective: "600px" }}>
+      {/* ── outer 3D card shell ── */}
+      <div
+        className="absolute inset-0 rounded-2xl"
+        style={{
+          background: "linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.9) 100%)",
+          boxShadow: [
+            "0 1px 2px rgba(0,0,0,0.04)",
+            "0 4px 8px rgba(0,0,0,0.04)",
+            "0 8px 24px rgba(0,0,0,0.06)",
+            "0 0 0 1px rgba(0,0,0,0.05)",
+          ].join(", "),
+          transform: "rotateX(1.5deg)",
+          transformOrigin: "center center",
+        }}
+      />
+      {/* ── top highlight ── */}
+      <div
+        className="absolute inset-x-3 top-0 z-10 h-px rounded-full"
+        style={{ background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.6) 20%, rgba(255,255,255,0.8) 50%, rgba(255,255,255,0.6) 80%, transparent 100%)" }}
+      />
 
-      {hasRipple ? (
-        <>
-          <div key={`ra-${tick}`} className="absolute left-1/2 top-1/2 size-[56px] rounded-full border border-slate-300/50" style={{ animation: reducedMotion ? undefined : "cursorDancePopupRipple 1100ms ease-out forwards" }} />
-          {isDualRipple ? (
-            <div key={`rb-${tick}`} className="absolute left-1/2 top-1/2 size-[64px] rounded-full border border-slate-200/45" style={{ animation: reducedMotion ? undefined : "cursorDancePopupRipple 1100ms ease-out 110ms forwards" }} />
-          ) : null}
-        </>
-      ) : null}
+      {/* ── inner content ── */}
+      <div className="relative mx-auto mt-1.5 flex h-[calc(100%-7px)] w-[calc(100%-10px)] flex-col items-center justify-center rounded-xl bg-slate-50/80 px-5 py-3">
+        {noop ? (
+          <span className="text-xs text-slate-400">暂无特效配置</span>
+        ) : (
+          <>
+            {/* cursor icon + accent glow */}
+            <div className="relative mb-3 flex items-center justify-center">
+              <div
+                className="absolute size-14 rounded-full blur-xl"
+                style={{ backgroundColor: accent, opacity: 0.18 }}
+              />
+              <div
+                className="absolute size-10 rounded-full blur-md"
+                style={{ backgroundColor: accent, opacity: 0.1 }}
+              />
+              <img
+                src={cursorImg}
+                alt=""
+                className="relative size-11 object-contain drop-shadow-sm"
+              />
+            </div>
 
-      {hasParticle
-        ? particles.map((p, i) => (
-          <span key={`pt-${tick}-${i}`} className="absolute left-1/2 top-1/2 size-2 rounded-full" style={{ backgroundColor: particleColor, opacity: 0.7, "--particle-x": `${p.x}px`, "--particle-y": `${p.y}px`, animation: reducedMotion ? undefined : `cursorDancePopupParticle 920ms ease-out ${p.delay}ms forwards` }} />
-        ))
-        : null}
-
-      {hasText ? (
-        <span key={`txt-${tick}`} className="absolute left-1/2 top-[8px] z-20 -translate-x-1/2 text-xs font-semibold text-slate-600" style={{ opacity: 0, animation: reducedMotion ? undefined : `cursorDancePopupParticle 1100ms ease-out 50ms forwards` }}>
-          {actionConfig.textContent}
-        </span>
-      ) : null}
-
-      {!hasAnyEffect ? (
-        <span className="absolute z-10 text-xs text-slate-400">无特效</span>
-      ) : null}
-
-      <div className="relative z-10 flex size-[44px] items-center justify-center rounded-full border border-white bg-white shadow-sm" style={{ animation: reducedMotion ? undefined : "cursorDancePopupPulse 1800ms ease-in-out infinite" }}>
-        <img src={defaultCursor.imageDataUrl} alt="光标预览" className="max-h-[30px] max-w-[30px] object-contain" />
+            {/* detail rows */}
+            <div className="w-full space-y-1.5">
+              {details.map((d) => (
+                <div
+                  key={d.key}
+                  className="flex items-center gap-2 rounded-lg bg-white/60 px-3 py-1.5"
+                >
+                  {/* icon */}
+                  <span
+                    className="flex size-5 shrink-0 items-center justify-center rounded text-[10px] font-bold"
+                    style={{
+                      backgroundColor: d.color ? `${d.color}18` : `${accent}14`,
+                      color: d.color || accent,
+                    }}
+                  >
+                    {d.icon}
+                  </span>
+                  {/* label */}
+                  <span className="text-[11px] font-medium text-slate-600">{d.label}</span>
+                  {/* values */}
+                  <span className="ml-auto text-[10px] tracking-tight text-slate-400">
+                    {d.values.join(" · ")}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
 }
 
-// ── Header ────────────────────────────────────────────────────
+// ── ThemeCarousel — infinite 3D coverflow ──────────────────────
 
-function Header({ enabled, siteHost, siteAction, busyKey, setEnabled }) {
-  const siteActionActive = siteAction !== null;
-  const siteDisabled = siteAction === "disable";
-  return (
-    <header className="flex items-center justify-between gap-2">
-      <div className="flex min-w-0 items-center gap-2">
-        <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full">
-          <img src="logo.svg" alt="CursorDance" className="size-full object-contain" />
-        </div>
-        <div className="min-w-0">
-          <h1 className="text-sm font-semibold leading-tight text-slate-900 text-balance">CursorDance</h1>
-          <p className="mt-0.5 flex items-center gap-1 text-xs text-slate-500 truncate">
-            {siteHost ? <Globe2 className="size-3 shrink-0" /> : null}
-            <span className="truncate">{siteHost || "主题切换器"}</span>
-            {siteActionActive ? (
-              <span className={cn(
-                "ml-0.5 inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-px text-xs font-medium",
-                siteDisabled
-                  ? "bg-rose-100 text-rose-600"
-                  : "bg-amber-100 text-amber-700"
-              )}>
-                {siteDisabled ? (
-                  <><AlertTriangle className="size-2.5" />站点已禁用</>
-                ) : (
-                  <><Zap className="size-2.5" />站点专属</>
-                )}
-              </span>
-            ) : null}
-          </p>
-        </div>
-      </div>
-      <div className="flex shrink-0 items-center">
-        <Switch checked={enabled} disabled={busyKey === "enabled"} onCheckedChange={setEnabled} aria-label="全局启用开关" />
-      </div>
-    </header>
-  );
-}
+const CARD_SIZE = 60;
+const CARD_GAP = 64; // center-to-center spacing
 
-// ── CurrentThemeHero ──────────────────────────────────────────
+function ThemeCarousel({ themes, activeId, onSelect }) {
+  const n = themes.length;
+  const activeIdx = Math.max(0, themes.findIndex((t) => t.id === activeId));
+  const active = themes[activeIdx];
+  const accent = themeAccent(active?.actionConfig);
 
-function CurrentThemeHero({ theme, themePack, actionConfig, actionLabel }) {
-  const effectCount = countEnabledEffects(actionConfig);
+  if (!active) return null;
 
   return (
-    <AnimatePresence mode="wait">
-      <motion.section
-        key={theme?.id || "empty"}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.15, ease: "easeOut" }}
-        className="overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-sm"
-      >
-        <div className="flex items-center gap-2.5 p-2.5">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white">
-            <img
-              src={resolveThemeCursorAsset(themePack, "default").imageDataUrl}
-              alt={`${theme?.name || "当前"} 光标`}
-              className="max-h-[22px] max-w-[22px] object-contain"
-            />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h2 className="text-sm font-semibold text-slate-900 text-balance">{theme?.name || "未选择主题"}</h2>
-            <div className="mt-1 flex flex-wrap items-center gap-1.5">
-              <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{actionLabel}</span>
-              {effectCount > 0 ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">
-                  <span className="size-1.5 rounded-full bg-emerald-500" />
-                  {effectCount} 个特效
-                </span>
-              ) : null}
-            </div>
-          </div>
-        </div>
-        <HeroPreview themePack={themePack} actionConfig={actionConfig} themeId={theme?.id} />
-      </motion.section>
-    </AnimatePresence>
-  );
-}
-
-// ── ThemeListCard ─────────────────────────────────────────────
-
-function ThemeListCard({ theme, themePack, actionConfig, selected, onSelect, disabled }) {
-  const cursorAsset = resolveThemeCursorAsset(themePack, "default");
-
-  return (
-    <motion.button
-      type="button"
-      onClick={onSelect}
-      disabled={disabled}
-      aria-pressed={selected}
-      layout
-      whileTap={{ scale: 0.985 }}
-      className={cn(
-        "relative w-full overflow-hidden rounded-xl text-left transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-60",
-        selected
-          ? "border border-slate-300 bg-slate-50 shadow-sm"
-          : "border border-slate-200/60 bg-white hover:border-slate-300 hover:shadow-sm"
-      )}
+    <div
+      className="relative flex h-[108px] items-center justify-center overflow-hidden"
+      style={{ perspective: "900px" }}
     >
-      {selected ? <div className="absolute inset-y-2 left-0 w-[3px] rounded-r-full bg-emerald-500" aria-hidden="true" /> : null}
-      <div className={cn("flex items-center gap-2.5 py-2.5", selected ? "pl-3.5 pr-2.5" : "px-2.5")}>
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white">
-          <img src={cursorAsset.imageDataUrl} alt={`${theme.name} 光标`} className="max-h-[22px] max-w-[22px] object-contain" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-semibold text-slate-900">{theme.name}</div>
-          <div className="mt-0.5 truncate text-xs text-slate-500">{theme.summary}</div>
-        </div>
-      </div>
-    </motion.button>
-  );
-}
+      {/* ── cards ── */}
+      <AnimatePresence mode="popLayout">
+        {themes.map((t, i) => {
+          // signed offset from active — wrap for infinite loop
+          let raw = i - activeIdx;
+          if (raw > n / 2) raw -= n;
+          if (raw < -n / 2) raw += n;
 
-// ── ThemeListSection ──────────────────────────────────────────
+          const abs = Math.abs(raw);
+          if (abs > 2) return null;
 
-function ThemeListSection({ items, activeThemeId, siteAction, busyKey, setThemeId }) {
-  const siteActionEnabled = siteAction && siteAction.enable;
-  const siteActionDisabled = siteAction === "disable";
-  return (
-    <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="mb-1.5 flex items-center justify-between gap-3 px-0.5">
-        <h3 className="text-xs font-semibold text-slate-400">
-          主题列表
-          <span className="ml-1 font-normal normal-case text-slate-400">{items.length} 个</span>
-        </h3>
-      </div>
-      {siteActionEnabled ? (
-        <div className="mb-1.5 rounded-lg border border-amber-200/60 bg-amber-50/70 px-2.5 py-1.5 text-xs text-amber-700">
-          此站点已绑定专属主题，切换将更新站点规则。
-        </div>
-      ) : null}
-      {siteActionDisabled ? (
-        <div className="mb-1.5 rounded-lg border border-rose-200/60 bg-rose-50/70 px-2.5 py-1.5 text-xs text-rose-700">
-          此站点的特效已禁用，切换主题将重新启用。
-        </div>
-      ) : null}
-      <div className="h-0 min-h-0 flex-1 overflow-y-auto pr-1 pb-2">
-        <div className="space-y-1">
-          {items.map(({ theme, themePack, actionConfig }) => (
-            <ThemeListCard key={theme.id} theme={theme} themePack={themePack} actionConfig={actionConfig} selected={theme.id === activeThemeId} onSelect={() => setThemeId(theme.id)} disabled={busyKey === "theme"} />
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
+          const isActive = raw === 0;
+          const img = cursorUrl(t.pack);
+          const tAccent = themeAccent(t.actionConfig);
 
-// ── FooterActions ─────────────────────────────────────────────
+          // visual falloff — no blur, all cards crisp
+          const scale = isActive ? 1 : abs === 1 ? 0.82 : 0.62;
+          const opacity = isActive ? 1 : abs === 1 ? 0.5 : 0.22;
+          const zIdx = 10 - abs;
+          const rotY = raw * 28;
 
-function FooterActions({ notice, canPreview, busyKey, previewCurrentTheme, openOptionsPage }) {
-  const showNotice = notice.tone !== "slate";
-  return (
-    <footer className="mt-auto shrink-0">
-      <AnimatePresence>
-        {showNotice ? (
-          <motion.div
-            key={notice.message}
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 4 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
-            className={cn("mb-2 rounded-xl border px-3 py-2 text-xs", notice.tone === "rose" ? "border-rose-200 bg-rose-50 text-rose-700" : "border-amber-200 bg-amber-50 text-amber-700")}
-          >
-            {notice.message}
-          </motion.div>
-        ) : null}
+          return (
+            <motion.button
+              key={t.id}
+              type="button"
+              onClick={() => onSelect(t.id)}
+              initial={{ opacity: 0, scale: 0.7 }}
+              animate={{
+                x: raw * CARD_GAP,
+                scale,
+                opacity,
+                zIndex: zIdx,
+                rotateY: rotY,
+              }}
+              exit={{ opacity: 0, scale: 0.7, transition: { duration: 0.18 } }}
+              transition={{ type: "spring", stiffness: 140, damping: 24 }}
+              className="absolute flex shrink-0 flex-col items-center gap-1.5"
+            >
+            {/* card body */}
+            <div
+              className="flex items-center justify-center rounded-2xl transition-shadow duration-300"
+              style={{
+                width: CARD_SIZE,
+                height: CARD_SIZE,
+                ...(isActive
+                  ? {
+                      background: `linear-gradient(145deg, ${tAccent}18 0%, ${tAccent}08 100%)`,
+                      boxShadow: [
+                        `0 1px 3px rgba(0,0,0,0.04)`,
+                        `0 6px 18px rgba(0,0,0,0.08)`,
+                        `0 0 0 1px ${tAccent}20`,
+                        `0 0 22px ${tAccent}10`,
+                      ].join(", "),
+                    }
+                  : {
+                      background: "linear-gradient(145deg, #f8fafc 0%, #f1f5f9 100%)",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.04)",
+                    }),
+              }}
+            >
+              <img src={img} alt="" className="max-h-[26px] max-w-[26px] object-contain" />
+            </div>
+
+            {/* label */}
+            <span
+              className="text-[11px] font-semibold tracking-tight"
+              style={{ color: isActive ? tAccent : "#94a3b8" }}
+            >
+              {t.name.length > 4 ? t.name.slice(0, 4) : t.name}
+            </span>
+
+            {/* active dot */}
+            {isActive && (
+              <motion.div
+                layoutId="carousel-dot"
+                className="h-1 w-1 rounded-full"
+                style={{ backgroundColor: accent }}
+                transition={{ type: "spring", stiffness: 380, damping: 28 }}
+              />
+            )}
+          </motion.button>
+        );
+      })}
       </AnimatePresence>
 
-      <div className="grid grid-cols-2 gap-2">
-        <Button className="h-9 rounded-xl bg-slate-950 text-sm font-semibold text-white shadow-sm hover:bg-slate-800" disabled={!canPreview || busyKey === "preview"} onClick={previewCurrentTheme}>
-          <Play className="mr-1.5 size-4" />
-          测试效果
-        </Button>
-        <Button variant="outline" className="h-9 rounded-xl border-slate-200 bg-white text-sm font-semibold text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50" disabled={busyKey === "options"} onClick={openOptionsPage}>
-          <Settings className="mr-1.5 size-4" />
-          打开工作台
-        </Button>
-      </div>
-    </footer>
+      {/* ── navigation arrows ── */}
+      {n > 1 && (
+        <>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect(themes[(activeIdx - 1 + n) % n].id);
+            }}
+            className="absolute left-1 z-20 flex size-7 items-center justify-center rounded-full bg-white/85 shadow-sm ring-1 ring-slate-200 backdrop-blur-sm transition-all hover:bg-white"
+          >
+            <ChevronLeft className="size-3 text-slate-500" />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect(themes[(activeIdx + 1) % n].id);
+            }}
+            className="absolute right-1 z-20 flex size-7 items-center justify-center rounded-full bg-white/85 shadow-sm ring-1 ring-slate-200 backdrop-blur-sm transition-all hover:bg-white"
+          >
+            <ChevronRight className="size-3 text-slate-500" />
+          </button>
+        </>
+      )}
+
+      {/* ── dot indicators ── */}
+      {n > 1 && (
+        <div className="absolute bottom-1 z-20 flex items-center gap-1">
+          {themes.map((_, i) => (
+            <span
+              key={i}
+              className="block rounded-full transition-all duration-300"
+              style={{
+                width: i === activeIdx ? 5 : 3,
+                height: i === activeIdx ? 5 : 3,
+                backgroundColor: i === activeIdx ? accent : "#d1d5db",
+                opacity: i === activeIdx ? 1 : 0.45,
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
-// ── LoadingShell ──────────────────────────────────────────────
+// ── SiteBadge — only shown when there's a relevant rule ───────
+
+function SiteBadge({ site, siteAction }) {
+  if (!site.host) return null;
+  const disabled = siteAction === "disable";
+  const themed = siteAction?.enable && siteAction?.theme;
+
+  // only show if the site has a non-default rule
+  if (!disabled && !themed) return null;
+
+  return (
+    <div
+      className={cn(
+        "flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1 text-[10px] font-medium",
+        disabled ? "bg-rose-50 text-rose-600" : "bg-amber-50 text-amber-700"
+      )}
+    >
+      {disabled ? <AlertTriangle className="size-3" /> : <Zap className="size-3" />}
+      {disabled ? `${site.host} 已禁用特效` : `${site.host} 已绑定专属主题`}
+    </div>
+  );
+}
+
+// ── Loading ───────────────────────────────────────────────────
 
 function LoadingShell() {
   return (
-    <div className="flex items-center justify-center" style={{ width: POPUP_WIDTH, height: POPUP_HEIGHT }}>
-      <div className="h-full w-full bg-white p-3">
-        <div className="animate-pulse space-y-3">
-          <div className="flex items-center gap-2">
-            <div className="size-8 rounded-lg bg-slate-100" />
-            <div className="space-y-1.5">
-              <div className="h-3.5 w-20 rounded-md bg-slate-100" />
-              <div className="h-2.5 w-28 rounded-md bg-slate-100" />
-            </div>
-          </div>
-          <div className="h-[168px] rounded-2xl bg-slate-100" />
-          <div className="space-y-1">
-            <div className="h-[46px] rounded-xl bg-slate-100" />
-            <div className="h-[46px] rounded-xl bg-slate-100" />
-            <div className="h-[46px] rounded-xl bg-slate-100" />
-          </div>
-        </div>
-      </div>
+    <div className="flex h-full w-full items-center justify-center bg-white">
+      <div className="size-6 animate-pulse rounded-full bg-slate-100" />
     </div>
   );
 }
@@ -357,28 +371,139 @@ function LoadingShell() {
 // ── PopupPage ─────────────────────────────────────────────────
 
 export default function PopupPage() {
-  const { ready, site, enabled, busyKey, notice, activeAction, activeThemeChoice, themeChoices, siteAction, setEnabled, setThemeId, previewCurrentTheme, openOptionsPage } = usePopupState();
+  const {
+    ready, site, enabled, siteAction,
+    hydrated, effectiveConfig,
+    setEnabled, setThemeId, openOptionsPage,
+  } = usePopupState();
+
+  const [previewingId, setPreviewingId] = useState(null);
+
+  // build theme data
+  const themes = useMemo(() => {
+    if (!hydrated) return [];
+    return hydrated.themeLibrary.map((t) => {
+      const pack = effectiveConfig?.themePacks?.find((p) => p.id === t.id) ?? null;
+      const draft = hydrated.draftsByTheme?.[t.id];
+      const ac = draft?.actionConfigs?.leftClick ?? null;
+      return { ...t, pack, actionConfig: ac };
+    });
+  }, [hydrated, effectiveConfig]);
+
+  const activeId = hydrated?.selection?.themeId;
+  const current = themes.find((t) => t.id === activeId) ?? themes[0];
+  const accent = themeAccent(current?.actionConfig);
+  const effects = effectSummary(current?.actionConfig);
+
+  const switchTo = useCallback(
+    (themeId) => {
+      if (themeId === activeId) return;
+      setThemeId(themeId);
+    },
+    [activeId, setThemeId]
+  );
+
+  const previewCurrent = useCallback(async () => {
+    if (!current?.pack || previewingId) return;
+    setPreviewingId(current.id);
+    try { await previewThemePack(current.id, current.pack, "leftClick"); } catch {}
+    setTimeout(() => setPreviewingId(null), 600);
+  }, [current, previewingId]);
+
   if (!ready) return <LoadingShell />;
 
   return (
     <div
-      className="overflow-hidden text-slate-700"
-      style={{ width: POPUP_WIDTH, height: POPUP_HEIGHT, fontFamily: '"SF Pro Display","SF Pro Text","PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif' }}
+      className="relative flex h-full w-full flex-col overflow-hidden bg-white"
+      style={{
+        width: W, height: H,
+        fontFamily: '"SF Pro Display","SF Pro Text","PingFang SC","Helvetica Neue","Microsoft YaHei",sans-serif',
+      }}
     >
-      <div className="flex h-full w-full flex-col gap-2.5 bg-white p-3">
-        <Header enabled={enabled} siteHost={site.host} siteAction={siteAction} busyKey={busyKey} setEnabled={setEnabled} />
+      {/* ── header ── */}
+      <header className="flex shrink-0 items-center gap-2 px-4 pt-3.5 pb-2">
+        <img src="logo.svg" alt="" className="size-6 rounded-md" />
+        <span className="text-[13px] font-bold tracking-tight text-slate-900">CursorDance</span>
+        <button
+          type="button"
+          onClick={() => setEnabled(!enabled)}
+          className={cn(
+            "ml-auto flex h-7 items-center rounded-full px-3 text-[11px] font-semibold transition-all active:scale-95",
+            enabled ? "bg-slate-900 text-white shadow-sm" : "bg-slate-100 text-slate-400"
+          )}
+        >
+          {enabled ? "已开启" : "已暂停"}
+        </button>
+      </header>
 
-        <CurrentThemeHero
-          theme={activeThemeChoice?.theme}
-          themePack={activeThemeChoice?.themePack}
-          actionConfig={activeThemeChoice?.actionConfig}
-          actionLabel={activeAction?.label || "左键单击"}
-        />
-
-        <ThemeListSection items={themeChoices} activeThemeId={activeThemeChoice?.theme?.id} siteAction={siteAction} busyKey={busyKey} setThemeId={setThemeId} />
-
-        <FooterActions notice={notice} canPreview={site.isSupportedPage} busyKey={busyKey} previewCurrentTheme={previewCurrentTheme} openOptionsPage={openOptionsPage} />
+      {/* ── site rule badge (conditional) ── */}
+      <div className="shrink-0 px-4 pb-1">
+        <SiteBadge site={site} siteAction={siteAction} />
       </div>
+
+      {/* ── theme detail card ── */}
+      <div className="mx-4 flex-1 min-h-0" style={{ maxHeight: 196 }}>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={current?.id}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="h-full w-full"
+          >
+            <ThemeDetail
+              actionConfig={current?.actionConfig}
+              cursorImg={cursorUrl(current?.pack)}
+              accent={accent}
+            />
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* ── theme info ── */}
+      <div className="shrink-0 px-4 pt-2.5 pb-0.5 text-center">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={current?.id}
+            initial={{ opacity: 0, y: 3 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -3 }}
+            transition={{ duration: 0.15 }}
+          >
+            <p className="text-sm font-bold text-slate-800">{current?.name}</p>
+            {effects.length > 0 && (
+              <p className="mt-0.5 text-[11px] text-slate-400">{effects.join(" · ")}</p>
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* ── theme carousel ── */}
+      <div className="shrink-0 px-2 pt-2 pb-1">
+        <ThemeCarousel themes={themes} activeId={activeId} onSelect={switchTo} />
+      </div>
+
+      {/* ── footer ── */}
+      <footer className="shrink-0 grid grid-cols-2 gap-2.5 px-4 pb-4">
+        <button
+          type="button"
+          onClick={openOptionsPage}
+          className="flex h-9 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white text-[12px] font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+        >
+          <Settings className="size-3.5" />
+          工作台
+        </button>
+        <button
+          type="button"
+          onClick={previewCurrent}
+          disabled={!current?.pack || previewingId != null || !site.isSupportedPage}
+          className="flex h-9 items-center justify-center gap-1.5 rounded-xl bg-slate-900 text-[12px] font-semibold text-white transition-colors hover:bg-slate-800 disabled:opacity-40"
+        >
+          <Play className="size-3.5" />
+          预览效果
+        </button>
+      </footer>
     </div>
   );
 }
