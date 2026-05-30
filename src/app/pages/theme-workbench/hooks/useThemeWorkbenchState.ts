@@ -230,6 +230,14 @@ export function useThemeWorkbenchState() {
           current.actionConfigs
         ),
       })),
+    updateAtmosphere: (patch) =>
+      updateCurrentTheme((current) => ({
+        ...current,
+        atmosphere: {
+          ...current.atmosphere,
+          ...patch,
+        },
+      })),
     updateCursorMode: (mode) =>
       updateCurrentTheme((current) => ({
         ...current,

@@ -192,6 +192,11 @@
         particleTrail: false,
         particleDelay: 0,
         particleStagger: 26,
+        particleMotionMode: "burst",
+        orbitalCount: 6,
+        orbitalRadius: 32,
+        orbitalSpeed: 3,
+        orbitalDuration: 0,
         ripple: true,
         rippleSize: 72,
         rippleDuration: 860,
@@ -268,6 +273,11 @@
         particleTrail: false,
         particleDelay: 0,
         particleStagger: 26,
+        particleMotionMode: "burst",
+        orbitalCount: 6,
+        orbitalRadius: 32,
+        orbitalSpeed: 3,
+        orbitalDuration: 0,
         ripple: true,
         rippleSize: 50,
         rippleDuration: 560,
@@ -366,6 +376,11 @@
         particleTrail: false,
         particleDelay: 0,
         particleStagger: 26,
+        particleMotionMode: "burst",
+        orbitalCount: 6,
+        orbitalRadius: 32,
+        orbitalSpeed: 3,
+        orbitalDuration: 0,
         ripple: true,
         rippleSize: 84,
         rippleDuration: 940,
@@ -450,6 +465,11 @@
         particleTrail: false,
         particleDelay: 0,
         particleStagger: 26,
+        particleMotionMode: "burst",
+        orbitalCount: 6,
+        orbitalRadius: 32,
+        orbitalSpeed: 3,
+        orbitalDuration: 0,
         ripple: true,
         rippleSize: 62,
         rippleDuration: 780,
@@ -539,6 +559,11 @@
         particleTrail: false,
         particleDelay: 0,
         particleStagger: 26,
+        particleMotionMode: "burst",
+        orbitalCount: 6,
+        orbitalRadius: 32,
+        orbitalSpeed: 3,
+        orbitalDuration: 0,
         ripple: true,
         rippleSize: 38,
         rippleDuration: 500,
@@ -626,6 +651,11 @@
         particleTrail: false,
         particleDelay: 0,
         particleStagger: 26,
+        particleMotionMode: "burst",
+        orbitalCount: 6,
+        orbitalRadius: 32,
+        orbitalSpeed: 3,
+        orbitalDuration: 0,
         ripple: true,
         rippleSize: 34,
         rippleDuration: 440,
@@ -714,6 +744,24 @@
           textTags: Array.isArray(baseConfig?.textTags) ? [...baseConfig.textTags] : [],
         }
       );
+    }
+
+    var ATMOSPHERE_DEFAULTS = {
+      mode: "none",
+    };
+
+    var onSyncComplete = null;
+
+    function setOnSyncComplete(cb) {
+      onSyncComplete = cb;
+    }
+
+    function getAtmosphereConfig(scheme) {
+      var storedDraft = scheme?.workbenchDraft || {};
+      var storedAtmosphere = storedDraft.atmosphere || {};
+      return {
+        mode: storedAtmosphere.mode || ATMOSPHERE_DEFAULTS.mode,
+      };
     }
 
     function getWorkbenchDraft(scheme) {
@@ -867,6 +915,7 @@
         if (localPreviewConfig) {
           setConfig(localPreviewConfig);
           clearStateCursorOverlay();
+          onSyncComplete?.();
           return;
         }
 
@@ -876,6 +925,7 @@
           if (livePreviewConfig) {
             setConfig(livePreviewConfig);
             clearStateCursorOverlay();
+            onSyncComplete?.();
             return;
           }
         } catch {
@@ -900,17 +950,21 @@
             await chrome.storage.local.set({ [constants.CONFIG_STORAGE_KEY]: state.config });
           }
           clearStateCursorOverlay();
+          onSyncComplete?.();
           return;
         }
 
         setConfig(getConfig() || defaultConfig);
         clearStateCursorOverlay();
+        onSyncComplete?.();
       } catch {
         reportRuntimeError?.("config-sync", "Failed to sync config from storage; using defaults.");
         setConfig(getConfig() || defaultConfig);
         clearStateCursorOverlay();
+        onSyncComplete?.();
       }
     }
+
 
     return {
       normalizeConfig,
@@ -935,6 +989,8 @@
       getMaxActiveEffects,
       syncConfigFromStorage,
       debouncedSyncConfigFromStorage,
+      getAtmosphereConfig,
+      setOnSyncComplete,
     };
   };
 })(window);

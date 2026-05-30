@@ -37,6 +37,7 @@
         "content-runtime/audio.js",
         "content-runtime/cursor-overlay.js",
         "content-runtime/trigger-handlers.js",
+        "content-runtime/atmosphere.js",
         "content.js"
       ],
       "run_at": "document_idle"

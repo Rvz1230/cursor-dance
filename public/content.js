@@ -111,6 +111,11 @@
     audioRuntime,
     cursorOverlay,
   });
+  const atmosphere = modules.createAtmosphere({
+    ...runtime,
+    diagnostics,
+    configStore,
+  });
 
   visualEffects.ensureRoot();
   diagnostics.log("runtime.ready", {
@@ -123,6 +128,21 @@
     clearStateCursorOverlay: cursorOverlay.clearStateCursorOverlay,
   }).finally(() => {
     state.ready = true;
+    try {
+      var scheme = configStore.getActiveScheme();
+      var atmosConfig = configStore.getAtmosphereConfig(scheme);
+      atmosphere.syncConfig(atmosConfig);
+    } catch (e) {}
+  });
+
+  configStore.setOnSyncComplete(function onConfigSync() {
+    try {
+      if (state.ready) {
+        var scheme = configStore.getActiveScheme();
+        var atmosConfig = configStore.getAtmosphereConfig(scheme);
+        atmosphere.syncConfig(atmosConfig);
+      }
+    } catch (e) {}
   });
 
   if (configStore.isLocalPreviewHost()) {

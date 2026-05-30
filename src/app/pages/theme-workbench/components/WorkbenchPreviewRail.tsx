@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/utils";
 import {
   PREVIEW_KEYFRAMES,
+  buildOrbitalParticleSpecs,
   buildParticleSpecs,
   buildRippleSpecs,
   getAnimationEasingCss,
@@ -81,7 +82,8 @@ function PreviewEffects({
   imageDelay,
 }) {
   const accentText = getPreviewText(config, comboIndex, actionId);
-  const particles = useMemo(() => buildParticleSpecs(config, runId), [config, runId]);
+  const isOrbital = particleConfig.particleMotionMode === "orbital";
+  const particles = useMemo(() => isOrbital ? buildOrbitalParticleSpecs(config) : buildParticleSpecs(config, runId), [config, runId, isOrbital]);
   const ripples = useMemo(() => buildRippleSpecs(config), [config]);
   const animationStyle = getPreviewAnimationStyle(config);
   const imageStyle = getPreviewImageStyle(config);
@@ -115,7 +117,7 @@ function PreviewEffects({
           ))
         : null}
 
-      {particleConfig.particle
+      {particleConfig.particle && !isOrbital
         ? particles.map((particle, index) => {
             const shape = getParticleStyleProps(config, index, particle.size);
             const style = particleConfig.particleStyle || "点状粒子";
@@ -176,6 +178,36 @@ function PreviewEffects({
             });
 
             return [mainParticle, ...trailElements];
+          })
+        : null}
+
+      {particleConfig.particle && isOrbital
+        ? particles.map((orbital, index) => {
+            const shape = getParticleStyleProps(config, index, orbital.size);
+            const style = particleConfig.particleStyle || "点状粒子";
+            return (
+              <div
+                key={`orbital-${runId}-${index}`}
+                className="absolute left-1/2 top-1/2"
+                style={{
+                  width: `${shape.width}px`,
+                  height: `${shape.height}px`,
+                  borderRadius: shape.borderRadius,
+                  backgroundColor: getParticleTint(config, index),
+                  boxShadow: shape.boxShadow,
+                  clipPath: shape.clipPath || undefined,
+                  "--orbital-sx": `${orbital.sx}px`,
+                  "--orbital-sy": `${orbital.sy}px`,
+                  "--orbital-ex": `${orbital.ex}px`,
+                  "--orbital-ey": `${orbital.ey}px`,
+                  "--orbital-start-opacity": "0.5",
+                  "--orbital-peak-opacity": "0.15",
+                  "--orbital-start-scale": "0.6",
+                  "--orbital-peak-scale": "1.2",
+                  animation: `cursorDancePreviewParticleOrbital ${scalePreviewTime(orbital.speed * 1000, playbackSpeed)}ms ease-in-out ${orbital.delay}ms infinite`,
+                }}
+              />
+            );
           })
         : null}
 
@@ -276,7 +308,11 @@ function buildTimelineTracks({ textConfig, particleConfig, rippleConfig, audioCo
 
   const ripples = rippleConfig.ripple ? buildRippleSpecs(config) : [];
   const rippleEnd = rippleDelay + ripples.reduce((max, ripple) => Math.max(max, ripple.delay + rippleConfig.rippleDuration), 0);
-  const particleEnd = particleConfig.particle ? particleDelay + particleConfig.particleDuration + Math.min(520, Math.max(0, particleConfig.particleCount - 1) * (particleConfig.particleStagger ?? 26)) : 0;
+  const particleEnd = particleConfig.particle
+    ? (particleConfig.particleMotionMode === "orbital"
+      ? particleDelay + (particleConfig.orbitalDuration || 3000) + particleConfig.particleDuration
+      : particleDelay + particleConfig.particleDuration + Math.min(520, Math.max(0, particleConfig.particleCount - 1) * (particleConfig.particleStagger ?? 26)))
+    : 0;
 
   if (textConfig.textEnabled) tracks.push({ id: "text", label: "飘字", tone: "rose", start: textDelay, end: textDelay + textConfig.textDuration, configuredDuration: textConfig.textDuration, markers: [{ label: "出现", at: textDelay }, { label: "峰值", at: textDelay + Math.round(textConfig.textDuration * 0.18) }, { label: "淡出", at: textDelay + textConfig.textDuration }] });
   if (rippleConfig.ripple) tracks.push({ id: "ripple", label: "波纹", tone: "teal", start: rippleDelay, end: rippleEnd, configuredDuration: rippleConfig.rippleDuration, markers: [{ label: "扩散", at: rippleDelay }, { label: "最大", at: rippleEnd }] });
@@ -664,7 +700,7 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, out
   const [pointer, setPointer] = useState({ x: 0, y: 0, inside: false });
   const stageRef = useRef(null);
   const [stageSize, setStageSize] = useState({ w: 0, h: 0 });
-  const cursorEnabled = atmosphere?.customCursor?.enabled;
+  const cursorEnabled = atmosphere?.mode === "creative-mouse";
 
   useEffect(() => {
     const el = stageRef.current;

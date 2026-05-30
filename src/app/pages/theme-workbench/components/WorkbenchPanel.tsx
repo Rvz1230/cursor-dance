@@ -8,13 +8,18 @@ import { ParticleFeedbackCard } from "./panels/ParticleFeedbackCard";
 import { RippleFeedbackCard } from "./panels/RippleFeedbackCard";
 import { TextFeedbackCard } from "./panels/TextFeedbackCard";
 import { TriggerBehaviorCard } from "./panels/TriggerBehaviorCard";
+import { AtmosphereSection } from "./panels/AtmosphereSection";
 
 function hasAnyEffect(config) {
   return config.textEnabled || config.animationEnabled || config.imageEnabled || config.particle || config.ripple || config.sound || (config.cursorOverride && config.cursorOverride !== "跟随当前状态");
 }
 
-export function WorkbenchPanel({ actionId, config, updateActionConfig, conflicts }) {
+export function WorkbenchPanel({ actionId, config, updateActionConfig, conflicts, atmosphere, updateAtmosphere }) {
   const anyEffect = hasAnyEffect(config);
+
+  function handleAtmosphereChange(key, value) {
+    updateAtmosphere({ [key]: value });
+  }
 
   return (
     <div className="space-y-3">
@@ -56,6 +61,10 @@ export function WorkbenchPanel({ actionId, config, updateActionConfig, conflicts
         <AudioFeedbackCard config={config} updateActionConfig={updateActionConfig} panelId="card-audio" />
         <CursorFeedbackCard config={config} updateActionConfig={updateActionConfig} panelId="card-cursor" />
       </div>
+
+      {atmosphere && (
+        <AtmosphereSection atmosphere={atmosphere} onChangeModule={handleAtmosphereChange} />
+      )}
     </div>
   );
 }

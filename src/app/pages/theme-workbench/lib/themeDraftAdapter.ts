@@ -161,6 +161,7 @@ function getStoredThemePack(config, themeId) {
 
 function buildStoredThemePack(themeId, draft, previousConfig, themeRecord) {
   const previousThemePack = getStoredThemePack(previousConfig, themeId) ?? {};
+  const storedAtmosphere = draft.atmosphere ?? previousThemePack?.workbenchDraft?.atmosphere;
 
   return {
     ...previousThemePack,
@@ -171,6 +172,7 @@ function buildStoredThemePack(themeId, draft, previousConfig, themeRecord) {
     kind: themeRecord?.kind === "内置" ? "builtin" : previousThemePack.kind || "custom",
     workbenchDraft: {
       actionConfigs: pickStoredWorkbenchActionConfigs(draft.actionConfigs),
+      ...(storedAtmosphere ? { atmosphere: storedAtmosphere } : {}),
     },
     cursorStates: Object.fromEntries(
       CURSOR_STATES.map((state) => [

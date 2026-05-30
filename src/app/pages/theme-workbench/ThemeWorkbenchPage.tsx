@@ -65,6 +65,7 @@ function ThemeWorkbenchPageContent() {
     clearAllSiteRules,
     updateActionConfig,
     updateActionConfigs,
+    updateAtmosphere,
     updateCursorMode,
     updateCursorStateAction,
     updateCursorStateAsset,
@@ -233,6 +234,8 @@ function ThemeWorkbenchPageContent() {
                           config={currentActionConfig}
                           updateActionConfig={handleUpdateActionConfig}
                           conflicts={currentConflicts}
+                          atmosphere={draft?.atmosphere}
+                          updateAtmosphere={updateAtmosphere}
                         />
                       </div>
                     </div>
@@ -251,6 +254,7 @@ function ThemeWorkbenchPageContent() {
                       disabled={siteAction === "disable"}
                       previewMode={Boolean(previewActionConfig)}
                       updateActionConfig={updateActionConfig}
+                      atmosphere={draft?.atmosphere}
                     />
                   </div>
 

@@ -55,6 +55,7 @@ import {
   ACTION_TRIGGER_FIELDS,
   PARTICLE_COLOR_MODE_OPTIONS,
   PARTICLE_DIRECTION_OPTIONS,
+  PARTICLE_MOTION_MODE_OPTIONS,
   PARTICLE_PALETTE_PRESETS,
   PARTICLE_PHYSICS_PRESET_OPTIONS,
   PARTICLE_PHYSICS_PRESET_VALUES,
@@ -359,6 +360,7 @@ export function createThemeDraft(themeId) {
     cursorModes: Object.fromEntries(CURSOR_STATES.map((item) => [item.id, item.defaultMode])),
     cursorStateActions: buildDefaultCursorStateActions(),
     cursorStateAssets: buildDefaultCursorStateAssets(),
+    atmosphere: { mode: "none" },
   };
 }
 
@@ -389,6 +391,7 @@ export {
   NUMBER_STYLE_OPTIONS,
   PARTICLE_COLOR_MODE_OPTIONS,
   PARTICLE_DIRECTION_OPTIONS,
+  PARTICLE_MOTION_MODE_OPTIONS,
   PARTICLE_PALETTE_PRESETS,
   PARTICLE_PHYSICS_PRESET_OPTIONS,
   PARTICLE_PHYSICS_PRESET_VALUES,
