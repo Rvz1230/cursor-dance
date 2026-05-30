@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, CircleDashed, Loader2, Monitor, Settings, Sparkles, Type, Volume2, Wand2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, CircleDashed, ImagePlus, Loader2, Monitor, MousePointer2, Settings, Sparkles, Type, Volume2, Wand2, X } from "lucide-react";
 import { cn } from "@/components/ui/utils";
 import { ICON_OPTIONS } from "../theme-workbench/model/workbenchSchema";
 import { usePopupState } from "./usePopupState";
@@ -34,6 +34,9 @@ function effectSummary(ac) {
   if (ac.ripple) s.push("波纹");
   if (ac.particle) s.push("粒子");
   if (ac.sound) s.push("音效");
+  if (ac.animationEnabled) s.push("动效");
+  if (ac.imageEnabled) s.push("图片");
+  if (ac.cursorGlowColor?.trim()) s.push("光晕");
   return s;
 }
 
@@ -112,12 +115,60 @@ function TextBlock({ ac }) {
 
 function SoundBlock({ ac }) {
   if (!ac?.sound) return null;
-  const vol = ac.soundVolume != null ? ac.soundVolume : 0;
+  const vol = ac.volume != null ? ac.volume : 0;
 
   return (
     <span className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium bg-slate-100 text-slate-500">
       <Volume2 className="size-3.5" />
       <span className="tabular-nums">{vol}%</span>
+    </span>
+  );
+}
+
+function AnimationBlock({ ac, accent }) {
+  if (!ac?.animationEnabled) return null;
+  const style = ac.animationStyle || "聚焦脉冲";
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium"
+      style={{ backgroundColor: `${accent}12`, color: accent }}
+    >
+      <Wand2 className="size-3.5" />
+      <span>{style}</span>
+    </span>
+  );
+}
+
+function ImageBlock({ ac, accent }) {
+  if (!ac?.imageEnabled) return null;
+  const size = ac.imageSize || 56;
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium"
+      style={{ boxShadow: `inset 0 0 0 1px ${accent}28`, color: accent }}
+    >
+      <ImagePlus className="size-3.5" />
+      <span>图片</span>
+      <span className="text-[9px] opacity-60">·</span>
+      <span className="tabular-nums">{size}px</span>
+    </span>
+  );
+}
+
+function CursorFeedbackBlock({ ac, accent }) {
+  const hasGlow = ac?.cursorGlowColor?.trim();
+  const hasShake = ac?.shake;
+  const hasTrail = ac?.cursorTrailEnabled;
+  if (!hasGlow && !hasShake && !hasTrail) return null;
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium"
+      style={{ backgroundColor: `${accent}08`, color: accent }}
+    >
+      <MousePointer2 className="size-3.5" />
+      {hasGlow && <span>光晕</span>}
+      {hasShake && !hasGlow && <span>震动</span>}
+      {hasTrail && !hasGlow && !hasShake && <span>拖尾</span>}
     </span>
   );
 }
@@ -239,22 +290,25 @@ function IdentityCard({ actionConfig, accent, name, Icon: ThemeIcon, enabled, si
             {/* effect groups */}
             <div className="shrink-0 space-y-1">
               {/* Motion group */}
-              {(actionConfig?.particle || actionConfig?.ripple) && (
+              {(actionConfig?.particle || actionConfig?.ripple || actionConfig?.animationEnabled) && (
                 <div className="flex flex-col gap-0.5">
                   <span className="text-[9px] font-semibold tracking-wider text-slate-400">动效</span>
                   <div className="flex flex-wrap gap-1">
                     <ParticleBlock ac={actionConfig} accent={accent} />
                     <RippleBlock ac={actionConfig} accent={accent} />
+                    <AnimationBlock ac={actionConfig} accent={accent} />
                   </div>
                 </div>
               )}
               {/* Feedback group */}
-              {(actionConfig?.textEnabled || actionConfig?.sound) && (
+              {(actionConfig?.textEnabled || actionConfig?.sound || actionConfig?.imageEnabled || actionConfig?.cursorGlowColor?.trim() || actionConfig?.shake || actionConfig?.cursorTrailEnabled) && (
                 <div className="flex flex-col gap-0.5">
                   <span className="text-[9px] font-semibold tracking-wider text-slate-400">反馈</span>
                   <div className="flex flex-wrap gap-1">
                     <TextBlock ac={actionConfig} />
                     <SoundBlock ac={actionConfig} />
+                    <ImageBlock ac={actionConfig} accent={accent} />
+                    <CursorFeedbackBlock ac={actionConfig} accent={accent} />
                   </div>
                 </div>
               )}
@@ -535,7 +589,7 @@ export default function PopupPage() {
       </AnimatePresence>
 
       {/* ── identity card ── */}
-      <div className={cn("flex-1 min-h-0 px-4 pt-1.5 pb-1", !enabled && "opacity-35")}>
+      <div className={cn("flex-1 min-h-0 px-4 pt-1.5 pb-2", !enabled && "opacity-35")}>
         <AnimatePresence mode="wait">
           <motion.div
             key={current?.theme?.id || "empty"}
