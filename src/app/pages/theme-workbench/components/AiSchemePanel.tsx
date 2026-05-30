@@ -78,12 +78,15 @@ function MessageBubble({ message, onEdit, actionId }) {
   async function handleFeedback(rating) {
     if (feedback) return;
     setFeedback(rating);
-    await saveFeedback({
-      actionId,
-      messageContent: message.content,
-      rating,
-    });
-    if (rating === "down") {
+    if (rating === "up") {
+      // Save immediately for thumbs-up
+      await saveFeedback({
+        actionId,
+        messageContent: message.content,
+        rating: "up",
+      });
+    } else {
+      // For thumbs-down, wait for optional comment before saving
       setShowCommentInput(true);
     }
   }
@@ -93,7 +96,7 @@ function MessageBubble({ message, onEdit, actionId }) {
       actionId,
       messageContent: message.content,
       rating: "down",
-      comment: feedbackComment,
+      comment: feedbackComment || undefined,
     });
     setShowCommentInput(false);
     setFeedbackComment("");
@@ -419,16 +422,18 @@ function ProposalCard({ result, previewActive }) {
       </div>
 
       {/* 更多信息 — collapsible */}
-      <div>
-        <SectionToggle label="更多信息" section="meta" />
-        {openSections.meta && result.totalTokens != null ? (
-          <div className="flex items-center gap-2 px-3 py-1 text-[11px] text-slate-400">
-            <span>本次消耗 ~{result.totalTokens.toLocaleString()} tokens</span>
-            <span className="text-slate-300">·</span>
-            <span>约 ¥{((result.totalTokens / 1000000) * 1.5).toFixed(4)}</span>
-          </div>
-        ) : null}
-      </div>
+      {result.totalTokens != null ? (
+        <div>
+          <SectionToggle label="更多信息" section="meta" />
+          {openSections.meta ? (
+            <div className="flex items-center gap-2 px-3 py-1 text-[11px] text-slate-400">
+              <span>本次消耗 ~{result.totalTokens.toLocaleString()} tokens</span>
+              <span className="text-slate-300">·</span>
+              <span>约 ¥{((result.totalTokens / 1000000) * 1.5).toFixed(4)}</span>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -776,7 +781,7 @@ export function AiSchemePanel({
     if (isNearBottom) {
       el.scrollTop = el.scrollHeight;
     }
-  }, [messages, isGenerating, streamingReply, agentSteps]);
+  }, [messages, isGenerating, streamingReply, smoothReply, agentSteps]);
 
   async function submitPrompt(nextPrompt = prompt, modeOverride = "modify_action") {
     const trimmedPrompt = nextPrompt.trim();
@@ -790,7 +795,19 @@ export function AiSchemePanel({
     onClearPreview?.();
     onClearAiSnapshot?.();
     setLastPrompt(trimmedPrompt);
-    setMessages((current) => [...current, { role: "user", content: trimmedPrompt }]);
+
+    // Regenerate: remove last assistant message and skip duplicate user message
+    const isRegen = Boolean(pendingResult) && trimmedPrompt === lastPrompt;
+    if (isRegen) {
+      setPendingResult(null);
+      setMessages((current) => {
+        const last = current[current.length - 1];
+        if (last?.role === "assistant") return current.slice(0, -1);
+        return current;
+      });
+    } else {
+      setMessages((current) => [...current, { role: "user", content: trimmedPrompt }]);
+    }
 
     // Create AbortController before async work so cancel is immediately available
     const controller = new AbortController();
@@ -927,15 +944,20 @@ export function AiSchemePanel({
       abortRef.current = null;
     }
     generatingRef.current = false;
+    const partialContent = streamingReply;
     flushTypewriter();
     setAgentRunning(false);
     setIsGenerating(false);
     setStreamingReply("");
-    setMessages((current) => [...current, { role: "assistant", content: "已取消本次生成。" }]);
+    if (partialContent.trim()) {
+      setMessages((current) => [...current, { role: "assistant", content: partialContent }]);
+    } else {
+      setMessages((current) => [...current, { role: "assistant", content: "已取消本次生成。" }]);
+    }
   }
 
   function handleKeyDown(event) {
-    if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+    if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
       submitPrompt();
     }
@@ -1220,7 +1242,7 @@ export function AiSchemePanel({
                 <Square className="size-3.5" aria-hidden="true" />
               </button>
             ) : (
-              <Button className="absolute bottom-2 right-2 size-9 rounded-xl px-0 disabled:opacity-30 transition-opacity" type="submit" disabled={!canSubmit} aria-label="发送给 AI 方案助手" title="发送 (⌘↵)">
+              <Button className="absolute bottom-2 right-2 size-9 rounded-xl px-0 disabled:opacity-30 transition-opacity" type="submit" disabled={!canSubmit} aria-label="发送给 AI 方案助手" title="发送 (↵)">
                 <Send className="size-4" aria-hidden="true" />
               </Button>
             )}
