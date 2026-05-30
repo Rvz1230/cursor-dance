@@ -240,7 +240,7 @@ export async function requestAiSchemeEditStreaming({ prompt, currentConfig, acti
   }
 }
 
-export async function requestAiAgentRun({ prompt, currentConfig, actionLabel, actionId, taskMode, proposalContext, onEvent, signal: externalSignal }) {
+export async function requestAiAgentRun({ prompt, currentConfig, actionConfigs, actionLabel, actionId, taskMode, proposalContext, onEvent, signal: externalSignal }) {
   const agentEndpoint = globalThis.VITE_CURSORDANCE_AI_AGENT_ENDPOINT;
   const baseEndpoint = globalThis.VITE_CURSORDANCE_AI_API_ENDPOINT || DEFAULT_API_ENDPOINT;
   const endpoint = agentEndpoint || baseEndpoint.replace(/\/[^/]+$/, "") + "/agent/run";
@@ -260,6 +260,7 @@ export async function requestAiAgentRun({ prompt, currentConfig, actionLabel, ac
       body: JSON.stringify({
         prompt,
         currentConfig,
+        allConfigs: actionConfigs || undefined,
         proposalContext: buildAiProposalContext(proposalContext),
         actionLabel,
         actionId,

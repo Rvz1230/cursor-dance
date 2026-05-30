@@ -24,7 +24,7 @@ function buildAgentSystemPrompt() {
   ].join("\n");
 }
 
-function buildAgentUserPrompt({ prompt, actionId, actionLabel, currentConfig, taskMode, proposalContext }) {
+function buildAgentUserPrompt({ prompt, actionId, actionLabel, currentConfig, taskMode, proposalContext, allConfigs }) {
   const contextLines = [];
   if (taskMode) {
     contextLines.push(`任务模式：${taskMode}`);
@@ -32,6 +32,10 @@ function buildAgentUserPrompt({ prompt, actionId, actionLabel, currentConfig, ta
   if (proposalContext) {
     contextLines.push("上一版 proposal 精简上下文 JSON：");
     contextLines.push(JSON.stringify(proposalContext));
+  }
+  if (allConfigs) {
+    const actions = Object.keys(allConfigs);
+    contextLines.push(`当前主题下可用动作：${actions.join(", ")}`);
   }
 
   return [
@@ -65,6 +69,7 @@ export async function runAgentLoop({
   actionId = "leftClick",
   actionLabel = "左键点击",
   currentConfig = {},
+  allConfigs = null,
   taskMode = "modify_action",
   proposalContext = null,
   schemaVersion,
@@ -77,13 +82,15 @@ export async function runAgentLoop({
   const startedAt = Date.now();
   let totalTokens = 0;
 
-  const initialConfigs = {};
-  initialConfigs[actionId] = JSON.parse(JSON.stringify(currentConfig));
+  const initialConfigs = allConfigs || {};
+  if (!allConfigs || !allConfigs[actionId]) {
+    initialConfigs[actionId] = JSON.parse(JSON.stringify(currentConfig));
+  }
   const executor = createToolExecutor(initialConfigs);
 
   const messages = [
     { role: "system", content: buildAgentSystemPrompt() },
-    { role: "user", content: buildAgentUserPrompt({ prompt, actionId, actionLabel, currentConfig, taskMode, proposalContext }) },
+    { role: "user", content: buildAgentUserPrompt({ prompt, actionId, actionLabel, currentConfig, taskMode, proposalContext, allConfigs }) },
   ];
 
   let finished = false;

@@ -9,6 +9,7 @@ export interface FeedbackRecord {
   messageContent: string;
   rating: "up" | "down";
   comment?: string;
+  proposalId?: string;
   timestamp: number;
 }
 

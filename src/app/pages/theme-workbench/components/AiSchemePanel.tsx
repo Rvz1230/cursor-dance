@@ -51,7 +51,7 @@ function buildPromptExamples(currentConfig) {
   return [...examples.slice(0, 3), ...fallbacks].slice(0, 4);
 }
 
-function MessageBubble({ message, onEdit, actionId }) {
+function MessageBubble({ message, onEdit, actionId, notify }) {
   const isAssistant = message.role === "assistant";
   const [copied, setCopied] = useState(false);
   const copyTimerRef = useRef(null);
@@ -75,15 +75,23 @@ function MessageBubble({ message, onEdit, actionId }) {
   }
 
   async function handleFeedback(rating) {
-    if (feedback) return;
+    if (feedback === rating) {
+      // Cancel current vote
+      setFeedback(null);
+      if (rating === "down") {
+        setShowCommentInput(false);
+        setFeedbackComment("");
+      }
+      return;
+    }
     setFeedback(rating);
     if (rating === "up") {
-      // Save immediately for thumbs-up
       await saveFeedback({
         actionId,
         messageContent: message.content,
         rating: "up",
       });
+      notify?.({ tone: "success", title: "感谢反馈！" });
     } else {
       // For thumbs-down, wait for optional comment before saving
       setShowCommentInput(true);
@@ -99,10 +107,23 @@ function MessageBubble({ message, onEdit, actionId }) {
     });
     setShowCommentInput(false);
     setFeedbackComment("");
+    notify?.({ tone: "success", title: "感谢反馈，我们会持续改进" });
   }
+
+  const kindLabel = isAssistant && message.kind
+    ? { chat: "AI 对话", proposal: "AI 建议", applied: "已应用", discarded: "已放弃" }[message.kind] || null
+    : null;
+  const kindTone = isAssistant && message.kind
+    ? { chat: "border-slate-200 bg-slate-100 text-slate-600", proposal: "border-sky-100 bg-sky-50 text-sky-700", applied: "border-emerald-100 bg-emerald-50 text-emerald-700", discarded: "border-slate-200 bg-slate-100 text-slate-500" }[message.kind] || null
+    : null;
 
   return (
     <div className={cn("flex flex-col gap-0.5 group", isAssistant ? "items-start" : "items-end")}>
+      {kindLabel ? (
+        <span className={cn("mb-0.5 rounded-full border px-2 py-0.5 text-[10px] font-medium leading-none", kindTone)}>
+          {kindLabel}
+        </span>
+      ) : null}
       <div
         className={cn(
           "max-w-[86%] rounded-2xl px-3 py-2 text-xs leading-5 text-pretty",
@@ -184,7 +205,6 @@ function MessageBubble({ message, onEdit, actionId }) {
                   : "text-slate-400 hover:text-slate-600 hover:bg-slate-100",
               )}
               onClick={() => handleFeedback("up")}
-              disabled={feedback !== null}
               aria-label="有帮助"
               title="有帮助"
             >
@@ -199,7 +219,6 @@ function MessageBubble({ message, onEdit, actionId }) {
                   : "text-slate-400 hover:text-slate-600 hover:bg-slate-100",
               )}
               onClick={() => handleFeedback("down")}
-              disabled={feedback !== null}
               aria-label="没有帮助"
               title="没有帮助"
             >
@@ -238,6 +257,7 @@ function getInitialMessages() {
     {
       role: "assistant",
       content: "描述你想要的鼠标反馈，我会直接生成或修改当前动作配置。",
+      kind: "chat",
     },
   ];
 }
@@ -620,7 +640,7 @@ function ModeSwitcher({ useAgent, onToggle, disabled }) {
               {useAgent ? <Check className="ml-auto size-3.5 text-slate-600" /> : null}
             </div>
             <div className="mt-0.5 text-[11px] leading-4 text-slate-500 text-pretty">
-              分步推理 · 工具调用，适合复杂跨动作修改
+              分步推理 · 工具调用，适合复杂修改，支持多动作
             </div>
             <div className="mt-1 text-[11px] leading-4 text-slate-400">
               可读取/修改多个动作配置，支持撤销
@@ -636,6 +656,7 @@ export function AiSchemePanel({
   actionId,
   actionLabel,
   currentConfig,
+  actionConfigs,
   applyActionConfig,
   applyProposal,
   previewProposal,
@@ -671,9 +692,10 @@ export function AiSchemePanel({
     pendingResult,
     lastPrompt,
     agentSteps,
+    agentTotalSteps,
     useAgent,
   });
-  stateRef.current = { messages, pendingResult, lastPrompt, agentSteps, useAgent, agentTotalSteps };
+  stateRef.current = { messages, pendingResult, lastPrompt, agentSteps, agentTotalSteps, useAgent };
 
   // Hydrate conversation from storage on mount + save/restore on action switch
   useEffect(() => {
@@ -688,7 +710,7 @@ export function AiSchemePanel({
       // Load new action's conversation (or start fresh)
       const saved = await loadConversation(actionId);
       if (saved) {
-        setMessages(saved.messages ?? getInitialMessages());
+        setMessages((saved.messages ?? getInitialMessages()).map((m) => ({ ...m, kind: m.kind || "chat" })));
         setPendingResult(saved.pendingResult ?? null);
         setLastPrompt(saved.lastPrompt ?? "");
         setAgentSteps(saved.agentSteps ?? []);
@@ -803,7 +825,7 @@ export function AiSchemePanel({
         return current;
       });
     } else {
-      setMessages((current) => [...current, { role: "user", content: trimmedPrompt }]);
+      setMessages((current) => [...current, { role: "user", content: trimmedPrompt, kind: "chat" }]);
     }
 
     // Create AbortController before async work so cancel is immediately available
@@ -820,6 +842,7 @@ export function AiSchemePanel({
         const { result: rawResult } = await requestAiAgentRun({
           prompt: trimmedPrompt,
           currentConfig,
+          actionConfigs,
           actionLabel,
           actionId,
           taskMode: modeOverride,
@@ -884,7 +907,7 @@ export function AiSchemePanel({
           proposalId: rawResult.proposalId || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
         };
         setPendingResult(proposal);
-        setMessages((current) => [...current, { role: "assistant", content: proposal.reply || "Agent 已完成方案生成。" }]);
+        setMessages((current) => [...current, { role: "assistant", content: proposal.reply || "Agent 已完成方案生成。", kind: "proposal" }]);
         notify?.({
           tone: "info",
           title: "Agent 已生成方案提案",
@@ -914,7 +937,7 @@ export function AiSchemePanel({
           proposalId: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
         };
         setPendingResult(proposal);
-        setMessages((current) => [...current, { role: "assistant", content: proposal.reply }]);
+        setMessages((current) => [...current, { role: "assistant", content: proposal.reply, kind: "proposal" }]);
         notify?.({
           tone: "info",
           title: "AI 已生成方案提案",
@@ -947,9 +970,9 @@ export function AiSchemePanel({
     setIsGenerating(false);
     setStreamingReply("");
     if (partialContent.trim()) {
-      setMessages((current) => [...current, { role: "assistant", content: partialContent }]);
+      setMessages((current) => [...current, { role: "assistant", content: partialContent, kind: "chat" }]);
     } else {
-      setMessages((current) => [...current, { role: "assistant", content: "已取消本次生成。" }]);
+      setMessages((current) => [...current, { role: "assistant", content: "已取消本次生成。", kind: "chat" }]);
     }
   }
 
@@ -982,7 +1005,7 @@ export function AiSchemePanel({
       applyActionConfig(pendingResult.patch);
     }
     onClearPreview?.();
-    setMessages((current) => [...current, { role: "assistant", content: "已应用这次改动到当前动作配置。" }]);
+    setMessages((current) => [...current, { role: "assistant", content: "已应用这次改动到当前动作配置。", kind: "applied" }]);
     notify?.({
       tone: "success",
       title: "已应用 AI 方案",
@@ -995,7 +1018,7 @@ export function AiSchemePanel({
     if (!pendingResult) return;
     setPendingResult(null);
     onClearPreview?.();
-    setMessages((current) => [...current, { role: "assistant", content: "已放弃这次改动，当前配置保持不变。" }]);
+    setMessages((current) => [...current, { role: "assistant", content: "已放弃这次改动，当前配置保持不变。", kind: "discarded" }]);
   }
 
   function clearConversation() {
@@ -1092,7 +1115,7 @@ export function AiSchemePanel({
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
               >
-                <MessageBubble key={`${message.role}-${index}-${message.content}`} message={message} onEdit={setPrompt} actionId={actionId} />
+                <MessageBubble key={`${message.role}-${index}-${message.content}`} message={message} onEdit={setPrompt} actionId={actionId} notify={notify} />
               </motion.div>
             ))}
           </AnimatePresence>
@@ -1235,7 +1258,7 @@ export function AiSchemePanel({
               className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-100 active:scale-[0.97]"
               onClick={() => {
                 onRevertAiChanges?.();
-                setMessages((current) => [...current, { role: "assistant", content: "已撤销 AI 改动，配置已恢复。" }]);
+                setMessages((current) => [...current, { role: "assistant", content: "已撤销 AI 改动，配置已恢复。", kind: "chat" }]);
               }}
             >
               <RotateCcw className="size-3.5" aria-hidden="true" />
@@ -1261,7 +1284,6 @@ export function AiSchemePanel({
               placeholder="例如：科技感一点、低调、不要声音、粒子少一点"
               rows={1}
               className="max-h-[112px] min-h-[48px] w-full resize-none bg-transparent px-1 py-1.5 text-sm leading-5 text-slate-800 outline-none placeholder:text-slate-400"
-              disabled={isGenerating}
             />
             {isGenerating ? (
               <button

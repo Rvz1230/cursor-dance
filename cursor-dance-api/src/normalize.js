@@ -27,6 +27,10 @@ export function validateAiSchemeRequest(payload) {
     payload?.currentConfig && typeof payload.currentConfig === "object" && !Array.isArray(payload.currentConfig)
       ? payload.currentConfig
       : {};
+  const allConfigs =
+    payload?.allConfigs && typeof payload.allConfigs === "object" && !Array.isArray(payload.allConfigs)
+      ? payload.allConfigs
+      : null;
   const proposalContext =
     payload?.proposalContext && typeof payload.proposalContext === "object" && !Array.isArray(payload.proposalContext)
       ? payload.proposalContext
@@ -49,6 +53,7 @@ export function validateAiSchemeRequest(payload) {
       actionLabel,
       taskMode,
       currentConfig,
+      allConfigs,
       proposalContext,
       extensionVersion,
       schemaVersion,

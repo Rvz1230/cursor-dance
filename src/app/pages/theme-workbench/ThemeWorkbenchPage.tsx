@@ -273,6 +273,7 @@ function ThemeWorkbenchPageContent() {
                             actionId={selected.actionId}
                             actionLabel={formatActionLabel(selected.actionId)}
                             currentConfig={currentActionConfig}
+                            actionConfigs={draft.actionConfigs}
                             applyActionConfig={handleUpdateActionConfig}
                             applyProposal={handleApplyAiProposal}
                             previewProposal={previewProposal}

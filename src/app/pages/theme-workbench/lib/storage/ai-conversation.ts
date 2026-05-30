@@ -5,10 +5,11 @@ const AI_CONVERSATION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const MAX_MESSAGES_PER_CONVERSATION = 100;
 
 export interface ConversationData {
-  messages: Array<{ role: "user" | "assistant"; content: string }>;
+  messages: Array<{ role: "user" | "assistant"; content: string; kind?: string }>;
   pendingResult: unknown | null;
   lastPrompt: string;
   agentSteps: unknown[];
+  agentTotalSteps?: number;
   useAgent: boolean;
   updatedAt: number;
 }
