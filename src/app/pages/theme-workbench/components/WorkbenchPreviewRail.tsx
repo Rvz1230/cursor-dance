@@ -33,6 +33,7 @@ import {
   getActionTextConfig,
 } from "../model/workbenchSchema";
 import { Panel } from "./WorkbenchControls";
+import { AtmosphereStagePreview } from "./AtmosphereStagePreview";
 
 function scalePreviewTime(value, playbackSpeed) {
   return Math.max(1, Math.round(value / playbackSpeed));
@@ -640,7 +641,7 @@ function InteractiveTimeline({ tracks, totalMs, updateActionConfig }) {
   );
 }
 
-function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, outputs, playbackSpeed, updateActionConfig }) {
+function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, outputs, playbackSpeed, updateActionConfig, atmosphere }) {
   const textConfig = useMemo(() => getActionTextConfig(config), [config]);
   const particleConfig = useMemo(() => getActionParticleConfig(config), [config]);
   const rippleConfig = useMemo(() => getActionRippleConfig(config), [config]);
@@ -659,9 +660,38 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, out
   const imageDelay = imageConfig.imageDelay || 0;
   const soundDelay = audioConfig.soundDelay || 0;
 
+  // 鼠标追踪
+  const [pointer, setPointer] = useState({ x: 0, y: 0, inside: false });
+  const stageRef = useRef(null);
+  const [stageSize, setStageSize] = useState({ w: 0, h: 0 });
+  const cursorEnabled = atmosphere?.customCursor?.enabled;
+
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setStageSize({ w: entry.contentRect.width, h: entry.contentRect.height });
+      }
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  function onPointerMove(e) {
+    const rect = stageRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setPointer({ x: e.clientX - rect.left, y: e.clientY - rect.top, inside: true });
+  }
+
+  function onPointerLeave() {
+    setPointer((prev) => ({ ...prev, inside: false }));
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
       <div
+        ref={stageRef}
         className="relative min-h-[300px] flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white"
         style={{
           minHeight: 320,
@@ -672,7 +702,10 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, out
           `,
           backgroundSize: "20px 20px, 100% 100%",
           backgroundPosition: "0 0, 0 0",
+          cursor: cursorEnabled && pointer.inside ? "none" : undefined,
         }}
+        onPointerMove={onPointerMove}
+        onPointerLeave={onPointerLeave}
       >
         <div
           className="pointer-events-none absolute inset-x-8 bottom-8 top-20 rounded-xl border border-slate-200/80"
@@ -731,6 +764,16 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, out
           </div>
         </div>
 
+        {/* 氛围动效预览层 */}
+        <AtmosphereStagePreview
+          atmosphere={atmosphere}
+          pointerX={pointer.x}
+          pointerY={pointer.y}
+          isPointerInside={pointer.inside}
+          stageWidth={stageSize.w}
+          stageHeight={stageSize.h}
+        />
+
         {audioConfig.sound && !disabled ? (
           <div className="absolute right-5 top-20 flex items-center gap-1.5 rounded-lg border border-emerald-100 bg-white/95 px-2 py-1 text-xs text-slate-600 shadow-sm">
             <Volume2 className="size-3 text-emerald-700" aria-hidden="true" />
@@ -756,7 +799,7 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, out
   );
 }
 
-export function WorkbenchPreviewRail({ actionLabel, actionId = "leftClick", config, disabled = false, previewMode = false, updateActionConfig }) {
+export function WorkbenchPreviewRail({ actionLabel, actionId = "leftClick", config, disabled = false, previewMode = false, updateActionConfig, atmosphere }) {
   const [runId, setRunId] = useState(0);
   const [comboIndex, setComboIndex] = useState(1);
   const [autoPlay, setAutoPlay] = useState(true);
@@ -780,7 +823,7 @@ export function WorkbenchPreviewRail({ actionLabel, actionId = "leftClick", conf
   const replay = useCallback(() => {
     if (disabled) return;
     const now = Date.now();
-    setRunId((v) => v + 1);
+    setRunId((v) => (v + 1) % 1000000);
     setComboIndex((prev) => {
       if (now - lastComboFireRef.current <= comboWindowMs) return prev + 1;
       return 1;
@@ -795,7 +838,7 @@ export function WorkbenchPreviewRail({ actionLabel, actionId = "leftClick", conf
     const configFingerprint = JSON.stringify(config);
     if (prevConfigRef.current === configFingerprint) return undefined;
     prevConfigRef.current = configFingerprint;
-    setRunId((value) => value + 1);
+    setRunId((value) => (value + 1) % 1000000);
     return undefined;
   }, [actionLabel, config, disabled]);
 
@@ -806,7 +849,7 @@ export function WorkbenchPreviewRail({ actionLabel, actionId = "leftClick", conf
 
     const tick = () => {
       const now = Date.now();
-      setRunId((value) => value + 1);
+      setRunId((value) => (value + 1) % 1000000);
       setComboIndex((prev) => {
         if (lastComboFireRef.current > 0 && now - lastComboFireRef.current <= comboWindowMs) return prev + 1;
         return 1;
@@ -867,7 +910,7 @@ export function WorkbenchPreviewRail({ actionLabel, actionId = "leftClick", conf
           </div>
         }
       >
-        <SimplePreviewStage config={config} disabled={disabled} runId={runId} comboIndex={displayComboIndex} actionId={actionId} outputs={outputs} playbackSpeed={playbackSpeed} updateActionConfig={updateActionConfig} />
+        <SimplePreviewStage config={config} disabled={disabled} runId={runId} comboIndex={displayComboIndex} actionId={actionId} outputs={outputs} playbackSpeed={playbackSpeed} updateActionConfig={updateActionConfig} atmosphere={atmosphere} />
       </Panel>
     </div>
   );
