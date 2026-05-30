@@ -1,6 +1,7 @@
 import {
   ActivitySquare,
   Ban,
+  CircleDashed,
   Clock3,
   Cloud,
   Coffee,
@@ -296,7 +297,7 @@ export const PANEL_META = {
   trigger: { icon: MousePointer2, tone: "bg-emerald-100 text-emerald-700" },
   text: { icon: Type, tone: "bg-amber-100 text-amber-700" },
   particles: { icon: Waves, tone: "bg-sky-100 text-sky-700" },
-  ripple: { icon: Waves, tone: "bg-teal-100 text-teal-700" },
+  ripple: { icon: CircleDashed, tone: "bg-teal-100 text-teal-700" },
   audio: { icon: Volume2, tone: "bg-rose-100 text-rose-700" },
   animation: { icon: Sparkles, tone: "bg-cyan-100 text-cyan-700" },
   image: { icon: ImagePlus, tone: "bg-fuchsia-100 text-fuchsia-700" },

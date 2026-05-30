@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { MousePointerClick, Pause, Play, RotateCcw, Volume2 } from "lucide-react";
+import { MousePointerClick, Pause, Play, RotateCcw, Volume2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/utils";
 import {
@@ -466,7 +466,7 @@ function TimelineTrackRow({ track, totalMs, pxPerMs, updateActionConfig, isEven 
               updateActionConfig(patch);
             }}
           >
-            <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1 1L7 7M7 1L1 7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
+            <X className="size-2.5" />
           </button>
         ) : null}
       </div>

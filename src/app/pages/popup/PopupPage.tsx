@@ -1,23 +1,22 @@
 import { useCallback, useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, ChevronLeft, ChevronRight, Play, Settings, Zap } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { ChevronLeft, ChevronRight, CircleDashed, Play, Settings, Sparkles, Type, Volume2, Wand2 } from "lucide-react";
 import { cn } from "@/components/ui/utils";
-import { createBuiltinCursorAsset } from "../theme-workbench/lib/cursorAssetPresets";
+import { ICON_OPTIONS } from "../theme-workbench/model/workbenchSchema";
 import { usePopupState } from "./usePopupState";
-import { previewThemePack } from "../theme-workbench/lib/extensionStorage";
 
 // ═══════════════════════════════════════════════════════════════
-// "Quick Switch v4" — theme detail card + coverflow carousel
+// "Theme Identity" — shows what makes each theme unique
 // ═══════════════════════════════════════════════════════════════
 
 const W = 360;
 const H = 540;
-const FALLBACK = createBuiltinCursorAsset("default", "system");
 
 // ── helpers ───────────────────────────────────────────────────
 
-function cursorUrl(pack, stateId = "default") {
-  return pack?.cursorStates?.[stateId]?.imageDataUrl || FALLBACK.imageDataUrl;
+function themeIcon(theme) {
+  if (!theme?.icon) return Wand2;
+  return ICON_OPTIONS.find((opt) => opt.name === theme.icon)?.Icon || Wand2;
 }
 
 function themeAccent(ac) {
@@ -37,147 +36,208 @@ function effectSummary(ac) {
   return s;
 }
 
-// ── build detail rows from action config ──────────────────────
-
-const DIR_LABELS = { spread: "扩散", up: "向上", down: "向下", left: "向左", right: "向右" };
-
-function buildDetails(ac) {
-  if (!ac) return [];
-  const items = [];
-
-  if (ac.textEnabled) {
-    items.push({
-      key: "text",
-      icon: "T",
-      label: "飘字反馈",
-      values: [
-        ac.textContent ? `"${ac.textContent.slice(0, 6)}"` : null,
-        ac.textSize ? `${ac.textSize}px` : null,
-      ].filter(Boolean),
-      color: ac.textColor || undefined,
-    });
-  }
-  if (ac.ripple) {
-    items.push({
-      key: "ripple",
-      icon: "◉",
-      label: "波纹反馈",
-      values: [
-        ac.rippleSize ? `${ac.rippleSize}px` : null,
-        ac.rippleDuration ? `${ac.rippleDuration}ms` : null,
-      ].filter(Boolean),
-      color: ac.rippleColor || undefined,
-    });
-  }
-  if (ac.particle) {
-    const dir = DIR_LABELS[ac.particleDirection] || null;
-    items.push({
-      key: "particle",
-      icon: "◆",
-      label: "粒子反馈",
-      values: [
-        ac.particleShape || null,
-        ac.particleCount ? `${ac.particleCount}个` : null,
-        dir,
-      ].filter(Boolean),
-      color: ac.particlePalette?.[0] || undefined,
-    });
-  }
-  if (ac.sound) {
-    const file = ac.soundFile ? ac.soundFile.replace(/\.[^.]+$/, "") : null;
-    items.push({
-      key: "sound",
-      icon: "♪",
-      label: "音频反馈",
-      values: [
-        file ? (file.length > 12 ? file.slice(0, 11) + "…" : file) : null,
-        ac.soundVolume != null ? `${ac.soundVolume}%` : null,
-      ].filter(Boolean),
-      color: undefined,
-    });
-  }
-
-  return items;
+function particleDirLabel(dir) {
+  const map = { "四周扩散": "扩散", up: "向上", down: "向下", left: "向左", right: "向右" };
+  return map[dir] || "扩散";
 }
 
-// ── ThemeDetail — replaces the old preview canvas ─────────────
+// ── style icon maps (matched to content script enum) ─────────
 
-function ThemeDetail({ actionConfig, cursorImg, accent }) {
-  const details = buildDetails(actionConfig);
-  const noop = details.length === 0;
+const PARTICLE_ICONS = {
+  "点状粒子": "●", 火花: "✦", "碎屑粒子": "◆",
+  星光: "★", 钻石: "◇", 心形: "♡", 方块: "▣", 三角: "▲",
+};
+
+const RIPPLE_ICONS = {
+  "单环": "○", 双环: "◎", "柔和面波": "◉",
+  "脉冲波纹": "⦿", "回声环": "☯", "能量脉冲": "⚡",
+};
+
+// ── Toggle ────────────────────────────────────────────────────
+
+function Toggle({ checked, onChange }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label="全局开关"
+      onClick={() => onChange(!checked)}
+      className={cn(
+        "relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-150 ease-out",
+        checked ? "bg-slate-900" : "bg-slate-200"
+      )}
+    >
+      <motion.span
+        layout
+        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+        className="inline-block size-4 rounded-full bg-white shadow-sm"
+        style={{ x: checked ? 18 : 2 }}
+      />
+    </button>
+  );
+}
+
+// ── effect chips (type-distinct visual) ─────────────────────
+
+function ParticleBlock({ ac, accent }) {
+  if (!ac?.particle) return null;
+  const style = ac.particleStyle || "点状粒子";
+  const count = ac.particleCount || 0;
+  const dir = particleDirLabel(ac.particleDirection);
 
   return (
-    <div className="relative h-full w-full" style={{ perspective: "600px" }}>
-      {/* ── outer 3D card shell ── */}
+    <span
+      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium"
+      style={{ backgroundColor: `${accent}12`, color: accent }}
+    >
+      <Sparkles className="size-3.5" />
+      <span>{style}</span>
+      <span className="text-[9px] opacity-60">·</span>
+      <span className="tabular-nums">{count}</span>
+      <span className="opacity-60">{dir}</span>
+    </span>
+  );
+}
+
+function RippleBlock({ ac, accent }) {
+  if (!ac?.ripple) return null;
+  const style = ac.rippleStyle || "单环";
+  const size = ac.rippleSize || 0;
+
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium"
+      style={{ boxShadow: `inset 0 0 0 1px ${accent}28`, color: accent }}
+    >
+      <CircleDashed className="size-3.5" />
+      <span>{style}</span>
+      <span className="text-[9px] opacity-60">·</span>
+      <span className="tabular-nums">{size}px</span>
+    </span>
+  );
+}
+
+function TextBlock({ ac }) {
+  if (!ac?.textEnabled) return null;
+  const text = ac.textContent || "✦";
+  const color = ac.textColor || "#94A3B8";
+  const size = ac.textSize || 0;
+
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium"
+      style={{ backgroundColor: `${color}10`, color }}
+    >
+      <Type className="size-3.5" />
+      <span className="font-medium truncate max-w-[80px]">"{text}"</span>
+      {size > 0 && <><span className="text-[9px] opacity-60">·</span><span className="tabular-nums">{size}px</span></>}
+    </span>
+  );
+}
+
+function SoundBlock({ ac }) {
+  if (!ac?.sound) return null;
+  const vol = ac.soundVolume != null ? ac.soundVolume : 0;
+
+  return (
+    <span className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium bg-slate-100 text-slate-500">
+      <Volume2 className="size-3.5" />
+      <span className="tabular-nums">{vol}%</span>
+    </span>
+  );
+}
+
+// ── HeroPreview — visual centerpiece ────────────────────────
+
+function HeroPreview({ actionConfig, accent, Icon: ThemeIcon }) {
+  const text = actionConfig?.textContent;
+  const hasText = actionConfig?.textEnabled && text;
+
+  const pStyle = actionConfig?.particle ? (actionConfig.particleStyle || "点状粒子") : null;
+  const pIcon = pStyle ? (PARTICLE_ICONS[pStyle] || "●") : null;
+
+  const showIcon = !hasText && !pIcon;
+
+  if (!hasText && !pIcon && !ThemeIcon) return <div className="flex-1 min-h-0" />;
+
+  return (
+    <div className="flex-1 min-h-0 flex items-center justify-center">
+      {hasText ? (
+        <span
+          className="text-[28px] font-bold leading-none select-none"
+          style={{ color: accent, textShadow: `0 2px 12px ${accent}22` }}
+        >
+          {text.length > 10 ? text.slice(0, 10) + "…" : text}
+        </span>
+      ) : pIcon ? (
+        <span
+          className="text-[32px] leading-none select-none"
+          style={{ color: accent, opacity: 0.6 }}
+        >
+          {pIcon}
+        </span>
+      ) : (
+        <ThemeIcon className="size-10" style={{ color: accent, opacity: 0.35 }} />
+      )}
+    </div>
+  );
+}
+
+// ── IdentityCard ─────────────────────────────────────────────
+
+function IdentityCard({ actionConfig, accent, name, Icon: ThemeIcon }) {
+  const tags = effectSummary(actionConfig);
+  const hasEffects = tags.length > 0;
+
+  return (
+    <div
+      className="relative h-full overflow-hidden rounded-2xl border border-slate-200/80 shadow-sm"
+      style={{ backgroundColor: `${accent}06` }}
+    >
+      {/* bg blob */}
       <div
-        className="absolute inset-0 rounded-2xl"
-        style={{
-          background: "linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.9) 100%)",
-          boxShadow: [
-            "0 1px 2px rgba(0,0,0,0.04)",
-            "0 4px 8px rgba(0,0,0,0.04)",
-            "0 8px 24px rgba(0,0,0,0.06)",
-            "0 0 0 1px rgba(0,0,0,0.05)",
-          ].join(", "),
-          transform: "rotateX(1.5deg)",
-          transformOrigin: "center center",
-        }}
-      />
-      {/* ── top highlight ── */}
-      <div
-        className="absolute inset-x-3 top-0 z-10 h-px rounded-full"
-        style={{ background: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.6) 20%, rgba(255,255,255,0.8) 50%, rgba(255,255,255,0.6) 80%, transparent 100%)" }}
+        className="pointer-events-none absolute -right-8 -top-8 size-40 rounded-full opacity-[0.04]"
+        style={{ backgroundColor: accent }}
       />
 
-      {/* ── inner content ── */}
-      <div className="relative mx-auto mt-1.5 flex h-[calc(100%-7px)] w-[calc(100%-10px)] flex-col items-center justify-center rounded-xl bg-slate-50/80 px-5 py-3">
-        {noop ? (
-          <span className="text-xs text-slate-400">暂无特效配置</span>
+      {/* accent bar */}
+      <div
+        className="absolute left-0 top-0 bottom-0 w-[3px]"
+        style={{ backgroundColor: accent }}
+      />
+
+      <div className="flex h-full flex-col px-4 py-3.5">
+        {/* theme icon + name — always visible */}
+        <div className="flex items-center gap-2.5 min-w-0 shrink-0">
+          <div
+            className="flex size-8 shrink-0 items-center justify-center rounded-lg"
+            style={{ backgroundColor: `${accent}14` }}
+          >
+            <ThemeIcon className="size-[15px]" style={{ color: accent }} />
+          </div>
+          <h2 className="text-sm font-bold truncate" style={{ color: accent }}>{name}</h2>
+        </div>
+
+        {!hasEffects ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-2">
+            <p className="text-xs text-slate-400">暂无特效配置</p>
+            <p className="text-[10px] text-slate-300">可前往工作台配置效果</p>
+          </div>
         ) : (
           <>
-            {/* cursor icon + accent glow */}
-            <div className="relative mb-3 flex items-center justify-center">
-              <div
-                className="absolute size-14 rounded-full blur-xl"
-                style={{ backgroundColor: accent, opacity: 0.18 }}
-              />
-              <div
-                className="absolute size-10 rounded-full blur-md"
-                style={{ backgroundColor: accent, opacity: 0.1 }}
-              />
-              <img
-                src={cursorImg}
-                alt=""
-                className="relative size-11 object-contain drop-shadow-sm"
-              />
-            </div>
+            {/* hero preview — visual centerpiece */}
+            <HeroPreview actionConfig={actionConfig} accent={accent} Icon={ThemeIcon} />
 
-            {/* detail rows */}
-            <div className="w-full space-y-1.5">
-              {details.map((d) => (
-                <div
-                  key={d.key}
-                  className="flex items-center gap-2 rounded-lg bg-white/60 px-3 py-1.5"
-                >
-                  {/* icon */}
-                  <span
-                    className="flex size-5 shrink-0 items-center justify-center rounded text-[10px] font-bold"
-                    style={{
-                      backgroundColor: d.color ? `${d.color}18` : `${accent}14`,
-                      color: d.color || accent,
-                    }}
-                  >
-                    {d.icon}
-                  </span>
-                  {/* label */}
-                  <span className="text-[11px] font-medium text-slate-600">{d.label}</span>
-                  {/* values */}
-                  <span className="ml-auto text-[10px] tracking-tight text-slate-400">
-                    {d.values.join(" · ")}
-                  </span>
-                </div>
-              ))}
-            </div>
+            {/* effect chips — 2-column grid */}
+            {(actionConfig?.particle || actionConfig?.ripple || actionConfig?.textEnabled || actionConfig?.sound) && (
+              <div className="shrink-0 grid grid-cols-2 gap-1 mt-2">
+                <ParticleBlock ac={actionConfig} accent={accent} />
+                <RippleBlock ac={actionConfig} accent={accent} />
+                <TextBlock ac={actionConfig} />
+                <SoundBlock ac={actionConfig} />
+              </div>
+            )}
           </>
         )}
       </div>
@@ -185,147 +245,121 @@ function ThemeDetail({ actionConfig, cursorImg, accent }) {
   );
 }
 
-// ── ThemeCarousel — infinite 3D coverflow ──────────────────────
+// ── Carousel ──────────────────────────────────────────────────
 
-const CARD_SIZE = 60;
-const CARD_GAP = 64; // center-to-center spacing
+const CARD_SIZE = 56;
+const CARD_GAP = 52;
 
-function ThemeCarousel({ themes, activeId, onSelect }) {
+function ThemeCarousel({ themes, activeId, onSelect, accent }) {
   const n = themes.length;
-  const activeIdx = Math.max(0, themes.findIndex((t) => t.id === activeId));
-  const active = themes[activeIdx];
-  const accent = themeAccent(active?.actionConfig);
+  const idx = Math.max(0, themes.findIndex((t) => t.id === activeId));
 
-  if (!active) return null;
+  if (!activeId || n === 0) return null;
 
   return (
-    <div
-      className="relative flex h-[108px] items-center justify-center overflow-hidden"
-      style={{ perspective: "900px" }}
-    >
-      {/* ── cards ── */}
-      <AnimatePresence mode="popLayout">
+    <div className="relative flex flex-col items-center" role="region" aria-label="主题轮播">
+      <div className="relative flex h-[76px] w-full items-center justify-center overflow-hidden">
         {themes.map((t, i) => {
-          // signed offset from active — wrap for infinite loop
-          let raw = i - activeIdx;
+          let raw = i - idx;
           if (raw > n / 2) raw -= n;
           if (raw < -n / 2) raw += n;
-
-          const abs = Math.abs(raw);
-          if (abs > 2) return null;
-
-          const isActive = raw === 0;
-          const img = cursorUrl(t.pack);
+          if (Math.abs(raw) > 2) return null;
+          const active = raw === 0;
           const tAccent = themeAccent(t.actionConfig);
-
-          // visual falloff — no blur, all cards crisp
-          const scale = isActive ? 1 : abs === 1 ? 0.82 : 0.62;
-          const opacity = isActive ? 1 : abs === 1 ? 0.5 : 0.22;
-          const zIdx = 10 - abs;
-          const rotY = raw * 28;
+          const CardIcon = t.icon ? themeIcon(t) : null;
 
           return (
             <motion.button
               key={t.id}
               type="button"
               onClick={() => onSelect(t.id)}
-              initial={{ opacity: 0, scale: 0.7 }}
+              aria-label={`切换到 ${t.name}`}
               animate={{
                 x: raw * CARD_GAP,
-                scale,
-                opacity,
-                zIndex: zIdx,
-                rotateY: rotY,
+                scale: active ? 1 : 0.78,
+                opacity: active ? 1 : Math.abs(raw) === 1 ? 0.4 : 0.15,
+                zIndex: active ? 10 : 1,
+                rotateY: raw * 22,
               }}
-              exit={{ opacity: 0, scale: 0.7, transition: { duration: 0.18 } }}
-              transition={{ type: "spring", stiffness: 140, damping: 24 }}
-              className="absolute flex shrink-0 flex-col items-center gap-1.5"
+              transition={{ type: "spring", stiffness: 160, damping: 26 }}
+              className="absolute flex shrink-0 flex-col items-center gap-1"
             >
-            {/* card body */}
-            <div
-              className="flex items-center justify-center rounded-2xl transition-shadow duration-300"
-              style={{
-                width: CARD_SIZE,
-                height: CARD_SIZE,
-                ...(isActive
-                  ? {
-                      background: `linear-gradient(145deg, ${tAccent}18 0%, ${tAccent}08 100%)`,
-                      boxShadow: [
-                        `0 1px 3px rgba(0,0,0,0.04)`,
-                        `0 6px 18px rgba(0,0,0,0.08)`,
-                        `0 0 0 1px ${tAccent}20`,
-                        `0 0 22px ${tAccent}10`,
-                      ].join(", "),
-                    }
-                  : {
-                      background: "linear-gradient(145deg, #f8fafc 0%, #f1f5f9 100%)",
-                      boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.04)",
-                    }),
-              }}
+              <div
+                className="flex items-center justify-center rounded-xl"
+                style={{
+                  width: CARD_SIZE,
+                  height: CARD_SIZE,
+                  ...(active
+                    ? {
+                        backgroundColor: `${tAccent}10`,
+                        boxShadow: `0 0 0 1.5px ${tAccent}28, 0 4px 12px ${tAccent}12`,
+                      }
+                    : {
+                        backgroundColor: "#f1f5f9",
+                        boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                      }),
+                }}
+              >
+                {CardIcon ? (
+                  <CardIcon className="size-5" style={{ color: active ? tAccent : "#94a3b8" }} />
+                ) : (
+                  <span
+                    className="text-base font-bold"
+                    style={{ color: active ? tAccent : "#94a3b8" }}
+                  >
+                    {t.name.length <= 2 ? t.name : t.name.slice(0, 2)}
+                  </span>
+                )}
+              </div>
+              <span
+                className="text-[9px] font-semibold"
+                style={{
+                  color: active ? tAccent : "#cbd5e1",
+                  opacity: active ? 1 : 0,
+                }}
+              >
+                {t.name}
+              </span>
+            </motion.button>
+          );
+        })}
+
+        {n > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onSelect(themes[(idx - 1 + n) % n].id); }}
+              aria-label="上一个主题"
+              className="absolute left-0.5 z-10 flex size-6 items-center justify-center rounded-full bg-white/80 shadow-sm ring-1 ring-slate-200 backdrop-blur-sm hover:bg-white active:scale-[0.95]"
             >
-              <img src={img} alt="" className="max-h-[26px] max-w-[26px] object-contain" />
-            </div>
-
-            {/* label */}
-            <span
-              className="text-[11px] font-semibold tracking-tight"
-              style={{ color: isActive ? tAccent : "#94a3b8" }}
+              <ChevronLeft className="size-3 text-slate-500" />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onSelect(themes[(idx + 1 + n) % n].id); }}
+              aria-label="下一个主题"
+              className="absolute right-0.5 z-10 flex size-6 items-center justify-center rounded-full bg-white/80 shadow-sm ring-1 ring-slate-200 backdrop-blur-sm hover:bg-white active:scale-[0.95]"
             >
-              {t.name.length > 4 ? t.name.slice(0, 4) : t.name}
-            </span>
+              <ChevronRight className="size-3 text-slate-500" />
+            </button>
+          </>
+        )}
+      </div>
 
-            {/* active dot */}
-            {isActive && (
-              <motion.div
-                layoutId="carousel-dot"
-                className="h-1 w-1 rounded-full"
-                style={{ backgroundColor: accent }}
-                transition={{ type: "spring", stiffness: 380, damping: 28 }}
-              />
-            )}
-          </motion.button>
-        );
-      })}
-      </AnimatePresence>
-
-      {/* ── navigation arrows ── */}
       {n > 1 && (
-        <>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelect(themes[(activeIdx - 1 + n) % n].id);
-            }}
-            className="absolute left-1 z-20 flex size-7 items-center justify-center rounded-full bg-white/85 shadow-sm ring-1 ring-slate-200 backdrop-blur-sm transition-all hover:bg-white"
-          >
-            <ChevronLeft className="size-3 text-slate-500" />
-          </button>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelect(themes[(activeIdx + 1) % n].id);
-            }}
-            className="absolute right-1 z-20 flex size-7 items-center justify-center rounded-full bg-white/85 shadow-sm ring-1 ring-slate-200 backdrop-blur-sm transition-all hover:bg-white"
-          >
-            <ChevronRight className="size-3 text-slate-500" />
-          </button>
-        </>
-      )}
-
-      {/* ── dot indicators ── */}
-      {n > 1 && (
-        <div className="absolute bottom-1 z-20 flex items-center gap-1">
+        <div className="flex items-center gap-1 pt-1">
           {themes.map((_, i) => (
-            <span
+            <button
               key={i}
-              className="block rounded-full transition-all duration-300"
+              type="button"
+              aria-label={`第 ${i + 1} 个主题`}
+              onClick={() => onSelect(themes[i].id)}
+              className="rounded-full transition-all duration-300"
               style={{
-                width: i === activeIdx ? 5 : 3,
-                height: i === activeIdx ? 5 : 3,
-                backgroundColor: i === activeIdx ? accent : "#d1d5db",
-                opacity: i === activeIdx ? 1 : 0.45,
+                width: i === idx ? 5 : 2.5,
+                height: i === idx ? 5 : 2.5,
+                backgroundColor: i === idx ? accent : "#d1d5db",
+                opacity: i === idx ? 1 : 0.4,
               }}
             />
           ))}
@@ -335,30 +369,7 @@ function ThemeCarousel({ themes, activeId, onSelect }) {
   );
 }
 
-// ── SiteBadge — only shown when there's a relevant rule ───────
-
-function SiteBadge({ site, siteAction }) {
-  if (!site.host) return null;
-  const disabled = siteAction === "disable";
-  const themed = siteAction?.enable && siteAction?.theme;
-
-  // only show if the site has a non-default rule
-  if (!disabled && !themed) return null;
-
-  return (
-    <div
-      className={cn(
-        "flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1 text-[10px] font-medium",
-        disabled ? "bg-rose-50 text-rose-600" : "bg-amber-50 text-amber-700"
-      )}
-    >
-      {disabled ? <AlertTriangle className="size-3" /> : <Zap className="size-3" />}
-      {disabled ? `${site.host} 已禁用特效` : `${site.host} 已绑定专属主题`}
-    </div>
-  );
-}
-
-// ── Loading ───────────────────────────────────────────────────
+// ── Loading ──────────────────────────────────────────────────
 
 function LoadingShell() {
   return (
@@ -368,33 +379,37 @@ function LoadingShell() {
   );
 }
 
-// ── PopupPage ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// PopupPage
+// ═══════════════════════════════════════════════════════════════
 
 export default function PopupPage() {
   const {
-    ready, site, enabled, siteAction,
-    hydrated, effectiveConfig,
-    setEnabled, setThemeId, openOptionsPage,
+    ready, enabled,
+    setEnabled, setThemeId, openOptionsPage, previewCurrentTheme,
+    activeThemeChoice, themeChoices, busyKey,
   } = usePopupState();
 
   const [previewingId, setPreviewingId] = useState(null);
 
-  // build theme data
-  const themes = useMemo(() => {
-    if (!hydrated) return [];
-    return hydrated.themeLibrary.map((t) => {
-      const pack = effectiveConfig?.themePacks?.find((p) => p.id === t.id) ?? null;
-      const draft = hydrated.draftsByTheme?.[t.id];
-      const ac = draft?.actionConfigs?.leftClick ?? null;
-      return { ...t, pack, actionConfig: ac };
-    });
-  }, [hydrated, effectiveConfig]);
+  // ── derived data ──
+  const activeId = activeThemeChoice?.theme?.id;
+  const current = activeThemeChoice;
 
-  const activeId = hydrated?.selection?.themeId;
-  const current = themes.find((t) => t.id === activeId) ?? themes[0];
+  // flatten for carousel (needs flat { id, name, icon } access)
+  const carouselThemes = useMemo(
+    () => themeChoices.map((c) => ({
+      id: c.theme.id,
+      name: c.theme.name,
+      icon: c.theme.icon,
+      actionConfig: c.actionConfig,
+    })),
+    [themeChoices]
+  );
+
   const accent = themeAccent(current?.actionConfig);
-  const effects = effectSummary(current?.actionConfig);
 
+  // ── handlers ──
   const switchTo = useCallback(
     (themeId) => {
       if (themeId === activeId) return;
@@ -403,12 +418,12 @@ export default function PopupPage() {
     [activeId, setThemeId]
   );
 
-  const previewCurrent = useCallback(async () => {
-    if (!current?.pack || previewingId) return;
-    setPreviewingId(current.id);
-    try { await previewThemePack(current.id, current.pack, "leftClick"); } catch {}
+  const handlePreview = useCallback(async () => {
+    if (busyKey || previewingId) return;
+    setPreviewingId("previewing");
+    try { await previewCurrentTheme(); } catch {}
     setTimeout(() => setPreviewingId(null), 600);
-  }, [current, previewingId]);
+  }, [busyKey, previewingId, previewCurrentTheme]);
 
   if (!ready) return <LoadingShell />;
 
@@ -423,85 +438,74 @@ export default function PopupPage() {
       {/* ── header ── */}
       <header className="flex shrink-0 items-center gap-2 px-4 pt-3.5 pb-2">
         <img src="logo.svg" alt="" className="size-6 rounded-md" />
-        <span className="text-[13px] font-bold tracking-tight text-slate-900">CursorDance</span>
-        <button
-          type="button"
-          onClick={() => setEnabled(!enabled)}
-          className={cn(
-            "ml-auto flex h-7 items-center rounded-full px-3 text-[11px] font-semibold transition-all active:scale-95",
-            enabled ? "bg-slate-900 text-white shadow-sm" : "bg-slate-100 text-slate-400"
-          )}
-        >
-          {enabled ? "已开启" : "已暂停"}
-        </button>
+        <span className="text-[13px] font-bold text-slate-900">CursorDance</span>
+        <div className="ml-auto flex items-center">
+          <Toggle checked={enabled} onChange={setEnabled} />
+        </div>
       </header>
 
-      {/* ── site rule badge (conditional) ── */}
-      <div className="shrink-0 px-4 pb-1">
-        <SiteBadge site={site} siteAction={siteAction} />
-      </div>
-
-      {/* ── theme detail card ── */}
-      <div className="mx-4 flex-1 min-h-0" style={{ maxHeight: 196 }}>
+      {/* ── identity card ── */}
+      <div className="flex-1 min-h-0 px-4 pt-2 pb-2">
         <AnimatePresence mode="wait">
           <motion.div
-            key={current?.id}
+            key={current?.theme?.id || "empty"}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="h-full w-full"
+            className="h-full"
           >
-            <ThemeDetail
-              actionConfig={current?.actionConfig}
-              cursorImg={cursorUrl(current?.pack)}
-              accent={accent}
-            />
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      {/* ── theme info ── */}
-      <div className="shrink-0 px-4 pt-2.5 pb-0.5 text-center">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={current?.id}
-            initial={{ opacity: 0, y: 3 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -3 }}
-            transition={{ duration: 0.15 }}
-          >
-            <p className="text-sm font-bold text-slate-800">{current?.name}</p>
-            {effects.length > 0 && (
-              <p className="mt-0.5 text-[11px] text-slate-400">{effects.join(" · ")}</p>
+            {current ? (
+              <IdentityCard
+                actionConfig={current.actionConfig}
+                accent={accent}
+                name={current.theme.name}
+                Icon={themeIcon(current.theme)}
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+                <p className="text-xs text-slate-400">还没有主题，去工作台创建一个</p>
+              </div>
             )}
           </motion.div>
         </AnimatePresence>
       </div>
 
-      {/* ── theme carousel ── */}
-      <div className="shrink-0 px-2 pt-2 pb-1">
-        <ThemeCarousel themes={themes} activeId={activeId} onSelect={switchTo} />
-      </div>
+      {/* ── carousel ── */}
+      {carouselThemes.length > 0 && (
+        <div className="shrink-0 px-2 pb-1">
+          <ThemeCarousel
+            themes={carouselThemes}
+            activeId={activeId}
+            onSelect={switchTo}
+            accent={accent}
+          />
+        </div>
+      )}
 
       {/* ── footer ── */}
       <footer className="shrink-0 grid grid-cols-2 gap-2.5 px-4 pb-4">
         <button
           type="button"
           onClick={openOptionsPage}
-          className="flex h-9 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white text-[12px] font-semibold text-slate-600 transition-colors hover:bg-slate-50"
+          className="flex h-9 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white text-[12px] font-semibold text-slate-600 shadow-sm transition-colors hover:bg-slate-50 active:scale-[0.97]"
+          aria-label="打开工作台"
         >
           <Settings className="size-3.5" />
           工作台
         </button>
         <button
           type="button"
-          onClick={previewCurrent}
-          disabled={!current?.pack || previewingId != null || !site.isSupportedPage}
-          className="flex h-9 items-center justify-center gap-1.5 rounded-xl bg-slate-900 text-[12px] font-semibold text-white transition-colors hover:bg-slate-800 disabled:opacity-40"
+          onClick={handlePreview}
+          disabled={busyKey === "preview" || busyKey === "theme" || previewingId != null || !enabled}
+          className="flex h-9 items-center justify-center gap-1.5 rounded-xl text-[12px] font-semibold text-white shadow-sm transition-colors active:scale-[0.97] disabled:opacity-40"
+          aria-label="预览当前主题效果"
+          style={{
+            backgroundColor: enabled && !busyKey ? accent : "#94a3b8",
+          }}
         >
           <Play className="size-3.5" />
-          预览效果
+          {busyKey === "preview" ? "预览中…" : "预览效果"}
         </button>
       </footer>
     </div>
