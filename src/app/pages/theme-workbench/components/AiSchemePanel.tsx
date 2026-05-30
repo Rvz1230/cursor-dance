@@ -10,7 +10,6 @@ import { cn } from "@/components/ui/utils";
 import { getAiRequestErrorMessage, requestAiSchemeEditStreaming, requestAiAgentRun } from "../lib/aiSchemeAssistant";
 import { saveConversation, loadConversation, deleteConversation, sweepExpiredConversations } from "../lib/storage/ai-conversation";
 import { saveFeedback } from "../lib/storage/ai-feedback";
-import { useTypewriter } from "../hooks/useTypewriter";
 import { Panel } from "./WorkbenchControls";
 
 function buildPromptExamples(currentConfig) {
@@ -218,7 +217,7 @@ function MessageBubble({ message, onEdit, actionId }) {
             placeholder="哪里不对？(选填)"
             className="w-full min-w-0 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none placeholder:text-slate-400 focus:border-slate-300"
             onKeyDown={(e) => {
-              if (e.key === "Enter") handleSubmitComment();
+              if (e.key === "Enter" && !e.isComposing && e.keyCode !== 229) handleSubmitComment();
             }}
           />
           <button
@@ -331,7 +330,7 @@ function ProposalCard({ result, previewActive }) {
   const replyLineCount = (result.reply || "").split("\n").length;
   const [openSections, setOpenSections] = useState({
     reply: replyLineCount < 3,
-    diff: false,
+    diff: true,
     meta: false,
   });
 
@@ -496,8 +495,10 @@ function ToolCallBadge({ toolCall, toolResult }) {
   );
 }
 
-function AgentTimeline({ steps, isRunning }) {
+function AgentTimeline({ steps, isRunning, totalSteps }) {
   if (!steps?.length && !isRunning) return null;
+
+  const stepLabel = totalSteps > 0 ? `${steps.length} / ${totalSteps}` : `${steps.length} 步`;
 
   return (
     <div className="rounded-2xl border border-sky-100 bg-sky-50/50 p-3">
@@ -510,7 +511,7 @@ function AgentTimeline({ steps, isRunning }) {
             运行中
           </span>
         ) : (
-          <span className="ml-auto rounded-full border border-sky-200 bg-sky-100 px-2 py-0.5 text-[11px] font-medium text-sky-700">{steps.length} 步</span>
+          <span className="ml-auto rounded-full border border-sky-200 bg-sky-100 px-2 py-0.5 text-[11px] font-medium text-sky-700">{stepLabel}</span>
         )}
       </div>
       <div className="space-y-2">
@@ -603,7 +604,7 @@ function ModeSwitcher({ useAgent, onToggle, disabled }) {
               {!useAgent ? <Check className="ml-auto size-3.5 text-slate-600" /> : null}
             </div>
             <div className="mt-0.5 text-[11px] leading-4 text-slate-500 text-pretty">
-              一步生成，适合简单需求
+              一步生成，适合简单需求（调整参数、开关效果）
             </div>
           </button>
           <button
@@ -619,7 +620,10 @@ function ModeSwitcher({ useAgent, onToggle, disabled }) {
               {useAgent ? <Check className="ml-auto size-3.5 text-slate-600" /> : null}
             </div>
             <div className="mt-0.5 text-[11px] leading-4 text-slate-500 text-pretty">
-              分步推理 · 工具调用，适合复杂需求
+              分步推理 · 工具调用，适合复杂跨动作修改
+            </div>
+            <div className="mt-1 text-[11px] leading-4 text-slate-400">
+              可读取/修改多个动作配置，支持撤销
             </div>
           </button>
         </div>
@@ -652,24 +656,13 @@ export function AiSchemePanel({
   const [lastPrompt, setLastPrompt] = useState("");
   const [useAgent, setUseAgent] = useState(false);
   const [agentSteps, setAgentSteps] = useState([]);
+  const [agentTotalSteps, setAgentTotalSteps] = useState(0);
   const [agentRunning, setAgentRunning] = useState(false);
-  const [streamingPhase, setStreamingPhase] = useState(0);
+  const [confirmClear, setConfirmClear] = useState(false);
   const abortRef = useRef(null);
   // Use ref for atomic submit lock — React state batching could allow
   // double-submit when tuningOptions chips are clicked in rapid succession.
   const generatingRef = useRef(false);
-
-  const { displayedText: smoothReply, flush: flushTypewriter } = useTypewriter(streamingReply, { speed: 40 });
-
-  // Cycle streaming phase indicator (fast mode only — agent uses AgentTimeline)
-  useEffect(() => {
-    if (!isGenerating || streamingReply || useAgent) return;
-    const phases = ["正在分析需求", "正在生成配置", "正在验证方案"];
-    const timer = setInterval(() => {
-      setStreamingPhase((p) => (p + 1) % phases.length);
-    }, 2000);
-    return () => clearInterval(timer);
-  }, [isGenerating, streamingReply, useAgent]);
 
   // Persist conversation state when switching between actions
   const actionIdRef = useRef(actionId);
@@ -680,7 +673,7 @@ export function AiSchemePanel({
     agentSteps,
     useAgent,
   });
-  stateRef.current = { messages, pendingResult, lastPrompt, agentSteps, useAgent };
+  stateRef.current = { messages, pendingResult, lastPrompt, agentSteps, useAgent, agentTotalSteps };
 
   // Hydrate conversation from storage on mount + save/restore on action switch
   useEffect(() => {
@@ -699,12 +692,14 @@ export function AiSchemePanel({
         setPendingResult(saved.pendingResult ?? null);
         setLastPrompt(saved.lastPrompt ?? "");
         setAgentSteps(saved.agentSteps ?? []);
+        setAgentTotalSteps(saved.agentTotalSteps ?? 0);
         setUseAgent(saved.useAgent ?? false);
       } else if (isSwitch) {
         setMessages(getInitialMessages());
         setPendingResult(null);
         setLastPrompt("");
         setAgentSteps([]);
+        setAgentTotalSteps(0);
       }
     }
 
@@ -718,6 +713,8 @@ export function AiSchemePanel({
     setStreamingReply("");
     setIsGenerating(false);
     setAgentRunning(false);
+    setAgentTotalSteps(0);
+    setConfirmClear(false);
     abortRef.current = null;
 
     actionIdRef.current = actionId;
@@ -738,7 +735,7 @@ export function AiSchemePanel({
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [actionId, messages, pendingResult, lastPrompt, agentSteps, useAgent]);
+  }, [actionId, messages, pendingResult, lastPrompt, agentSteps, useAgent, agentTotalSteps]);
 
   const promptExamples = useMemo(() => buildPromptExamples(currentConfig), [currentConfig]);
 
@@ -781,7 +778,7 @@ export function AiSchemePanel({
     if (isNearBottom) {
       el.scrollTop = el.scrollHeight;
     }
-  }, [messages, isGenerating, streamingReply, smoothReply, agentSteps]);
+  }, [messages, isGenerating, streamingReply, agentSteps]);
 
   async function submitPrompt(nextPrompt = prompt, modeOverride = "modify_action") {
     const trimmedPrompt = nextPrompt.trim();
@@ -843,6 +840,7 @@ export function AiSchemePanel({
                 });
               }
             } else if (eventType === "step_start") {
+              if (data.totalSteps) setAgentTotalSteps(data.totalSteps);
               setAgentSteps((prev) => [
                 ...prev,
                 { index: data.step, thought: "", toolCalls: [], toolResults: [], durationMs: 0 },
@@ -945,7 +943,6 @@ export function AiSchemePanel({
     }
     generatingRef.current = false;
     const partialContent = streamingReply;
-    flushTypewriter();
     setAgentRunning(false);
     setIsGenerating(false);
     setStreamingReply("");
@@ -957,7 +954,7 @@ export function AiSchemePanel({
   }
 
   function handleKeyDown(event) {
-    if (event.key === "Enter" && !event.shiftKey) {
+    if (event.key === "Enter" && !event.shiftKey && !event.isComposing && event.keyCode !== 229) {
       event.preventDefault();
       submitPrompt();
     }
@@ -970,6 +967,15 @@ export function AiSchemePanel({
 
   function applyPendingResult() {
     if (!pendingResult) return;
+
+    if (aiSnapshot) {
+      notify?.({
+        tone: "info",
+        title: "将覆盖之前的 AI 改动",
+        description: "撤销点将更新到最新状态，之前的改动将无法单独回退。",
+      });
+    }
+
     if (applyProposal) {
       applyProposal(pendingResult);
     } else {
@@ -998,6 +1004,7 @@ export function AiSchemePanel({
     setPendingResult(null);
     setLastPrompt("");
     setAgentSteps([]);
+    setAgentTotalSteps(0);
     generatingRef.current = false;
     setAgentRunning(false);
     setIsGenerating(false);
@@ -1026,25 +1033,50 @@ export function AiSchemePanel({
     <Panel
       title="AI 方案助手"
       icon={Bot}
-      iconTone="bg-slate-950 text-white"
+      iconTone="bg-sky-500 text-white"
       summary={`${actionLabel} · 内嵌对话`}
       className={cn("shadow-sm", variant === "full" ? "flex h-full min-h-0 flex-col" : "max-h-[380px] shrink-0")}
       contentClassName={cn("min-h-0 overflow-hidden !p-0", variant === "full" && "flex flex-1 flex-col")}
       action={(
         <div className="flex items-center gap-1.5">
           <ModeSwitcher useAgent={useAgent} onToggle={setUseAgent} disabled={isGenerating} />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="size-8 rounded-xl text-slate-400 hover:text-slate-600"
-            onClick={clearConversation}
-            disabled={isGenerating}
-            aria-label="清空 AI 对话"
-            title="清空 AI 对话"
-          >
-            <Trash2 className="size-4" aria-hidden="true" />
-          </Button>
+          {confirmClear ? (
+            <div className="flex items-center gap-1 rounded-xl bg-rose-50 px-2 py-1">
+              <span className="text-[11px] font-medium text-rose-700">确认清空？</span>
+              <button
+                type="button"
+                className="inline-flex size-6 items-center justify-center rounded-lg bg-white text-rose-600 transition-colors hover:bg-rose-100"
+                onClick={() => {
+                  clearConversation();
+                  setConfirmClear(false);
+                }}
+                aria-label="确认清空"
+              >
+                <Check className="size-3.5" />
+              </button>
+              <button
+                type="button"
+                className="inline-flex size-6 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100"
+                onClick={() => setConfirmClear(false)}
+                aria-label="取消清空"
+              >
+                <X className="size-3.5" />
+              </button>
+            </div>
+          ) : (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-8 rounded-xl text-slate-400 hover:text-rose-600"
+              onClick={() => setConfirmClear(true)}
+              disabled={isGenerating}
+              aria-label="清空 AI 对话"
+              title="清空 AI 对话"
+            >
+              <Trash2 className="size-4" aria-hidden="true" />
+            </Button>
+          )}
         </div>
       )}
     >
@@ -1099,7 +1131,7 @@ export function AiSchemePanel({
                           strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
                         }}
                       >
-                        {smoothReply}
+                        {streamingReply}
                       </Markdown>
                       <span className="ml-0.5 inline-block h-3.5 w-0.5 animate-pulse bg-sky-400 align-middle" />
                     </div>
@@ -1111,9 +1143,7 @@ export function AiSchemePanel({
                         <span className="size-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:300ms]" />
                       </span>
                       <span className="text-slate-400">
-                        {useAgent && agentRunning
-                          ? "Agent 正在分析需求"
-                          : ["正在分析需求", "正在生成配置", "正在验证方案"][streamingPhase]}
+                        {useAgent && agentRunning ? "Agent 正在分析需求" : "AI 正在生成"}
                       </span>
                     </span>
                   )}
@@ -1127,7 +1157,7 @@ export function AiSchemePanel({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
           >
-            <AgentTimeline steps={agentSteps} isRunning={agentRunning} />
+            <AgentTimeline steps={agentSteps} isRunning={agentRunning} totalSteps={agentTotalSteps} />
           </motion.div>
 
           <motion.div
@@ -1187,11 +1217,13 @@ export function AiSchemePanel({
               <Check className="mr-2 size-4" aria-hidden="true" />
               应用改动
             </Button>
-            <Button variant="outline" size="icon" className="size-9 rounded-xl" onClick={() => submitPrompt(lastPrompt)} disabled={!lastPrompt || isGenerating} aria-label="重新生成">
-              <RotateCcw className="size-4" aria-hidden="true" />
+            <Button variant="outline" className="rounded-xl px-3" onClick={() => submitPrompt(lastPrompt)} disabled={!lastPrompt || isGenerating} aria-label="重新生成">
+              <RotateCcw className="mr-1.5 size-4" aria-hidden="true" />
+              重新生成
             </Button>
-            <Button variant="outline" size="icon" className="size-9 rounded-xl text-rose-600" onClick={discardPendingResult} aria-label="放弃改动">
-              <X className="size-4" aria-hidden="true" />
+            <Button variant="outline" className="rounded-xl px-3 text-rose-600 hover:text-rose-700" onClick={discardPendingResult} aria-label="放弃改动">
+              <X className="mr-1.5 size-4" aria-hidden="true" />
+              放弃
             </Button>
           </div>
         ) : null}
