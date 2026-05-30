@@ -1,8 +1,16 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Bot, Check, CheckCircle2, ChevronDown, ChevronRight, Copy, Eye, Loader2, PenLine, RotateCcw, Send, Square, Trash2, Wrench, X, Zap } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Bot, Check, CheckCircle2, ChevronDown, ChevronRight, Copy, Eye, Loader2, PenLine, RotateCcw, Send, Square, ThumbsDown, ThumbsUp, Trash2, Wrench, X, Zap } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const Markdown = ReactMarkdown as any;
 import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/utils";
 import { getAiRequestErrorMessage, requestAiSchemeEditStreaming, requestAiAgentRun } from "../lib/aiSchemeAssistant";
+import { saveConversation, loadConversation, deleteConversation, sweepExpiredConversations } from "../lib/storage/ai-conversation";
+import { saveFeedback } from "../lib/storage/ai-feedback";
+import { useTypewriter } from "../hooks/useTypewriter";
 import { Panel } from "./WorkbenchControls";
 
 function buildPromptExamples(currentConfig) {
@@ -44,10 +52,13 @@ function buildPromptExamples(currentConfig) {
   return [...examples.slice(0, 3), ...fallbacks].slice(0, 4);
 }
 
-function MessageBubble({ message, onEdit }) {
+function MessageBubble({ message, onEdit, actionId }) {
   const isAssistant = message.role === "assistant";
   const [copied, setCopied] = useState(false);
   const copyTimerRef = useRef(null);
+  const [feedback, setFeedback] = useState(null);
+  const [feedbackComment, setFeedbackComment] = useState("");
+  const [showCommentInput, setShowCommentInput] = useState(false);
 
   useEffect(() => {
     return () => clearTimeout(copyTimerRef.current);
@@ -64,6 +75,30 @@ function MessageBubble({ message, onEdit }) {
     });
   }
 
+  async function handleFeedback(rating) {
+    if (feedback) return;
+    setFeedback(rating);
+    await saveFeedback({
+      actionId,
+      messageContent: message.content,
+      rating,
+    });
+    if (rating === "down") {
+      setShowCommentInput(true);
+    }
+  }
+
+  async function handleSubmitComment() {
+    await saveFeedback({
+      actionId,
+      messageContent: message.content,
+      rating: "down",
+      comment: feedbackComment,
+    });
+    setShowCommentInput(false);
+    setFeedbackComment("");
+  }
+
   return (
     <div className={cn("flex flex-col gap-0.5 group", isAssistant ? "items-start" : "items-end")}>
       <div
@@ -74,7 +109,44 @@ function MessageBubble({ message, onEdit }) {
             : "bg-slate-900 text-white"
         )}
       >
-        {message.content}
+        {isAssistant ? (
+          <div className="prose-cd max-w-none">
+            <Markdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                p: ({ children }) => <p className="mb-1 last:mb-0">{children}</p>,
+                code: ({ className, children, ...props }) => {
+                  const isBlock = /language-/.test(className || "");
+                  if (isBlock) {
+                    return (
+                      <pre className="mt-1 mb-1 overflow-x-auto rounded-lg bg-slate-100 p-2 text-[11px] leading-5">
+                        <code className={className} {...props}>{children}</code>
+                      </pre>
+                    );
+                  }
+                  return (
+                    <code className="rounded bg-slate-200/70 px-1 py-0.5 text-[11px] font-mono" {...props}>
+                      {children}
+                    </code>
+                  );
+                },
+                ul: ({ children }) => <ul className="mb-1 list-disc pl-4">{children}</ul>,
+                ol: ({ children }) => <ol className="mb-1 list-decimal pl-4">{children}</ol>,
+                li: ({ children }) => <li className="text-xs leading-5">{children}</li>,
+                strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                a: ({ href, children }) => (
+                  <a href={href} className="underline underline-offset-2 hover:text-slate-900" target="_blank" rel="noreferrer">
+                    {children}
+                  </a>
+                ),
+              }}
+            >
+              {message.content}
+            </Markdown>
+          </div>
+        ) : (
+          <>{message.content}</>
+        )}
       </div>
       <div className={cn(
         "flex items-center gap-0 px-1",
@@ -99,8 +171,62 @@ function MessageBubble({ message, onEdit }) {
           >
             <PenLine className="size-3.5 shrink-0" />
           </button>
-        ) : null}
+        ) : (
+          <>
+            <button
+              type="button"
+              className={cn(
+                "inline-flex items-center rounded-md p-1 transition-colors",
+                feedback === "up"
+                  ? "text-emerald-500 hover:text-emerald-600"
+                  : "text-slate-400 hover:text-slate-600 hover:bg-slate-100",
+              )}
+              onClick={() => handleFeedback("up")}
+              disabled={feedback !== null}
+              aria-label="有帮助"
+              title="有帮助"
+            >
+              <ThumbsUp className={cn("size-3.5", feedback === "up" && "fill-current")} />
+            </button>
+            <button
+              type="button"
+              className={cn(
+                "inline-flex items-center rounded-md p-1 transition-colors",
+                feedback === "down"
+                  ? "text-rose-500 hover:text-rose-600"
+                  : "text-slate-400 hover:text-slate-600 hover:bg-slate-100",
+              )}
+              onClick={() => handleFeedback("down")}
+              disabled={feedback !== null}
+              aria-label="没有帮助"
+              title="没有帮助"
+            >
+              <ThumbsDown className={cn("size-3.5", feedback === "down" && "fill-current")} />
+            </button>
+          </>
+        )}
       </div>
+      {showCommentInput ? (
+        <div className="mt-1 flex w-full max-w-[86%] gap-1.5">
+          <input
+            type="text"
+            value={feedbackComment}
+            onChange={(e) => setFeedbackComment(e.target.value)}
+            placeholder="哪里不对？(选填)"
+            className="w-full min-w-0 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none placeholder:text-slate-400 focus:border-slate-300"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSubmitComment();
+            }}
+          />
+          <button
+            type="button"
+            className="shrink-0 rounded-xl bg-slate-800 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-slate-700"
+            onClick={handleSubmitComment}
+          >
+            发送
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -199,6 +325,33 @@ function ProposalCard({ result, previewActive }) {
       ? "border-amber-100 bg-amber-50 text-amber-700"
       : "border-emerald-100 bg-emerald-50 text-emerald-700";
 
+  const replyLineCount = (result.reply || "").split("\n").length;
+  const [openSections, setOpenSections] = useState({
+    reply: replyLineCount < 3,
+    diff: false,
+    meta: false,
+  });
+
+  function toggleSection(section) {
+    setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
+  }
+
+  function SectionToggle({ label, section, className = "" }) {
+    return (
+      <button
+        type="button"
+        className={cn(
+          "flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-xs transition-colors hover:bg-slate-50",
+          className,
+        )}
+        onClick={() => toggleSection(section)}
+      >
+        {openSections[section] ? <ChevronDown className="size-3.5 shrink-0 text-slate-400" /> : <ChevronRight className="size-3.5 shrink-0 text-slate-400" />}
+        <span className="font-medium text-slate-700">{label}</span>
+      </button>
+    );
+  }
+
   return (
     <div className="min-h-0 rounded-2xl border border-slate-200 bg-white p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
@@ -216,41 +369,66 @@ function ProposalCard({ result, previewActive }) {
       </div>
 
       <SchemeOverview scheme={result.scheme} />
-      {result.reply ? <div className="mb-2 rounded-xl bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600 text-pretty">{result.reply}</div> : null}
+
+      {/* AI 回复 — collapsible */}
+      {result.reply ? (
+        <div className="mb-2">
+          <SectionToggle label="AI 回复" section="reply" />
+          {openSections.reply ? (
+            <div className="rounded-xl bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600 text-pretty">
+              {result.reply}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {/* Warnings — always visible */}
       {result.warnings?.length ? (
         <div className="mb-2 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
           {result.warnings.slice(0, 2).join("；")}
         </div>
       ) : null}
 
-      <TargetSummary targets={result.targets} />
+      {/* 改动详情 — collapsible */}
+      <div className="mb-2">
+        <SectionToggle label={`改动详情${result.targets?.length ? `（${result.targets.length} 个动作）` : ""}`} section="diff" />
+        {openSections.diff ? (
+          <div className="space-y-2">
+            <TargetSummary targets={result.targets} />
 
-      {diffItems.length ? (
-        <div className="max-h-[148px] space-y-1.5 overflow-y-auto pr-1">
-          {diffItems.slice(0, 8).map((item) => (
-            <div key={item.fieldName} className="grid grid-cols-[82px_minmax(0,1fr)] gap-2 rounded-xl border border-slate-100 bg-slate-50 px-2.5 py-2 text-xs">
-              <div className="truncate font-medium text-slate-700">{item.label}</div>
-              <div className="min-w-0 text-slate-500">
-                <span className="truncate align-middle">{item.beforeLabel}</span>
-                <span className="mx-1 text-slate-400">-&gt;</span>
-                <span className="truncate font-semibold text-slate-900 align-middle">{item.afterLabel}</span>
+            {diffItems.length ? (
+              <div className="max-h-[200px] space-y-1.5 overflow-y-auto pr-1">
+                {diffItems.slice(0, 12).map((item) => (
+                  <div key={item.fieldName} className="grid grid-cols-[82px_minmax(0,1fr)] gap-2 rounded-xl border border-slate-100 bg-slate-50 px-2.5 py-2 text-xs">
+                    <div className="truncate font-medium text-slate-700">{item.label}</div>
+                    <div className="min-w-0 text-slate-500">
+                      <span className="truncate align-middle">{item.beforeLabel}</span>
+                      <span className="mx-1 text-slate-400">-&gt;</span>
+                      <span className="truncate font-semibold text-slate-900 align-middle">{item.afterLabel}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          这次没有生成可应用的配置差异。
-        </div>
-      )}
+            ) : (
+              <div className="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                这次没有生成可应用的配置差异。
+              </div>
+            )}
+          </div>
+        ) : null}
+      </div>
 
-      {result.totalTokens != null ? (
-        <div className="mt-2 flex items-center gap-2 text-[11px] text-slate-400">
-          <span>本次消耗 ~{result.totalTokens.toLocaleString()} tokens</span>
-          <span className="text-slate-300">·</span>
-          <span>约 ¥{((result.totalTokens / 1000000) * 1.5).toFixed(4)}</span>
-        </div>
-      ) : null}
+      {/* 更多信息 — collapsible */}
+      <div>
+        <SectionToggle label="更多信息" section="meta" />
+        {openSections.meta && result.totalTokens != null ? (
+          <div className="flex items-center gap-2 px-3 py-1 text-[11px] text-slate-400">
+            <span>本次消耗 ~{result.totalTokens.toLocaleString()} tokens</span>
+            <span className="text-slate-300">·</span>
+            <span>约 ¥{((result.totalTokens / 1000000) * 1.5).toFixed(4)}</span>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -458,7 +636,6 @@ export function AiSchemePanel({
   aiSnapshot,
   onRevertAiChanges,
   onClearAiSnapshot,
-  conversationCache,
   variant = "dock",
 }) {
   const [prompt, setPrompt] = useState("");
@@ -477,6 +654,8 @@ export function AiSchemePanel({
   // double-submit when tuningOptions chips are clicked in rapid succession.
   const generatingRef = useRef(false);
 
+  const { displayedText: smoothReply, flush: flushTypewriter } = useTypewriter(streamingReply, { speed: 40 });
+
   // Cycle streaming phase indicator (fast mode only — agent uses AgentTimeline)
   useEffect(() => {
     if (!isGenerating || streamingReply || useAgent) return;
@@ -489,31 +668,45 @@ export function AiSchemePanel({
 
   // Persist conversation state when switching between actions
   const actionIdRef = useRef(actionId);
-  const stateRef = useRef({ messages, pendingResult, lastPrompt, agentSteps, useAgent });
+  const stateRef = useRef({
+    messages,
+    pendingResult,
+    lastPrompt,
+    agentSteps,
+    useAgent,
+  });
   stateRef.current = { messages, pendingResult, lastPrompt, agentSteps, useAgent };
 
+  // Hydrate conversation from storage on mount + save/restore on action switch
   useEffect(() => {
     const prevId = actionIdRef.current;
-    // Save previous actionId's state
-    if (prevId && prevId !== actionId && conversationCache) {
-      conversationCache.current.set(prevId, { ...stateRef.current });
-    }
-    // Restore or reset for new actionId
-    if (conversationCache) {
-      const saved = conversationCache.current.get(actionId);
+    const isSwitch = prevId && prevId !== actionId;
+
+    async function syncConversation() {
+      if (isSwitch) {
+        // Save previous action's conversation
+        await saveConversation(prevId, stateRef.current as any);
+      }
+      // Load new action's conversation (or start fresh)
+      const saved = await loadConversation(actionId);
       if (saved) {
         setMessages(saved.messages ?? getInitialMessages());
         setPendingResult(saved.pendingResult ?? null);
         setLastPrompt(saved.lastPrompt ?? "");
         setAgentSteps(saved.agentSteps ?? []);
         setUseAgent(saved.useAgent ?? false);
-      } else {
+      } else if (isSwitch) {
         setMessages(getInitialMessages());
         setPendingResult(null);
         setLastPrompt("");
         setAgentSteps([]);
       }
     }
+
+    if (isSwitch || prevId === undefined) {
+      syncConversation();
+    }
+
     // Always reset transient state on action switch
     setPrompt("");
     setError("");
@@ -523,7 +716,24 @@ export function AiSchemePanel({
     abortRef.current = null;
 
     actionIdRef.current = actionId;
-  }, [actionId, conversationCache]);
+  }, [actionId]);
+
+  // Sweep expired conversations on mount
+  useEffect(() => {
+    sweepExpiredConversations();
+  }, []);
+
+  // Debounced auto-save when conversation state changes
+  const saveTimerRef = useRef(null);
+  useEffect(() => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      saveConversation(actionId, stateRef.current as any);
+    }, 500);
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [actionId, messages, pendingResult, lastPrompt, agentSteps, useAgent]);
 
   const promptExamples = useMemo(() => buildPromptExamples(currentConfig), [currentConfig]);
 
@@ -717,6 +927,7 @@ export function AiSchemePanel({
       abortRef.current = null;
     }
     generatingRef.current = false;
+    flushTypewriter();
     setAgentRunning(false);
     setIsGenerating(false);
     setStreamingReply("");
@@ -770,9 +981,7 @@ export function AiSchemePanel({
     setIsGenerating(false);
     setStreamingReply("");
     setMessages(getInitialMessages());
-    if (conversationCache) {
-      conversationCache.current.delete(actionId);
-    }
+    deleteConversation(actionId);
     onClearPreview?.();
     notify?.({
       tone: "info",
@@ -819,37 +1028,95 @@ export function AiSchemePanel({
     >
       <div className={cn("flex min-h-0 flex-col bg-white", variant === "full" && "flex-1")}>
         <div ref={scrollRef} className={cn("min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3 scroll-smooth", variant === "full" ? "h-full" : "max-h-[220px]")}>
-          {messages.map((message, index) => (
-            <MessageBubble key={`${message.role}-${index}-${message.content}`} message={message} onEdit={setPrompt} />
-          ))}
+          <AnimatePresence initial={false}>
+            {messages.map((message, index) => (
+              <motion.div
+                key={`msg-${index}`}
+                layout="position"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+              >
+                <MessageBubble key={`${message.role}-${index}-${message.content}`} message={message} onEdit={setPrompt} actionId={actionId} />
+              </motion.div>
+            ))}
+          </AnimatePresence>
           {isGenerating ? (
-            <div className="flex justify-start">
-              <div className="max-w-[86%] rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-700">
-                {streamingReply ? (
-                  <span>{streamingReply}<span className="ml-0.5 inline-block h-3.5 w-0.5 animate-pulse bg-sky-400 align-middle" /></span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 text-slate-500">
-                    <span className="flex gap-1">
-                      <span className="size-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:0ms]" />
-                      <span className="size-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:150ms]" />
-                      <span className="size-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:300ms]" />
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+            >
+              <div className="flex justify-start">
+                <div className="max-w-[86%] rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-700">
+                  {streamingReply ? (
+                    <div className="prose-cd max-w-none">
+                      <Markdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          p: ({ children }) => <p className="mb-1 last:mb-0">{children}</p>,
+                          code: ({ className, children, ...props }) => {
+                            const isBlock = /language-/.test(className || "");
+                            if (isBlock) {
+                              return (
+                                <pre className="mt-1 mb-1 overflow-x-auto rounded-lg bg-slate-100 p-2 text-[11px] leading-5">
+                                  <code className={className} {...props}>{children}</code>
+                                </pre>
+                              );
+                            }
+                            return (
+                              <code className="rounded bg-slate-200/70 px-1 py-0.5 text-[11px] font-mono" {...props}>
+                                {children}
+                              </code>
+                            );
+                          },
+                          ul: ({ children }) => <ul className="mb-1 list-disc pl-4">{children}</ul>,
+                          ol: ({ children }) => <ol className="mb-1 list-decimal pl-4">{children}</ol>,
+                          li: ({ children }) => <li className="text-xs leading-5">{children}</li>,
+                          strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                        }}
+                      >
+                        {smoothReply}
+                      </Markdown>
+                      <span className="ml-0.5 inline-block h-3.5 w-0.5 animate-pulse bg-sky-400 align-middle" />
+                    </div>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 text-slate-500">
+                      <span className="flex gap-1">
+                        <span className="size-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:0ms]" />
+                        <span className="size-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:150ms]" />
+                        <span className="size-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:300ms]" />
+                      </span>
+                      <span className="text-slate-400">
+                        {useAgent && agentRunning
+                          ? "Agent 正在分析需求"
+                          : ["正在分析需求", "正在生成配置", "正在验证方案"][streamingPhase]}
+                      </span>
                     </span>
-                    <span className="text-slate-400">
-                      {useAgent && agentRunning
-                        ? "Agent 正在分析需求"
-                        : ["正在分析需求", "正在生成配置", "正在验证方案"][streamingPhase]}
-                    </span>
-                  </span>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
+            </motion.div>
           ) : null}
 
-          <AgentTimeline steps={agentSteps} isRunning={agentRunning} />
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+          >
+            <AgentTimeline steps={agentSteps} isRunning={agentRunning} />
+          </motion.div>
 
-          <ProposalCard result={pendingResult} previewActive={previewActive} />
-          <SanitizeHint meta={pendingResult?.sanitizeMeta} />
-          <ChangeSummary items={pendingResult?.diffSummary} />
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+          >
+            <ProposalCard result={pendingResult} previewActive={previewActive} />
+            <SanitizeHint meta={pendingResult?.sanitizeMeta} />
+            <ChangeSummary items={pendingResult?.diffSummary} />
+          </motion.div>
 
           {pendingResult?.tuningOptions?.length ? (
             <div className="flex flex-wrap gap-2">

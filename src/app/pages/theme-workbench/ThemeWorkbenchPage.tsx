@@ -1,5 +1,5 @@
 import { formatActionLabel } from "./model/workbenchSchema";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useThemeWorkbenchState } from "./hooks/useThemeWorkbenchState";
 import { BindingsPanel } from "./components/BindingsPanel";
@@ -31,7 +31,6 @@ function ThemeWorkbenchPageContent() {
   const [columnWeights, setColumnWeights] = useState({ config: 1.05, preview: 1.25, ai: 1 });
   const [previewProposal, setPreviewProposal] = useState(null);
   const [aiSnapshot, setAiSnapshot] = useState(null);
-  const conversationCache = useRef(new Map());
   const {
     state,
     selected,
@@ -83,6 +82,10 @@ function ThemeWorkbenchPageContent() {
   useEffect(() => {
     setPreviewProposal(null);
   }, [selected.actionId, selected.themeId]);
+
+  if (!state.ui.isHydrated) {
+    return <div className="h-dvh bg-slate-100" />;
+  }
 
   function startResizeColumns(event, column) {
     event.preventDefault();
@@ -279,7 +282,6 @@ function ThemeWorkbenchPageContent() {
                             aiSnapshot={aiSnapshot}
                             onRevertAiChanges={handleRevertAiChanges}
                             onClearAiSnapshot={() => setAiSnapshot(null)}
-                            conversationCache={conversationCache}
                             variant="full"
                           />
                         </motion.div>

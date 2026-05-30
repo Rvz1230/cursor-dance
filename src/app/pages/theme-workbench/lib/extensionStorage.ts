@@ -4,8 +4,10 @@ export {
 } from "./storage/chrome-api";
 
 export {
+  readEditorState,
   readExtensionConfig,
   readLivePreviewConfig,
+  writeEditorState,
   writeExtensionConfig,
   writeLivePreviewConfig,
   clearLivePreviewConfig,

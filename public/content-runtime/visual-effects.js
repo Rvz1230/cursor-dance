@@ -599,18 +599,23 @@
 
         const angleForVariance = direction === "随机散射" ? index : angleOrder[index];
         const variance = (((runIndex || 0) + 5) * (angleForVariance + 3)) % 11 - 5;
-        const distance = Math.max(16, spread * (0.55 + index / Math.max(count * 1.45, 1)) + variance * 1.8);
-        const baseX = Math.cos(angle) * distance;
-        const baseY = Math.sin(angle) * distance;
-        const tx = baseX + wind * spread * 1.2;
-        const ty = baseY + gravity * spread * 1.6;
-        const bounceY = bounce > 0 ? -spread * bounce * 1.0 : 0;
+        const particleStyle = particleConfig.particleStyle || "点状粒子";
+        const motionScale = particleStyle === "火花" ? 1.45 : particleStyle === "碎屑粒子" ? 1.2 : 1.0;
+        const gravityScale = particleStyle === "火花" ? 0.35 : particleStyle === "碎屑粒子" ? 1.45 : 1.0;
+        const spreadScale = particleStyle === "火花" ? 0.7 : particleStyle === "碎屑粒子" ? 1.3 : 1.0;
+        const staggerScale = particleStyle === "火花" ? 0.5 : particleStyle === "碎屑粒子" ? 0.75 : 1.0;
+        const effectiveSpread = spread * spreadScale;
+        const distance = Math.max(16, effectiveSpread * (0.55 + index / Math.max(count * 1.45, 1)) + variance * 1.8);
+        const baseX = Math.cos(angle) * distance * motionScale;
+        const baseY = Math.sin(angle) * distance * motionScale;
+        const tx = baseX + wind * effectiveSpread * 1.2;
+        const ty = baseY + gravity * gravityScale * effectiveSpread * 1.6;
+        const bounceY = bounce > 0 ? -effectiveSpread * bounce * 1.0 : 0;
         const node = document.createElement("span");
         node.className = "cd-effect cd-particle";
         node.style.left = `${x}px`;
         node.style.top = `${y}px`;
         const baseSize = Math.max(4, (particleConfig.particleSize || 10) * (0.52 + (index % 4) * 0.1));
-        const particleStyle = particleConfig.particleStyle || "点状粒子";
         const rotation = getParticleRotation(particleStyle, index);
 
         applyParticleShape(node, particleStyle, baseSize, index, actionConfig);
@@ -619,7 +624,7 @@
         const midY = (ty + bounceY) * 0.4;
         const midTransform = `translate3d(calc(-50% + ${midX}px), calc(-50% + ${midY}px), 0) rotate(${rotation}deg)`;
         const endTransform = `translate3d(calc(-50% + ${tx}px), calc(-50% + ${ty}px), 0) rotate(${rotation}deg)`;
-        const endScale = particleStyle === "火花" ? 0.52 : particleStyle === "星光" ? 0.38 : 0.65;
+        const endScale = particleStyle === "火花" ? 0.35 : particleStyle === "碎屑粒子" ? 0.55 : particleStyle === "星光" ? 0.38 : 0.65;
 
         animateNode(
           node,
@@ -630,8 +635,12 @@
           ],
           {
             duration: particleConfig.particleDuration || 760,
-            easing: particleStyle === "火花" || particleStyle === "星光" ? "cubic-bezier(0.22, 1, 0.36, 1)" : "ease-out",
-            delay: particleDelay + index * (particleConfig.particleStagger ?? 26),
+            easing: particleStyle === "火花" || particleStyle === "星光"
+              ? "cubic-bezier(0.22, 1, 0.36, 1)"
+              : particleStyle === "碎屑粒子"
+                ? "cubic-bezier(0.34, 1.56, 0.64, 1)"
+                : "ease-out",
+            delay: particleDelay + index * (particleConfig.particleStagger ?? 26) * staggerScale,
           }
         );
 
@@ -675,15 +684,25 @@
 
     function applyParticleShape(node, style, size, index, actionConfig) {
       if (style === "火花") {
-        node.style.width = `${size * 1.9}px`;
-        node.style.height = `${Math.max(3, size * 0.42)}px`;
+        const w = size * 1.9;
+        const h = Math.max(3, size * 0.42);
+        node.style.width = `${w}px`;
+        node.style.height = `${h}px`;
         node.style.borderRadius = "999px";
-        node.style.boxShadow = `0 0 12px ${hexToRgba("#F59E0B", 0.34)}`;
+        node.style.boxShadow = [
+          `0 0 4px ${hexToRgba("#F59E0B", 0.5)}`,
+          `0 0 16px ${hexToRgba("#F59E0B", 0.28)}`,
+        ].join(", ");
       } else if (style === "碎屑粒子") {
-        node.style.width = `${size * 1.35}px`;
-        node.style.height = `${Math.max(4, size * 0.72)}px`;
-        node.style.borderRadius = "38%";
-        node.style.boxShadow = `0 4px 10px ${hexToRgba("#0F172A", 0.12)}`;
+        const w = size * (1.2 + (index % 3) * 0.15);
+        const h = size * (0.6 + (index % 2) * 0.2);
+        node.style.width = `${w}px`;
+        node.style.height = `${h}px`;
+        node.style.borderRadius = `${20 + (index % 5) * 6}%`;
+        node.style.boxShadow = [
+          `0 4px 10px ${hexToRgba("#0F172A", 0.12)}`,
+          `inset 0 1px 0 ${hexToRgba("#FFFFFF", 0.18)}`,
+        ].join(", ");
       } else if (style === "星光") {
         node.style.width = `${size * 1.5}px`;
         node.style.height = `${size * 1.5}px`;

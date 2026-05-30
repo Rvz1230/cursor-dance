@@ -3,6 +3,7 @@ import { getDefaultConfig, normalizeStoredConfig } from "../runtimeConfig";
 import {
   CONFIG_STORAGE_KEY,
   CURSOR_ASSET_STORAGE_KEY_PREFIX,
+  EDITOR_STATE_STORAGE_KEY,
   LEGACY_ENABLED_STORAGE_KEY,
   LIVE_PREVIEW_CONFIG_STORAGE_KEY,
   MAX_CURSOR_ASSET_DATA_URL_LENGTH,
@@ -194,4 +195,39 @@ export async function clearLivePreviewConfig() {
   }
   await ensurePreviewStorageAccess(chromeApi);
   await chromeApi.storage.session.remove([LIVE_PREVIEW_CONFIG_STORAGE_KEY]);
+}
+
+export async function readEditorState() {
+  const chromeApi = getChromeApi();
+  if (!chromeApi?.storage?.local) {
+    if (!canUseLocalStorage()) return null;
+    try {
+      const raw = window.localStorage.getItem(EDITOR_STATE_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }
+  try {
+    const result = await chromeApi.storage.local.get([EDITOR_STATE_STORAGE_KEY]);
+    return result[EDITOR_STATE_STORAGE_KEY] || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function writeEditorState(state) {
+  const chromeApi = getChromeApi();
+  if (!chromeApi?.storage?.local) {
+    if (!canUseLocalStorage()) return;
+    try {
+      window.localStorage.setItem(EDITOR_STATE_STORAGE_KEY, JSON.stringify(state));
+    } catch {}
+    return;
+  }
+  try {
+    await chromeApi.storage.local.set({ [EDITOR_STATE_STORAGE_KEY]: state });
+  } catch {
+    // Non-critical, editor state is best-effort
+  }
 }

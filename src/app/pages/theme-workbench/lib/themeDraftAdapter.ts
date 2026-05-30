@@ -131,7 +131,9 @@ export function hydrateWorkbenchState(config, site) {
     diagnostics: "diagnostics",
     assets: "workbench",
   };
-  const workspaceId = workspaceAliasMap[config.editor?.lastWorkspace] || config.editor?.lastWorkspace || "workbench";
+  const resolvedWorkspace = workspaceAliasMap[config.editor?.lastWorkspace] || config.editor?.lastWorkspace || "workbench";
+  const PRIMARY_WORKSPACES = ["workbench", "states"];
+  const workspaceId = PRIMARY_WORKSPACES.includes(resolvedWorkspace) ? resolvedWorkspace : "workbench";
   const selectedActionId = ACTIONS.some((item) => item.id === config.editor?.lastActionId) ? config.editor.lastActionId : "leftClick";
   const selectedCursorStateId = CURSOR_STATES.some((item) => item.id === config.editor?.lastCursorState) ? config.editor.lastCursorState : "default";
 

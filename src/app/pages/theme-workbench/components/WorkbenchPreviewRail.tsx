@@ -118,7 +118,11 @@ function PreviewEffects({
         ? particles.map((particle, index) => {
             const shape = getParticleStyleProps(config, index, particle.size);
             const style = particleConfig.particleStyle || "点状粒子";
-            const easing = style === "火花" || style === "星光" ? "cubic-bezier(0.22, 1, 0.36, 1)" : "ease-out";
+            const easing = style === "火花" || style === "星光"
+              ? "cubic-bezier(0.22, 1, 0.36, 1)"
+              : style === "碎屑粒子"
+                ? "cubic-bezier(0.34, 1.56, 0.64, 1)"
+                : "ease-out";
             const mainParticle = (
               <div
                 key={`particle-${runId}-${index}`}
@@ -656,7 +660,7 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, out
   const soundDelay = audioConfig.soundDelay || 0;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
       <div
         className="relative min-h-[300px] flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white"
         style={{

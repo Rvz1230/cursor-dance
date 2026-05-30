@@ -288,24 +288,29 @@ export function buildParticleSpecs(config, runIndex) {
 
     const angleForVariance = direction === "随机散射" ? index : angleOrder[index];
     const variance = ((runIndex + 5) * (angleForVariance + 3)) % 11 - 5;
-    const distance = Math.max(16, spread * (0.55 + index / Math.max(visibleCount * 1.45, 1)) + variance * 1.8);
-    const baseX = Math.cos(angle) * distance;
-    const baseY = Math.sin(angle) * distance;
-    const gravity = (particleConfig.particleGravity || 0) / 100;
+    const style = particleConfig.particleStyle || "点状粒子";
+    const motionScale = style === "火花" ? 1.45 : style === "碎屑粒子" ? 1.2 : 1.0;
+    const gravityScale = style === "火花" ? 0.35 : style === "碎屑粒子" ? 1.45 : 1.0;
+    const spreadScale = style === "火花" ? 0.7 : style === "碎屑粒子" ? 1.3 : 1.0;
+    const staggerScale = style === "火花" ? 0.5 : style === "碎屑粒子" ? 0.75 : 1.0;
+    const effectiveSpread = spread * spreadScale;
+    const distance = Math.max(16, effectiveSpread * (0.55 + index / Math.max(visibleCount * 1.45, 1)) + variance * 1.8);
+    const baseX = Math.cos(angle) * distance * motionScale;
+    const baseY = Math.sin(angle) * distance * motionScale;
+    const gravity = ((particleConfig.particleGravity || 0) / 100) * gravityScale;
     const wind = (particleConfig.particleWind || 0) / 100;
     const bounce = (particleConfig.particleBounce || 0) / 100;
-    const bounceY = bounce > 0 ? -spread * bounce * 1.0 : 0;
-    const tx = baseX + wind * spread * 1.2;
-    const ty = baseY + gravity * spread * 1.6;
-    const style = particleConfig.particleStyle || "点状粒子";
+    const bounceY = bounce > 0 ? -effectiveSpread * bounce * 1.0 : 0;
+    const tx = baseX + wind * effectiveSpread * 1.2;
+    const ty = baseY + gravity * effectiveSpread * 1.6;
     return {
       x: tx,
       y: ty,
       midX: tx * 0.35,
       midY: (ty + bounceY) * 0.4,
-      delay: baseDelay + index * (particleConfig.particleStagger ?? 26),
+      delay: baseDelay + index * (particleConfig.particleStagger ?? 26) * staggerScale,
       size: Math.max(4, (particleConfig.particleSize || 10) * (0.52 + (index % 4) * 0.1)),
-      endScale: style === "火花" ? 0.52 : style === "星光" ? 0.38 : 0.65,
+      endScale: style === "火花" ? 0.35 : style === "碎屑粒子" ? 0.55 : style === "星光" ? 0.38 : 0.65,
     };
   });
 }
@@ -314,21 +319,31 @@ export function getParticleStyleProps(config, index, size) {
   const particleConfig = getActionParticleConfig(config);
   const style = particleConfig.particleStyle || "点状粒子";
   if (style === "火花") {
+    const w = size * 1.9;
+    const h = Math.max(3, size * 0.42);
     return {
-      width: size * 1.9,
-      height: Math.max(3, size * 0.42),
+      width: w,
+      height: h,
       borderRadius: "999px",
       rotation: -28 + ((index * 17) % 7) * 11,
-      boxShadow: `0 0 12px ${hexToRgba("#F59E0B", 0.34)}`,
+      boxShadow: [
+        `0 0 4px ${hexToRgba("#F59E0B", 0.5)}`,
+        `0 0 16px ${hexToRgba("#F59E0B", 0.28)}`,
+      ].join(", "),
     };
   }
   if (style === "碎屑粒子") {
+    const w = size * (1.2 + (index % 3) * 0.15);
+    const h = size * (0.6 + (index % 2) * 0.2);
     return {
-      width: size * 1.35,
-      height: Math.max(4, size * 0.72),
-      borderRadius: "38%",
+      width: w,
+      height: h,
+      borderRadius: `${20 + (index % 5) * 6}%`,
       rotation: -42 + ((index * 13) % 9) * 10,
-      boxShadow: `0 4px 10px ${hexToRgba("#0F172A", 0.12)}`,
+      boxShadow: [
+        `0 4px 10px ${hexToRgba("#0F172A", 0.12)}`,
+        `inset 0 1px 0 ${hexToRgba("#FFFFFF", 0.18)}`,
+      ].join(", "),
     };
   }
   if (style === "星光") {

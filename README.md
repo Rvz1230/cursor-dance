@@ -1,6 +1,46 @@
 # CursorDance
 
+<p align="center">
+  <img src="public/icon-128.png" alt="CursorDance" width="128" height="128">
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue.svg" alt="License: AGPL-3.0"></a>
+  <a href="https://github.com/Rvz1230/cursor-dance"><img src="https://img.shields.io/badge/GitHub-Rvz1230%2Fcursor--dance-181717.svg?logo=github" alt="GitHub"></a>
+  <img src="https://img.shields.io/badge/version-0.6.0-orange.svg" alt="Version 0.6.0">
+  <img src="https://img.shields.io/badge/platform-Chrome%20114%2B-lightgrey.svg" alt="Chrome 114+">
+</p>
+
 Chrome 扩展（Manifest V3）。为网页添加可定制的鼠标交互效果——点击粒子、波纹、飘字、音效、光标状态切换等。用户在 React 工作台中编辑主题，通过 Popup 切换主题，效果由内容脚本在目标网页上实时渲染。
+
+## 截图
+
+> 将截图放在 `screenshots/` 目录下，然后替换下方占位链接。
+
+<p align="center">
+  <img src="screenshots/workbench.png" alt="工作台" width="720">
+  <br><em>主题工作台 — 编辑动作配置、实时预览效果</em>
+</p>
+
+<p align="center">
+  <img src="screenshots/popup.png" alt="Popup" width="300">
+  <br><em>Popup 快速切换主题</em>
+</p>
+
+## 安装
+
+### Chrome 应用商店
+
+> 上线后替换为实际链接。
+
+[![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-green.svg)](https://chromewebstore.google.com/detail/cursordance)
+
+### 手动安装（开发模式）
+
+1. `npm install && npm run build`
+2. 打开 `chrome://extensions`，开启「开发者模式」
+3. 点击「加载已解压的扩展程序」，选择 `dist/` 目录
+4. 打开任意网页即可看到效果；点击工具栏上的 CursorDance 图标打开 Popup
 
 ## 功能
 
@@ -21,7 +61,7 @@ Chrome 扩展（Manifest V3）。为网页添加可定制的鼠标交互效果�
 | 内容脚本运行时 | 原生 IIFE 模块（无打包器），Web Animations API + Web Audio API |
 | 状态管理 | useReducer + chrome.storage.local / chrome.storage.session |
 | 数据格式 | schema v2，单 key `cursordance.config` |
-| 测试 | Vitest (51 用例) + Playwright (E2E smoke) |
+| 测试 | Vitest (98 用例) + Playwright (E2E smoke) |
 | AI API | Node.js + OpenAI Responses API 格式 → DeepSeek 模型 |
 
 ## 快速开始
@@ -118,10 +158,13 @@ cursor-dance/
 │   │       ├── model/          # Schema, ActionConfig 预设值
 │   │       └── lib/            # Storage 适配、主题适配、AI 助手
 │   └── components/ui/          # 通用 UI 组件（Button, Switch, Slider...）
-├── scripts/                    # AI API 服务
+├── cursor-dance-api/           # AI API 服务
+├── landing/                    # 独立 Vite 落地页
+├── scripts/                    # 构建 & 开发辅助脚本
 ├── index.html                  # 工作台入口
 ├── popup.html                  # Popup 入口
-└── CLAUDE.md                   # 开发指南
+├── CLAUDE.md                   # 开发指南
+└── LICENSE                     # AGPL-3.0
 ```
 
 ## 配置数据格式
@@ -158,7 +201,32 @@ cursor-dance/
 ```bash
 npm run dev           # Vite dev server（工作台 + Popup）
 npm run build         # 生产构建 → dist/
-npm run test          # Vitest 单元测试（51 用例）
+npm run test          # Vitest 单元测试（98 用例）
 npm run test:smoke    # Playwright E2E 冒烟测试
 npm run ai:dev        # AI API 服务
 ```
+
+## 贡献
+
+欢迎提交 Issue 和 Pull Request。
+
+1. Fork 本仓库
+2. 创建特性分支 (`git checkout -b feat/amazing-feature`)
+3. 提交修改 (`git commit -m 'feat: add amazing feature'`)
+4. 推送到分支 (`git push origin feat/amazing-feature`)
+5. 创建 Pull Request
+
+提交信息请遵循 [Conventional Commits](https://www.conventionalcommits.org/zh-hans/) 规范（本项目使用 `feat:`、`fix:`、`refactor:`、`docs:`、`test:` 等前缀）。
+
+开始开发前请阅读 [CLAUDE.md](./CLAUDE.md) 了解架构约定和项目规范。
+
+## 许可证
+
+本项目基于 **GNU Affero General Public License v3.0 (AGPL-3.0)** 发布。
+
+- ✅ 你可以自由使用、修改、分发本软件
+- ✅ 你可以将本软件用于商业目的
+- ⚠️ 如果你修改了本软件并通过网络提供服务（包括作为 Web 应用或浏览器扩展），你必须公开你的修改后的完整源代码
+- ⚠️ 所有衍生作品必须以相同的 AGPL-3.0 协议发布
+
+完整协议文本见 [LICENSE](./LICENSE)。
