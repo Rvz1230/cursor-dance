@@ -66,8 +66,6 @@
 
     function createElements() {
       if (innerEl && outerEl) return;
-      var root = document.getElementById("cursordance-root");
-      if (!root) return;
 
       innerEl = document.createElement("div");
       innerEl.style.cssText = [
@@ -82,7 +80,7 @@
         "opacity:0",
         "transition:opacity 0.2s ease,width 0.1s ease-out,height 0.1s ease-out,border-radius 0.1s ease-out,background-color 0.1s ease-out",
       ].join(";");
-      root.appendChild(innerEl);
+      document.body.appendChild(innerEl);
 
       outerEl = document.createElement("div");
       outerEl.style.cssText = [
@@ -97,7 +95,7 @@
         "opacity:0",
         "transition:width 0.12s cubic-bezier(0.25,0.1,0.25,1),height 0.12s cubic-bezier(0.25,0.1,0.25,1),border-radius 0.12s cubic-bezier(0.25,0.1,0.25,1),transform 0.08s linear,opacity 0.2s ease",
       ].join(";");
-      root.appendChild(outerEl);
+      document.body.appendChild(outerEl);
 
       setTimeout(function () {
         if (innerEl) innerEl.style.opacity = "1";
@@ -329,7 +327,7 @@
       mouseX = e.clientX;
       mouseY = e.clientY;
 
-      // 非磁吸态下检测文本
+      // 非磁吸态下检测文本（仅按下左键拖选时进入文本选择态）
       if (!isHovering) {
         var textEl = findTextElement(e.target);
         if (textEl && textEl !== lastTextTarget) {
@@ -337,11 +335,9 @@
           textCaretHeight = m.caretHeight;
           textBaselineOffset = m.baselineOffset;
           lastTextTarget = textEl;
-          isSelectingText = true;
-        } else if (!textEl) {
-          isSelectingText = false;
-          lastTextTarget = null;
         }
+        isSelectingText = Boolean(textEl && (e.buttons & 1));
+        if (!textEl) lastTextTarget = null;
       }
     }
 
