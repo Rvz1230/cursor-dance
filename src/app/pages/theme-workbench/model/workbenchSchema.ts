@@ -98,66 +98,31 @@ export const WORKSPACES = [
 
 const FALLBACK_THEMES = [
   {
-    id: "woodfish",
-    name: "木鱼方案",
-    kind: "自定义",
-    summary: "数字飘字 · 声音反馈 · 轻波纹",
-    tone: "amber",
-  },
-  {
-    id: "demo-highlight",
-    name: "Demo Highlight",
-    kind: "内置",
-    summary: "蓝紫渐变 · 星光粒子 · 光晕拖尾",
-    tone: "sky",
-  },
-  {
-    id: "petal",
-    name: "花瓣流光",
-    kind: "自定义",
-    summary: "珊瑚渐变 · 钻石粒子 · 轻快音效",
-    tone: "rose",
-  },
-  {
-    id: "star-burst",
-    name: "星光璀璨",
-    kind: "内置",
-    summary: "金色星光粒子 · 脉冲波纹 · 弹跳缓动",
-    tone: "amber",
-  },
-  {
     id: "mono-geo",
-    name: "极简几何",
+    name: "几何",
     kind: "内置",
     summary: "黑白灰 · 方块粒子 · 几何波纹",
     tone: "slate",
   },
   {
-    id: "neon-city",
-    name: "霓虹都市",
+    id: "drift",
+    name: "流光",
     kind: "内置",
-    summary: "青紫渐变文字 · 火花粒子 · 轨迹光标",
-    tone: "sky",
+    summary: "轨道粒子 · 涟漪扩散 · 沉静青绿",
+    tone: "teal",
   },
   {
-    id: "ink-wash",
-    name: "水墨丹青",
+    id: "molten",
+    name: "熔金",
     kind: "内置",
-    summary: "楷体文字 · 灰阶碎屑粒子 · 柔和面波",
-    tone: "slate",
+    summary: "火花喷发 · 能量脉冲 · 熔岩橙金",
+    tone: "amber",
   },
   {
-    id: "candy-land",
-    name: "糖果乐园",
+    id: "sunset",
+    name: "夕霞",
     kind: "内置",
-    summary: "多彩混合粒子 · 回声波纹 · 弹跳反馈",
-    tone: "rose",
-  },
-  {
-    id: "sakura",
-    name: "樱吹雪",
-    kind: "内置",
-    summary: "心形粒子 · 粉白调色板 · 重力飘落",
+    summary: "钻石飘落 · 回声涟漪 · 落日粉橙",
     tone: "rose",
   },
 ];
@@ -165,15 +130,10 @@ const FALLBACK_THEMES = [
 export const THEME_TONES = ["amber", "teal", "sky", "rose", "slate"];
 
 const THEME_TONE_BY_ID = {
-  woodfish: "amber",
-  "demo-highlight": "sky",
-  petal: "rose",
-  "star-burst": "amber",
-  "neon-city": "sky",
-  "ink-wash": "slate",
   "mono-geo": "slate",
-  "candy-land": "rose",
-  sakura: "rose",
+  drift: "teal",
+  molten: "amber",
+  sunset: "rose",
 };
 
 export const ACTIONS = [

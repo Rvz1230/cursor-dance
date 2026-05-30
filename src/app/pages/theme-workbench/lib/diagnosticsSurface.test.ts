@@ -10,7 +10,7 @@ describe("diagnosticsSurface", () => {
   });
 
   it("describes live preview state for current and absent themes", () => {
-    expect(summarizeLivePreviewConfig(null, "woodfish")).toMatchObject({
+    expect(summarizeLivePreviewConfig(null, "mono-geo")).toMatchObject({
       status: "inactive",
       activeThemeId: "",
     });
@@ -18,14 +18,14 @@ describe("diagnosticsSurface", () => {
     expect(
       summarizeLivePreviewConfig(
         {
-          activeThemePackId: "woodfish",
-          themePacks: [{ id: "woodfish" }],
+          activeThemePackId: "mono-geo",
+          themePacks: [{ id: "mono-geo" }],
         },
-        "woodfish"
+        "mono-geo"
       )
     ).toMatchObject({
       status: "current",
-      activeThemeId: "woodfish",
+      activeThemeId: "mono-geo",
       themeCount: 1,
     });
   });

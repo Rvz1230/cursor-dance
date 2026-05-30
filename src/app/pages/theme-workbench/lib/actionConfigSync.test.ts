@@ -83,9 +83,9 @@ const FIELDS_TO_COMPARE = [
 const ACTION_IDS = ["leftClick", "rightClick", "doubleClick", "longPress", "wheel", "hover"];
 
 describe("action config defaults sync", () => {
-  it("content script getBaseActionConfigs matches workbench getDefaultActionConfigs for woodfish", () => {
+  it("content script BASE_ACTION_CONFIGS matches workbench ACTION_CONFIG_PRESETS", () => {
     const baseConfigs = extractBaseActionConfigs();
-    const workbenchConfigs = getDefaultActionConfigs("woodfish");
+    const workbenchConfigs = getDefaultActionConfigs(null);
 
     const mismatches = [];
 

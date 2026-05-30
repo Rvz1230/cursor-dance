@@ -21,7 +21,7 @@ import {
 } from "./aiSchemeAssistant";
 
 function getBaseConfig() {
-  return createThemeDraft("woodfish").actionConfigs.leftClick;
+  return createThemeDraft("mono-geo").actionConfigs.leftClick;
 }
 
 describe("aiSchemeAssistant", () => {

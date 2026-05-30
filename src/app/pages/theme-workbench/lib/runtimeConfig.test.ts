@@ -16,7 +16,7 @@ describe("runtimeConfig", () => {
   });
 
   it("delegates normalization to the runtime adapter when available", () => {
-    const defaultConfig = { enabled: true, themePacks: [{ id: "woodfish" }] };
+    const defaultConfig = { enabled: true, themePacks: [{ id: "mono-geo" }] };
     const inputConfig = { enabled: false };
     const normalizedConfig = { normalized: true };
     const calls = [];
@@ -36,7 +36,7 @@ describe("runtimeConfig", () => {
   });
 
   it("falls back to the provided config or default config without a runtime adapter", () => {
-    const defaultConfig = { enabled: true, activeThemePackId: "woodfish" };
+    const defaultConfig = { enabled: true, activeThemePackId: "mono-geo" };
 
     installWindowStub({
       CursorDanceDefaultConfig: defaultConfig,

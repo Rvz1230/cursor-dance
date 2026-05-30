@@ -36,8 +36,8 @@ function installPublicConfigRuntime() {
 
 function createThemeLibraryEntry(overrides = {}) {
   return {
-    id: "woodfish",
-    name: "木鱼方案",
+    id: "mono-geo",
+    name: "几何",
     kind: "自定义",
     summary: "数字飘字",
     description: "测试主题",
@@ -52,17 +52,17 @@ describe("themeDraftAdapter", () => {
   });
 
   it("hydrates workbench state with siteRules array", () => {
-    const savedDraft = createThemeDraft("woodfish");
+    const savedDraft = createThemeDraft("mono-geo");
     savedDraft.actionConfigs.leftClick.textContent = "已保存";
 
     const state = hydrateWorkbenchState(
       {
         enabled: true,
-        activeThemePackId: "woodfish",
+        activeThemePackId: "mono-geo",
         themePacks: [
           {
-            id: "woodfish",
-            name: "木鱼方案",
+            id: "mono-geo",
+            name: "几何",
             kind: "custom",
             workbenchDraft: {
               actionConfigs: savedDraft.actionConfigs,
@@ -86,15 +86,15 @@ describe("themeDraftAdapter", () => {
       { id: "r1", pattern: { type: "exact", value: "example.com" }, action: "disable" },
     ]);
     expect(state.selection).toEqual({
-      themeId: "woodfish",
+      themeId: "mono-geo",
       actionId: "doubleClick",
       cursorStateId: "wait",
     });
-    expect(state.draftsByTheme.woodfish.actionConfigs.leftClick.textContent).toBe("已保存");
+    expect(state.draftsByTheme["mono-geo"].actionConfigs.leftClick.textContent).toBe("已保存");
   });
 
   it("builds preview theme packs with ordered text tags and cursor overrides", () => {
-    const draft = createThemeDraft("woodfish");
+    const draft = createThemeDraft("mono-geo");
     draft.actionConfigs.leftClick.textKind = "文本飘字";
     draft.actionConfigs.leftClick.textMode = "默认模式 (+1)";
     draft.actionConfigs.leftClick.textContent = "主文案";
@@ -111,8 +111,8 @@ describe("themeDraftAdapter", () => {
     const previewPack = buildPreviewThemePackFromWorkbench(
       { themePacks: [] },
       {
-        selection: { themeId: "woodfish" },
-        draftsByTheme: { woodfish: draft },
+        selection: { themeId: "mono-geo" },
+        draftsByTheme: { "mono-geo": draft },
         themeLibrary: [createThemeLibraryEntry()],
       }
     );
@@ -141,7 +141,7 @@ describe("themeDraftAdapter", () => {
       },
     });
 
-    const draft = createThemeDraft("woodfish");
+    const draft = createThemeDraft("mono-geo");
     draft.cursorModes.wait = "覆盖";
     draft.cursorStateActions.wait = "doubleClick";
 
@@ -159,9 +159,9 @@ describe("themeDraftAdapter", () => {
         workspaceId: "workbench",
         siteRules,
         themeLibrary: [createThemeLibraryEntry()],
-        draftsByTheme: { woodfish: draft },
+        draftsByTheme: { "mono-geo": draft },
         selection: {
-          themeId: "woodfish",
+          themeId: "mono-geo",
           actionId: "doubleClick",
           cursorStateId: "wait",
         },
@@ -177,31 +177,31 @@ describe("themeDraftAdapter", () => {
       lastActionId: "doubleClick",
       lastCursorState: "wait",
     });
-    expect(storedConfig.activeThemePackId).toBe("woodfish");
+    expect(storedConfig.activeThemePackId).toBe("mono-geo");
     expect(storedConfig.schemes).toEqual(storedConfig.themePacks);
     expect(storedConfig.siteRules).toEqual(siteRules);
     expect(storedConfig.themePacks[0].cursorStates.wait.mode).toBe("override");
   });
 
-  it("preserves woodfish number semantics across themePack to draft to stored themePack", () => {
+  it("preserves mono-geo number semantics across themePack to draft to stored themePack", () => {
     const { defaultConfig, runtime } = installPublicConfigRuntime();
     const state = hydrateWorkbenchState(defaultConfig, { host: "example.com" });
-    const draft = state.draftsByTheme.woodfish.actionConfigs.leftClick;
+    const draft = state.draftsByTheme["mono-geo"].actionConfigs.leftClick;
 
     expect(draft.textKind).toBe("数字飘字");
     expect(draft.textMode).toBe("默认模式 (+1)");
     expect(draft.comboEnabled).toBe(true);
-    expect(draft.textTags).toEqual(["功德 +1", "继续点击", "已触发"]);
+    expect(draft.textTags).toEqual(["+1", "+2", "+3"]);
 
     const storedConfig = buildStoredConfigFromWorkbench(defaultConfig, state);
-    const storedThemePack = storedConfig.themePacks.find((item) => item.id === "woodfish");
+    const storedThemePack = storedConfig.themePacks.find((item) => item.id === "mono-geo");
 
     expect(storedThemePack.workbenchDraft.actionConfigs.leftClick).toMatchObject({
       textKind: "数字飘字",
       textMode: "默认模式 (+1)",
       comboEnabled: true,
     });
-    expect(storedThemePack.workbenchDraft.actionConfigs.leftClick.textTags).toEqual(["功德 +1", "继续点击", "已触发"]);
+    expect(storedThemePack.workbenchDraft.actionConfigs.leftClick.textTags).toEqual(["+1", "+2", "+3"]);
     expect(runtime.getActionTextConfig(draft).textKind).toBe("数字飘字");
   });
 
@@ -209,10 +209,10 @@ describe("themeDraftAdapter", () => {
     const { defaultConfig, runtime } = installPublicConfigRuntime();
     const customConfig = runtime.normalizeConfig({
       ...defaultConfig,
-      activeThemePackId: "woodfish",
+      activeThemePackId: "mono-geo",
       themePacks: [
         {
-          id: "woodfish",
+          id: "mono-geo",
           workbenchDraft: {
             actionConfigs: {
               leftClick: {
@@ -230,14 +230,14 @@ describe("themeDraftAdapter", () => {
     }, defaultConfig);
 
     const state = hydrateWorkbenchState(customConfig, { host: "example.com" });
-    const draft = state.draftsByTheme.woodfish.actionConfigs.leftClick;
+    const draft = state.draftsByTheme["mono-geo"].actionConfigs.leftClick;
 
     expect(draft.textKind).toBe("文本飘字");
     expect(draft.textContent).toBe("第一条");
     expect(draft.textTags).toEqual(["第二条", "第一条", "第三条"]);
 
     const storedConfig = buildStoredConfigFromWorkbench(customConfig, state);
-    const storedThemePack = storedConfig.themePacks.find((item) => item.id === "woodfish");
+    const storedThemePack = storedConfig.themePacks.find((item) => item.id === "mono-geo");
 
     expect(storedThemePack.workbenchDraft.actionConfigs.leftClick.textContent).toBe("第一条");
     expect(storedThemePack.workbenchDraft.actionConfigs.leftClick.textTags).toEqual(["第二条", "第一条", "第三条"]);
@@ -246,18 +246,18 @@ describe("themeDraftAdapter", () => {
   it("builds preview overlays without mutating persisted config semantics", () => {
     const { defaultConfig } = installPublicConfigRuntime();
     const state = hydrateWorkbenchState(defaultConfig, { host: "example.com" });
-    const originalContent = defaultConfig.themePacks.find((item) => item.id === "woodfish")
+    const originalContent = defaultConfig.themePacks.find((item) => item.id === "mono-geo")
       .workbenchDraft.actionConfigs.leftClick.textContent;
 
-    state.draftsByTheme.woodfish.actionConfigs.leftClick.textKind = "文本飘字";
-    state.draftsByTheme.woodfish.actionConfigs.leftClick.textContent = "预览文案";
-    state.draftsByTheme.woodfish.actionConfigs.leftClick.textTags = ["预览文案", "备用文案"];
+    state.draftsByTheme["mono-geo"].actionConfigs.leftClick.textKind = "文本飘字";
+    state.draftsByTheme["mono-geo"].actionConfigs.leftClick.textContent = "预览文案";
+    state.draftsByTheme["mono-geo"].actionConfigs.leftClick.textTags = ["预览文案", "备用文案"];
 
     const previewThemePack = buildPreviewThemePackFromWorkbench(defaultConfig, state);
 
     expect(previewThemePack.workbenchDraft.actionConfigs.leftClick.textContent).toBe("预览文案");
     expect(previewThemePack.workbenchDraft.actionConfigs.leftClick.textTags).toEqual(["预览文案", "备用文案"]);
-    expect(defaultConfig.themePacks.find((item) => item.id === "woodfish")
+    expect(defaultConfig.themePacks.find((item) => item.id === "mono-geo")
       .workbenchDraft.actionConfigs.leftClick.textContent).toBe(originalContent);
   });
 
@@ -265,17 +265,17 @@ describe("themeDraftAdapter", () => {
     const { defaultConfig } = installPublicConfigRuntime();
     const state = hydrateWorkbenchState(defaultConfig, { host: "example.com" });
 
-    state.draftsByTheme.woodfish.actionConfigs.leftClick.textEasing = "弹性";
-    state.draftsByTheme.woodfish.actionConfigs.leftClick.sound = true;
-    state.draftsByTheme.woodfish.actionConfigs.leftClick.cursorOverride = "木鱼（增强态）";
+    state.draftsByTheme["mono-geo"].actionConfigs.leftClick.textEasing = "弹性";
+    state.draftsByTheme["mono-geo"].actionConfigs.leftClick.sound = true;
+    state.draftsByTheme["mono-geo"].actionConfigs.leftClick.cursorOverride = "跟随当前状态";
 
     const storedConfig = buildStoredConfigFromWorkbench(defaultConfig, state);
-    const storedLeftClickDraft = storedConfig.themePacks.find((item) => item.id === "woodfish").workbenchDraft.actionConfigs.leftClick;
+    const storedLeftClickDraft = storedConfig.themePacks.find((item) => item.id === "mono-geo").workbenchDraft.actionConfigs.leftClick;
 
     expect(storedLeftClickDraft).toMatchObject({
       textEasing: "弹性",
       sound: true,
-      cursorOverride: "木鱼（增强态）",
+      cursorOverride: "跟随当前状态",
       triggerTiming: "抬起时",
       triggerZone: "当前页面可点击区域",
     });
@@ -289,11 +289,11 @@ describe("themeDraftAdapter", () => {
   it("rehydrates left-click config from workbench draft", () => {
     const { defaultConfig } = installPublicConfigRuntime();
     const state = hydrateWorkbenchState(defaultConfig, { host: "example.com" });
-    state.draftsByTheme.woodfish.actionConfigs.leftClick.textEasing = "弹性";
+    state.draftsByTheme["mono-geo"].actionConfigs.leftClick.textEasing = "弹性";
 
     const storedConfig = buildStoredConfigFromWorkbench(defaultConfig, state);
     const rehydratedState = hydrateWorkbenchState(storedConfig, { host: "example.com" });
-    const leftClickConfig = rehydratedState.draftsByTheme.woodfish.actionConfigs.leftClick;
+    const leftClickConfig = rehydratedState.draftsByTheme["mono-geo"].actionConfigs.leftClick;
 
     expect(leftClickConfig.textKind).toBe("数字飘字");
     expect(leftClickConfig.textEnabled).toBe(true);
@@ -301,22 +301,22 @@ describe("themeDraftAdapter", () => {
     expect(leftClickConfig.particle).toBe(true);
     expect(leftClickConfig.holdMs).toBe(0);
     expect(leftClickConfig.textEasing).toBe("弹性");
-    expect(leftClickConfig.sound).toBe(true);
+    expect(leftClickConfig.sound).toBe(false);
     expect(leftClickConfig.triggerTiming).toBe("抬起时");
   });
 
   it("builds export payloads around the current stored theme pack shape", () => {
     const { defaultConfig } = installPublicConfigRuntime();
     const state = hydrateWorkbenchState(defaultConfig, { host: "example.com" });
-    state.draftsByTheme.woodfish.actionConfigs.leftClick.textKind = "文本飘字";
-    state.draftsByTheme.woodfish.actionConfigs.leftClick.textContent = "导出测试";
+    state.draftsByTheme["mono-geo"].actionConfigs.leftClick.textKind = "文本飘字";
+    state.draftsByTheme["mono-geo"].actionConfigs.leftClick.textContent = "导出测试";
 
-    const themePack = buildStoredThemePackFromWorkbench(defaultConfig, state, "woodfish");
+    const themePack = buildStoredThemePackFromWorkbench(defaultConfig, state, "mono-geo");
     const payload = buildThemeExportPayload(themePack);
 
     expect(payload.format).toBe("cursordance-theme-pack");
     expect(payload.version).toBe(1);
-    expect(payload.themePack.id).toBe("woodfish");
+    expect(payload.themePack.id).toBe("mono-geo");
     expect(payload.themePack.workbenchDraft.actionConfigs.leftClick.textContent).toBe("导出测试");
     expect(payload.themePack.workbenchDraft.actionConfigs.leftClick).toHaveProperty("textKind", "文本飘字");
   });
@@ -324,13 +324,13 @@ describe("themeDraftAdapter", () => {
   it("stores and rehydrates image effect fields through workbench drafts", () => {
     const { defaultConfig } = installPublicConfigRuntime();
     const state = hydrateWorkbenchState(defaultConfig, { host: "example.com" });
-    state.draftsByTheme.woodfish.actionConfigs.leftClick.imageEnabled = true;
-    state.draftsByTheme.woodfish.actionConfigs.leftClick.imageDataUrl = "data:image/svg+xml;utf8,%3Csvg/%3E";
-    state.draftsByTheme.woodfish.actionConfigs.leftClick.imageSize = 72;
-    state.draftsByTheme.woodfish.actionConfigs.leftClick.imageDuration = 960;
+    state.draftsByTheme["mono-geo"].actionConfigs.leftClick.imageEnabled = true;
+    state.draftsByTheme["mono-geo"].actionConfigs.leftClick.imageDataUrl = "data:image/svg+xml;utf8,%3Csvg/%3E";
+    state.draftsByTheme["mono-geo"].actionConfigs.leftClick.imageSize = 72;
+    state.draftsByTheme["mono-geo"].actionConfigs.leftClick.imageDuration = 960;
 
     const storedConfig = buildStoredConfigFromWorkbench(defaultConfig, state);
-    const storedDraft = storedConfig.themePacks.find((item) => item.id === "woodfish").workbenchDraft.actionConfigs.leftClick;
+    const storedDraft = storedConfig.themePacks.find((item) => item.id === "mono-geo").workbenchDraft.actionConfigs.leftClick;
 
     expect(storedDraft).toMatchObject({
       imageEnabled: true,
@@ -340,7 +340,7 @@ describe("themeDraftAdapter", () => {
     });
 
     const rehydratedState = hydrateWorkbenchState(storedConfig, { host: "example.com" });
-    expect(rehydratedState.draftsByTheme.woodfish.actionConfigs.leftClick).toMatchObject({
+    expect(rehydratedState.draftsByTheme["mono-geo"].actionConfigs.leftClick).toMatchObject({
       imageEnabled: true,
       imageDataUrl: "data:image/svg+xml;utf8,%3Csvg/%3E",
       imageSize: 72,
@@ -401,13 +401,13 @@ describe("themeDraftAdapter", () => {
   it("stores and rehydrates animation effect fields through workbench drafts", () => {
     const { defaultConfig } = installPublicConfigRuntime();
     const state = hydrateWorkbenchState(defaultConfig, { host: "example.com" });
-    state.draftsByTheme.woodfish.actionConfigs.leftClick.animationEnabled = true;
-    state.draftsByTheme.woodfish.actionConfigs.leftClick.animationStyle = "弹跳徽记";
-    state.draftsByTheme.woodfish.actionConfigs.leftClick.animationDuration = 880;
-    state.draftsByTheme.woodfish.actionConfigs.leftClick.animationScale = 136;
+    state.draftsByTheme["mono-geo"].actionConfigs.leftClick.animationEnabled = true;
+    state.draftsByTheme["mono-geo"].actionConfigs.leftClick.animationStyle = "弹跳徽记";
+    state.draftsByTheme["mono-geo"].actionConfigs.leftClick.animationDuration = 880;
+    state.draftsByTheme["mono-geo"].actionConfigs.leftClick.animationScale = 136;
 
     const storedConfig = buildStoredConfigFromWorkbench(defaultConfig, state);
-    const storedDraft = storedConfig.themePacks.find((item) => item.id === "woodfish").workbenchDraft.actionConfigs.leftClick;
+    const storedDraft = storedConfig.themePacks.find((item) => item.id === "mono-geo").workbenchDraft.actionConfigs.leftClick;
 
     expect(storedDraft).toMatchObject({
       animationEnabled: true,
@@ -417,7 +417,7 @@ describe("themeDraftAdapter", () => {
     });
 
     const rehydratedState = hydrateWorkbenchState(storedConfig, { host: "example.com" });
-    expect(rehydratedState.draftsByTheme.woodfish.actionConfigs.leftClick).toMatchObject({
+    expect(rehydratedState.draftsByTheme["mono-geo"].actionConfigs.leftClick).toMatchObject({
       animationEnabled: true,
       animationStyle: "弹跳徽记",
       animationDuration: 880,
