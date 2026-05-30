@@ -7,7 +7,7 @@ const NUMERIC_LIMITS = {
   textOutlineWidth: [0, 3],
   particleCount: [0, 40],
   particleSpread: [8, 120],
-  particleDuration: [180, 1600],
+  particleDuration: [0, 5000],
   particleSize: [4, 28],
   particleOpacity: [20, 100],
   rippleSize: [20, 140],
@@ -31,6 +31,9 @@ const NUMERIC_LIMITS = {
   imageOpacity: [10, 100],
   imageOffsetX: [-120, 120],
   imageOffsetY: [-120, 120],
+  orbitalCount: [3, 16],
+  orbitalRadius: [16, 80],
+  orbitalSpeed: [1, 8],
 };
 
 const ENUM_OPTIONS = {
@@ -46,6 +49,7 @@ const ENUM_OPTIONS = {
   particleStyle: ["点状粒子", "碎屑粒子", "火花", "星光", "钻石", "心形", "方块", "三角"],
   particleDirection: ["四周扩散", "向上喷发", "沿点击方向"],
   particleColorMode: ["跟随主题", "跟随飘字色", "随机轻变化"],
+  particleMotionMode: ["burst", "orbital"],
   rippleStyle: ["单环", "双环", "柔和面波", "脉冲波纹", "回声环", "能量脉冲"],
   rippleEasing: ["线性", "缓出", "缓入缓出", "弹性"],
   soundTriggerMode: ["每次触发", "连击叠加", "节流播放"],
@@ -119,6 +123,10 @@ const FIELD_LABELS = {
   particleStyle: "粒子样式",
   particleDirection: "粒子方向",
   particleColorMode: "粒子颜色",
+  particleMotionMode: "运动模式",
+  orbitalCount: "轨道点数",
+  orbitalRadius: "轨道半径",
+  orbitalSpeed: "公转速度",
   ripple: "波纹",
   rippleSize: "波纹尺寸",
   rippleDuration: "波纹时长",

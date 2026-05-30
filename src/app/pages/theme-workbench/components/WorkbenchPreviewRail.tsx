@@ -310,7 +310,7 @@ function buildTimelineTracks({ textConfig, particleConfig, rippleConfig, audioCo
   const rippleEnd = rippleDelay + ripples.reduce((max, ripple) => Math.max(max, ripple.delay + rippleConfig.rippleDuration), 0);
   const particleEnd = particleConfig.particle
     ? (particleConfig.particleMotionMode === "orbital"
-      ? particleDelay + (particleConfig.orbitalDuration || 3000) + particleConfig.particleDuration
+      ? particleDelay + Math.max(particleConfig.particleDuration || 3000, 1000)
       : particleDelay + particleConfig.particleDuration + Math.min(520, Math.max(0, particleConfig.particleCount - 1) * (particleConfig.particleStagger ?? 26)))
     : 0;
 

@@ -185,7 +185,14 @@
         target: diagnostics?.describeTarget(coords.target),
       });
       visualEffects.renderRipple(coords.x, coords.y, actionConfig);
-      visualEffects.renderParticles(coords.x, coords.y, actionConfig, runIndex);
+      var particleCfg = configStore.getActionParticleConfig(actionConfig);
+      if (particleCfg.particleMotionMode === "orbital") {
+        // clear previous orbital groups before creating new ones
+        visualEffects.clearOrbitalParticles();
+        visualEffects.renderOrbitalParticles(coords.x, coords.y, actionConfig, runIndex);
+      } else {
+        visualEffects.renderParticles(coords.x, coords.y, actionConfig, runIndex);
+      }
       visualEffects.renderText(coords.x, coords.y, actionConfig, resolvedActionId, comboIndex);
       visualEffects.renderAnimationEffect(coords.x, coords.y, actionConfig);
       visualEffects.renderImageEffect(coords.x, coords.y, actionConfig);
@@ -452,6 +459,7 @@
       if (event.target === state.hoverTarget || (event.target instanceof Element && state.hoverTarget instanceof Element && event.target.contains(state.hoverTarget))) {
         window.clearTimeout(state.hoverTimeoutId);
         state.hoverTarget = null;
+        visualEffects.clearOrbitalParticles();
       }
     }
 

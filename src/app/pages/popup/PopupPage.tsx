@@ -1,6 +1,6 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, CircleDashed, Play, Settings, Sparkles, Type, Volume2, Wand2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, CircleDashed, Loader2, Monitor, Settings, Sparkles, Type, Volume2, Wand2, X } from "lucide-react";
 import { cn } from "@/components/ui/utils";
 import { ICON_OPTIONS } from "../theme-workbench/model/workbenchSchema";
 import { usePopupState } from "./usePopupState";
@@ -41,7 +41,108 @@ function particleDirLabel(dir) {
   return map[dir] || "扩散";
 }
 
-// ── style icon maps (matched to content script enum) ─────────
+// ── AnimatedPreview — micro-motion demo ──────────────────────
+
+function AnimatedPreview({ actionConfig, accent }) {
+  const hasParticle = actionConfig?.particle;
+  const hasRipple = actionConfig?.ripple;
+  const hasText = actionConfig?.textEnabled && actionConfig?.textContent;
+
+  if (hasParticle && actionConfig?.particleMotionMode === "orbital") {
+    const n = actionConfig.orbitalCount || 6;
+    const r = Math.min(actionConfig.orbitalRadius || 32, 60);
+    const speed = Math.max(1, actionConfig.orbitalSpeed || 3);
+    return (
+      <div className="relative flex items-center justify-center size-full">
+        {Array.from({ length: n }).map((_, i) => {
+          const initialAngle = (i / n) * Math.PI * 2;
+          return (
+            <motion.div
+              key={i}
+              className="absolute rounded-full"
+              style={{
+                width: 5 + (i % 2) * 3,
+                height: 5 + (i % 2) * 3,
+                backgroundColor: accent,
+              }}
+              animate={{
+                x: [Math.cos(initialAngle) * 4, Math.cos(initialAngle) * r, Math.cos(initialAngle) * 4],
+                y: [Math.sin(initialAngle) * 4, Math.sin(initialAngle) * r, Math.sin(initialAngle) * 4],
+                opacity: [0.5, 0.15, 0.5],
+                scale: [0.6, 1.2, 0.6],
+              }}
+              transition={{ duration: speed, repeat: Infinity, delay: -(i / n) * speed, ease: "easeInOut" }}
+            />
+          );
+        })}
+      </div>
+    );
+  }
+
+  if (hasParticle) {
+    const n = 5;
+    return (
+      <div className="relative flex items-center justify-center size-full">
+        {Array.from({ length: n }).map((_, i) => {
+          const angle = (i / n) * Math.PI * 2;
+          const r = 16 + (i % 3) * 6;
+          return (
+            <motion.div
+              key={i}
+              className="absolute rounded-full"
+              style={{
+                width: 4 + (i % 2) * 2,
+                height: 4 + (i % 2) * 2,
+                backgroundColor: accent,
+              }}
+              animate={{
+                x: [Math.cos(angle) * 4, Math.cos(angle) * r, Math.cos(angle) * 4],
+                y: [Math.sin(angle) * 4, Math.sin(angle) * r, Math.sin(angle) * 4],
+                opacity: [0.5, 0.15, 0.5],
+                scale: [0.6, 1.2, 0.6],
+              }}
+              transition={{ duration: 2.5 + (i % 3) * 0.3, repeat: Infinity, delay: i * 0.2, ease: "easeInOut" }}
+            />
+          );
+        })}
+      </div>
+    );
+  }
+
+  if (hasRipple) {
+    return (
+      <div className="relative flex items-center justify-center size-full">
+        {[0, 1, 2].map((i) => (
+          <motion.div
+            key={i}
+            className="absolute rounded-full"
+            style={{ border: `1.5px solid ${accent}`, width: 16, height: 16 }}
+            animate={{ scale: [1, 3.5, 1], opacity: [0.5, 0, 0.5] }}
+            transition={{ duration: 2, repeat: Infinity, delay: i * 0.55, ease: "easeOut" }}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  if (hasText) {
+    const txt = actionConfig.textContent;
+    return (
+      <motion.span
+        className="text-lg font-bold leading-none"
+        style={{ color: accent }}
+        animate={{ scale: [1, 1.06, 1], opacity: [0.6, 1, 0.6] }}
+        transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+      >
+        {txt.length > 8 ? txt.slice(0, 8) + "…" : txt}
+      </motion.span>
+    );
+  }
+
+  return null;
+}
+
+// ── effect chips (grouped: Motion / Feedback) ────────────────
 
 const PARTICLE_ICONS = {
   "点状粒子": "●", 火花: "✦", "碎屑粒子": "◆",
@@ -52,33 +153,6 @@ const RIPPLE_ICONS = {
   "单环": "○", 双环: "◎", "柔和面波": "◉",
   "脉冲波纹": "⦿", "回声环": "☯", "能量脉冲": "⚡",
 };
-
-// ── Toggle ────────────────────────────────────────────────────
-
-function Toggle({ checked, onChange }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-label="全局开关"
-      onClick={() => onChange(!checked)}
-      className={cn(
-        "relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-150 ease-out",
-        checked ? "bg-slate-900" : "bg-slate-200"
-      )}
-    >
-      <motion.span
-        layout
-        transition={{ type: "spring", stiffness: 500, damping: 30 }}
-        className="inline-block size-4 rounded-full bg-white shadow-sm"
-        style={{ x: checked ? 18 : 2 }}
-      />
-    </button>
-  );
-}
-
-// ── effect chips (type-distinct visual) ─────────────────────
 
 function ParticleBlock({ ac, accent }) {
   if (!ac?.particle) return null;
@@ -130,7 +204,7 @@ function TextBlock({ ac }) {
       style={{ backgroundColor: `${color}10`, color }}
     >
       <Type className="size-3.5" />
-      <span className="font-medium truncate max-w-[80px]">"{text}"</span>
+      <span className="font-medium truncate max-w-[72px]">"{text}"</span>
       {size > 0 && <><span className="text-[9px] opacity-60">·</span><span className="tabular-nums">{size}px</span></>}
     </span>
   );
@@ -148,47 +222,69 @@ function SoundBlock({ ac }) {
   );
 }
 
-// ── HeroPreview — visual centerpiece ────────────────────────
+// ── BubbleBackground — breathing background orbs ─────────────
 
-function HeroPreview({ actionConfig, accent, Icon: ThemeIcon }) {
-  const text = actionConfig?.textContent;
-  const hasText = actionConfig?.textEnabled && text;
-
-  const pStyle = actionConfig?.particle ? (actionConfig.particleStyle || "点状粒子") : null;
-  const pIcon = pStyle ? (PARTICLE_ICONS[pStyle] || "●") : null;
-
-  const showIcon = !hasText && !pIcon;
-
-  if (!hasText && !pIcon && !ThemeIcon) return <div className="flex-1 min-h-0" />;
+function BubbleBackground({ accent }) {
+  const bubbles = useMemo(() => {
+    const seed = [...accent].reduce((a, c) => a + c.charCodeAt(0), 1);
+    // sine hash — reliably uniform, no linear correlation
+    const r = (i) => {
+      const x = Math.sin(seed * 12.9898 + i * 78.233) * 43758.5453;
+      return x - Math.floor(x);
+    };
+    return Array.from({ length: 14 }, (_, i) => ({
+      left: r(i * 7 + 1) * 92 + 4,
+      top: r(i * 11 + 3) * 86 + 5,
+      size: 4 + r(i * 13 + 5) * 72,
+      opacityBase: 0.008 + r(i * 17 + 7) * 0.05,
+      opacityPeak: 0.02 + r(i * 19 + 9) * 0.10,
+      floatDuration: 10 + r(i * 23 + 11) * 18,
+      floatAmount: 3 + r(i * 29 + 13) * 11,
+      breathAmount: 0.02 + r(i * 31 + 15) * 0.07,
+      initX: -6 + r(i * 37 + 17) * 12,
+      initY: -6 + r(i * 41 + 19) * 12,
+      delay: r(i * 43 + 21) * 10,
+    }));
+  }, [accent]);
 
   return (
-    <div className="flex-1 min-h-0 flex items-center justify-center">
-      {hasText ? (
-        <span
-          className="text-[28px] font-bold leading-none select-none"
-          style={{ color: accent, textShadow: `0 2px 12px ${accent}22` }}
-        >
-          {text.length > 10 ? text.slice(0, 10) + "…" : text}
-        </span>
-      ) : pIcon ? (
-        <span
-          className="text-[32px] leading-none select-none"
-          style={{ color: accent, opacity: 0.6 }}
-        >
-          {pIcon}
-        </span>
-      ) : (
-        <ThemeIcon className="size-10" style={{ color: accent, opacity: 0.35 }} />
-      )}
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      {bubbles.map((b, i) => (
+        <motion.div
+          key={i}
+          className="absolute rounded-full"
+          style={{
+            width: b.size,
+            height: b.size,
+            left: `${b.left}%`,
+            top: `${b.top}%`,
+            backgroundColor: accent,
+          }}
+          animate={{
+            x: [b.initX, b.initX - b.floatAmount * 0.5, b.initX + b.floatAmount * 0.6, b.initX - b.floatAmount * 0.4, b.initX],
+            y: [b.initY, b.initY - b.floatAmount * 0.6, b.initY + b.floatAmount * 0.4, b.initY + b.floatAmount * 0.5, b.initY],
+            scale: [1, 1 + b.breathAmount, 1 - b.breathAmount * 0.4, 1 + b.breathAmount * 0.3, 1],
+            opacity: [b.opacityBase, b.opacityPeak, b.opacityBase * 0.5, b.opacityPeak * 0.7, b.opacityBase],
+          }}
+          transition={{
+            duration: b.floatDuration,
+            repeat: Infinity,
+            delay: b.delay,
+            ease: "easeInOut",
+            times: [0, 0.25, 0.5, 0.75, 1],
+          }}
+        />
+      ))}
     </div>
   );
 }
 
 // ── IdentityCard ─────────────────────────────────────────────
 
-function IdentityCard({ actionConfig, accent, name, Icon: ThemeIcon }) {
+function IdentityCard({ actionConfig, accent, name, Icon: ThemeIcon, enabled, siteAction }) {
   const tags = effectSummary(actionConfig);
   const hasEffects = tags.length > 0;
+  const hasSiteRule = siteAction?.enable;
 
   return (
     <div
@@ -201,14 +297,17 @@ function IdentityCard({ actionConfig, accent, name, Icon: ThemeIcon }) {
         style={{ backgroundColor: accent }}
       />
 
+      {/* breathing bubbles */}
+      <BubbleBackground accent={accent} />
+
       {/* accent bar */}
       <div
         className="absolute left-0 top-0 bottom-0 w-[3px]"
         style={{ backgroundColor: accent }}
       />
 
-      <div className="flex h-full flex-col px-4 py-3.5">
-        {/* theme icon + name — always visible */}
+      <div className="flex h-full flex-col px-4 py-2">
+        {/* theme icon + name + site badge — always visible */}
         <div className="flex items-center gap-2.5 min-w-0 shrink-0">
           <div
             className="flex size-8 shrink-0 items-center justify-center rounded-lg"
@@ -217,6 +316,12 @@ function IdentityCard({ actionConfig, accent, name, Icon: ThemeIcon }) {
             <ThemeIcon className="size-[15px]" style={{ color: accent }} />
           </div>
           <h2 className="text-sm font-bold truncate" style={{ color: accent }}>{name}</h2>
+          {hasSiteRule && (
+            <span className="ml-auto inline-flex items-center gap-1 rounded-md bg-slate-100 px-1.5 py-0.5 text-[9px] font-medium text-slate-500">
+              <Monitor className="size-2.5" />
+              站点规则
+            </span>
+          )}
         </div>
 
         {!hasEffects ? (
@@ -225,23 +330,90 @@ function IdentityCard({ actionConfig, accent, name, Icon: ThemeIcon }) {
             <p className="text-[10px] text-slate-300">可前往工作台配置效果</p>
           </div>
         ) : (
-          <>
-            {/* hero preview — visual centerpiece */}
-            <HeroPreview actionConfig={actionConfig} accent={accent} Icon={ThemeIcon} />
+          <div className="flex flex-1 flex-col min-h-0 pt-2 gap-2">
+            {/* animated preview — compact */}
+            <div className="flex-1 min-h-0 flex items-center justify-center">
+              <AnimatedPreview actionConfig={actionConfig} accent={accent} />
+            </div>
 
-            {/* effect chips — 2-column grid */}
-            {(actionConfig?.particle || actionConfig?.ripple || actionConfig?.textEnabled || actionConfig?.sound) && (
-              <div className="shrink-0 grid grid-cols-2 gap-1 mt-2">
-                <ParticleBlock ac={actionConfig} accent={accent} />
-                <RippleBlock ac={actionConfig} accent={accent} />
-                <TextBlock ac={actionConfig} />
-                <SoundBlock ac={actionConfig} />
-              </div>
-            )}
-          </>
+            {/* effect groups */}
+            <div className="shrink-0 space-y-1">
+              {/* Motion group */}
+              {(actionConfig?.particle || actionConfig?.ripple) && (
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[9px] font-semibold tracking-wider text-slate-400">动效</span>
+                  <div className="flex flex-wrap gap-1">
+                    <ParticleBlock ac={actionConfig} accent={accent} />
+                    <RippleBlock ac={actionConfig} accent={accent} />
+                  </div>
+                </div>
+              )}
+              {/* Feedback group */}
+              {(actionConfig?.textEnabled || actionConfig?.sound) && (
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[9px] font-semibold tracking-wider text-slate-400">反馈</span>
+                  <div className="flex flex-wrap gap-1">
+                    <TextBlock ac={actionConfig} />
+                    <SoundBlock ac={actionConfig} />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </div>
+  );
+}
+
+function Toggle({ checked, onChange }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label="全局开关"
+      onClick={() => onChange(!checked)}
+      className={cn(
+        "relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-150 ease-out",
+        checked ? "bg-slate-900" : "bg-slate-200"
+      )}
+    >
+      <motion.span
+        layout
+        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+        className="inline-block size-4 rounded-full bg-white shadow-sm"
+        style={{ x: checked ? 18 : 2 }}
+      />
+    </button>
+  );
+}
+
+// ── NoticeBar ─────────────────────────────────────────────────
+
+function NoticeBar({ notice, onDismiss }) {
+  if (!notice) return null;
+  const bgMap = { slate: "bg-slate-50", amber: "bg-amber-50", rose: "bg-rose-50" };
+  const textMap = { slate: "text-slate-500", amber: "text-amber-700", rose: "text-rose-700" };
+  const dotMap = { slate: "bg-slate-400", amber: "bg-amber-500", rose: "bg-rose-500" };
+  return (
+    <motion.div
+      initial={{ height: 0, opacity: 0 }}
+      animate={{ height: "auto", opacity: 1 }}
+      exit={{ height: 0, opacity: 0 }}
+      className={cn("mx-4 mb-1 flex items-center gap-2 rounded-lg px-3 py-1.5", bgMap[notice.tone] || bgMap.slate)}
+    >
+      <span className={cn("size-1.5 shrink-0 rounded-full", dotMap[notice.tone])} />
+      <span className={cn("text-[11px] leading-tight", textMap[notice.tone])}>{notice.message}</span>
+      <button
+        type="button"
+        onClick={onDismiss}
+        className="ml-auto shrink-0 rounded p-0.5 opacity-40 transition-opacity hover:opacity-100"
+        aria-label="关闭提示"
+      >
+        <X className="size-3" />
+      </button>
+    </motion.div>
   );
 }
 
@@ -315,7 +487,7 @@ function ThemeCarousel({ themes, activeId, onSelect, accent }) {
                 className="text-[9px] font-semibold"
                 style={{
                   color: active ? tAccent : "#cbd5e1",
-                  opacity: active ? 1 : 0,
+                  opacity: active ? 1 : Math.abs(raw) <= 1 ? 0.6 : 0,
                 }}
               >
                 {t.name}
@@ -330,17 +502,17 @@ function ThemeCarousel({ themes, activeId, onSelect, accent }) {
               type="button"
               onClick={(e) => { e.stopPropagation(); onSelect(themes[(idx - 1 + n) % n].id); }}
               aria-label="上一个主题"
-              className="absolute left-0.5 z-10 flex size-6 items-center justify-center rounded-full bg-white/80 shadow-sm ring-1 ring-slate-200 backdrop-blur-sm hover:bg-white active:scale-[0.95]"
+              className="absolute left-0.5 z-10 flex size-7 items-center justify-center rounded-full bg-white/80 shadow-sm ring-1 ring-slate-200 backdrop-blur-sm hover:bg-white active:scale-[0.95]"
             >
-              <ChevronLeft className="size-3 text-slate-500" />
+              <ChevronLeft className="size-3.5 text-slate-500" />
             </button>
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); onSelect(themes[(idx + 1 + n) % n].id); }}
               aria-label="下一个主题"
-              className="absolute right-0.5 z-10 flex size-6 items-center justify-center rounded-full bg-white/80 shadow-sm ring-1 ring-slate-200 backdrop-blur-sm hover:bg-white active:scale-[0.95]"
+              className="absolute right-0.5 z-10 flex size-7 items-center justify-center rounded-full bg-white/80 shadow-sm ring-1 ring-slate-200 backdrop-blur-sm hover:bg-white active:scale-[0.95]"
             >
-              <ChevronRight className="size-3 text-slate-500" />
+              <ChevronRight className="size-3.5 text-slate-500" />
             </button>
           </>
         )}
@@ -356,10 +528,10 @@ function ThemeCarousel({ themes, activeId, onSelect, accent }) {
               onClick={() => onSelect(themes[i].id)}
               className="rounded-full transition-all duration-300"
               style={{
-                width: i === idx ? 5 : 2.5,
-                height: i === idx ? 5 : 2.5,
-                backgroundColor: i === idx ? accent : "#d1d5db",
-                opacity: i === idx ? 1 : 0.4,
+                width: i === idx ? 6 : 3,
+                height: i === idx ? 6 : 3,
+                backgroundColor: i === idx ? accent : "#cbd5e1",
+                opacity: i === idx ? 1 : 0.5,
               }}
             />
           ))}
@@ -385,12 +557,16 @@ function LoadingShell() {
 
 export default function PopupPage() {
   const {
-    ready, enabled,
+    ready, enabled, notice,
     setEnabled, setThemeId, openOptionsPage, previewCurrentTheme,
-    activeThemeChoice, themeChoices, busyKey,
+    activeThemeChoice, themeChoices, busyKey, siteAction,
   } = usePopupState();
 
   const [previewingId, setPreviewingId] = useState(null);
+  const [dismissedNotice, setDismissedNotice] = useState(null);
+
+  // auto-dismiss notice after 6s
+  const effectiveNotice = dismissedNotice === true ? null : notice;
 
   // ── derived data ──
   const activeId = activeThemeChoice?.theme?.id;
@@ -425,6 +601,13 @@ export default function PopupPage() {
     setTimeout(() => setPreviewingId(null), 600);
   }, [busyKey, previewingId, previewCurrentTheme]);
 
+  // reset dismiss when notice changes
+  const prevNoticeRef = useRef(null);
+  if (notice !== prevNoticeRef.current) {
+    prevNoticeRef.current = notice;
+    if (dismissedNotice) setDismissedNotice(false);
+  }
+
   if (!ready) return <LoadingShell />;
 
   return (
@@ -444,8 +627,15 @@ export default function PopupPage() {
         </div>
       </header>
 
+      {/* ── notice bar ── */}
+      <AnimatePresence>
+        {effectiveNotice && (
+          <NoticeBar notice={effectiveNotice} onDismiss={() => setDismissedNotice(true)} />
+        )}
+      </AnimatePresence>
+
       {/* ── identity card ── */}
-      <div className="flex-1 min-h-0 px-4 pt-2 pb-2">
+      <div className={cn("flex-1 min-h-0 px-4 pt-1.5 pb-1", !enabled && "opacity-35")}>
         <AnimatePresence mode="wait">
           <motion.div
             key={current?.theme?.id || "empty"}
@@ -461,6 +651,8 @@ export default function PopupPage() {
                 accent={accent}
                 name={current.theme.name}
                 Icon={themeIcon(current.theme)}
+                enabled={enabled}
+                siteAction={siteAction}
               />
             ) : (
               <div className="flex h-full items-center justify-center rounded-2xl border border-slate-200/80 bg-white shadow-sm">
@@ -470,6 +662,15 @@ export default function PopupPage() {
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {/* ── disabled overlay label ── */}
+      {!enabled && (
+        <div className="absolute inset-x-0 top-1/2 z-20 flex -translate-y-1/2 items-center justify-center pointer-events-none">
+          <span className="rounded-full bg-white/80 px-3 py-1 text-[11px] font-semibold text-slate-400 shadow-sm ring-1 ring-slate-200/60 backdrop-blur-sm">
+            全局特效已暂停
+          </span>
+        </div>
+      )}
 
       {/* ── carousel ── */}
       {carouselThemes.length > 0 && (
@@ -499,13 +700,17 @@ export default function PopupPage() {
           onClick={handlePreview}
           disabled={busyKey === "preview" || busyKey === "theme" || previewingId != null || !enabled}
           className="flex h-9 items-center justify-center gap-1.5 rounded-xl text-[12px] font-semibold text-white shadow-sm transition-colors active:scale-[0.97] disabled:opacity-40"
-          aria-label="预览当前主题效果"
+          aria-label="在标签页预览"
           style={{
             backgroundColor: enabled && !busyKey ? accent : "#94a3b8",
           }}
         >
-          <Play className="size-3.5" />
-          {busyKey === "preview" ? "预览中…" : "预览效果"}
+          {busyKey === "preview" ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : (
+            <Monitor className="size-3.5" />
+          )}
+          {busyKey === "preview" ? "发送中…" : "预览至页面"}
         </button>
       </footer>
     </div>

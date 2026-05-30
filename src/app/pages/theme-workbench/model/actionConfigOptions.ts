@@ -46,6 +46,10 @@ export const TEXT_FONT_PRESETS = ["系统默认", "苹方 / 微软雅黑", "宋�
 export const PARTICLE_STYLE_OPTIONS = ["点状粒子", "碎屑粒子", "火花", "星光", "钻石", "心形", "方块", "三角"];
 export const PARTICLE_DIRECTION_OPTIONS = ["四周扩散", "旋转扫射", "向上喷发", "随机散射"];
 export const PARTICLE_COLOR_MODE_OPTIONS = ["跟随主题", "跟随飘字色", "随机轻变化"];
+export const PARTICLE_MOTION_MODE_OPTIONS = [
+  { value: "burst", label: "喷射扩散" },
+  { value: "orbital", label: "轨道呼吸" },
+];
 export const RIPPLE_STYLE_OPTIONS = ["单环", "双环", "柔和面波", "脉冲波纹", "回声环", "能量脉冲"];
 export const RIPPLE_EASING_OPTIONS = ["线性", "缓出", "缓入缓出", "弹性"];
 export const AUDIO_TRIGGER_OPTIONS = ["每次触发", "连击叠加", "节流播放"];
@@ -122,6 +126,10 @@ export const ACTION_PARTICLE_FIELDS = [
   "particleBounce",
   "particleTrail",
   "particleDelay",
+  "particleMotionMode",
+  "orbitalCount",
+  "orbitalRadius",
+  "orbitalSpeed",
 ];
 export const ACTION_RIPPLE_FIELDS = [
   "ripple",

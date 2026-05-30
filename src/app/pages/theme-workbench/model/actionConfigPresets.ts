@@ -51,6 +51,10 @@ const ACTION_CONFIG_SHARED_DEFAULTS = {
   particleDelay: 0,
   animationDelay: 0,
   imageDelay: 0,
+  particleMotionMode: "burst",
+  orbitalCount: 6,
+  orbitalRadius: 32,
+  orbitalSpeed: 3,
 };
 
 function createActionConfig(overrides) {

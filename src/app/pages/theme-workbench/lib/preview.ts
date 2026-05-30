@@ -26,6 +26,11 @@ export const PREVIEW_KEYFRAMES = `
     20% { opacity: 0.9; transform: translate3d(calc(-50% + var(--particle-mid-x, 0px)), calc(-50% + var(--particle-mid-y, 0px)), 0) scale(1) rotate(var(--particle-rotation, 0deg)); }
     100% { opacity: 0; transform: translate3d(calc(-50% + var(--particle-x, 0px)), calc(-50% + var(--particle-y, 0px)), 0) scale(var(--particle-end-scale, 0.65)) rotate(var(--particle-rotation, 0deg)); }
   }
+  @keyframes cursorDancePreviewParticleOrbital {
+    0% { opacity: var(--orbital-start-opacity, 0.5); transform: translate3d(-50%, -50%, 0) translate(var(--orbital-sx, -2px), var(--orbital-sy, -2px)) scale(var(--orbital-start-scale, 0.6)); }
+    50% { opacity: var(--orbital-peak-opacity, 0.15); transform: translate3d(-50%, -50%, 0) translate(var(--orbital-ex, 32px), var(--orbital-ey, 0px)) scale(var(--orbital-peak-scale, 1.2)); }
+    100% { opacity: var(--orbital-start-opacity, 0.5); transform: translate3d(-50%, -50%, 0) translate(var(--orbital-sx, -2px), var(--orbital-sy, -2px)) scale(var(--orbital-start-scale, 0.6)); }
+  }
   @keyframes cursorDancePreviewImage {
     0% { opacity: 0; transform: translate3d(-50%, -30%, 0) scale(0.72) rotate(-8deg); }
     18% { opacity: 1; transform: translate3d(-50%, -50%, 0) scale(1) rotate(0deg); }
@@ -311,6 +316,30 @@ export function buildParticleSpecs(config, runIndex) {
       delay: baseDelay + index * (particleConfig.particleStagger ?? 26) * staggerScale,
       size: Math.max(4, (particleConfig.particleSize || 10) * (0.52 + (index % 4) * 0.1)),
       endScale: style === "火花" ? 0.35 : style === "碎屑粒子" ? 0.55 : style === "星光" ? 0.38 : 0.65,
+    };
+  });
+}
+
+export function buildOrbitalParticleSpecs(config) {
+  const particleConfig = getActionParticleConfig(config);
+  const count = Math.min(particleConfig.orbitalCount || 6, 16);
+  const radius = Math.max(16, Math.min(particleConfig.orbitalRadius || 32, 80));
+  const speed = Math.max(1, Math.min(particleConfig.orbitalSpeed || 3, 8));
+  const duration = particleConfig.particleDuration || 780;
+
+  return Array.from({ length: count }, (_, i) => {
+    const angle = (i / count) * Math.PI * 2;
+    const size = Math.max(4, (particleConfig.particleSize || 10) * (0.5 + (i % 3) * 0.12));
+    return {
+      angle,
+      sx: Math.cos(angle) * 4,
+      sy: Math.sin(angle) * 4,
+      ex: Math.cos(angle) * radius,
+      ey: Math.sin(angle) * radius,
+      delay: -(i / count) * speed * 1000,
+      size,
+      duration,
+      speed,
     };
   });
 }

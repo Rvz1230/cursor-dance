@@ -671,6 +671,80 @@
       }
     }
 
+    function renderOrbitalParticles(x, y, actionConfig, runIndex) {
+      var particleConfig = configStore.getActionParticleConfig(actionConfig);
+      if (!particleConfig.particle) return;
+
+      var count = Math.min(particleConfig.orbitalCount || 6, 16);
+      var radius = Math.max(16, Math.min(particleConfig.orbitalRadius || 32, 80));
+      var speed = Math.max(1, Math.min(particleConfig.orbitalSpeed || 3, 8));
+      var orbitalDuration = Math.max(0, (particleConfig.particleDuration || 760));
+      var particleStyle = particleConfig.particleStyle || "点状粒子";
+      var fadeInDuration = Math.min(400, (particleConfig.particleDuration || 760) * 0.3);
+
+      var root = ensureRoot();
+      var dots = [];
+
+      for (var i = 0; i < count; i++) {
+        var dot = document.createElement("span");
+        dot.className = "cd-effect cd-particle";
+        dot.style.left = x + "px";
+        dot.style.top = y + "px";
+
+        var baseSize = Math.max(4, (particleConfig.particleSize || 10) * (0.5 + (i % 3) * 0.12));
+        applyParticleShape(dot, particleStyle, baseSize, i, actionConfig);
+
+        // radial oscillation: expand outward along angle, then contract back
+        var angle = (i / count) * Math.PI * 2;
+        var sx = Math.cos(angle) * 4;
+        var sy = Math.sin(angle) * 4;
+        var ex = Math.cos(angle) * radius;
+        var ey = Math.sin(angle) * radius;
+
+        var oscFrames = [
+          { transform: "translate3d(calc(-50% + " + sx + "px), calc(-50% + " + sy + "px), 0) scale(0.6)", opacity: 0.5, offset: 0 },
+          { transform: "translate3d(calc(-50% + " + ex + "px), calc(-50% + " + ey + "px), 0) scale(1.2)", opacity: 0.15, offset: 0.5 },
+          { transform: "translate3d(calc(-50% + " + sx + "px), calc(-50% + " + sy + "px), 0) scale(0.6)", opacity: 0.5, offset: 1 },
+        ];
+
+        var iterations = orbitalDuration > 0 ? Math.ceil(orbitalDuration / (speed * 1000)) : Infinity;
+        var anim = dot.animate(oscFrames, {
+          duration: speed * 1000,
+          iterations: iterations,
+          delay: -(i / count) * speed * 1000,
+          easing: "ease-in-out",
+          fill: orbitalDuration > 0 ? "forwards" : "none",
+        });
+
+        // fade in (uses particleDuration for smoothness)
+        dot.animate(
+          [{ opacity: 0 }, { opacity: 0.9 }],
+          { duration: fadeInDuration, easing: "ease-out", fill: "forwards" }
+        );
+
+        root.append(dot);
+        dots.push({ dot: dot, anim: anim });
+      }
+
+      // store for external cleanup (e.g. hover leave)
+      state.orbitalGroups = state.orbitalGroups || [];
+      state.orbitalGroups.push(dots);
+    }
+
+    function clearOrbitalParticles() {
+      var groups = state.orbitalGroups;
+      if (!groups) return;
+      state.orbitalGroups = [];
+      for (var g = 0; g < groups.length; g++) {
+        var group = groups[g];
+        for (var d = 0; d < group.length; d++) {
+          var item = group[d];
+          item.anim.cancel();
+          item.dot.remove();
+        }
+      }
+    }
+
     function getParticleRotation(style, index) {
       if (style === "火花") return -28 + ((index * 17) % 7) * 11;
       if (style === "碎屑粒子") return -42 + ((index * 13) % 9) * 10;
@@ -749,6 +823,8 @@
       renderAnimationEffect,
       renderImageEffect,
       renderParticles,
+      renderOrbitalParticles,
+      clearOrbitalParticles,
       renderCursorOverride,
       hasCursorOverride,
     };

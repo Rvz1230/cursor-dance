@@ -45,6 +45,10 @@
     "particleTrail",
     "particleDelay",
     "particleStagger",
+    "particleMotionMode",
+    "orbitalCount",
+    "orbitalRadius",
+    "orbitalSpeed",
   ];
   const ACTION_RIPPLE_FIELDS = [
     "ripple",
