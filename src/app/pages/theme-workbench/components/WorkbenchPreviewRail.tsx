@@ -14,7 +14,6 @@ import {
   getParticleTint,
   getPreviewAnimationStyle,
   getPreviewImageStyle,
-  getPreviewLoopDelay,
   getPreviewSoundFile,
   getPreviewText,
   getTextFontFamilyValue,
@@ -36,12 +35,9 @@ import {
 import { Panel } from "./WorkbenchControls";
 import { AtmosphereStagePreview } from "./AtmosphereStagePreview";
 
-function scalePreviewTime(value, playbackSpeed) {
-  return Math.max(1, Math.round(value / playbackSpeed));
-}
-
-function formatPlaybackSpeed(value) {
-  return `${Number(value).toFixed(value % 1 === 0 ? 0 : 1)}x`;
+function formatTriggerInterval(ms) {
+  if (ms < 1000) return `${ms}ms`;
+  return `${(ms / 1000).toFixed(ms % 1000 === 0 ? 0 : 1)}s`;
 }
 
 function buildOutputTags({ textConfig, particleConfig, rippleConfig, audioConfig, animationConfig, imageConfig, config }) {
@@ -74,7 +70,7 @@ function PreviewEffects({
   rippleConfig,
   animationConfig,
   imageConfig,
-  playbackSpeed,
+  triggerInterval,
   textDelay,
   rippleDelay,
   particleDelay,
@@ -111,7 +107,7 @@ function PreviewEffects({
                 "--ripple-from": ripple.scaleFrom,
                 "--ripple-mid": ripple.scaleMid,
                 "--ripple-to": ripple.scaleTo,
-                animation: `cursorDancePreviewRipple ${scalePreviewTime(rippleConfig.rippleDuration, playbackSpeed)}ms ${getAnimationEasingCss(rippleConfig.rippleEasing)} ${scalePreviewTime(rippleDelay + ripple.delay, playbackSpeed)}ms both`,
+                animation: `cursorDancePreviewRipple ${rippleConfig.rippleDuration}ms ${getAnimationEasingCss(rippleConfig.rippleEasing)} ${rippleDelay + ripple.delay}ms both`,
               }}
             />
           ))
@@ -143,7 +139,7 @@ function PreviewEffects({
                   "--particle-mid-y": `${particle.midY}px`,
                   "--particle-rotation": `${shape.rotation}deg`,
                   "--particle-end-scale": particle.endScale,
-                  animation: `cursorDancePreviewParticle ${scalePreviewTime(particleConfig.particleDuration, playbackSpeed)}ms ${easing} ${scalePreviewTime(particleDelay + particle.delay, playbackSpeed)}ms both`,
+                  animation: `cursorDancePreviewParticle ${particleConfig.particleDuration}ms ${easing} ${particleDelay + particle.delay}ms both`,
                 }}
               />
             );
@@ -171,7 +167,7 @@ function PreviewEffects({
                     "--particle-mid-y": `${particle.y * 0.24}px`,
                     "--particle-rotation": `${shape.rotation}deg`,
                     "--particle-end-scale": "0.44",
-                    animation: `cursorDancePreviewParticle ${scalePreviewTime(particleConfig.particleDuration * 0.8, playbackSpeed)}ms ease-out ${scalePreviewTime(particleDelay + particle.delay + t * 40, playbackSpeed)}ms both`,
+                    animation: `cursorDancePreviewParticle ${particleConfig.particleDuration * 0.8}ms ease-out ${particleDelay + particle.delay + t * 40}ms both`,
                   }}
                 />
               );
@@ -204,7 +200,7 @@ function PreviewEffects({
                   "--orbital-peak-opacity": "0.15",
                   "--orbital-start-scale": "0.6",
                   "--orbital-peak-scale": "1.2",
-                  animation: `cursorDancePreviewParticleOrbital ${scalePreviewTime(orbital.speed * 1000, playbackSpeed)}ms ease-in-out ${orbital.delay}ms infinite`,
+                  animation: `cursorDancePreviewParticleOrbital ${orbital.speed * 1000}ms ease-in-out ${orbital.delay}ms infinite`,
                 }}
               />
             );
@@ -223,7 +219,7 @@ function PreviewEffects({
               fontWeight: getTextWeightValue(textConfig.textWeight),
               textShadow: getTextShadowValue(config),
               WebkitTextStroke: textConfig.textOutlineWidth ? `${textConfig.textOutlineWidth}px ${hexToRgba("#FFFFFF", 0.82)}` : undefined,
-              animation: `cursorDancePreviewFloat ${scalePreviewTime(textConfig.textDuration || 950, playbackSpeed)}ms ${getAnimationEasingCss(textConfig.textEasing)} ${scalePreviewTime(textDelay, playbackSpeed)}ms forwards`,
+              animation: `cursorDancePreviewFloat ${textConfig.textDuration || 950}ms ${getAnimationEasingCss(textConfig.textEasing)} ${textDelay}ms forwards`,
             }}
           >
             {accentText}
@@ -238,7 +234,7 @@ function PreviewEffects({
           style={{
             ...animationStyle,
             "--anim-opacity": animationStyle.opacity,
-            animation: `${animKeyframe} ${scalePreviewTime(animationConfig.animationDuration, playbackSpeed)}ms ${getAnimationEasingCss(animationConfig.animationEasing)} ${scalePreviewTime(animationDelay, playbackSpeed)}ms forwards`,
+            animation: `${animKeyframe} ${animationConfig.animationDuration}ms ${getAnimationEasingCss(animationConfig.animationEasing)} ${animationDelay}ms forwards`,
             borderRadius: animVisual.borderRadius,
             background: animVisual.background,
             clipPath: animVisual.clipPath || undefined,
@@ -254,7 +250,7 @@ function PreviewEffects({
           className="absolute left-1/2 top-1/2"
           style={{
             ...imageStyle,
-            animation: `cursorDancePreviewImage ${scalePreviewTime(imageConfig.imageDuration, playbackSpeed)}ms cubic-bezier(0.22, 1, 0.36, 1) ${scalePreviewTime(imageDelay, playbackSpeed)}ms forwards`,
+            animation: `cursorDancePreviewImage ${imageConfig.imageDuration}ms cubic-bezier(0.22, 1, 0.36, 1) ${imageDelay}ms forwards`,
           }}
         >
           <img
@@ -677,7 +673,7 @@ function InteractiveTimeline({ tracks, totalMs, updateActionConfig }) {
   );
 }
 
-function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, outputs, playbackSpeed, updateActionConfig, atmosphere }) {
+function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, outputs, triggerInterval, updateActionConfig, atmosphere }) {
   const textConfig = useMemo(() => getActionTextConfig(config), [config]);
   const particleConfig = useMemo(() => getActionParticleConfig(config), [config]);
   const rippleConfig = useMemo(() => getActionRippleConfig(config), [config]);
@@ -790,7 +786,7 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, out
               rippleConfig={rippleConfig}
               animationConfig={animationConfig}
               imageConfig={imageConfig}
-              playbackSpeed={playbackSpeed}
+              triggerInterval={triggerInterval}
               textDelay={textDelay}
               rippleDelay={rippleDelay}
               particleDelay={particleDelay}
@@ -821,7 +817,7 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, out
                   className="block w-0.5 rounded-full bg-emerald-500/70"
                   style={{
                     height: `${7 + bar * 2}px`,
-                    animation: `cursorDancePreviewBars ${scalePreviewTime(480, playbackSpeed)}ms ease-out ${scalePreviewTime(soundDelay + bar * 60, playbackSpeed)}ms 2`,
+                    animation: `cursorDancePreviewBars ${480}ms ease-out ${soundDelay + bar * 60}ms 2`,
                     transformOrigin: "bottom",
                   }}
                 />
@@ -839,7 +835,7 @@ export function WorkbenchPreviewRail({ actionLabel, actionId = "leftClick", conf
   const [runId, setRunId] = useState(0);
   const [comboIndex, setComboIndex] = useState(1);
   const [autoPlay, setAutoPlay] = useState(true);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [triggerInterval, setTriggerInterval] = useState(1200);
   const timerRef = useRef(null);
   const lastComboFireRef = useRef(0);
   const textConfig = useMemo(() => getActionTextConfig(config), [config]);
@@ -852,8 +848,7 @@ export function WorkbenchPreviewRail({ actionLabel, actionId = "leftClick", conf
     () => buildOutputTags({ textConfig, particleConfig, rippleConfig, audioConfig, animationConfig, imageConfig, config }),
     [textConfig, particleConfig, rippleConfig, audioConfig, animationConfig, imageConfig, config]
   );
-  const loopDelay = scalePreviewTime(getPreviewLoopDelay(config), playbackSpeed);
-  const comboWindowMs = scalePreviewTime(textConfig.comboWindowMs || 900, playbackSpeed);
+  const comboWindowMs = textConfig.comboWindowMs || 900;
   const displayComboIndex = textConfig.comboEnabled ? comboIndex : 1;
 
   const replay = useCallback(() => {
@@ -893,14 +888,14 @@ export function WorkbenchPreviewRail({ actionLabel, actionId = "leftClick", conf
       lastComboFireRef.current = now;
     };
 
-    timerRef.current = window.setInterval(tick, loopDelay);
+    timerRef.current = window.setInterval(tick, triggerInterval);
     return () => {
       if (timerRef.current !== null) {
         window.clearInterval(timerRef.current);
         timerRef.current = null;
       }
     };
-  }, [autoPlay, disabled, loopDelay, comboWindowMs]);
+  }, [autoPlay, disabled, triggerInterval, comboWindowMs]);
 
   return (
     <div className="min-h-0 flex-1">
@@ -928,25 +923,25 @@ export function WorkbenchPreviewRail({ actionLabel, actionId = "leftClick", conf
             >
               {autoPlay ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
             </Button>
-            <div className="ml-1 grid h-8 grid-cols-[auto_72px_auto] items-center gap-2 rounded-lg border border-slate-200 bg-white px-2" aria-label="播放速度">
-              <span className="text-xs font-medium text-slate-500">速度</span>
+            <div className="ml-1 grid h-8 grid-cols-[auto_72px_auto] items-center gap-2 rounded-lg border border-slate-200 bg-white px-2" aria-label="触发间隔">
+              <span className="text-xs font-medium text-slate-500">频率</span>
               <input
                 type="range"
-                min="0.25"
-                max="2.5"
-                step="0.05"
-                value={playbackSpeed}
+                min={200}
+                max={5000}
+                step={50}
+                value={triggerInterval}
                 disabled={disabled}
-                onChange={(event) => setPlaybackSpeed(Number(event.target.value))}
+                onChange={(event) => setTriggerInterval(Number(event.target.value))}
                 className="h-1.5 w-full accent-slate-950"
-                aria-label="调整播放速度"
+                aria-label="调整触发间隔"
               />
-              <span className="w-8 text-right text-xs font-semibold tabular-nums text-slate-900">{formatPlaybackSpeed(playbackSpeed)}</span>
+              <span className="w-8 text-right text-xs font-semibold tabular-nums text-slate-900">{formatTriggerInterval(triggerInterval)}</span>
             </div>
           </div>
         }
       >
-        <SimplePreviewStage config={config} disabled={disabled} runId={runId} comboIndex={displayComboIndex} actionId={actionId} outputs={outputs} playbackSpeed={playbackSpeed} updateActionConfig={updateActionConfig} atmosphere={atmosphere} />
+        <SimplePreviewStage config={config} disabled={disabled} runId={runId} comboIndex={displayComboIndex} actionId={actionId} outputs={outputs} triggerInterval={triggerInterval} updateActionConfig={updateActionConfig} atmosphere={atmosphere} />
       </Panel>
     </div>
   );
