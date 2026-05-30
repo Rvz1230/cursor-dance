@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, CircleDashed, Loader2, Monitor, Settings, Sp
 import { cn } from "@/components/ui/utils";
 import { ICON_OPTIONS } from "../theme-workbench/model/workbenchSchema";
 import { usePopupState } from "./usePopupState";
+import AnimatedPreview from "./AnimatedPreview";
 
 // ═══════════════════════════════════════════════════════════════
 // "Theme Identity" — shows what makes each theme unique
@@ -39,107 +40,6 @@ function effectSummary(ac) {
 function particleDirLabel(dir) {
   const map = { "四周扩散": "扩散", up: "向上", down: "向下", left: "向左", right: "向右" };
   return map[dir] || "扩散";
-}
-
-// ── AnimatedPreview — micro-motion demo ──────────────────────
-
-function AnimatedPreview({ actionConfig, accent }) {
-  const hasParticle = actionConfig?.particle;
-  const hasRipple = actionConfig?.ripple;
-  const hasText = actionConfig?.textEnabled && actionConfig?.textContent;
-
-  if (hasParticle && actionConfig?.particleMotionMode === "orbital") {
-    const n = actionConfig.orbitalCount || 6;
-    const r = Math.min(actionConfig.orbitalRadius || 32, 60);
-    const speed = Math.max(1, actionConfig.orbitalSpeed || 3);
-    return (
-      <div className="relative flex items-center justify-center size-full">
-        {Array.from({ length: n }).map((_, i) => {
-          const initialAngle = (i / n) * Math.PI * 2;
-          return (
-            <motion.div
-              key={i}
-              className="absolute rounded-full"
-              style={{
-                width: 5 + (i % 2) * 3,
-                height: 5 + (i % 2) * 3,
-                backgroundColor: accent,
-              }}
-              animate={{
-                x: [Math.cos(initialAngle) * 4, Math.cos(initialAngle) * r, Math.cos(initialAngle) * 4],
-                y: [Math.sin(initialAngle) * 4, Math.sin(initialAngle) * r, Math.sin(initialAngle) * 4],
-                opacity: [0.5, 0.15, 0.5],
-                scale: [0.6, 1.2, 0.6],
-              }}
-              transition={{ duration: speed, repeat: Infinity, delay: -(i / n) * speed, ease: "easeInOut" }}
-            />
-          );
-        })}
-      </div>
-    );
-  }
-
-  if (hasParticle) {
-    const n = 5;
-    return (
-      <div className="relative flex items-center justify-center size-full">
-        {Array.from({ length: n }).map((_, i) => {
-          const angle = (i / n) * Math.PI * 2;
-          const r = 16 + (i % 3) * 6;
-          return (
-            <motion.div
-              key={i}
-              className="absolute rounded-full"
-              style={{
-                width: 4 + (i % 2) * 2,
-                height: 4 + (i % 2) * 2,
-                backgroundColor: accent,
-              }}
-              animate={{
-                x: [Math.cos(angle) * 4, Math.cos(angle) * r, Math.cos(angle) * 4],
-                y: [Math.sin(angle) * 4, Math.sin(angle) * r, Math.sin(angle) * 4],
-                opacity: [0.5, 0.15, 0.5],
-                scale: [0.6, 1.2, 0.6],
-              }}
-              transition={{ duration: 2.5 + (i % 3) * 0.3, repeat: Infinity, delay: i * 0.2, ease: "easeInOut" }}
-            />
-          );
-        })}
-      </div>
-    );
-  }
-
-  if (hasRipple) {
-    return (
-      <div className="relative flex items-center justify-center size-full">
-        {[0, 1, 2].map((i) => (
-          <motion.div
-            key={i}
-            className="absolute rounded-full"
-            style={{ border: `1.5px solid ${accent}`, width: 16, height: 16 }}
-            animate={{ scale: [1, 3.5, 1], opacity: [0.5, 0, 0.5] }}
-            transition={{ duration: 2, repeat: Infinity, delay: i * 0.55, ease: "easeOut" }}
-          />
-        ))}
-      </div>
-    );
-  }
-
-  if (hasText) {
-    const txt = actionConfig.textContent;
-    return (
-      <motion.span
-        className="text-lg font-bold leading-none"
-        style={{ color: accent }}
-        animate={{ scale: [1, 1.06, 1], opacity: [0.6, 1, 0.6] }}
-        transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-      >
-        {txt.length > 8 ? txt.slice(0, 8) + "…" : txt}
-      </motion.span>
-    );
-  }
-
-  return null;
 }
 
 // ── effect chips (grouped: Motion / Feedback) ────────────────
