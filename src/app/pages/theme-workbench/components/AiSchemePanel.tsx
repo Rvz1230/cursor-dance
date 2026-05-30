@@ -1231,7 +1231,7 @@ export function AiSchemePanel({
         </div>
 
         {pendingResult ? (
-          <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] gap-2 border-t border-slate-100 px-3 py-2">
+          <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 px-3 py-2">
             <Button variant={previewActive ? "default" : "outline"} className="rounded-xl px-3" onClick={previewPendingResult}>
               <Eye className="mr-2 size-4" aria-hidden="true" />
               预览
