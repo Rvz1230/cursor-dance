@@ -15,15 +15,13 @@ Chrome 扩展（Manifest V3）。为网页添加可定制的鼠标交互效果�
 
 ## 截图
 
-> 将截图放在 `screenshots/` 目录下，然后替换下方占位链接。
-
 <p align="center">
-  <img src="screenshots/workbench.png" alt="工作台" width="720">
+  <img src="screenshots/workbench.png" alt="主题工作台" width="720">
   <br><em>主题工作台 — 编辑动作配置、实时预览效果</em>
 </p>
 
 <p align="center">
-  <img src="screenshots/popup.png" alt="Popup" width="300">
+  <img src="screenshots/popup.png" alt="Popup 主题切换" width="300">
   <br><em>Popup 快速切换主题</em>
 </p>
 
@@ -31,9 +29,9 @@ Chrome 扩展（Manifest V3）。为网页添加可定制的鼠标交互效果�
 
 ### Chrome 应用商店
 
-> 上线后替换为实际链接。
-
 [![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-green.svg)](https://chromewebstore.google.com/detail/cursordance)
+
+> ⏳ 审核中 — 可通过上方链接关注上线状态。
 
 ### 手动安装（开发模式）
 
