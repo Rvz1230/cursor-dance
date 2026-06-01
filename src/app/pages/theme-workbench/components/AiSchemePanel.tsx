@@ -445,8 +445,14 @@ function ProposalCard({ result, previewActive }) {
         <div>
           <SectionToggle label="更多信息" section="meta" />
           {openSections.meta ? (
-            <div className="flex items-center gap-2 px-3 py-1 text-[11px] text-slate-400">
-              <span>本次消耗 ~{result.totalTokens.toLocaleString()} tokens</span>
+            <div className="flex flex-wrap items-center gap-1.5 px-3 py-1 text-[11px] text-slate-400">
+              <span>消耗 ~{result.totalTokens.toLocaleString()} tokens</span>
+              {result.totalCacheHitTokens > 0 ? (
+                <>
+                  <span className="text-slate-300">·</span>
+                  <span className="text-emerald-600 font-medium">{result.totalCacheHitTokens.toLocaleString()} 缓存命中</span>
+                </>
+              ) : null}
               <span className="text-slate-300">·</span>
               <span>约 ¥{((result.totalTokens / 1000000) * 1.5).toFixed(4)}</span>
             </div>

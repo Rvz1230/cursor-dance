@@ -124,8 +124,10 @@ async function handleAgentRun(request, response) {
     if (!response.writableEnded && result.ok) {
       sendSseEvent(response, "result", {
         proposal: serializeAiProposal(result.proposal),
-        steps: result.steps.length,
+        steps: result.steps,
         totalTokens: result.totalTokens,
+        totalCacheHitTokens: result.totalCacheHitTokens,
+        totalCacheMissTokens: result.totalCacheMissTokens,
         durationMs: result.durationMs,
       });
     } else if (!response.writableEnded && !result.ok) {

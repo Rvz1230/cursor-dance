@@ -77,10 +77,13 @@ export async function runAgentLoop({
   env = process.env,
   maxSteps = DEFAULT_MAX_STEPS,
   onEvent,
+  generateResponse,
 }) {
   const steps = [];
   const startedAt = Date.now();
   let totalTokens = 0;
+  let totalCacheHitTokens = 0;
+  let totalCacheMissTokens = 0;
 
   const initialConfigs = allConfigs || {};
   if (!allConfigs || !allConfigs[actionId]) {
@@ -103,7 +106,7 @@ export async function runAgentLoop({
 
     let response;
     try {
-      response = await generateAgentResponse({
+      response = await (generateResponse || generateAgentResponse)({
         messages,
         tools: AGENT_TOOLS,
         env,
@@ -131,6 +134,8 @@ export async function runAgentLoop({
 
     if (response.usage) {
       totalTokens += response.usage.total_tokens || 0;
+      totalCacheHitTokens += response.usage.prompt_cache_hit_tokens || 0;
+      totalCacheMissTokens += response.usage.prompt_cache_miss_tokens || 0;
     }
 
     // Append assistant message with tool_calls if present
@@ -243,6 +248,8 @@ export async function runAgentLoop({
       error: "Agent reached maximum steps without finalizing a proposal.",
       steps,
       totalTokens,
+      totalCacheHitTokens,
+      totalCacheMissTokens,
       durationMs: Date.now() - startedAt,
     };
   }
@@ -317,6 +324,8 @@ export async function runAgentLoop({
     proposal,
     steps: steps.length,
     totalTokens,
+    totalCacheHitTokens,
+    totalCacheMissTokens,
     durationMs: Date.now() - startedAt,
   });
 
@@ -325,6 +334,8 @@ export async function runAgentLoop({
     proposal,
     steps,
     totalTokens,
+    totalCacheHitTokens,
+    totalCacheMissTokens,
     durationMs: Date.now() - startedAt,
   };
 }

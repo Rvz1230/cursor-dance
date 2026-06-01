@@ -445,6 +445,7 @@ async function callChatCompletionsApiWithToolsStreaming({ apiKey, baseUrl, model
   let accumulatedContent = "";
   let rawBuffer = "";
   const toolCallsAcc = {};
+  let streamUsage = null;
 
   try {
     while (true) {
@@ -463,7 +464,13 @@ async function callChatCompletionsApiWithToolsStreaming({ apiKey, baseUrl, model
         try {
           const event = JSON.parse(data);
           const delta = event?.choices?.[0]?.delta;
-          if (!delta) continue;
+          if (!delta) {
+            // Capture usage from non-delta chunks (typically the last chunk)
+            if (event?.usage) {
+              streamUsage = event.usage;
+            }
+            continue;
+          }
 
           if (delta.content) {
             accumulatedContent += delta.content;
@@ -484,6 +491,10 @@ async function callChatCompletionsApiWithToolsStreaming({ apiKey, baseUrl, model
 
           if (event?.choices?.[0]?.finish_reason) {
             onEvent?.({ type: "finish", reason: event.choices[0].finish_reason });
+            // Usage may also be in the finish chunk alongside delta
+            if (event?.usage) {
+              streamUsage = event.usage;
+            }
           }
         } catch {
           // Skip unparseable SSE data
@@ -504,6 +515,7 @@ async function callChatCompletionsApiWithToolsStreaming({ apiKey, baseUrl, model
     content: accumulatedContent,
     toolCalls,
     finishReason: toolCalls.length > 0 ? "tool_calls" : "stop",
+    usage: streamUsage,
   };
 }
 

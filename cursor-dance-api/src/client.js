@@ -345,6 +345,15 @@ async function parseAgentSseStream(response, onEvent, signal) {
             if (data.durationMs != null) {
               finalResult.durationMs = data.durationMs;
             }
+            if (data.steps != null) {
+              finalResult.steps = data.steps;
+            }
+            if (data.totalCacheHitTokens != null) {
+              finalResult.totalCacheHitTokens = data.totalCacheHitTokens;
+            }
+            if (data.totalCacheMissTokens != null) {
+              finalResult.totalCacheMissTokens = data.totalCacheMissTokens;
+            }
           }
           if (currentEventType === "error") {
             throw new Error(data.error || data.details || "Agent run error");
