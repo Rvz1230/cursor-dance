@@ -42,9 +42,10 @@ Chrome 扩展（Manifest V3）。为网页添加可定制的鼠标交互效果�
 
 ## 功能
 
-- **6 种触发动作**：左键单击、右键单击、双击、长按、滚轮、悬停
-- **7 类反馈效果**：数字/文本飘字、粒子、波纹、音效、动画、图片贴纸、光标形状
+- **7 种触发动作**：左键单击、右键单击、双击、长按、滚轮、悬停、悬停离开
+- **9 类反馈效果**：数字/文本飘字、粒子、波纹、音效、动画、图片贴纸、光标形状、氛围粒子、元素磁吸
 - **5 种光标状态**：默认、手型、文本、等待、禁用——每种可独立绑定动作和光标图案
+- **氛围效果**：自定义光标拖尾、氛围粒子、视差跟随，增强页面沉浸感
 - **主题系统**：4 套内置主题 + 自定义主题的创建、复制、导入/导出
 - **站点规则**：按域名独立配置启用/禁用、指定专属主题
 - **AI 方案助手**：自然语言描述需求，自动生成效果配置
@@ -59,7 +60,7 @@ Chrome 扩展（Manifest V3）。为网页添加可定制的鼠标交互效果�
 | 内容脚本运行时 | 原生 IIFE 模块（无打包器），Web Animations API + Web Audio API |
 | 状态管理 | useReducer + chrome.storage.local / chrome.storage.session |
 | 数据格式 | schema v2，单 key `cursordance.config` |
-| 测试 | Vitest (98 用例) + Playwright (E2E smoke) |
+| 测试 | Vitest (98+ 用例) + Playwright (E2E smoke) |
 | AI API | Node.js + OpenAI Responses API 格式 → DeepSeek 模型 |
 
 ## 快速开始
@@ -139,11 +140,15 @@ cursor-dance/
 │   ├── manifest.json           # Chrome 扩展清单
 │   ├── config-runtime/         # 配置辅助（字段定义、pick 函数）
 │   └── content-runtime/        # 运行时模块
+│       ├── site-matcher.js     # 站点规则匹配（glob 模式）
 │       ├── config-store.js     # 配置读取/合并/站点规则解析
+│       ├── diagnostics.js      # 运行时诊断事件
 │       ├── trigger-handlers.js # 事件处理 & 动作调度
 │       ├── visual-effects.js   # 粒子/波纹/飘字/光标渲染
 │       ├── audio.js            # Web Audio 音效播放
-│       └── cursor-overlay.js   # 自定义光标覆盖层
+│       ├── audio-duck-profile.js # 音频闪避配置
+│       ├── cursor-overlay.js   # 自定义光标覆盖层
+│       └── atmosphere.js       # 氛围粒子/光标拖尾效果
 ├── src/
 │   ├── app/pages/
 │   │   ├── popup/              # Popup 页面
@@ -154,7 +159,8 @@ cursor-dance/
 │   │       ├── components/     # UI 组件（Header, Sidebar, Panels）
 │   │       ├── hooks/          # 状态管理（useReducer + persistence）
 │   │       ├── model/          # Schema, ActionConfig 预设值
-│   │       └── lib/            # Storage 适配、主题适配、AI 助手
+│   │       ├── lib/storage/    # Chrome Storage 适配（config-io, subscriptions, extras）
+│   │       └── lib/            # 主题适配、AI 助手、工具函数
 │   └── components/ui/          # 通用 UI 组件（Button, Switch, Slider...）
 ├── cursor-dance-api/           # AI API 服务
 ├── landing/                    # 独立 Vite 落地页
@@ -197,11 +203,12 @@ cursor-dance/
 ## 命令行
 
 ```bash
-npm run dev           # Vite dev server（工作台 + Popup）
-npm run build         # 生产构建 → dist/
-npm run test          # Vitest 单元测试（98 用例）
-npm run test:smoke    # Playwright E2E 冒烟测试
-npm run ai:dev        # AI API 服务
+npm run dev                     # Vite dev server（工作台 + Popup）
+npm run build                   # 生产构建 → dist/
+npm run test                    # Vitest 单元测试
+npm run test:smoke              # Playwright E2E 冒烟测试
+npm run extension:prepare-manifest  # 更新 manifest host_permissions
+npm run ai:dev                  # AI API 服务
 ```
 
 ## 贡献
