@@ -34,4 +34,4 @@ CursorDance 需要在网页上注入内容脚本才能渲染光标状态、点�
 
 ## 联系方式
 
-发布 Chrome Web Store 前请在此添加生产环境的支持邮箱或 Issue 跟踪地址。
+如有问题，请在 [GitHub Issues](https://github.com/Rvz1230/cursor-dance/issues) 提交反馈，附上浏览器版本、插件版本和问题描述。

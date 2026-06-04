@@ -11,7 +11,7 @@ export default function SupportPage() {
           <section>
             <h2 className="text-white/80 text-lg font-semibold mb-3">如何安装</h2>
             <ol className="list-decimal pl-5 space-y-2">
-              <li>打开 Chrome 浏览器，访问 Chrome Web Store</li>
+              <li>打开 Chrome 浏览器，访问 <a href="https://chromewebstore.google.com/detail/nckepaijkfcnnmmdllggalogfegpiepi" className="text-violet-400 hover:text-violet-300 transition-colors" target="_blank" rel="noopener noreferrer">Chrome Web Store</a></li>
               <li>搜索 "CursorDance" 或直接点击安装链接</li>
               <li>点击 "添加到 Chrome" 按钮</li>
               <li>安装完成后，浏览器右上角会出现 CursorDance 图标</li>

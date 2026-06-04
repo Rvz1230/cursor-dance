@@ -29,9 +29,9 @@ Chrome 扩展（Manifest V3）。为网页添加可定制的鼠标交互效果�
 
 ### Chrome 应用商店
 
-[![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-green.svg)](https://chromewebstore.google.com/detail/cursordance)
+[![Chrome Web Store](https://img.shields.io/badge/Chrome-Web%20Store-green.svg)](https://chromewebstore.google.com/detail/nckepaijkfcnnmmdllggalogfegpiepi?utm_source=item-share-cb)
 
-> ⏳ 审核中 — 可通过上方链接关注上线状态。
+> ✅ 已上架 — [点击安装](https://chromewebstore.google.com/detail/nckepaijkfcnnmmdllggalogfegpiepi?utm_source=item-share-cb)
 
 ### 手动安装（开发模式）
 
