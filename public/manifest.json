@@ -28,6 +28,7 @@
       "js": [
         "config-runtime/text-semantics.js",
         "config-runtime/action-config.js",
+        "config-runtime/compute-specs.js",
         "config.js",
         "content-runtime/site-matcher.js",
         "content-runtime/diagnostics.js",
