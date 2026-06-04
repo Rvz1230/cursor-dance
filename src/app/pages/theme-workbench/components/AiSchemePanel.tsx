@@ -690,6 +690,9 @@ export function AiSchemePanel({
   // Use ref for atomic submit lock — React state batching could allow
   // double-submit when tuningOptions chips are clicked in rapid succession.
   const generatingRef = useRef(false);
+  const COOLDOWN_MS = 3000;
+  const [cooldownActive, setCooldownActive] = useState(false);
+  const cooldownTimerRef = useRef(null);
 
   // Persist conversation state when switching between actions
   const actionIdRef = useRef(actionId);
@@ -740,6 +743,8 @@ export function AiSchemePanel({
     setError("");
     setStreamingReply("");
     setIsGenerating(false);
+    setCooldownActive(false);
+    clearTimeout(cooldownTimerRef.current);
     setAgentRunning(false);
     setAgentTotalSteps(0);
     setConfirmClear(false);
@@ -751,6 +756,11 @@ export function AiSchemePanel({
   // Sweep expired conversations on mount
   useEffect(() => {
     sweepExpiredConversations();
+  }, []);
+
+  // Cleanup cooldown timer on unmount
+  useEffect(() => {
+    return () => clearTimeout(cooldownTimerRef.current);
   }, []);
 
   // Debounced auto-save when conversation state changes
@@ -767,7 +777,7 @@ export function AiSchemePanel({
 
   const promptExamples = useMemo(() => buildPromptExamples(currentConfig), [currentConfig]);
 
-  const canSubmit = useMemo(() => prompt.trim().length > 0 && !isGenerating, [prompt, isGenerating]);
+  const canSubmit = useMemo(() => prompt.trim().length > 0 && !isGenerating && !cooldownActive, [prompt, isGenerating, cooldownActive]);
   const previewActive = Boolean(pendingResult && previewProposal === pendingResult);
   const scrollRef = useRef(null);
   const textareaRef = useRef(null);
@@ -810,7 +820,7 @@ export function AiSchemePanel({
 
   async function submitPrompt(nextPrompt = prompt, modeOverride = "modify_action") {
     const trimmedPrompt = nextPrompt.trim();
-    if (!trimmedPrompt || generatingRef.current) return;
+    if (!trimmedPrompt || generatingRef.current || cooldownActive) return;
 
     const proposalContext = pendingResult;
     setPrompt("");
@@ -962,6 +972,10 @@ export function AiSchemePanel({
       generatingRef.current = false;
       setIsGenerating(false);
       abortRef.current = null;
+      // 启动冷却计时，防止快速连续发请求
+      setCooldownActive(true);
+      clearTimeout(cooldownTimerRef.current);
+      cooldownTimerRef.current = setTimeout(() => setCooldownActive(false), COOLDOWN_MS);
     }
   }
 
@@ -1209,7 +1223,7 @@ export function AiSchemePanel({
                   onClick={() => {
                     submitPrompt(option, "tune_proposal");
                   }}
-                  disabled={isGenerating}
+                  disabled={isGenerating || cooldownActive}
                 >
                   {option}
                 </button>
@@ -1223,7 +1237,7 @@ export function AiSchemePanel({
                   type="button"
                   className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600 transition-[transform,color,background-color,border-color,box-shadow] hover:border-slate-300 hover:bg-white active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
                   onClick={() => submitPrompt(example)}
-                  disabled={isGenerating}
+                  disabled={isGenerating || cooldownActive}
                 >
                   {example}
                 </button>
@@ -1246,7 +1260,7 @@ export function AiSchemePanel({
               <Check className="mr-2 size-4" aria-hidden="true" />
               应用改动
             </Button>
-            <Button variant="outline" className="rounded-xl px-3" onClick={() => submitPrompt(lastPrompt)} disabled={!lastPrompt || isGenerating} aria-label="重新生成">
+            <Button variant="outline" className="rounded-xl px-3" onClick={() => submitPrompt(lastPrompt)} disabled={!lastPrompt || isGenerating || cooldownActive} aria-label="重新生成">
               <RotateCcw className="mr-1.5 size-4" aria-hidden="true" />
               重新生成
             </Button>
@@ -1287,7 +1301,7 @@ export function AiSchemePanel({
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="例如：科技感一点、低调、不要声音、粒子少一点"
+              placeholder={cooldownActive ? "冷却中，请稍候…" : "例如：科技感一点、低调、不要声音、粒子少一点"}
               rows={1}
               className="max-h-[112px] min-h-[48px] w-full resize-none bg-transparent px-1 py-1.5 text-sm leading-5 text-slate-800 outline-none placeholder:text-slate-400"
             />
@@ -1302,7 +1316,7 @@ export function AiSchemePanel({
                 <Square className="size-3.5" aria-hidden="true" />
               </button>
             ) : (
-              <Button className="absolute bottom-2 right-2 size-9 rounded-xl px-0 disabled:opacity-30 transition-opacity" type="submit" disabled={!canSubmit} aria-label="发送给 AI 方案助手" title="发送 (↵)">
+              <Button className="absolute bottom-2 right-2 size-9 rounded-xl px-0 disabled:opacity-30 transition-opacity" type="submit" disabled={!canSubmit} aria-label="发送给 AI 方案助手" title={cooldownActive ? "冷却中 (3 秒)" : "发送 (↵)"}>
                 <Send className="size-4" aria-hidden="true" />
               </Button>
             )}

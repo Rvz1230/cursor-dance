@@ -2,7 +2,7 @@ import { normalizeAiSchemeProposal } from "./normalize.js";
 import { AGENT_TOOLS, AGENT_SYSTEM_PROMPT_EXTENSION } from "./agent-tools.js";
 
 const DEFAULT_BASE_URL = "https://api.deepseek.com/v1";
-const DEFAULT_MODEL = "deepseek-chat";
+const DEFAULT_MODEL = "deepseek-v4-flash";
 const DEFAULT_MODE = "chat_completions";
 const MAX_AGENT_ITERATIONS = 5;
 

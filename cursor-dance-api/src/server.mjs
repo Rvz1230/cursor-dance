@@ -19,6 +19,13 @@ import {
   validateAiSchemeRequest,
 } from "./normalize.js";
 import { runAgentLoop } from "./agent-loop.mjs";
+import { AI_SCHEMA_VERSION } from "./field-defs.js";
+import {
+  acquireSlot,
+  configureRateLimiter,
+  getRateLimitMetrics,
+  releaseSlot,
+} from "./rate-limiter.mjs";
 
 const DEPRECATED_ENDPOINTS = ["/api/ai/modify-scheme", "/api/ai/generate-scheme"];
 
@@ -108,7 +115,19 @@ async function handleAgentRun(request, response) {
     return;
   }
 
-  sendSseHeaders(response, request.headers.origin || "");
+  const origin = request.headers.origin || "";
+  const slot = acquireSlot(request, "agent");
+  if (!slot.ok) {
+    sendJson(response, slot.status, {
+      error: slot.error,
+      code: slot.code,
+      retryAfter: slot.retryAfter,
+      schemaVersion: AI_SCHEMA_VERSION,
+    }, origin);
+    return;
+  }
+
+  sendSseHeaders(response, origin);
 
   try {
     const result = await runAgentLoop({
@@ -144,6 +163,7 @@ async function handleAgentRun(request, response) {
       });
     }
   } finally {
+    releaseSlot("agent");
     if (!response.writableEnded) {
       response.end();
     }
@@ -168,8 +188,24 @@ async function handleSchemeProposal(request, response) {
     return;
   }
 
-  const result = await createAiSchemeProposal(payload);
-  sendJson(response, result.status, result.body, request.headers.origin || "");
+  const origin = request.headers.origin || "";
+  const slot = acquireSlot(request, "quick");
+  if (!slot.ok) {
+    sendJson(response, slot.status, {
+      error: slot.error,
+      code: slot.code,
+      retryAfter: slot.retryAfter,
+      schemaVersion: AI_SCHEMA_VERSION,
+    }, origin);
+    return;
+  }
+
+  try {
+    const result = await createAiSchemeProposal(payload);
+    sendJson(response, result.status, result.body, origin);
+  } finally {
+    releaseSlot("quick");
+  }
 }
 
 async function handleSchemeProposalStream(request, response) {
@@ -208,7 +244,19 @@ async function handleSchemeProposalStream(request, response) {
     return;
   }
 
-  sendSseHeaders(response, request.headers.origin || "");
+  const origin = request.headers.origin || "";
+  const slot = acquireSlot(request, "quick");
+  if (!slot.ok) {
+    sendJson(response, slot.status, {
+      error: slot.error,
+      code: slot.code,
+      retryAfter: slot.retryAfter,
+      schemaVersion: AI_SCHEMA_VERSION,
+    }, origin);
+    return;
+  }
+
+  sendSseHeaders(response, origin);
 
   try {
     const result = await generateSchemePatchWithModelStreaming(
@@ -242,6 +290,7 @@ async function handleSchemeProposalStream(request, response) {
       });
     }
   } finally {
+    releaseSlot("quick");
     if (!response.writableEnded) {
       response.end();
     }
@@ -269,7 +318,10 @@ export function createApp() {
 
     // Health check
     if (request.method === "GET" && request.url === "/api/health") {
-      sendJson(response, 200, getAiServiceHealth(), request.headers.origin || "");
+      sendJson(response, 200, {
+        ...getAiServiceHealth(),
+        rateLimiter: getRateLimitMetrics(),
+      }, request.headers.origin || "");
       return;
     }
 
@@ -296,6 +348,7 @@ export function createApp() {
 }
 
 export function startServer(port = 8787, host = "127.0.0.1") {
+  configureRateLimiter(process.env);
   const server = createApp();
   server.listen(port, host, () => {
     console.log(`CursorDance AI API listening on http://${host}:${port}`);

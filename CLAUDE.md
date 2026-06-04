@@ -111,7 +111,7 @@ cursor-dance-api/tests/    # 157 tests across 9 files (node --test)
 └── agent-loop.test.js          # Existing — agent loop integration tests
 ```
 
-Default model: `deepseek-chat` (configurable via `CURSORDANCE_AI_MODEL`). Full safety pipeline: JSON parse → whitelist filter → type/numeric/enum validation → intent repair (e.g., "不要声音" → `sound: false, volume: 0`) → proposal normalization.
+Default model: `deepseek-v4-flash` (configurable via `CURSORDANCE_AI_MODEL`). Full safety pipeline: JSON parse → whitelist filter → type/numeric/enum validation → intent repair (e.g., "不要声音" → `sound: false, volume: 0`) → proposal normalization.
 
 ### Runtime effects pipeline
 DOM events (pointerdown/up/move, wheel, contextmenu) → `trigger-handlers.js` resolves cursor state binding and checks trigger zone/throttle/combo windows → `visual-effects.js` renders effects via Web Animations API (not CSS transitions — avoids layout thrashing with `contain`, `will-change`, `transform: translate3d`).

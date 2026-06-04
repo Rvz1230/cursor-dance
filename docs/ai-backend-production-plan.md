@@ -46,7 +46,7 @@ scripts/
 CURSORDANCE_AI_API_KEY=your_deepseek_key
 CURSORDANCE_AI_API_BASE_URL=https://api.deepseek.com
 CURSORDANCE_AI_API_MODE=chat_completions
-CURSORDANCE_AI_MODEL=deepseek-chat
+CURSORDANCE_AI_MODEL=deepseek-v4-flash
 CURSORDANCE_ALLOWED_ORIGINS=chrome-extension://nckepaijkfcnnmmdllggalogfegpiepi,https://YOUR_PUBLIC_SITE
 CURSORDANCE_AI_API_ACCESS_TOKEN=optional_shared_token
 CURSORDANCE_AI_MAX_REQUEST_BYTES=51200

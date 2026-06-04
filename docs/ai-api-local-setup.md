@@ -30,7 +30,7 @@ npm run ai:dev
 export CURSORDANCE_AI_API_KEY="your_provider_key"
 export CURSORDANCE_AI_API_BASE_URL="https://api.deepseek.com"
 export CURSORDANCE_AI_API_MODE="chat_completions"
-export CURSORDANCE_AI_MODEL="deepseek-chat"
+export CURSORDANCE_AI_MODEL="deepseek-v4-flash"
 npm run ai:dev
 ```
 
