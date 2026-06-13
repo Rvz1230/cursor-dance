@@ -22,6 +22,7 @@
 - [x] 任务 2.6：主进程鼠标事件捕获
 - [x] 任务 2.7：overlay 窗口和引擎连线
 - [x] 任务 2.8：Workbench 预览对接引擎
+- [x] 任务 2.9：补全 4 套内置主题 5 个 action 默认配置
 
 ## 阶段三：存储与通信
 - [ ] 任务 3.0：实现 ElectronStoreAdapter
@@ -46,7 +47,7 @@
 ## 当前状态
 
 - **分支**：desktop/phase-0
-- **上次提交**：阶段二 2.8
+- **上次提交**：阶段二 2.9
 - **阻塞项**：无
-- **扩展状态**：`npm run test` 146 tests 全绿，`npm run build` 与 `npx electron-vite build` 双绿
-- **备注**：任务 2.8 完成——Workbench 预览面板接入真实引擎。`engine/types.ts` 给 `TriggerHandlersModule` 加 `previewAt(x, y, schemeId?, previewScheme?, actionId?)`；`engine/trigger-handlers.ts` 把 `previewAtViewportCenter` 重构为 `previewAt(round(window.innerWidth/2), round(window.innerHeight/2), ...)` 的转调，原 viewport-center 调用方零改动。`WorkbenchPreviewRail.tsx` 删除 `PreviewEffects`（旧 CSS @keyframes 模拟）+ `getCursorOverrideProps`，改为在 `SimplePreviewStage` mount 时 `createEffectEngine`：自带最简内存版 ConfigStore（`getActionConfig` 始终回传 `configRef.current`，`isCurrentSiteEnabled`/`matchesTriggerZone` 恒 true，`resolveCursorStateId` 返回 ""，`getMaxActiveEffects`=200），用唯一 `cursordance-preview-root-${uid}` / `cursordance-preview-style-${uid}` 隔离多实例；`engine.visualEffects.ensureRoot()` 后把根节点挂到 stage 内 `effectsHostRef`（`pointer-events:none; absolute inset-x-8 bottom-9 top-20; transform:translateZ(0)`），覆盖 `position:absolute; inset:0` 让 `.cd-effect` 的 fixed 后代以 host 为 containing block 局部定位；`runId` 变化时调 `engine.triggerHandlers.previewAt(host.w/2, host.h/2, undefined, undefined, actionIdRef.current)`；预览端遮蔽 `cursorOverride === "切换到 pointer"`（避免改写 `document.body.style.cursor` 污染整个 Workbench）；unmount 清 cursorOverlay/orbital/audioContext 节点 + STYLE_ID。保留 `PREVIEW_KEYFRAMES <style>` 喂音效装饰条 `cursorDancePreviewBars`。`engine/entry.test.ts` 补 `previewAt` 类型断言。下一步任务 3.0 ElectronStoreAdapter。
+- **扩展状态**：`npm run test` 149 tests 全绿，`npm run build` 与 `npx electron-vite build` 双绿
+- **备注**：任务 2.9 完成——4 套内置主题（mono-geo / drift / molten / sunset）补齐 rightClick / doubleClick / longPress / wheel 默认 actionConfig。leftClick 字节级保留（与 2.5 承诺一致）；新增字段以扩展端 `actionConfigPresets.ts` 的 BASE preset + THEME_ACTION_OVERRIDES 合并结果为蓝本，每套主题的配色 / 粒子样式 / 涟漪样式各自统一（mono-geo 方块、drift 点状轨道、molten 火花向上喷发、sunset 钻石带 wind）。doubleClick 加 `triggerTiming: "第二次按下时" + holdMs: 320`，longPress 加 `triggerTiming: "松开后触发" + holdMs: 420`，wheel 加 `triggerTiming: "连续滚动中" + holdMs: 180`，与 trigger-handlers `getActionTimingMs` 钳位一致。新增 `src/renderer/engine/default-config.test.ts`：3 个回归断言（4 主题 × 5 action 完整 / cloneValue 后副本完整 / 每个 action 至少有一种启用反馈）。下一步任务 3.0 ElectronStoreAdapter。
