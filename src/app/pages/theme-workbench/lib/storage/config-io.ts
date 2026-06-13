@@ -11,6 +11,7 @@ import {
   canUseLocalStorage,
   ensurePreviewStorageAccess,
   getChromeApi,
+  getElectronStorageBridge,
   postLocalPreviewMessage,
 } from "./chrome-api";
 
@@ -116,6 +117,19 @@ function stripInlineCursorAssets(config) {
 }
 
 export async function readExtensionConfig() {
+  // 任务 3.0：Electron 桌面端走 IPC → main → electron-store。
+  // electron-store 没有 chrome.storage 的 5MB 单 key 限制，cursor 资产可以
+  // 直接内联在 cursorStates.imageDataUrl 里，不走 buildCursorAssetStorageKeys 拆分。
+  const bridge = getElectronStorageBridge();
+  if (bridge) {
+    const stored = await bridge.getConfig();
+    const defaultConfig = getDefaultConfig();
+    if (!stored) {
+      return writeExtensionConfig(normalizeStoredConfig(defaultConfig));
+    }
+    return normalizeStoredConfig(stored);
+  }
+
   const chromeApi = getChromeApi();
   const defaultConfig = getDefaultConfig();
   if (!chromeApi?.storage?.local) {
@@ -133,6 +147,12 @@ export async function readExtensionConfig() {
 }
 
 export async function readLivePreviewConfig() {
+  const bridge = getElectronStorageBridge();
+  if (bridge) {
+    const stored = await bridge.getLivePreview();
+    return stored ? normalizeStoredConfig(stored) : null;
+  }
+
   const chromeApi = getChromeApi();
   if (!chromeApi?.storage?.session) {
     return readLocalStoragePreviewConfig();
@@ -149,8 +169,16 @@ export async function readLivePreviewConfig() {
 }
 
 export async function writeExtensionConfig(config) {
-  const chromeApi = getChromeApi();
   const normalized = normalizeStoredConfig(config);
+
+  const bridge = getElectronStorageBridge();
+  if (bridge) {
+    // electron-store 单 key 容量足够大；cursor 资产无需拆分，整个 normalized 直接落盘。
+    await bridge.setConfig(normalized);
+    return normalized;
+  }
+
+  const chromeApi = getChromeApi();
   if (!chromeApi?.storage?.local) {
     return writeLocalStorageConfig(normalized);
   }
@@ -177,8 +205,15 @@ export async function writeExtensionConfig(config) {
 }
 
 export async function writeLivePreviewConfig(config) {
-  const chromeApi = getChromeApi();
   const normalized = normalizeStoredConfig(config);
+
+  const bridge = getElectronStorageBridge();
+  if (bridge) {
+    await bridge.setLivePreview(normalized);
+    return normalized;
+  }
+
+  const chromeApi = getChromeApi();
   if (!chromeApi?.storage?.session) {
     return writeLocalStoragePreviewConfig(normalized);
   }
@@ -188,6 +223,12 @@ export async function writeLivePreviewConfig(config) {
 }
 
 export async function clearLivePreviewConfig() {
+  const bridge = getElectronStorageBridge();
+  if (bridge) {
+    await bridge.clearLivePreview();
+    return;
+  }
+
   const chromeApi = getChromeApi();
   if (!chromeApi?.storage?.session) {
     clearLocalStoragePreviewConfig();

@@ -39,4 +39,17 @@ interface Chrome {
 
 interface Window {
   chrome?: Chrome
+  cursorDanceStorage?: CursorDanceStorageBridge
+}
+
+interface CursorDanceStorageBridge {
+  getConfig: () => Promise<unknown | null>
+  setConfig: (config: unknown) => Promise<void>
+  getLivePreview: () => Promise<unknown | null>
+  setLivePreview: (config: unknown) => Promise<void>
+  clearLivePreview: () => Promise<void>
+  onChange: (callback: (config: unknown) => void) => () => void
+  offChange: (callback: (config: unknown) => void) => void
+  onLivePreviewChange: (callback: (config: unknown | null) => void) => () => void
+  offLivePreviewChange: (callback: (config: unknown | null) => void) => void
 }

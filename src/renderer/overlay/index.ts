@@ -2,7 +2,8 @@
 //
 // 职责：
 //   1. 装配效果引擎（visualEffects / cursorOverlay / audioRuntime / triggerHandlers）
-//   2. 装配 configStore（当前阶段先用 in-memory 默认配置；任务 3.0 接 electron-store）
+//   2. 装配 configStore —— 任务 3.0 起从 cursorDanceStorage（IPC + electron-store）拉初始 config，
+//      并订阅 STORE_CHANGED / LIVE_PREVIEW_CHANGED 实时刷新
 //   3. 装配 diagnostics
 //   4. 监听主进程通过 cursorDanceAPI.onCursorEvent 转发的 NativeCursorEvent，
 //      做坐标系转换（screen device-px → overlay DIP），分派到 trigger-handlers。
@@ -57,17 +58,22 @@ const state: EngineState = {
 
 const diagnostics = createDiagnostics({ window });
 
-// 任务 3.0 之前先给一个内存版 ConfigStoreAdapter；返回 defaultConfig 即可，
-// configStore 内部会自己 normalize。
-const inMemoryAdapter: ConfigStoreAdapter = {
+// 任务 3.0：从 preload 注入的 cursorDanceStorage 拉 config。
+// adapter 内部完全独立于 chrome.storage —— overlay 进程不会回退到 localStorage,
+// 因为 overlay 与 workbench 是不同 BrowserWindow,localStorage 不共享,只有 IPC 通。
+// bridge 缺失时降级为 defaultConfig 兜底,保证引擎能跑起来.
+const bridge = (typeof window !== "undefined" ? window.cursorDanceStorage : undefined) ?? null;
+
+const electronBridgeAdapter: ConfigStoreAdapter = {
   async get() {
+    const stored = bridge ? await bridge.getConfig() : null;
     return {
-      [CONFIG_STORE_CONSTANTS.CONFIG_STORAGE_KEY]: defaultConfig,
+      [CONFIG_STORE_CONSTANTS.CONFIG_STORAGE_KEY]: stored ?? defaultConfig,
       [CONFIG_STORE_CONSTANTS.LEGACY_ENABLED_STORAGE_KEY]: true,
     };
   },
   async set() {
-    // overlay 不写配置——workbench 任务 3.0 之后才会接通写入路径
+    // overlay 不写主 config —— 写入路径在 workbench；这里保留空实现。
   },
 };
 
@@ -76,7 +82,7 @@ const configStore = createConfigStore({
   state,
   constants: CONFIG_STORE_CONSTANTS,
   diagnostics,
-  storeAdapter: inMemoryAdapter,
+  storeAdapter: electronBridgeAdapter,
   // 桌面 active-app-info / app-rules：阶段二还没接 get-windows（任务 3.2），
   // 暂时不传，configStore 会回退到 config.enabled 全局开关。
 });
@@ -89,12 +95,46 @@ const engine = createEffectEngine({
   configStore,
 });
 
-// 把默认配置塞进去（同步），让 trigger-handlers 立刻可用。
+// 启动时同步走一次：先用默认 config 让 trigger-handlers 立刻可用，
+// 随后异步从 bridge 拉真实 config 并 setConfig 刷新。
 configStore.setConfig(defaultConfig);
 state.ready = true;
-
-// 任务 3.0 之后这里会从 storeAdapter 拉真实配置；当前只是兜底初始化引擎根节点。
 engine.visualEffects.ensureRoot();
+
+if (bridge) {
+  bridge
+    .getConfig()
+    .then((stored) => {
+      if (stored) configStore.setConfig(stored);
+    })
+    .catch((error) => {
+      console.error("[cursordance] overlay 初始 config 拉取失败:", error);
+    });
+
+  // workbench 改完 config 后,广播过来这里; 重新 setConfig 即可让 configStore 内部
+  // 走 normalizeConfig + state.config 更新,trigger-handlers 下次触发就用新值.
+  bridge.onChange((next) => {
+    if (next) configStore.setConfig(next);
+  });
+
+  // live preview 优先级高于持久化 config —— 工作台预览面板临时改色时,
+  // overlay 立刻跟随; clearLivePreview (next === null) 时回退到当前持久化 config.
+  bridge.onLivePreviewChange((next) => {
+    if (next) {
+      configStore.setConfig(next);
+    } else {
+      bridge
+        .getConfig()
+        .then((stored) => {
+          if (stored) configStore.setConfig(stored);
+          else configStore.setConfig(defaultConfig);
+        })
+        .catch(() => configStore.setConfig(defaultConfig));
+    }
+  });
+} else {
+  console.warn("[cursordance] cursorDanceStorage bridge 未注入，overlay 只能用 defaultConfig");
+}
 
 // ============================================================
 // IPC 鼠标事件 → 引擎分派

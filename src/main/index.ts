@@ -9,6 +9,7 @@ import {
   syncOverlayBounds,
 } from "./windows";
 import { getAllDisplays, onDisplayChanges } from "./screen-utils";
+import { registerStoreIpc, unregisterStoreIpc } from "./ipc-handlers";
 import { CURSOR_EVENT } from "../shared/ipc-channels";
 
 let workbenchWindow: BrowserWindow | null = null;
@@ -37,6 +38,10 @@ function ensureOverlayPerDisplay(): void {
 }
 
 app.whenReady().then(() => {
+  // 0) 在所有窗口创建之前注册 store/live preview 的 ipcMain.handle，
+  //    否则 renderer 启动时第一波 invoke 会拿不到 handler 直接挂。
+  registerStoreIpc(() => BrowserWindow.getAllWindows());
+
   // 1) workbench 配置窗口（系统标题栏，任务 4.0 再改自绘）
   workbenchWindow = createWorkbenchWindow();
 
@@ -76,6 +81,7 @@ app.on("before-quit", () => {
   stopMouseCapture = null;
   stopDisplayWatcher?.();
   stopDisplayWatcher = null;
+  unregisterStoreIpc();
   destroyAllOverlays();
 });
 

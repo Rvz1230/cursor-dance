@@ -25,7 +25,7 @@
 - [x] 任务 2.9：补全 4 套内置主题 5 个 action 默认配置
 
 ## 阶段三：存储与通信
-- [ ] 任务 3.0：实现 ElectronStoreAdapter
+- [x] 任务 3.0：实现 ElectronStoreAdapter
 - [ ] 任务 3.1：主题导入导出适配
 - [ ] 任务 3.2：get-windows 集成
 
@@ -47,7 +47,7 @@
 ## 当前状态
 
 - **分支**：desktop/phase-0
-- **上次提交**：阶段二 2.9
+- **上次提交**：阶段三 3.0
 - **阻塞项**：无
-- **扩展状态**：`npm run test` 149 tests 全绿，`npm run build` 与 `npx electron-vite build` 双绿
-- **备注**：任务 2.9 完成——4 套内置主题（mono-geo / drift / molten / sunset）补齐 rightClick / doubleClick / longPress / wheel 默认 actionConfig。leftClick 字节级保留（与 2.5 承诺一致）；新增字段以扩展端 `actionConfigPresets.ts` 的 BASE preset + THEME_ACTION_OVERRIDES 合并结果为蓝本，每套主题的配色 / 粒子样式 / 涟漪样式各自统一（mono-geo 方块、drift 点状轨道、molten 火花向上喷发、sunset 钻石带 wind）。doubleClick 加 `triggerTiming: "第二次按下时" + holdMs: 320`，longPress 加 `triggerTiming: "松开后触发" + holdMs: 420`，wheel 加 `triggerTiming: "连续滚动中" + holdMs: 180`，与 trigger-handlers `getActionTimingMs` 钳位一致。新增 `src/renderer/engine/default-config.test.ts`：3 个回归断言（4 主题 × 5 action 完整 / cloneValue 后副本完整 / 每个 action 至少有一种启用反馈）。下一步任务 3.0 ElectronStoreAdapter。
+- **扩展状态**：`npm run test` 153 tests 全绿，`npm run build` 与 `npx electron-vite build` 双绿
+- **备注**：任务 3.0 完成 —— 桌面端 workbench↔overlay config 同步链路打通。新增 `src/main/electron-store.ts`（封装 electron-store 单例 + 内存 live preview + onConfigChange/onLivePreviewChange 事件分发）、`src/main/ipc-handlers.ts`（registerStoreIpc 注册 5 个 ipcMain.handle，写后向所有 BrowserWindow 广播 STORE_CHANGED / LIVE_PREVIEW_CHANGED）。preload 追加第二桥 `cursorDanceStorage`（getConfig/setConfig/getLivePreview/setLivePreview/clearLivePreview/onChange/onLivePreviewChange，沿用 cursorDanceAPI 的 WeakMap-listener pattern）。`storage/chrome-api.ts` 加 helper `getElectronStorageBridge()`；`config-io.ts` 5 个导出函数（read/writeExtensionConfig、read/write/clearLivePreviewConfig）前置 bridge 优先分支，cursor 资产在 bridge 路径下不拆分（electron-store 无 5MB 单 key 限制）；`subscriptions.ts` 同样前置 bridge 分支（subscribeRuntimeDiagnostics 不动，留给 3.1+）。`overlay/index.ts` 用 electronBridgeAdapter 替换 inMemoryAdapter，启动拉初始 config + 订阅 STORE_CHANGED/LIVE_PREVIEW_CHANGED 实时 setConfig。新增 `src/main/electron-store.test.ts`（4 条断言：read 默认空 / writeConfig + onChange 调度 + 退订 / live preview 与持久化隔离 + clear 还原）。扩展端零改动 —— bridge 永远是 null，扩展走原有 chrome.storage 路径。下一步任务 3.1 主题导入导出适配。

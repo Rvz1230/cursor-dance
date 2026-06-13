@@ -8,6 +8,7 @@ import {
   LOCAL_PREVIEW_CHANNEL_NAME,
   canUseLocalStorage,
   getChromeApi,
+  getElectronStorageBridge,
 } from "./chrome-api";
 import { readExtensionConfig, readLivePreviewConfig } from "./config-io";
 
@@ -34,6 +35,16 @@ function readLocalStoragePreviewFallback() {
 }
 
 export function subscribeExtensionConfig(onChange) {
+  // 任务 3.0：Electron 桌面端走 IPC 广播。preload 注入的 onChange 会
+  // 在 main 进程 STORE_CHANGED 时触发，拿到的就是已 normalize 过的最新 config。
+  const bridge = getElectronStorageBridge();
+  if (bridge) {
+    const handler = (next) => {
+      onChange(next ? normalizeStoredConfig(next) : normalizeStoredConfig(getDefaultConfig()));
+    };
+    return bridge.onChange(handler);
+  }
+
   const chromeApi = getChromeApi();
   if (!chromeApi?.storage?.onChanged) {
     if (!canUseLocalStorage()) return () => {};
@@ -67,6 +78,14 @@ export function subscribeExtensionConfig(onChange) {
 }
 
 export function subscribeLivePreviewConfig(onChange) {
+  const bridge = getElectronStorageBridge();
+  if (bridge) {
+    const handler = (next) => {
+      onChange(next ? normalizeStoredConfig(next) : null);
+    };
+    return bridge.onLivePreviewChange(handler);
+  }
+
   const chromeApi = getChromeApi();
   if (!chromeApi?.storage?.onChanged) {
     if (!canUseLocalStorage()) return () => {};
