@@ -37,6 +37,24 @@ export interface EngineConstants {
 }
 
 /**
+ * 长按状态机切片。trigger-handlers 在 leftPointerDown 后启动定时器，
+ * pointerUp / pointerCancel 时收尾。pointerId 仅做记录，不参与匹配。
+ */
+export interface LongPressState {
+  startedAt: number;
+  pointerId?: number;
+  x: number;
+  y: number;
+  /** 桌面端没有 DOM 目标，扩展端是 EventTarget */
+  target: unknown;
+  scheme: unknown;
+  triggered: boolean;
+  releaseMode: boolean;
+  thresholdMs: number;
+  timeoutId?: number;
+}
+
+/**
  * 引擎共享的可变状态切片。
  * 各子模块按需读写自己的字段；非自己的字段保持只读心态，避免互相踩。
  */
@@ -52,12 +70,27 @@ export interface EngineState {
   lastSoundAtByAction?: Record<string, number>;
   /** 懒创建的 AudioContext；首次 playSound 时建立 */
   audioContext?: AudioContext | null;
+  /** trigger-handlers：是否已就绪，未就绪则吞掉所有触发 */
+  ready?: boolean;
+  /** trigger-handlers：sourceActionId → 上次触发时间戳（节流） */
+  lastTriggerAtByAction?: Record<string, number>;
+  /** trigger-handlers：resolvedActionId → 累计触发次数 */
+  actionRunCounts?: Record<string, number>;
+  /** trigger-handlers：resolvedActionId → 连击窗口状态 */
+  actionComboStates?: Record<string, { count: number; lastAt: number }>;
+  /** trigger-handlers：双击检测的「上次按下/抬起时间」 */
+  lastLeftPointerDownAt?: number;
+  lastLeftPointerUpAt?: number;
+  /** trigger-handlers：滚轮 burst 检测的「上次滚轮事件时间」 */
+  lastWheelEventAt?: number;
+  /** trigger-handlers：长按状态机 */
+  longPressState?: LongPressState | null;
 }
 
 /**
  * configStore 暴露给引擎的最小接口。
- * 当前覆盖 visual-effects + cursor-overlay + audio 的需求；
- * trigger-handlers 在 2.4 迁移时再补。
+ * 当前覆盖 visual-effects + cursor-overlay + audio + trigger-handlers 的需求。
+ * 多数返回值/参数在桌面端没有 DOM 概念时会退化为 null/默认值，由 configStore 实现层处理。
  */
 export interface ConfigStore {
   getActionTextConfig(actionConfig: Record<string, unknown> | undefined): Record<string, unknown>;
@@ -69,17 +102,40 @@ export interface ConfigStore {
   getActionAudioConfig(actionConfig: Record<string, unknown> | undefined): Record<string, unknown>;
   getActionTriggerConfig(actionConfig: Record<string, unknown> | undefined): Record<string, unknown>;
   getMaxActiveEffects(): number;
+  /** trigger-handlers：当前 scheme（用户选中的方案） */
+  getActiveScheme?(): unknown;
+  /** trigger-handlers：完整 config（含 schemes 列表 + activeSchemeId），仅 previewAtViewportCenter 用到 */
+  getConfig?(): { schemes: { id: string }[]; activeSchemeId: string };
+  /** trigger-handlers：站点/应用是否启用。桌面端由 app-matcher 实现 */
+  isCurrentSiteEnabled?(): boolean;
+  /** trigger-handlers：根据 scheme + actionId 取动作配置 */
+  getActionConfig?(scheme: unknown, actionId: string): Record<string, unknown> | undefined;
+  /** trigger-handlers：解析 cursor state 绑定到某个 actionId */
+  getCursorStateBinding?(
+    scheme: unknown,
+    cursorStateId: string,
+    sourceActionId: string,
+  ): { actionId: string; cursorStateId: string; inheritedFromDefault?: boolean };
+  /** trigger-handlers：从目标元素解析 cursor state id（桌面端通常返回默认） */
+  resolveCursorStateId?(target: unknown): string;
+  /** trigger-handlers：触发区域匹配。桌面端无 DOM target/event 时返回 true */
+  matchesTriggerZone?(
+    target: unknown,
+    triggerZone: unknown,
+    event: unknown,
+    opts: { actionId: string; triggerSource: string },
+  ): boolean;
 }
 
 /**
  * diagnostics 子模块对引擎暴露的接口。完整实现见 public/content-runtime/diagnostics.js
  * （扩展端）和未来的 src/renderer/engine/diagnostics.ts（任务 2.5 之后再迁）。
- * 注：桌面端没有 DOM 媒体元素，describeMedia 仅用于扩展端 audio.duck.* 日志，
- * 桌面 audio.ts 不再调用 ducking 路径，所以这里只保留 log/isEnabled。
+ * describeTarget 桌面端可返回 "no-target" 之类的占位字符串。
  */
 export interface DiagnosticsModule {
   isEnabled(): boolean;
   log(scope: string, payload?: Record<string, unknown>): void;
+  describeTarget?(target: unknown): string;
 }
 
 /**
@@ -141,9 +197,19 @@ export interface AudioRuntimeModule {
 }
 
 /**
- * 其余子模块占位类型。任务 2.4 各自迁移时替换为具体形状。
+ * trigger-handlers 子模块对外暴露的 API。
+ * 桌面端裁剪：移除 handlePointerOver / handlePointerOut（hover 不在桌面 5 个 trigger 之内）。
+ * 输入从 DOM Event 切换为结构化的 CursorEvent —— 桌面 IPC 不再需要序列化整个 PointerEvent。
  */
-export type TriggerHandlersModule = unknown;
+export interface TriggerHandlersModule {
+  handleLeftPointerDown(event: CursorEvent): void;
+  handlePointerUp(event: CursorEvent): void;
+  handlePointerCancel(): void;
+  handleRightPointerDown(event: CursorEvent): void;
+  handleContextMenu(event: CursorEvent): void;
+  handleWheel(event: CursorEvent): void;
+  previewAtViewportCenter(schemeId?: string, previewScheme?: unknown, actionId?: string): void;
+}
 
 export interface EffectEngine {
   visualEffects: VisualEffectsModule;

@@ -3,17 +3,13 @@
 // 调用方（src/renderer/overlay、Workbench 预览面板）通过 createEffectEngine(deps)
 // 拿到 { visualEffects, cursorOverlay, audioRuntime, triggerHandlers } 四个子模块。
 //
-// 任务 2.1 / 2.2 / 2.3：visualEffects、cursorOverlay、audioRuntime 已就位；
-// triggerHandlers 仍占位，等待 2.4 迁移。
+// 任务 2.1 / 2.2 / 2.3 / 2.4：四个引擎子模块全部就位。
 
-import type {
-  EngineDeps,
-  EffectEngine,
-  TriggerHandlersModule,
-} from "./types";
+import type { EngineDeps, EffectEngine } from "./types";
 import { createVisualEffects } from "./visual-effects";
 import { createCursorOverlay } from "./cursor-overlay";
 import { createAudioRuntime } from "./audio";
+import { createTriggerHandlers } from "./trigger-handlers";
 
 export function createEffectEngine(deps: EngineDeps): EffectEngine {
   const visualEffects = createVisualEffects(deps);
@@ -28,7 +24,15 @@ export function createEffectEngine(deps: EngineDeps): EffectEngine {
     state: deps.state,
     configStore: deps.configStore,
   });
-  const triggerHandlers: TriggerHandlersModule = {};
+  const triggerHandlers = createTriggerHandlers({
+    window: deps.window,
+    document: deps.document,
+    state: deps.state,
+    configStore: deps.configStore,
+    visualEffects,
+    audioRuntime,
+    cursorOverlay,
+  });
 
   return {
     visualEffects,

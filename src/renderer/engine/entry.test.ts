@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { createEffectEngine } from "./entry";
 import type { EngineDeps } from "./types";
 
-// 任务 2.1：visualEffects 已落地为真实模块。其余子模块仍是占位 {}。
+// 任务 2.4：四个子模块全部就位。
 // 这里只验证骨架装配 —— 不触发任何 DOM API（vitest 默认 node 环境，没有 document.createElement 实现）。
 function makeStubDeps(): EngineDeps {
   const fakeDocument = {} as Document;
@@ -27,7 +27,7 @@ function makeStubDeps(): EngineDeps {
 }
 
 describe("createEffectEngine (skeleton)", () => {
-  it("wires up visualEffects + cursorOverlay + audioRuntime; trigger placeholder remains", () => {
+  it("wires up visualEffects + cursorOverlay + audioRuntime + triggerHandlers", () => {
     const engine = createEffectEngine(makeStubDeps());
     // visualEffects 暴露 10 个方法（renderText/renderRipple/... 见 VisualEffectsModule）
     expect(typeof engine.visualEffects.ensureRoot).toBe("function");
@@ -38,7 +38,13 @@ describe("createEffectEngine (skeleton)", () => {
     expect(typeof engine.cursorOverlay.clearStateCursorOverlay).toBe("function");
     // audioRuntime 暴露 playSound（duckPageMedia 一族在桌面端被裁剪掉）
     expect(typeof engine.audioRuntime.playSound).toBe("function");
-    // 2.4 的子模块尚未迁移
-    expect(engine.triggerHandlers).toEqual({});
+    // triggerHandlers 暴露 7 个 handler（桌面端裁剪 hover：无 handlePointerOver / handlePointerOut）
+    expect(typeof engine.triggerHandlers.handleLeftPointerDown).toBe("function");
+    expect(typeof engine.triggerHandlers.handlePointerUp).toBe("function");
+    expect(typeof engine.triggerHandlers.handlePointerCancel).toBe("function");
+    expect(typeof engine.triggerHandlers.handleRightPointerDown).toBe("function");
+    expect(typeof engine.triggerHandlers.handleContextMenu).toBe("function");
+    expect(typeof engine.triggerHandlers.handleWheel).toBe("function");
+    expect(typeof engine.triggerHandlers.previewAtViewportCenter).toBe("function");
   });
 });

@@ -17,7 +17,7 @@
 - [x] 任务 2.1：迁移 visual-effects.ts
 - [x] 任务 2.2：迁移 cursor-overlay.ts
 - [x] 任务 2.3：迁移 audio.ts
-- [ ] 任务 2.4：迁移 trigger-handlers.ts
+- [x] 任务 2.4：迁移 trigger-handlers.ts
 - [ ] 任务 2.5：迁移其余引擎模块
 - [ ] 任务 2.6：主进程鼠标事件捕获
 - [ ] 任务 2.7：overlay 窗口和引擎连线
@@ -46,7 +46,7 @@
 ## 当前状态
 
 - **分支**：desktop/phase-0
-- **上次提交**：d89eae0 阶段二 2.2
+- **上次提交**：阶段二 2.4
 - **阻塞项**：无
 - **扩展状态**：`npm run test` 115 tests 全绿，`npm run build` 与 `npx electron-vite build` 双绿
-- **备注**：任务 2.3 完成——audio 已迁到 `src/renderer/engine/audio.ts`。去 IIFE、改 `createAudioRuntime(deps)`，5 个预设音效（woodfish-deep / tick-light / chime-bright / pop-soft / swipe-whoosh）的波形/频率/时长/衰减字节级保留；Web Audio API（AudioContext / OscillatorNode / GainNode / exponentialRampToValueAtTime）调用全部保留。**桌面端裁剪 audio ducking 一族**（duckPageMedia / scheduleDuckReassert / scheduleMediaRestore / applyDuckTarget / getPageMediaElements / resolveAudioDuckProfile 全部移除），diagnostics / reportRuntimeError 改为 deps 可选注入。types.ts 扩 `EngineState`（lastSoundAtByAction / audioContext）+ `ConfigStore`（getActionAudioConfig / getActionTriggerConfig）+ 新增 `DiagnosticsModule` 与具体 `AudioRuntimeModule`。下一步任务 2.4 迁移 trigger-handlers.ts。
+- **备注**：任务 2.4 完成——trigger-handlers 已迁到 `src/renderer/engine/trigger-handlers.ts`。去 IIFE、改 `createTriggerHandlers(deps)`，handler 入参从 DOM PointerEvent / WheelEvent 切换为结构化 `CursorEvent`（type / x / y / buttons / deltaY / timestamp）。**桌面端裁剪 hover**：移除 `handlePointerOver` / `handlePointerOut`，`getActionTimingMs` 与 throttleMs 默认值里的 `"hover"` 分支同步删除，与 CLAUDE.md「桌面 5 个 trigger」一致。渲染管线（`visualEffects.* + audioRuntime.playSound`）调用顺序、节流 / 连击 / runIndex 计算逻辑全部原样保留。types.ts 把 `EngineState` 扩到含 `ready / lastTriggerAtByAction / actionRunCounts / actionComboStates / lastLeftPointerDownAt / lastLeftPointerUpAt / lastWheelEventAt / longPressState`；`ConfigStore` 补 `getActiveScheme / getConfig / isCurrentSiteEnabled / getActionConfig / getCursorStateBinding / resolveCursorStateId / matchesTriggerZone`（均可选，桌面端 app-matcher 实现层填）；`TriggerHandlersModule` 从 `unknown` 收紧为含 7 个方法的具体接口；`DiagnosticsModule` 加 `describeTarget?`。`entry.ts` 完成 4 个子模块装配，`entry.test.ts` 把所有 handler 都 assert 一次。下一步任务 2.5 迁移其余引擎模块（config-store / diagnostics / default-config / app-matcher）。
