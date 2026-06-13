@@ -11,6 +11,7 @@ import {
 import { getAllDisplays, onDisplayChanges } from "./screen-utils";
 import { registerStoreIpc, unregisterStoreIpc } from "./ipc-handlers";
 import { registerDialogIpc, unregisterDialogIpc } from "./dialog-handlers";
+import { registerActiveWindowIpc, unregisterActiveWindowIpc } from "./active-window";
 import { CURSOR_EVENT } from "../shared/ipc-channels";
 
 let workbenchWindow: BrowserWindow | null = null;
@@ -43,6 +44,7 @@ app.whenReady().then(() => {
   //    否则 renderer 启动时第一波 invoke 会拿不到 handler 直接挂。
   registerStoreIpc(() => BrowserWindow.getAllWindows());
   registerDialogIpc();
+  registerActiveWindowIpc();
 
   // 1) workbench 配置窗口（系统标题栏，任务 4.0 再改自绘）
   workbenchWindow = createWorkbenchWindow();
@@ -85,6 +87,7 @@ app.on("before-quit", () => {
   stopDisplayWatcher = null;
   unregisterStoreIpc();
   unregisterDialogIpc();
+  unregisterActiveWindowIpc();
   destroyAllOverlays();
 });
 

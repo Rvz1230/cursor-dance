@@ -31,3 +31,7 @@ export const DIALOG_SAVE_THEME_FILE = "cursordance:dialog-save-theme-file";
 
 /** renderer → 主进程：从本地文件导入主题包（弹原生打开对话框 + 读盘） */
 export const DIALOG_OPEN_THEME_FILE = "cursordance:dialog-open-theme-file";
+
+/** renderer → 主进程：拉取当前前台应用元数据（进程名 / Bundle ID / 窗口标题），
+ *  供 app-matcher 应用规则匹配使用。macOS 无辅助功能权限时返回 unauthorized 状态。 */
+export const APP_GET_ACTIVE_WINDOW = "cursordance:app-get-active-window";

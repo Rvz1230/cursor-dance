@@ -28,7 +28,7 @@
 - [x] 任务 3.0：实现 ElectronStoreAdapter
 - [x] 任务 3.0.5：桌面 workbench 注入 runtime config 全局
 - [x] 任务 3.1：主题导入导出适配
-- [ ] 任务 3.2：get-windows 集成
+- [x] 任务 3.2：get-windows 集成
 
 ## 阶段四：UI 迁移
 - [ ] 任务 4.0：Workbench 自绘标题栏
@@ -48,7 +48,7 @@
 ## 当前状态
 
 - **分支**：desktop/phase-0
-- **上次提交**：阶段三 3.1
+- **上次提交**：阶段三 3.2
 - **阻塞项**：无
-- **扩展状态**：`npm run test` 153 tests 全绿，`npm run build` 与 `npx electron-vite build` 双绿
-- **备注**：任务 3.1 完成 —— 主题导入导出适配桌面端原生对话框。新增 `src/main/dialog-handlers.ts`（IPC + dialog.showSaveDialog/showOpenDialog + Node fs 读写），`shared/ipc-channels.ts` 增 `DIALOG_SAVE_THEME_FILE` / `DIALOG_OPEN_THEME_FILE` 两条通道，preload 暴露 `cursorDanceDialog.{saveThemeFile, openThemeFile}` 桥；renderer 侧 `storage/extras.ts` 的 `downloadThemePackExport` 改 async，桌面端有桥时走原生对话框 + 主进程 fs 写盘，扩展端继续 Blob + `<a download>` 回退；新导出 `pickThemeFile`，`ThemeLibrarySidebar` 的「选择 JSON 文件」桌面端走原生对话框、扩展端回落 `<input type=file>`；导入导出取消路径统一为静默处理（不再报错通知）。下一步任务 3.2 get-windows 集成。
+- **扩展状态**：`npm run test` 158 tests 全绿，`npm run build` 与 `npx electron-vite build` 双绿
+- **备注**：任务 3.2 完成 —— `get-windows@9.3.0` 集成（`--ignore-scripts` 装包后手动从本地缓存解出 electron 42.4.0 dist + 写 path.txt 让 vitest 重新跑通）。新增 `src/main/active-window.ts`：`getActiveWindowSnapshot()` 用 `activeWindowSync({ accessibilityPermission: true, screenRecordingPermission: false })` 取前台窗口；macOS 权限缺失（同步抛 `accessibility permission` 错）归一化为 `{ authorized: false, message: "需要辅助功能权限：请在系统设置 → 隐私与安全 → 辅助功能 中允许 CursorDance。" }`，正常路径输出 `{ authorized: true, owner: { name, bundleId? }, title, processName }`，`processName = owner.name` 与 `app-matcher.ActiveAppInfo` 形状对齐。`shared/ipc-channels.ts` 增 `APP_GET_ACTIVE_WINDOW` 通道；preload 暴露 `cursorDanceApp.getActiveWindow()` 桥；main/index.ts 在 store/dialog 之后注册 `registerActiveWindowIpc`。新增单测 `src/main/active-window.test.ts`（5 用例：mac 权限错归一化、undefined → unauthorized、macOS Result 抽 bundleId、Linux 无 bundleId、title 缺省补空串）。下一步任务 4.0 Workbench 自绘标题栏。

@@ -10,6 +10,7 @@ import {
   LIVE_PREVIEW_CHANGED,
   DIALOG_SAVE_THEME_FILE,
   DIALOG_OPEN_THEME_FILE,
+  APP_GET_ACTIVE_WINDOW,
 } from "../shared/ipc-channels";
 
 type CursorEventPayload = {
@@ -156,5 +157,30 @@ contextBridge.exposeInMainWorld("cursorDanceDialog", {
 
   async openThemeFile(): Promise<OpenThemeFileResult> {
     return ipcRenderer.invoke(DIALOG_OPEN_THEME_FILE);
+  },
+});
+
+// ============================================================
+// 任务 3.2：cursorDanceApp —— 前台应用元数据桥
+//
+// renderer 通过 window.cursorDanceApp.getActiveWindow() 拉当前前台窗口快照，
+// 给 app-matcher（应用规则匹配）和未来的应用规则面板使用。
+//
+// 返回 { authorized: true, owner: { name, bundleId? }, title, processName } 或
+// { authorized: false, message }，调用方按 authorized 分支处理。
+// ============================================================
+
+type ActiveWindowSnapshot =
+  | {
+      authorized: true;
+      owner: { name: string; bundleId?: string };
+      title: string;
+      processName: string;
+    }
+  | { authorized: false; message: string };
+
+contextBridge.exposeInMainWorld("cursorDanceApp", {
+  async getActiveWindow(): Promise<ActiveWindowSnapshot> {
+    return ipcRenderer.invoke(APP_GET_ACTIVE_WINDOW);
   },
 });
