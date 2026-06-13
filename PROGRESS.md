@@ -20,7 +20,7 @@
 - [x] 任务 2.4：迁移 trigger-handlers.ts
 - [x] 任务 2.5：迁移其余引擎模块
 - [x] 任务 2.6：主进程鼠标事件捕获
-- [ ] 任务 2.7：overlay 窗口和引擎连线
+- [x] 任务 2.7：overlay 窗口和引擎连线
 - [ ] 任务 2.8：Workbench 预览对接引擎
 
 ## 阶段三：存储与通信
@@ -46,7 +46,7 @@
 ## 当前状态
 
 - **分支**：desktop/phase-0
-- **上次提交**：阶段二 2.6
+- **上次提交**：阶段二 2.7
 - **阻塞项**：无
-- **扩展状态**：`npm run test` 143 tests 全绿，`npm run build` 与 `npx electron-vite build` 双绿
-- **备注**：任务 2.6 完成——主进程通过 uiohook-napi 全局捕获鼠标事件并 IPC 广播到所有 BrowserWindow。新增 `src/main/native-events.ts`：抽象 `IInputSource` 接口（start/stop）以便测试注入 FakeSource、未来切换原生绑定；`UiohookInputSource` 实现 mousemove/mousedown/mouseup/wheel 四类事件包装，`buttonsState` 在 down/up 时按位维护，与 PointerEvent.buttons 同口径（1=left/2=right/4=middle）；`uiohookButtonToBitmask` 把 uiohook 风格 1/2/3 → 1/2/4。`WheelAccumulator` 用 threshold=1 + multiplier=100 对齐 DOM WheelEvent.deltaY 量级（每咔哒 100 像素），缓解 macOS 触控板高频 wheel 压力，符号先按透传，留待真机验证。`startGlobalMouseCapture(onEvent, inputSource?)` 单例化 source，重复调用先 stop 旧的；返回 stop 函数并在被替换后变成 no-op。新增 `src/shared/ipc-channels.ts` 三方共享：`CURSOR_EVENT / DEBUG_TOGGLE / STORE_GET / STORE_SET / PREVIEW_AT_VIEWPORT_CENTER`。`src/main/index.ts` 在 app.whenReady 启动捕获并 try/catch 降级，`broadcastCursorEvent` 遍历 `BrowserWindow.getAllWindows()` 用 webContents.send 广播；before-quit 钩子调用 stop。`src/preload/index.ts` 新增 `cursorDanceAPI.onCursorEvent / offCursorEvent`，用 WeakMap 维护 callback → ipcRenderer handler 映射，订阅返回退订函数。新增 9 条单测（按钮位掩码 4 + WheelAccumulator 3 + 总线 2），下一步任务 2.7 overlay 窗口创建并 wire engine。
+- **扩展状态**：`npm run test` 146 tests 全绿，`npm run build` 与 `npx electron-vite build` 双绿
+- **备注**：任务 2.7 完成——透明 overlay 窗口逐 display 创建并装配效果引擎。新增 `src/main/windows.ts`：`createOverlayWindow(display)` 配置 transparent / frame:false / hasShadow:false / focusable:false / closable:false / fullscreenable:false / type:'normal'（macOS 用 toolbar/panel 会被 Mission Control 吞）；`setIgnoreMouseEvents(true, {forward:true})` + `setAlwaysOnTop("screen-saver")` + `setVisibleOnAllWorkspaces({visibleOnFullScreen:true})`；webPreferences `backgroundThrottling:false`；did-finish-load 后 insertCSS `* { cursor: none }` 并 showInactive 不抢焦点；macOS 调 `setHiddenInMissionControl`（老版本 Electron 吞掉异常）；窗口字典 `Map<displayId, BrowserWindow>` 维护，closed 时自清。同文件保留 `createWorkbenchWindow`（任务 4.0 才改自绘标题栏）。新增 `src/main/screen-utils.ts`：`getAllDisplays / onDisplayChanges`（聚合 added/removed/metrics-changed 三事件、返回退订函数）；纯函数 `screenPointToDisplayLocal(display, sx, sy)` 把 device-px 屏幕坐标折成 DIP local 坐标（`sx / scaleFactor - bounds.x`）；`findDisplayAtScreenPoint` 多 display 路由。`src/main/index.ts` 重写：app.whenReady 创建 workbenchWindow + 遍历 displays 创建 overlay；`onDisplayChanges` 派发 added → createOverlayWindow / removed → destroyOverlayWindow / changed → syncOverlayBounds；before-quit 钩子调用 stopMouseCapture + stopDisplayWatcher + destroyAllOverlays；window-all-closed 在 darwin 不退（保留 dock 行为）。`src/renderer/overlay/index.ts` 实装：装配 `createDiagnostics({window})` + `createConfigStore`（in-memory adapter 返回 defaultConfig + LEGACY_ENABLED=true，任务 3.0 之后接 electron-store）+ `createEffectEngine`，初始化时 `configStore.setConfig(defaultConfig)` / `state.ready=true` / `engine.visualEffects.ensureRoot()`；`cursorDanceAPI.onCursorEvent` 注入 dispatch：`toEngineCursorEvent` 用 `payload.x / dpr - window.screenX` 折坐标，`isInsideThisOverlay` 防多 display 重复触发；mousemove → `cursorOverlay.syncStateCursorOverlay`，mousedown 按 buttons 位掩码分发 left/right（right 同步触发 contextMenu），mouseup → `handlePointerUp`，wheel → `handleWheel`；beforeunload 退订并清理软光标。新增 `src/main/screen-utils.test.ts` 3 条测试覆盖 @1x / @2x / 副屏坐标转换。下一步任务 2.8 Workbench 预览面板对接引擎。
