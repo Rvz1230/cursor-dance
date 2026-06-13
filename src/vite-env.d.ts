@@ -41,6 +41,11 @@ interface Window {
   chrome?: Chrome
   cursorDanceStorage?: CursorDanceStorageBridge
   cursorDanceDialog?: CursorDanceDialogBridge
+  cursorDanceWindow?: CursorDanceWindowBridge
+  cursorDanceApp?: CursorDanceAppBridge
+  electronAPI?: {
+    platform: NodeJS.Platform
+  }
 }
 
 interface CursorDanceStorageBridge {
@@ -73,4 +78,36 @@ type CursorDanceDialogOpenResult =
 interface CursorDanceDialogBridge {
   saveThemeFile: (request: CursorDanceDialogSaveRequest) => Promise<CursorDanceDialogSaveResult>
   openThemeFile: () => Promise<CursorDanceDialogOpenResult>
+}
+
+interface CursorDanceWindowStateSnapshot {
+  isMaximized: boolean
+  isFullScreen: boolean
+}
+
+interface CursorDanceWindowBridge {
+  platform: NodeJS.Platform
+  minimize: () => Promise<void>
+  toggleMaximize: () => Promise<void>
+  close: () => Promise<void>
+  getState: () => Promise<CursorDanceWindowStateSnapshot>
+  onStateChanged: (callback: (state: CursorDanceWindowStateSnapshot) => void) => () => void
+}
+
+interface CursorDanceAppActiveWindowAuthorized {
+  authorized: true
+  owner: { name: string; bundleId?: string }
+  title: string
+  processName: string
+}
+
+interface CursorDanceAppActiveWindowUnauthorized {
+  authorized: false
+  message: string
+}
+
+interface CursorDanceAppBridge {
+  getActiveWindow: () => Promise<
+    CursorDanceAppActiveWindowAuthorized | CursorDanceAppActiveWindowUnauthorized
+  >
 }

@@ -12,6 +12,7 @@ import { getAllDisplays, onDisplayChanges } from "./screen-utils";
 import { registerStoreIpc, unregisterStoreIpc } from "./ipc-handlers";
 import { registerDialogIpc, unregisterDialogIpc } from "./dialog-handlers";
 import { registerActiveWindowIpc, unregisterActiveWindowIpc } from "./active-window";
+import { registerWindowControlsIpc, unregisterWindowControlsIpc } from "./window-controls";
 import { CURSOR_EVENT } from "../shared/ipc-channels";
 
 let workbenchWindow: BrowserWindow | null = null;
@@ -45,6 +46,7 @@ app.whenReady().then(() => {
   registerStoreIpc(() => BrowserWindow.getAllWindows());
   registerDialogIpc();
   registerActiveWindowIpc();
+  registerWindowControlsIpc();
 
   // 1) workbench 配置窗口（系统标题栏，任务 4.0 再改自绘）
   workbenchWindow = createWorkbenchWindow();
@@ -88,6 +90,7 @@ app.on("before-quit", () => {
   unregisterStoreIpc();
   unregisterDialogIpc();
   unregisterActiveWindowIpc();
+  unregisterWindowControlsIpc();
   destroyAllOverlays();
 });
 

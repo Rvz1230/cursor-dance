@@ -1,4 +1,5 @@
 import { formatActionLabel } from "./model/workbenchSchema";
+import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useThemeWorkbenchState } from "./hooks/useThemeWorkbenchState";
@@ -17,15 +18,37 @@ import { ThemeLibrarySidebar } from "./components/ThemeLibrarySidebar";
 import { cn } from "@/components/ui/utils";
 import { ToastProvider, useToast } from "@/components/ui/toast";
 
-export default function ThemeWorkbenchPage() {
+export default function ThemeWorkbenchPage({ renderHeader }: ThemeWorkbenchPageProps = {}) {
   return (
     <ToastProvider>
-      <ThemeWorkbenchPageContent />
+      <ThemeWorkbenchPageContent renderHeader={renderHeader} />
     </ToastProvider>
   );
 }
 
-function ThemeWorkbenchPageContent() {
+export interface WorkbenchHeaderProps {
+  workspaceItems: ReturnType<typeof useThemeWorkbenchState>["workspaceItems"];
+  workspaceId: string;
+  setWorkspaceId: (id: string) => void;
+  enabled: boolean;
+  setEnabled: (value: boolean) => void;
+  unsaved: boolean;
+  isSaving: boolean;
+  saveError?: string | null;
+  saveChanges: () => void;
+  resetCurrentTheme: () => void;
+  aiPanelOpen?: boolean;
+  setAiPanelOpen?: (value: boolean) => void;
+}
+
+export type WorkbenchHeaderRenderer = (props: WorkbenchHeaderProps) => ReactNode;
+
+interface ThemeWorkbenchPageProps {
+  /** 桌面端注入自绘标题栏；扩展端不传，使用默认 WorkbenchHeader。 */
+  renderHeader?: WorkbenchHeaderRenderer;
+}
+
+function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
   const toast = useToast();
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [columnWeights, setColumnWeights] = useState({ config: 1.05, preview: 1.25, ai: 1 });
@@ -160,6 +183,21 @@ function ThemeWorkbenchPageContent() {
     toast({ tone: "info", title: "已撤销 AI 改动", description: "配置已恢复到应用 AI 方案之前的状态。" });
   }
 
+  const headerProps: WorkbenchHeaderProps = {
+    workspaceItems,
+    workspaceId: state.workspaceId,
+    setWorkspaceId,
+    enabled: state.ui.enabled,
+    setEnabled,
+    unsaved: state.ui.unsaved,
+    isSaving: state.ui.isSaving,
+    saveError: state.ui.saveError,
+    saveChanges: handleSaveChanges,
+    resetCurrentTheme: handleResetCurrentTheme,
+    aiPanelOpen,
+    setAiPanelOpen,
+  };
+
   return (
     <div
       className="h-dvh bg-slate-100 text-slate-900"
@@ -167,21 +205,7 @@ function ThemeWorkbenchPageContent() {
     >
       <div className="flex h-dvh overflow-hidden border border-slate-200 bg-white text-sm shadow-sm">
         <div className="flex min-w-0 flex-1 flex-col">
-          <WorkbenchHeader
-            workspaceItems={workspaceItems}
-            workspaceId={state.workspaceId}
-            setWorkspaceId={setWorkspaceId}
-            enabled={state.ui.enabled}
-            setEnabled={setEnabled}
-            unsaved={state.ui.unsaved}
-            isSaving={state.ui.isSaving}
-            saveError={state.ui.saveError}
-            saveChanges={handleSaveChanges}
-            resetCurrentTheme={handleResetCurrentTheme}
-            aiPanelOpen={aiPanelOpen}
-            setAiPanelOpen={setAiPanelOpen}
-          />
-
+          {renderHeader ? renderHeader(headerProps) : <WorkbenchHeader {...headerProps} />}
           <div className="flex min-h-0 flex-1">
             <ThemeLibrarySidebar
               themes={themes}

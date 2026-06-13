@@ -35,3 +35,16 @@ export const DIALOG_OPEN_THEME_FILE = "cursordance:dialog-open-theme-file";
 /** renderer → 主进程：拉取当前前台应用元数据（进程名 / Bundle ID / 窗口标题），
  *  供 app-matcher 应用规则匹配使用。macOS 无辅助功能权限时返回 unauthorized 状态。 */
 export const APP_GET_ACTIVE_WINDOW = "cursordance:app-get-active-window";
+
+/** renderer → 主进程：自绘标题栏的窗口控制（最小化 / 切换最大化 / 关闭）。
+ *  通过 BrowserWindow.fromWebContents(event.sender) 定位调用方窗口，无需带 windowId。 */
+export const WINDOW_MINIMIZE = "cursordance:window-minimize";
+export const WINDOW_TOGGLE_MAXIMIZE = "cursordance:window-toggle-maximize";
+export const WINDOW_CLOSE = "cursordance:window-close";
+
+/** renderer → 主进程：取当前调用方窗口快照（isMaximized / isFullScreen），
+ *  Windows/Linux 自绘标题栏首次挂载时同步图标状态。 */
+export const WINDOW_GET_STATE = "cursordance:window-get-state";
+
+/** 主进程 → renderer：调用方窗口最大化 / 还原状态变化广播。 */
+export const WINDOW_STATE_CHANGED = "cursordance:window-state-changed";

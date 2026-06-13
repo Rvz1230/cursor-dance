@@ -11,6 +11,11 @@ import {
   DIALOG_SAVE_THEME_FILE,
   DIALOG_OPEN_THEME_FILE,
   APP_GET_ACTIVE_WINDOW,
+  WINDOW_MINIMIZE,
+  WINDOW_TOGGLE_MAXIMIZE,
+  WINDOW_CLOSE,
+  WINDOW_GET_STATE,
+  WINDOW_STATE_CHANGED,
 } from "../shared/ipc-channels";
 
 type CursorEventPayload = {
@@ -182,5 +187,56 @@ type ActiveWindowSnapshot =
 contextBridge.exposeInMainWorld("cursorDanceApp", {
   async getActiveWindow(): Promise<ActiveWindowSnapshot> {
     return ipcRenderer.invoke(APP_GET_ACTIVE_WINDOW);
+  },
+});
+
+// ============================================================
+// 任务 4.0：cursorDanceWindow —— 自绘标题栏窗口控制桥
+//
+// renderer 的 TitleBar 通过 minimize / toggleMaximize / close 调用主进程
+// 操作当前 BrowserWindow（主进程根据 event.sender 自动定位）；onStateChanged
+// 订阅 maximize/unmaximize/fullscreen 状态变化用于切图标。
+// getState 用于 TitleBar 首次挂载时同步初始状态。
+// ============================================================
+
+type WindowStateSnapshot = {
+  isMaximized: boolean;
+  isFullScreen: boolean;
+};
+
+type WindowStateListener = (state: WindowStateSnapshot) => void;
+
+const windowStateListeners = new WeakMap<
+  WindowStateListener,
+  (_e: unknown, payload: WindowStateSnapshot) => void
+>();
+
+contextBridge.exposeInMainWorld("cursorDanceWindow", {
+  platform: process.platform,
+
+  async minimize(): Promise<void> {
+    await ipcRenderer.invoke(WINDOW_MINIMIZE);
+  },
+
+  async toggleMaximize(): Promise<void> {
+    await ipcRenderer.invoke(WINDOW_TOGGLE_MAXIMIZE);
+  },
+
+  async close(): Promise<void> {
+    await ipcRenderer.invoke(WINDOW_CLOSE);
+  },
+
+  async getState(): Promise<WindowStateSnapshot> {
+    return ipcRenderer.invoke(WINDOW_GET_STATE);
+  },
+
+  onStateChanged(callback: WindowStateListener): () => void {
+    const handler = (_e: unknown, payload: WindowStateSnapshot) => callback(payload);
+    windowStateListeners.set(callback, handler);
+    ipcRenderer.on(WINDOW_STATE_CHANGED, handler);
+    return () => {
+      ipcRenderer.off(WINDOW_STATE_CHANGED, handler);
+      windowStateListeners.delete(callback);
+    };
   },
 });

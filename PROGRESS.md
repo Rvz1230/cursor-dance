@@ -31,7 +31,7 @@
 - [x] 任务 3.2：get-windows 集成
 
 ## 阶段四：UI 迁移
-- [ ] 任务 4.0：Workbench 自绘标题栏
+- [x] 任务 4.0：Workbench 自绘标题栏
 - [ ] 任务 4.1：系统托盘
 - [ ] 任务 4.2：应用规则面板改造
 - [ ] 任务 4.3：首次启动引导 + 空状态
@@ -48,7 +48,7 @@
 ## 当前状态
 
 - **分支**：desktop/phase-0
-- **上次提交**：阶段三 3.2
+- **上次提交**：阶段四 4.0
 - **阻塞项**：无
-- **扩展状态**：`npm run test` 158 tests 全绿，`npm run build` 与 `npx electron-vite build` 双绿
-- **备注**：任务 3.2 完成 —— `get-windows@9.3.0` 集成（`--ignore-scripts` 装包后手动从本地缓存解出 electron 42.4.0 dist + 写 path.txt 让 vitest 重新跑通）。新增 `src/main/active-window.ts`：`getActiveWindowSnapshot()` 用 `activeWindowSync({ accessibilityPermission: true, screenRecordingPermission: false })` 取前台窗口；macOS 权限缺失（同步抛 `accessibility permission` 错）归一化为 `{ authorized: false, message: "需要辅助功能权限：请在系统设置 → 隐私与安全 → 辅助功能 中允许 CursorDance。" }`，正常路径输出 `{ authorized: true, owner: { name, bundleId? }, title, processName }`，`processName = owner.name` 与 `app-matcher.ActiveAppInfo` 形状对齐。`shared/ipc-channels.ts` 增 `APP_GET_ACTIVE_WINDOW` 通道；preload 暴露 `cursorDanceApp.getActiveWindow()` 桥；main/index.ts 在 store/dialog 之后注册 `registerActiveWindowIpc`。新增单测 `src/main/active-window.test.ts`（5 用例：mac 权限错归一化、undefined → unauthorized、macOS Result 抽 bundleId、Linux 无 bundleId、title 缺省补空串）。下一步任务 4.0 Workbench 自绘标题栏。
+- **扩展状态**：`npm run test` 165 tests 全绿，`npm run build` 与 `npx electron-vite build` 双绿
+- **备注**：任务 4.0 完成 —— Workbench 改用自绘标题栏。`createWorkbenchWindow` 在 macOS 走 `titleBarStyle: 'hiddenInset'` + `trafficLightPosition {x:14,y:14}`（系统仍渲染红绿灯），其它平台 `frame: false`；窗口绑定 `bindWindowStateBroadcast` 监听 maximize/unmaximize/enter|leave-full-screen 把 `{isMaximized,isFullScreen}` 通过 `WINDOW_STATE_CHANGED` 推给 renderer。新增 `src/main/window-controls.ts`：`registerWindowControlsIpc()` 注册 `WINDOW_MINIMIZE/TOGGLE_MAXIMIZE/CLOSE/GET_STATE`，主进程用 `BrowserWindow.fromWebContents(event.sender)` 自动定位调用窗口（renderer 不带 windowId）。`shared/ipc-channels.ts` 新增 5 个 channel。preload 暴露 `cursorDanceWindow` 桥（platform/minimize/toggleMaximize/close/getState/onStateChanged），`vite-env.d.ts` 同步类型定义。新建 `src/renderer/workbench/TitleBar.tsx`：macOS 高度 40px + 80px 左侧避让红绿灯；Windows/Linux 高度 32px + 右侧自绘三按钮（X 按钮 hover 变 rose-500 红）。整条 `-webkit-app-region: drag` 可拖，所有交互元素显式 `no-drag`。`ThemeWorkbenchPage` 新增 `renderHeader` prop（默认走 `WorkbenchHeader`，桌面 entry 注入 `TitleBar`），扩展端零改动。新增 `window-controls.test.ts` 6 用例（snapshot 透传 / senderWindow 找不到 / 已销毁 / 正常 / bind 注册 4 事件 + unbind 解绑 / 销毁后不 send）。下一步任务 4.1 系统托盘。
