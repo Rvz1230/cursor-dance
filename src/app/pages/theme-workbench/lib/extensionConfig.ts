@@ -4,6 +4,7 @@ export {
   clearLivePreviewConfig,
   clearRuntimeErrors,
   downloadThemePackExport,
+  pickThemeFile,
   previewThemePack,
   readActiveSiteContext,
   readEditorState,

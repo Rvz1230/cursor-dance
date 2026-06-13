@@ -25,3 +25,9 @@ export const LIVE_PREVIEW_CHANGED = "cursordance:live-preview-changed";
 
 /** renderer → 主进程：申请预览（test action）由主进程派发到 overlay */
 export const PREVIEW_AT_VIEWPORT_CENTER = "cursordance:preview-at-viewport-center";
+
+/** renderer → 主进程：导出主题包到本地文件（弹原生保存对话框 + 写盘） */
+export const DIALOG_SAVE_THEME_FILE = "cursordance:dialog-save-theme-file";
+
+/** renderer → 主进程：从本地文件导入主题包（弹原生打开对话框 + 读盘） */
+export const DIALOG_OPEN_THEME_FILE = "cursordance:dialog-open-theme-file";

@@ -22,6 +22,7 @@ export {
 export {
   buildThemeExportPayload,
   downloadThemePackExport,
+  pickThemeFile,
   readRecentCursorAssets,
   writeRecentCursorAsset,
   readActiveSiteContext,

@@ -29,13 +29,40 @@ export function buildThemeExportPayload(themePack) {
   };
 }
 
-export function downloadThemePackExport(themePack) {
+function getDialogBridge() {
+  if (typeof window === "undefined") return null;
+  return window.cursorDanceDialog ?? null;
+}
+
+function buildExportFileName(themePack) {
+  return `${slugifyFileSegment(themePack?.name || themePack?.id, "theme")}.cursordance-theme.json`;
+}
+
+function serializeExportPayload(themePack) {
+  return `${JSON.stringify(buildThemeExportPayload(themePack), null, 2)}\n`;
+}
+
+// 桌面端通过 cursorDanceDialog（IPC + dialog.showSaveDialog）走原生保存对话框；
+// 扩展端 / 静态预览没有 bridge，回落到 Blob + <a download>。
+// 返回值统一：成功保存 → fileName；用户取消 → null。
+export async function downloadThemePackExport(themePack) {
+  const fileName = buildExportFileName(themePack);
+  const contents = serializeExportPayload(themePack);
+
+  const bridge = getDialogBridge();
+  if (bridge?.saveThemeFile) {
+    const result = await bridge.saveThemeFile({ defaultFileName: fileName, contents });
+    if (!result.ok) {
+      throw new Error(result.error || "导出主题失败。");
+    }
+    if (result.canceled) return null;
+    return fileName;
+  }
+
   if (typeof window === "undefined" || typeof document === "undefined") {
     throw new Error("当前环境不支持导出主题文件。");
   }
-  const payload = buildThemeExportPayload(themePack);
-  const fileName = `${slugifyFileSegment(themePack?.name || themePack?.id, "theme")}.cursordance-theme.json`;
-  const blob = new Blob([`${JSON.stringify(payload, null, 2)}\n`], { type: "application/json" });
+  const blob = new Blob([contents], { type: "application/json" });
   const objectUrl = window.URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = objectUrl;
@@ -46,6 +73,21 @@ export function downloadThemePackExport(themePack) {
   anchor.remove();
   window.setTimeout(() => window.URL.revokeObjectURL(objectUrl), 0);
   return fileName;
+}
+
+// 桌面端打开原生「打开文件」对话框，读取并返回 { fileName, contents }。
+// 扩展端没有桥时返回 null —— 调用方继续走 <input type=file> 路径。
+// 用户取消同样返回 null。
+export async function pickThemeFile() {
+  const bridge = getDialogBridge();
+  if (!bridge?.openThemeFile) return null;
+  const result = await bridge.openThemeFile();
+  if (!result.ok) {
+    throw new Error(result.error || "读取主题文件失败。");
+  }
+  if (result.canceled) return null;
+  const fileName = result.filePath.split(/[\\/]/).pop() || "theme.json";
+  return { fileName, contents: result.contents };
 }
 
 export async function readRecentCursorAssets() {

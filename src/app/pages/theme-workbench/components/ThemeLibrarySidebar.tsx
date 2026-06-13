@@ -14,6 +14,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { DataPill, SmallSelect, ThemeCard } from "./WorkbenchControls";
+import { pickThemeFile } from "../lib/extensionConfig";
 
 function ThemeComposerModal({
   open,
@@ -74,6 +75,34 @@ function ThemeComposerModal({
       setImportSuccess(`已导入 ${file.name}`);
       closeComposer();
       notify?.({ tone: "success", title: "已导入主题", description: file.name });
+    } catch (error) {
+      setImportSuccess("");
+      const message = error instanceof Error ? error.message : "导入主题失败。";
+      setImportError(message);
+      notify?.({ tone: "error", title: "导入主题失败", description: message });
+    }
+  }
+
+  // 桌面端走 cursorDanceDialog（IPC + showOpenDialog）；扩展端无桥时返回 null,
+  // 由调用方回落到 <input type=file> 路径。
+  async function handlePickFromNativeDialog() {
+    try {
+      const picked = await pickThemeFile();
+      if (!picked) {
+        // 没桥（扩展端）→ 触发隐藏 file input；
+        // 有桥但用户取消 → picked 也是 null；用「桥是否存在」区分。
+        if (typeof window !== "undefined" && window.cursorDanceDialog) {
+          // 用户在原生对话框中取消，不报错也不通知。
+          return;
+        }
+        fileInputRef.current?.click();
+        return;
+      }
+      importThemeFromText(picked.contents, picked.fileName);
+      setImportError("");
+      setImportSuccess(`已导入 ${picked.fileName}`);
+      closeComposer();
+      notify?.({ tone: "success", title: "已导入主题", description: picked.fileName });
     } catch (error) {
       setImportSuccess("");
       const message = error instanceof Error ? error.message : "导入主题失败。";
@@ -160,7 +189,7 @@ function ThemeComposerModal({
                       支持直接导入单个主题对象，也支持带 `themePack` / `theme` 包裹的 JSON 文件。
                     </div>
                     <div className="mt-4 flex items-center gap-3">
-                      <Button variant="outline" className="rounded-full px-4" onClick={() => fileInputRef.current?.click()}>
+                      <Button variant="outline" className="rounded-full px-4" onClick={handlePickFromNativeDialog}>
                         <Upload className="mr-2 h-4 w-4" />
                         选择 JSON 文件
                       </Button>
@@ -238,9 +267,16 @@ export function ThemeLibrarySidebar({
   }
 
   async function handleExportTheme(targetThemeId) {
-    const result = runThemeAction(() => exportTheme(targetThemeId));
-    if (!result) return;
-    notify?.({ tone: "success", title: "已导出主题", description: result.fileName });
+    try {
+      const result = await exportTheme(targetThemeId);
+      setActionError("");
+      if (!result) return; // 用户在原生对话框中取消，不算成功也不算错误
+      notify?.({ tone: "success", title: "已导出主题", description: result.fileName });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "主题操作失败，请重试。";
+      setActionError(message);
+      notify?.({ tone: "error", title: "主题操作失败", description: message });
+    }
   }
 
   function handleDuplicateTheme(targetThemeId) {

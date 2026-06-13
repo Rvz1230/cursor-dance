@@ -124,7 +124,7 @@ export function useThemeWorkbenchState() {
     return themeName;
   }
 
-  function exportTheme(themeId = selected.themeId) {
+  async function exportTheme(themeId = selected.themeId) {
     const theme = state.themeLibrary.find((item) => item.id === themeId);
     if (!theme) {
       throw new Error("导出失败：没有找到要导出的主题。");
@@ -140,7 +140,8 @@ export function useThemeWorkbenchState() {
       editor: {},
     };
     const themePack = buildStoredThemePackFromWorkbench(previousConfig, state, themeId);
-    const fileName = downloadThemePackExport(themePack);
+    const fileName = await downloadThemePackExport(themePack);
+    if (!fileName) return null;
     return {
       fileName,
       payload: buildThemeExportPayload(themePack),

@@ -40,6 +40,7 @@ interface Chrome {
 interface Window {
   chrome?: Chrome
   cursorDanceStorage?: CursorDanceStorageBridge
+  cursorDanceDialog?: CursorDanceDialogBridge
 }
 
 interface CursorDanceStorageBridge {
@@ -52,4 +53,24 @@ interface CursorDanceStorageBridge {
   offChange: (callback: (config: unknown) => void) => void
   onLivePreviewChange: (callback: (config: unknown | null) => void) => () => void
   offLivePreviewChange: (callback: (config: unknown | null) => void) => void
+}
+
+interface CursorDanceDialogSaveRequest {
+  defaultFileName: string
+  contents: string
+}
+
+type CursorDanceDialogSaveResult =
+  | { ok: true; canceled: false; filePath: string }
+  | { ok: true; canceled: true }
+  | { ok: false; canceled: false; error: string }
+
+type CursorDanceDialogOpenResult =
+  | { ok: true; canceled: false; filePath: string; contents: string }
+  | { ok: true; canceled: true }
+  | { ok: false; canceled: false; error: string }
+
+interface CursorDanceDialogBridge {
+  saveThemeFile: (request: CursorDanceDialogSaveRequest) => Promise<CursorDanceDialogSaveResult>
+  openThemeFile: () => Promise<CursorDanceDialogOpenResult>
 }

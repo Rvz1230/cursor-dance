@@ -27,7 +27,7 @@
 ## 阶段三：存储与通信
 - [x] 任务 3.0：实现 ElectronStoreAdapter
 - [x] 任务 3.0.5：桌面 workbench 注入 runtime config 全局
-- [ ] 任务 3.1：主题导入导出适配
+- [x] 任务 3.1：主题导入导出适配
 - [ ] 任务 3.2：get-windows 集成
 
 ## 阶段四：UI 迁移
@@ -48,7 +48,7 @@
 ## 当前状态
 
 - **分支**：desktop/phase-0
-- **上次提交**：阶段三 3.0.5
+- **上次提交**：阶段三 3.1
 - **阻塞项**：无
 - **扩展状态**：`npm run test` 153 tests 全绿，`npm run build` 与 `npx electron-vite build` 双绿
-- **备注**：任务 3.0.5 完成 —— 修复桌面 workbench 渲染进程没有 runtime config 全局导致的 3 个症状（主题列表空 / 改色不跟随 / 保存被重置）。新增 `src/renderer/workbench/install-runtime-globals.ts`，把阶段二已迁好的 `default-config.ts` + `action-config.ts` + `text-semantics.ts` 三个 ES 模块的导出再组装成 `window.CursorDanceDefaultConfig` 与 `window.CursorDanceConfigRuntime` 两个全局；`entry.tsx` 在业务 import 之前先 import 该文件确保挂载时全局已就绪。下一步任务 3.1 主题导入导出适配。
+- **备注**：任务 3.1 完成 —— 主题导入导出适配桌面端原生对话框。新增 `src/main/dialog-handlers.ts`（IPC + dialog.showSaveDialog/showOpenDialog + Node fs 读写），`shared/ipc-channels.ts` 增 `DIALOG_SAVE_THEME_FILE` / `DIALOG_OPEN_THEME_FILE` 两条通道，preload 暴露 `cursorDanceDialog.{saveThemeFile, openThemeFile}` 桥；renderer 侧 `storage/extras.ts` 的 `downloadThemePackExport` 改 async，桌面端有桥时走原生对话框 + 主进程 fs 写盘，扩展端继续 Blob + `<a download>` 回退；新导出 `pickThemeFile`，`ThemeLibrarySidebar` 的「选择 JSON 文件」桌面端走原生对话框、扩展端回落 `<input type=file>`；导入导出取消路径统一为静默处理（不再报错通知）。下一步任务 3.2 get-windows 集成。

@@ -8,6 +8,8 @@ import {
   STORE_SET_LIVE_PREVIEW,
   STORE_CLEAR_LIVE_PREVIEW,
   LIVE_PREVIEW_CHANGED,
+  DIALOG_SAVE_THEME_FILE,
+  DIALOG_OPEN_THEME_FILE,
 } from "../shared/ipc-channels";
 
 type CursorEventPayload = {
@@ -121,5 +123,38 @@ contextBridge.exposeInMainWorld("cursorDanceStorage", {
       ipcRenderer.off(LIVE_PREVIEW_CHANGED, handler);
       livePreviewChangeListeners.delete(callback);
     }
+  },
+});
+
+// ============================================================
+// 任务 3.1：cursorDanceDialog —— 文件对话框桥
+//
+// 把扩展端的「Blob + <a download>」（导出）和「<input type=file>」（导入）
+// 在桌面端替换为原生 save/open dialog。
+// renderer 只负责构造 JSON 字符串和默认文件名，所有磁盘 IO 都走主进程。
+// ============================================================
+
+type SaveThemeFileRequest = {
+  defaultFileName: string;
+  contents: string;
+};
+
+type SaveThemeFileResult =
+  | { ok: true; canceled: false; filePath: string }
+  | { ok: true; canceled: true }
+  | { ok: false; canceled: false; error: string };
+
+type OpenThemeFileResult =
+  | { ok: true; canceled: false; filePath: string; contents: string }
+  | { ok: true; canceled: true }
+  | { ok: false; canceled: false; error: string };
+
+contextBridge.exposeInMainWorld("cursorDanceDialog", {
+  async saveThemeFile(request: SaveThemeFileRequest): Promise<SaveThemeFileResult> {
+    return ipcRenderer.invoke(DIALOG_SAVE_THEME_FILE, request);
+  },
+
+  async openThemeFile(): Promise<OpenThemeFileResult> {
+    return ipcRenderer.invoke(DIALOG_OPEN_THEME_FILE);
   },
 });
