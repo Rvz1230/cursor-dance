@@ -26,6 +26,7 @@
 
 ## 阶段三：存储与通信
 - [x] 任务 3.0：实现 ElectronStoreAdapter
+- [x] 任务 3.0.5：桌面 workbench 注入 runtime config 全局
 - [ ] 任务 3.1：主题导入导出适配
 - [ ] 任务 3.2：get-windows 集成
 
@@ -47,7 +48,7 @@
 ## 当前状态
 
 - **分支**：desktop/phase-0
-- **上次提交**：阶段三 3.0
+- **上次提交**：阶段三 3.0.5
 - **阻塞项**：无
 - **扩展状态**：`npm run test` 153 tests 全绿，`npm run build` 与 `npx electron-vite build` 双绿
-- **备注**：任务 3.0 完成 —— 桌面端 workbench↔overlay config 同步链路打通。新增 `src/main/electron-store.ts`（封装 electron-store 单例 + 内存 live preview + onConfigChange/onLivePreviewChange 事件分发）、`src/main/ipc-handlers.ts`（registerStoreIpc 注册 5 个 ipcMain.handle，写后向所有 BrowserWindow 广播 STORE_CHANGED / LIVE_PREVIEW_CHANGED）。preload 追加第二桥 `cursorDanceStorage`（getConfig/setConfig/getLivePreview/setLivePreview/clearLivePreview/onChange/onLivePreviewChange，沿用 cursorDanceAPI 的 WeakMap-listener pattern）。`storage/chrome-api.ts` 加 helper `getElectronStorageBridge()`；`config-io.ts` 5 个导出函数（read/writeExtensionConfig、read/write/clearLivePreviewConfig）前置 bridge 优先分支，cursor 资产在 bridge 路径下不拆分（electron-store 无 5MB 单 key 限制）；`subscriptions.ts` 同样前置 bridge 分支（subscribeRuntimeDiagnostics 不动，留给 3.1+）。`overlay/index.ts` 用 electronBridgeAdapter 替换 inMemoryAdapter，启动拉初始 config + 订阅 STORE_CHANGED/LIVE_PREVIEW_CHANGED 实时 setConfig。新增 `src/main/electron-store.test.ts`（4 条断言：read 默认空 / writeConfig + onChange 调度 + 退订 / live preview 与持久化隔离 + clear 还原）。扩展端零改动 —— bridge 永远是 null，扩展走原有 chrome.storage 路径。下一步任务 3.1 主题导入导出适配。
+- **备注**：任务 3.0.5 完成 —— 修复桌面 workbench 渲染进程没有 runtime config 全局导致的 3 个症状（主题列表空 / 改色不跟随 / 保存被重置）。新增 `src/renderer/workbench/install-runtime-globals.ts`，把阶段二已迁好的 `default-config.ts` + `action-config.ts` + `text-semantics.ts` 三个 ES 模块的导出再组装成 `window.CursorDanceDefaultConfig` 与 `window.CursorDanceConfigRuntime` 两个全局；`entry.tsx` 在业务 import 之前先 import 该文件确保挂载时全局已就绪。下一步任务 3.1 主题导入导出适配。
