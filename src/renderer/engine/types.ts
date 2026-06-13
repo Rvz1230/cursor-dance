@@ -210,6 +210,11 @@ export interface TriggerHandlersModule {
   handleContextMenu(event: CursorEvent): void;
   handleWheel(event: CursorEvent): void;
   previewAtViewportCenter(schemeId?: string, previewScheme?: unknown, actionId?: string): void;
+  /**
+   * 在指定坐标触发一次预览。Workbench 预览面板用它在 stage 中心触发，
+   * 桌面 overlay 仍用 previewAtViewportCenter（其内部转调本方法）。
+   */
+  previewAt(x: number, y: number, schemeId?: string, previewScheme?: unknown, actionId?: string): void;
 }
 
 export interface EffectEngine {

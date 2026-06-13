@@ -4,29 +4,14 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/utils";
 import {
   PREVIEW_KEYFRAMES,
-  buildOrbitalParticleSpecs,
-  buildParticleSpecs,
   buildRippleSpecs,
-  getAnimationEasingCss,
-  getAnimationKeyframeName,
-  getAnimationVisualProps,
-  getParticleStyleProps,
-  getParticleTint,
-  getPreviewAnimationStyle,
-  getPreviewImageStyle,
   getPreviewSoundFile,
-  getPreviewText,
-  getTextFontFamilyValue,
   getPreviewTriggerSummary,
-  getTextShadowValue,
-  getTextWeightValue,
-  hexToRgba,
 } from "../lib/preview";
 import { useTimelineDrag } from "../lib/useTimelineDrag";
 import {
   getActionAnimationConfig,
   getActionAudioConfig,
-  getActionCursorFeedbackConfig,
   getActionImageConfig,
   getActionParticleConfig,
   getActionRippleConfig,
@@ -34,6 +19,17 @@ import {
 } from "../model/workbenchSchema";
 import { Panel } from "./WorkbenchControls";
 import { AtmosphereStagePreview } from "./AtmosphereStagePreview";
+import { createEffectEngine, type EngineConstants, type EngineState } from "@/renderer/engine/entry";
+import {
+  getActionAnimationConfig as engineGetActionAnimationConfig,
+  getActionAudioConfig as engineGetActionAudioConfig,
+  getActionCursorFeedbackConfig as engineGetActionCursorFeedbackConfig,
+  getActionImageConfig as engineGetActionImageConfig,
+  getActionParticleConfig as engineGetActionParticleConfig,
+  getActionRippleConfig as engineGetActionRippleConfig,
+  getActionTextConfig as engineGetActionTextConfig,
+  getActionTriggerConfig as engineGetActionTriggerConfig,
+} from "@/renderer/engine/action-config";
 
 function formatTriggerInterval(ms) {
   if (ms < 1000) return `${ms}ms`;
@@ -50,247 +46,6 @@ function buildOutputTags({ textConfig, particleConfig, rippleConfig, audioConfig
   if (imageConfig.imageEnabled && imageConfig.imageDataUrl) tags.push({ id: "card-image", label: "贴纸" });
   if (config.cursorOverride && config.cursorOverride !== "跟随当前状态") tags.push({ id: "card-cursor", label: "光标" });
   return tags;
-}
-
-function getCursorOverrideProps(cursorOverride) {
-  if (cursorOverride === "木鱼（增强态）") return { text: "击", background: "radial-gradient(circle at 35% 35%, rgba(253,224,71,0.95), rgba(180,83,9,0.94))", borderRadius: "999px" };
-  if (cursorOverride === "木鱼（按压态）") return { text: "压", background: "radial-gradient(circle at 35% 35%, rgba(251,191,36,0.92), rgba(146,64,14,0.96))", borderRadius: "38% 38% 58% 58% / 42% 42% 56% 56%" };
-  if (cursorOverride === "木鱼（继承默认）") return { text: "咚", background: "radial-gradient(circle at 35% 35%, rgba(252,211,77,0.94), rgba(180,83,9,0.92))", borderRadius: "999px" };
-  return null;
-}
-
-function PreviewEffects({
-  disabled,
-  config,
-  runId,
-  comboIndex,
-  actionId,
-  textConfig,
-  particleConfig,
-  rippleConfig,
-  animationConfig,
-  imageConfig,
-  triggerInterval,
-  textDelay,
-  rippleDelay,
-  particleDelay,
-  animationDelay,
-  imageDelay,
-}) {
-  const accentText = getPreviewText(config, comboIndex, actionId);
-  const isOrbital = particleConfig.particleMotionMode === "orbital";
-  const particles = useMemo(() => isOrbital ? buildOrbitalParticleSpecs(config) : buildParticleSpecs(config, runId), [config, runId, isOrbital]);
-  const ripples = useMemo(() => buildRippleSpecs(config), [config]);
-  const animationStyle = getPreviewAnimationStyle(config);
-  const imageStyle = getPreviewImageStyle(config);
-  const animVisual = useMemo(() => getAnimationVisualProps(config), [config]);
-  const animKeyframe = getAnimationKeyframeName(animationConfig.animationStyle || "聚焦脉冲");
-
-  if (disabled) return null;
-
-  return (
-    <>
-      {rippleConfig.ripple
-        ? ripples.map((ripple, index) => (
-            <div
-              key={`ripple-${runId}-${index}`}
-              className="absolute left-1/2 top-1/2 rounded-full border"
-              style={{
-                width: `${ripple.size}px`,
-                height: `${ripple.size}px`,
-                borderWidth: ripple.filled ? 0 : `${rippleConfig.rippleLineWidth}px`,
-                borderColor: ripple.filled ? "transparent" : hexToRgba(rippleConfig.rippleColor || "#34D399", ripple.opacity),
-                background: ripple.filled
-                  ? `radial-gradient(circle, ${hexToRgba(rippleConfig.rippleColor || "#34D399", ripple.opacity * 0.34)} 0%, ${hexToRgba(rippleConfig.rippleColor || "#34D399", ripple.opacity * 0.16)} 56%, ${hexToRgba(rippleConfig.rippleColor || "#34D399", 0)} 100%)`
-                  : "transparent",
-                boxShadow: ripple.filled ? `0 0 0 1px ${hexToRgba(rippleConfig.rippleColor || "#34D399", ripple.opacity * 0.22)} inset` : undefined,
-                "--ripple-from": ripple.scaleFrom,
-                "--ripple-mid": ripple.scaleMid,
-                "--ripple-to": ripple.scaleTo,
-                animation: `cursorDancePreviewRipple ${rippleConfig.rippleDuration}ms ${getAnimationEasingCss(rippleConfig.rippleEasing)} ${rippleDelay + ripple.delay}ms both`,
-              }}
-            />
-          ))
-        : null}
-
-      {particleConfig.particle && !isOrbital
-        ? particles.map((particle, index) => {
-            const shape = getParticleStyleProps(config, index, particle.size);
-            const style = particleConfig.particleStyle || "点状粒子";
-            const easing = style === "火花" || style === "星光"
-              ? "cubic-bezier(0.22, 1, 0.36, 1)"
-              : style === "碎屑粒子"
-                ? "cubic-bezier(0.34, 1.56, 0.64, 1)"
-                : "ease-out";
-            const mainParticle = (
-              <div
-                key={`particle-${runId}-${index}`}
-                className="absolute left-1/2 top-1/2"
-                style={{
-                  width: `${shape.width}px`,
-                  height: `${shape.height}px`,
-                  borderRadius: shape.borderRadius,
-                  backgroundColor: getParticleTint(config, index),
-                  boxShadow: shape.boxShadow,
-                  clipPath: shape.clipPath || undefined,
-                  "--particle-x": `${particle.x}px`,
-                  "--particle-y": `${particle.y}px`,
-                  "--particle-mid-x": `${particle.midX}px`,
-                  "--particle-mid-y": `${particle.midY}px`,
-                  "--particle-rotation": `${shape.rotation}deg`,
-                  "--particle-end-scale": particle.endScale,
-                  animation: `cursorDancePreviewParticle ${particleConfig.particleDuration}ms ${easing} ${particleDelay + particle.delay}ms both`,
-                }}
-              />
-            );
-
-            if (!particleConfig.particleTrail || index % 3 !== 0) return mainParticle;
-
-            const trailElements = [1, 2].map((t) => {
-              const trailScale = 1 - t * 0.32;
-              const trailOpacity = Math.max(0.12, 0.4 - t * 0.14);
-              return (
-                <div
-                  key={`particle-trail-${runId}-${index}-${t}`}
-                  className="absolute left-1/2 top-1/2"
-                  style={{
-                    width: `${shape.width * trailScale}px`,
-                    height: `${shape.height * trailScale}px`,
-                    borderRadius: shape.borderRadius,
-                    clipPath: shape.clipPath || undefined,
-                    backgroundColor: getParticleTint(config, index + t),
-                    boxShadow: shape.boxShadow,
-                    opacity: trailOpacity,
-                    "--particle-x": `${particle.x * 0.6}px`,
-                    "--particle-y": `${particle.y * 0.6}px`,
-                    "--particle-mid-x": `${particle.x * 0.24}px`,
-                    "--particle-mid-y": `${particle.y * 0.24}px`,
-                    "--particle-rotation": `${shape.rotation}deg`,
-                    "--particle-end-scale": "0.44",
-                    animation: `cursorDancePreviewParticle ${particleConfig.particleDuration * 0.8}ms ease-out ${particleDelay + particle.delay + t * 40}ms both`,
-                  }}
-                />
-              );
-            });
-
-            return [mainParticle, ...trailElements];
-          })
-        : null}
-
-      {particleConfig.particle && isOrbital
-        ? particles.map((orbital, index) => {
-            const shape = getParticleStyleProps(config, index, orbital.size);
-            const style = particleConfig.particleStyle || "点状粒子";
-            return (
-              <div
-                key={`orbital-${runId}-${index}`}
-                className="absolute left-1/2 top-1/2"
-                style={{
-                  width: `${shape.width}px`,
-                  height: `${shape.height}px`,
-                  borderRadius: shape.borderRadius,
-                  backgroundColor: getParticleTint(config, index),
-                  boxShadow: shape.boxShadow,
-                  clipPath: shape.clipPath || undefined,
-                  "--orbital-sx": `${orbital.sx}px`,
-                  "--orbital-sy": `${orbital.sy}px`,
-                  "--orbital-ex": `${orbital.ex}px`,
-                  "--orbital-ey": `${orbital.ey}px`,
-                  "--orbital-start-opacity": "0.5",
-                  "--orbital-peak-opacity": "0.15",
-                  "--orbital-start-scale": "0.6",
-                  "--orbital-peak-scale": "1.2",
-                  animation: `cursorDancePreviewParticleOrbital ${orbital.speed * 1000}ms ease-in-out ${orbital.delay}ms infinite`,
-                }}
-              />
-            );
-          })
-        : null}
-
-      {textConfig.textEnabled ? (
-        <div className="absolute left-1/2 top-1/2" style={{ marginLeft: `${textConfig.textOffsetX}px`, marginTop: `${textConfig.textOffsetY}px` }}>
-          <div
-            key={`text-${runId}`}
-            className="whitespace-nowrap text-center tabular-nums"
-            style={{
-              color: hexToRgba(textConfig.textColor || "#ec4899", (textConfig.textOpacity || 100) / 100),
-              fontFamily: getTextFontFamilyValue(textConfig.textFontFamily),
-              fontSize: `${textConfig.fontSize || 22}px`,
-              fontWeight: getTextWeightValue(textConfig.textWeight),
-              textShadow: getTextShadowValue(config),
-              WebkitTextStroke: textConfig.textOutlineWidth ? `${textConfig.textOutlineWidth}px ${hexToRgba("#FFFFFF", 0.82)}` : undefined,
-              animation: `cursorDancePreviewFloat ${textConfig.textDuration || 950}ms ${getAnimationEasingCss(textConfig.textEasing)} ${textDelay}ms forwards`,
-            }}
-          >
-            {accentText}
-          </div>
-        </div>
-      ) : null}
-
-      {animationConfig.animationEnabled ? (
-        <div
-          key={`animation-${runId}`}
-          className="absolute left-1/2 top-1/2"
-          style={{
-            ...animationStyle,
-            "--anim-opacity": animationStyle.opacity,
-            animation: `${animKeyframe} ${animationConfig.animationDuration}ms ${getAnimationEasingCss(animationConfig.animationEasing)} ${animationDelay}ms forwards`,
-            borderRadius: animVisual.borderRadius,
-            background: animVisual.background,
-            clipPath: animVisual.clipPath || undefined,
-            boxShadow: animVisual.boxShadow || undefined,
-            border: animVisual.border || undefined,
-          }}
-        />
-      ) : null}
-
-      {imageConfig.imageEnabled && imageConfig.imageDataUrl ? (
-        <div
-          key={`image-${runId}`}
-          className="absolute left-1/2 top-1/2"
-          style={{
-            ...imageStyle,
-            animation: `cursorDancePreviewImage ${imageConfig.imageDuration}ms cubic-bezier(0.22, 1, 0.36, 1) ${imageDelay}ms forwards`,
-          }}
-        >
-          <img
-            src={imageConfig.imageDataUrl}
-            alt="贴纸预览"
-            className="block h-full w-full object-contain drop-shadow-[0_12px_24px_rgba(15,23,42,0.16)]"
-          />
-        </div>
-      ) : null}
-
-      {(() => {
-        const cursorFeedbackConfig = getActionCursorFeedbackConfig(config);
-        const cursorProps = getCursorOverrideProps(cursorFeedbackConfig.cursorOverride);
-        if (!cursorProps) return null;
-        const cursorSize = cursorFeedbackConfig.cursorSize || 48;
-        return (
-          <div
-            key={`cursor-${runId}`}
-            className="absolute left-1/2 top-1/2 flex items-center justify-center"
-            style={{
-              width: `${cursorSize}px`,
-              height: `${cursorSize}px`,
-              background: cursorProps.background,
-              borderRadius: cursorProps.borderRadius,
-              border: cursorProps.borderRadius === "999px" ? "1px solid rgba(255,255,255,0.72)" : undefined,
-              boxShadow: "0 14px 34px rgba(15, 23, 42, 0.18)",
-              color: "#fff",
-              fontSize: `${Math.round(cursorSize * 0.27)}px`,
-              fontWeight: 700,
-              letterSpacing: "0.04em",
-              backdropFilter: "blur(6px)",
-              animation: `cursorDancePreviewCursorBounce 260ms cubic-bezier(0.22, 1, 0.36, 1) forwards`,
-            }}
-          >
-            {cursorProps.text}
-          </div>
-        );
-      })()}
-    </>
-  );
 }
 
 function buildTimelineTracks({ textConfig, particleConfig, rippleConfig, audioConfig, animationConfig, imageConfig, config }) {
@@ -685,18 +440,108 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, out
     [textConfig, particleConfig, rippleConfig, audioConfig, animationConfig, imageConfig, config]
   );
 
-  const textDelay = textConfig.textDelay || 0;
-  const rippleDelay = rippleConfig.rippleDelay || 0;
-  const particleDelay = particleConfig.particleDelay || 0;
-  const animationDelay = animationConfig.animationDelay || 0;
-  const imageDelay = imageConfig.imageDelay || 0;
   const soundDelay = audioConfig.soundDelay || 0;
 
   // 鼠标追踪
   const [pointer, setPointer] = useState({ x: 0, y: 0, inside: false });
   const stageRef = useRef(null);
+  const effectsHostRef = useRef(null);
   const [stageSize, setStageSize] = useState({ w: 0, h: 0 });
   const cursorEnabled = atmosphere?.mode === "creative-mouse";
+
+  // 引擎实例与最新 config / actionId 引用 ——
+  //   引擎在 mount 时建一次，runId 变化时 triggerHandlers.previewAt 重新触发；
+  //   config 通过 ref 共享，避免每次配置变化重建引擎（重建会丢 audioContext / orbital 缓存）。
+  const configRef = useRef(config);
+  configRef.current = config;
+  const actionIdRef = useRef(actionId);
+  actionIdRef.current = actionId;
+  const engineRef = useRef(null);
+
+  useEffect(() => {
+    const host = effectsHostRef.current;
+    if (!host) return undefined;
+    // 每个预览面板实例用唯一 ROOT_ID / STYLE_ID，避免和潜在的多实例 / overlay 渲染串。
+    const uid = Math.random().toString(36).slice(2, 8);
+    const constants: EngineConstants = {
+      ROOT_ID: `cursordance-preview-root-${uid}`,
+      STYLE_ID: `cursordance-preview-style-${uid}`,
+      HIDE_CURSOR_CLASS: `cd-preview-hide-${uid}`,
+    };
+    const engineState: EngineState = { activeEffects: 0, ready: true };
+    // 最简内存版 ConfigStore：把 props.config 当唯一 actionConfig 回放，
+    // isCurrentSiteEnabled / matchesTriggerZone 恒 true，绕开 site / hover / target 校验。
+    const previewScheme = { id: "preview" };
+    const configStore = {
+      getActionTriggerConfig: engineGetActionTriggerConfig,
+      getActionTextConfig: engineGetActionTextConfig,
+      getActionRippleConfig: engineGetActionRippleConfig,
+      getActionParticleConfig: engineGetActionParticleConfig,
+      getActionAnimationConfig: engineGetActionAnimationConfig,
+      getActionImageConfig: engineGetActionImageConfig,
+      getActionAudioConfig: engineGetActionAudioConfig,
+      // 预览端遮蔽 "切换到 pointer"，否则引擎会改写 document.body.style.cursor，
+      // 造成预览面板触发后整个 Workbench cursor 短暂被污染。
+      getActionCursorFeedbackConfig: (actionConfig) => {
+        const feedback = engineGetActionCursorFeedbackConfig(actionConfig);
+        if (feedback.cursorOverride === "切换到 pointer") {
+          return { ...feedback, cursorOverride: "跟随当前状态" };
+        }
+        return feedback;
+      },
+      getMaxActiveEffects: () => 200,
+      getConfig: () => ({ schemes: [previewScheme], activeSchemeId: previewScheme.id }),
+      getActiveScheme: () => previewScheme,
+      isCurrentSiteEnabled: () => true,
+      getActionConfig: (_scheme, _actionId) => configRef.current,
+      getCursorStateBinding: (_scheme, _stateId, sourceActionId) => ({ actionId: sourceActionId, cursorStateId: "" }),
+      resolveCursorStateId: () => "",
+      matchesTriggerZone: () => true,
+    };
+    const engine = createEffectEngine({
+      window,
+      document,
+      constants,
+      state: engineState,
+      configStore,
+    });
+    // 把效果根节点改挂到 stage 内的 host div，并把 fixed 后代退化为相对 host 定位。
+    // ensureRoot 创建的 div 默认 position:fixed; inset:0; 这里覆盖为 absolute / 全填 host。
+    const root = engine.visualEffects.ensureRoot();
+    if (root.parentElement !== host) host.appendChild(root);
+    root.style.position = "absolute";
+    root.style.inset = "0";
+    // host 自己是 transform 上下文（translateZ(0)），让 .cd-effect 的 position:fixed 在
+    // 现代浏览器里改以 host 为 containing block —— 坐标系即变成 host 局部坐标。
+    engineRef.current = { engine, state: engineState, root };
+    return () => {
+      try { engine.cursorOverlay.clearStateCursorOverlay(); } catch {}
+      try { engine.visualEffects.clearOrbitalParticles(); } catch {}
+      // close 异步返回 Promise，吞错即可（unmount 阶段对 fail-safe 不敏感）
+      try { engineState.audioContext?.close().catch(() => {}); } catch {}
+      if (root.parentElement) root.parentElement.removeChild(root);
+      // STYLE_ID 用唯一前缀挂在 document.head，一并清理
+      const style = document.getElementById(constants.STYLE_ID);
+      if (style?.parentElement) style.parentElement.removeChild(style);
+      engineRef.current = null;
+    };
+  }, []);
+
+  // runId 变化 → 在 host 中心触发一次效果。disabled 时跳过（保持原 PreviewEffects 语义）。
+  useEffect(() => {
+    if (disabled) return;
+    const handle = engineRef.current;
+    const host = effectsHostRef.current;
+    if (!handle || !host) return;
+    const rect = host.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+    const cx = Math.round(rect.width / 2);
+    const cy = Math.round(rect.height / 2);
+    handle.engine.triggerHandlers.previewAt(cx, cy, undefined, undefined, actionIdRef.current);
+    // triggerInterval 仅在 buildTimelineTracks / 触发频率里使用，这里依赖 runId 即可。
+    void triggerInterval;
+    void comboIndex;
+  }, [runId, disabled, comboIndex, triggerInterval]);
 
   useEffect(() => {
     const el = stageRef.current;
@@ -773,28 +618,15 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, out
         <div className="absolute inset-x-10 bottom-12 h-4 rounded-full bg-slate-200/45" />
         <div className="absolute inset-x-8 bottom-9 h-px bg-slate-300/80" />
 
-        <div className="absolute inset-x-8 bottom-9 top-20 flex items-center justify-center">
-          <div className="relative h-0 w-0">
-            <PreviewEffects
-              disabled={disabled}
-              config={config}
-              runId={runId}
-              comboIndex={comboIndex}
-              actionId={actionId}
-              textConfig={textConfig}
-              particleConfig={particleConfig}
-              rippleConfig={rippleConfig}
-              animationConfig={animationConfig}
-              imageConfig={imageConfig}
-              triggerInterval={triggerInterval}
-              textDelay={textDelay}
-              rippleDelay={rippleDelay}
-              particleDelay={particleDelay}
-              animationDelay={animationDelay}
-              imageDelay={imageDelay}
-            />
-          </div>
-        </div>
+        {/* 引擎效果挂载点。translateZ(0) 创造 transform 上下文，
+            让引擎里 .cd-effect 的 position:fixed 改以本节点为 containing block，
+            坐标系直接落到 host 局部，不会污染 Workbench 其他区域。 */}
+        <div
+          ref={effectsHostRef}
+          className="pointer-events-none absolute inset-x-8 bottom-9 top-20 overflow-hidden"
+          style={{ transform: "translateZ(0)" }}
+          aria-hidden="true"
+        />
 
         {/* 氛围动效预览层 */}
         <AtmosphereStagePreview

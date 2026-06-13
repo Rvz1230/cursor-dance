@@ -497,20 +497,24 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
     });
   }
 
-  function previewAtViewportCenter(schemeId?: string, previewScheme?: unknown, actionId?: string): void {
+  function previewAt(x: number, y: number, schemeId?: string, previewScheme?: unknown, actionId?: string): void {
     if (!configStore.isCurrentSiteEnabled?.()) return;
     const config = configStore.getConfig?.();
     const resolvedScheme = previewScheme
       || (config?.schemes.find((scheme) => scheme.id === (schemeId || config?.activeSchemeId)))
       || configStore.getActiveScheme?.();
-    const x = Math.round(window.innerWidth / 2);
-    const y = Math.round(window.innerHeight / 2);
     triggerAction(actionId || "leftClick", { x, y, target: document.body, event: null }, resolvedScheme, {
       force: true,
       resolvedActionId: actionId || "leftClick",
       throttleMs: 0,
       triggerSource: "preview-center",
     });
+  }
+
+  function previewAtViewportCenter(schemeId?: string, previewScheme?: unknown, actionId?: string): void {
+    const x = Math.round(window.innerWidth / 2);
+    const y = Math.round(window.innerHeight / 2);
+    previewAt(x, y, schemeId, previewScheme, actionId);
   }
 
   return {
@@ -521,5 +525,6 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
     handleContextMenu,
     handleWheel,
     previewAtViewportCenter,
+    previewAt,
   };
 }

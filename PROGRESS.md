@@ -21,7 +21,7 @@
 - [x] 任务 2.5：迁移其余引擎模块
 - [x] 任务 2.6：主进程鼠标事件捕获
 - [x] 任务 2.7：overlay 窗口和引擎连线
-- [ ] 任务 2.8：Workbench 预览对接引擎
+- [x] 任务 2.8：Workbench 预览对接引擎
 
 ## 阶段三：存储与通信
 - [ ] 任务 3.0：实现 ElectronStoreAdapter
@@ -46,7 +46,7 @@
 ## 当前状态
 
 - **分支**：desktop/phase-0
-- **上次提交**：阶段二 2.7
+- **上次提交**：阶段二 2.8
 - **阻塞项**：无
 - **扩展状态**：`npm run test` 146 tests 全绿，`npm run build` 与 `npx electron-vite build` 双绿
-- **备注**：任务 2.7 完成——透明 overlay 窗口逐 display 创建并装配效果引擎。新增 `src/main/windows.ts`：`createOverlayWindow(display)` 配置 transparent / frame:false / hasShadow:false / focusable:false / closable:false / fullscreenable:false / type:'normal'（macOS 用 toolbar/panel 会被 Mission Control 吞）；`setIgnoreMouseEvents(true, {forward:true})` + `setAlwaysOnTop("screen-saver")` + `setVisibleOnAllWorkspaces({visibleOnFullScreen:true})`；webPreferences `backgroundThrottling:false`；did-finish-load 后 insertCSS `* { cursor: none }` 并 showInactive 不抢焦点；macOS 调 `setHiddenInMissionControl`（老版本 Electron 吞掉异常）；窗口字典 `Map<displayId, BrowserWindow>` 维护，closed 时自清。同文件保留 `createWorkbenchWindow`（任务 4.0 才改自绘标题栏）。新增 `src/main/screen-utils.ts`：`getAllDisplays / onDisplayChanges`（聚合 added/removed/metrics-changed 三事件、返回退订函数）；纯函数 `screenPointToDisplayLocal(display, sx, sy)` 把 device-px 屏幕坐标折成 DIP local 坐标（`sx / scaleFactor - bounds.x`）；`findDisplayAtScreenPoint` 多 display 路由。`src/main/index.ts` 重写：app.whenReady 创建 workbenchWindow + 遍历 displays 创建 overlay；`onDisplayChanges` 派发 added → createOverlayWindow / removed → destroyOverlayWindow / changed → syncOverlayBounds；before-quit 钩子调用 stopMouseCapture + stopDisplayWatcher + destroyAllOverlays；window-all-closed 在 darwin 不退（保留 dock 行为）。`src/renderer/overlay/index.ts` 实装：装配 `createDiagnostics({window})` + `createConfigStore`（in-memory adapter 返回 defaultConfig + LEGACY_ENABLED=true，任务 3.0 之后接 electron-store）+ `createEffectEngine`，初始化时 `configStore.setConfig(defaultConfig)` / `state.ready=true` / `engine.visualEffects.ensureRoot()`；`cursorDanceAPI.onCursorEvent` 注入 dispatch：`toEngineCursorEvent` 用 `payload.x / dpr - window.screenX` 折坐标，`isInsideThisOverlay` 防多 display 重复触发；mousemove → `cursorOverlay.syncStateCursorOverlay`，mousedown 按 buttons 位掩码分发 left/right（right 同步触发 contextMenu），mouseup → `handlePointerUp`，wheel → `handleWheel`；beforeunload 退订并清理软光标。新增 `src/main/screen-utils.test.ts` 3 条测试覆盖 @1x / @2x / 副屏坐标转换。下一步任务 2.8 Workbench 预览面板对接引擎。
+- **备注**：任务 2.8 完成——Workbench 预览面板接入真实引擎。`engine/types.ts` 给 `TriggerHandlersModule` 加 `previewAt(x, y, schemeId?, previewScheme?, actionId?)`；`engine/trigger-handlers.ts` 把 `previewAtViewportCenter` 重构为 `previewAt(round(window.innerWidth/2), round(window.innerHeight/2), ...)` 的转调，原 viewport-center 调用方零改动。`WorkbenchPreviewRail.tsx` 删除 `PreviewEffects`（旧 CSS @keyframes 模拟）+ `getCursorOverrideProps`，改为在 `SimplePreviewStage` mount 时 `createEffectEngine`：自带最简内存版 ConfigStore（`getActionConfig` 始终回传 `configRef.current`，`isCurrentSiteEnabled`/`matchesTriggerZone` 恒 true，`resolveCursorStateId` 返回 ""，`getMaxActiveEffects`=200），用唯一 `cursordance-preview-root-${uid}` / `cursordance-preview-style-${uid}` 隔离多实例；`engine.visualEffects.ensureRoot()` 后把根节点挂到 stage 内 `effectsHostRef`（`pointer-events:none; absolute inset-x-8 bottom-9 top-20; transform:translateZ(0)`），覆盖 `position:absolute; inset:0` 让 `.cd-effect` 的 fixed 后代以 host 为 containing block 局部定位；`runId` 变化时调 `engine.triggerHandlers.previewAt(host.w/2, host.h/2, undefined, undefined, actionIdRef.current)`；预览端遮蔽 `cursorOverride === "切换到 pointer"`（避免改写 `document.body.style.cursor` 污染整个 Workbench）；unmount 清 cursorOverlay/orbital/audioContext 节点 + STYLE_ID。保留 `PREVIEW_KEYFRAMES <style>` 喂音效装饰条 `cursorDancePreviewBars`。`engine/entry.test.ts` 补 `previewAt` 类型断言。下一步任务 3.0 ElectronStoreAdapter。
