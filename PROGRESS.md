@@ -16,7 +16,7 @@
 - [x] 任务 2.0：创建引擎 DI 类型和入口
 - [x] 任务 2.1：迁移 visual-effects.ts
 - [x] 任务 2.2：迁移 cursor-overlay.ts
-- [ ] 任务 2.3：迁移 audio.ts
+- [x] 任务 2.3：迁移 audio.ts
 - [ ] 任务 2.4：迁移 trigger-handlers.ts
 - [ ] 任务 2.5：迁移其余引擎模块
 - [ ] 任务 2.6：主进程鼠标事件捕获
@@ -46,7 +46,7 @@
 ## 当前状态
 
 - **分支**：desktop/phase-0
-- **上次提交**：8d759dd 阶段二 2.1
+- **上次提交**：d89eae0 阶段二 2.2
 - **阻塞项**：无
 - **扩展状态**：`npm run test` 115 tests 全绿，`npm run build` 与 `npx electron-vite build` 双绿
-- **备注**：任务 2.2 完成——cursor-overlay 已迁到 `src/renderer/engine/cursor-overlay.ts`。去 IIFE、改 `createCursorOverlay(deps)`，签名重构为 `syncStateCursorOverlay(x, y, cursorState?)`：站点开关 + cursor-state 解析责任上移到调用方，引擎不再依赖 configStore，仅依赖 visualEffects.ensureRoot。types.ts 新增 `CursorOverlayState` / `CursorOverlayModule`，`EngineState` 增 `stateCursorNode/stateCursorImg`。entry.ts 装配 cursorOverlay 并把 visualEffects 引用注入。下一步任务 2.3 迁移 audio.ts（保留 Web Audio API + 5 个预设音效，移除 audio ducking）。
+- **备注**：任务 2.3 完成——audio 已迁到 `src/renderer/engine/audio.ts`。去 IIFE、改 `createAudioRuntime(deps)`，5 个预设音效（woodfish-deep / tick-light / chime-bright / pop-soft / swipe-whoosh）的波形/频率/时长/衰减字节级保留；Web Audio API（AudioContext / OscillatorNode / GainNode / exponentialRampToValueAtTime）调用全部保留。**桌面端裁剪 audio ducking 一族**（duckPageMedia / scheduleDuckReassert / scheduleMediaRestore / applyDuckTarget / getPageMediaElements / resolveAudioDuckProfile 全部移除），diagnostics / reportRuntimeError 改为 deps 可选注入。types.ts 扩 `EngineState`（lastSoundAtByAction / audioContext）+ `ConfigStore`（getActionAudioConfig / getActionTriggerConfig）+ 新增 `DiagnosticsModule` 与具体 `AudioRuntimeModule`。下一步任务 2.4 迁移 trigger-handlers.ts。

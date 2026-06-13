@@ -48,11 +48,16 @@ export interface EngineState {
   /** cursor-overlay 复用的软件光标节点（首次同步时创建） */
   stateCursorNode?: HTMLElement | null;
   stateCursorImg?: HTMLImageElement | null;
+  /** audio 子模块的节流时间戳（按 actionId 维度） */
+  lastSoundAtByAction?: Record<string, number>;
+  /** 懒创建的 AudioContext；首次 playSound 时建立 */
+  audioContext?: AudioContext | null;
 }
 
 /**
  * configStore 暴露给引擎的最小接口。
- * 当前覆盖 visual-effects 的需求；后续 cursor-overlay/audio/trigger-handlers 各自合并到这里。
+ * 当前覆盖 visual-effects + cursor-overlay + audio 的需求；
+ * trigger-handlers 在 2.4 迁移时再补。
  */
 export interface ConfigStore {
   getActionTextConfig(actionConfig: Record<string, unknown> | undefined): Record<string, unknown>;
@@ -61,7 +66,20 @@ export interface ConfigStore {
   getActionAnimationConfig(actionConfig: Record<string, unknown> | undefined): Record<string, unknown>;
   getActionImageConfig(actionConfig: Record<string, unknown> | undefined): Record<string, unknown>;
   getActionCursorFeedbackConfig(actionConfig: Record<string, unknown> | undefined): Record<string, unknown>;
+  getActionAudioConfig(actionConfig: Record<string, unknown> | undefined): Record<string, unknown>;
+  getActionTriggerConfig(actionConfig: Record<string, unknown> | undefined): Record<string, unknown>;
   getMaxActiveEffects(): number;
+}
+
+/**
+ * diagnostics 子模块对引擎暴露的接口。完整实现见 public/content-runtime/diagnostics.js
+ * （扩展端）和未来的 src/renderer/engine/diagnostics.ts（任务 2.5 之后再迁）。
+ * 注：桌面端没有 DOM 媒体元素，describeMedia 仅用于扩展端 audio.duck.* 日志，
+ * 桌面 audio.ts 不再调用 ducking 路径，所以这里只保留 log/isEnabled。
+ */
+export interface DiagnosticsModule {
+  isEnabled(): boolean;
+  log(scope: string, payload?: Record<string, unknown>): void;
 }
 
 /**
@@ -115,9 +133,16 @@ export interface CursorOverlayModule {
 }
 
 /**
- * 其余子模块占位类型。任务 2.3–2.4 各自迁移时替换为具体形状。
+ * audio 子模块对外暴露的 API。
+ * 桌面版没有页面音视频可压制，因此移除了 duckPageMedia 一族；只保留 playSound。
  */
-export type AudioRuntimeModule = unknown;
+export interface AudioRuntimeModule {
+  playSound(actionConfig: Record<string, unknown>, actionId: string, runContext?: { comboIndex?: number }): void;
+}
+
+/**
+ * 其余子模块占位类型。任务 2.4 各自迁移时替换为具体形状。
+ */
 export type TriggerHandlersModule = unknown;
 
 export interface EffectEngine {
