@@ -13,7 +13,7 @@
 - [x] 任务 1.2：创建目录结构和占位文件
 
 ## 阶段二：效果引擎迁移
-- [ ] 任务 2.0：创建引擎 DI 类型和入口
+- [x] 任务 2.0：创建引擎 DI 类型和入口
 - [ ] 任务 2.1：迁移 visual-effects.ts
 - [ ] 任务 2.2：迁移 cursor-overlay.ts
 - [ ] 任务 2.3：迁移 audio.ts
@@ -46,7 +46,7 @@
 ## 当前状态
 
 - **分支**：desktop/phase-0
-- **上次提交**：5f59caf 阶段一 1.0 + 1.1
+- **上次提交**：d38a888 阶段一 1.2
 - **阻塞项**：无
-- **扩展状态**：`npm run test` 114 tests 全绿，`npm run build` 与 `npx electron-vite build` 双绿
-- **备注**：阶段一 1.0 / 1.1 / 1.2 全部完成。overlay/popup 占位定型（overlay 透明全屏 + cursor:none + pointer-events:none，popup 320×520），tailwind content 显式覆盖 `src/renderer/**`。下一步进入阶段二 — 任务 2.0 创建引擎 DI 类型与入口。
+- **扩展状态**：`npm run test` 115 tests 全绿（含新增 entry 占位测试），`npm run build` 与 `npx electron-vite build` 双绿
+- **备注**：阶段二开局——任务 2.0 完成，引擎共享 types.ts (CursorEvent / EngineDeps / 子模块占位类型) + entry.ts (createEffectEngine) 已就位。各 createXxx 暂返回空对象，等待 2.1+ 逐个填充。下一步任务 2.1 迁移 visual-effects → src/renderer/engine/visual-effects.ts。
