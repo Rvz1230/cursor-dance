@@ -12,7 +12,11 @@
   },
   "homepage": "https://github.com/Rvz1230/cursor-dance#readme",
   "type": "module",
-  "workspaces": ["cursor-dance-api", "landing"],
+  "main": "out/main/index.js",
+  "workspaces": [
+    "cursor-dance-api",
+    "landing"
+  ],
   "scripts": {
     "dev": "vite",
     "ai:dev": "node cursor-dance-api/scripts/dev-server.mjs",
@@ -23,7 +27,10 @@
     "test": "vitest run",
     "test:watch": "vitest --watch",
     "test:smoke": "playwright test",
-    "test:smoke:attached": "CURSORDANCE_SMOKE_EXTERNAL_SERVER=1 playwright test"
+    "test:smoke:attached": "CURSORDANCE_SMOKE_EXTERNAL_SERVER=1 playwright test",
+    "dev:electron": "electron-vite dev",
+    "build:electron": "electron-vite build",
+    "start:electron": "electron-vite preview"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
@@ -34,11 +41,13 @@
     "@radix-ui/react-slider": "^1.3.6",
     "@radix-ui/react-toast": "^1.2.15",
     "clsx": "^2.0.0",
+    "electron-store": "^11.0.2",
     "framer-motion": "^10.16.4",
     "lucide-react": "^0.294.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "tailwind-merge": "^2.0.0"
+    "tailwind-merge": "^2.0.0",
+    "uiohook-napi": "^1.5.5"
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
@@ -46,6 +55,9 @@
     "@types/react-dom": "^18.2.15",
     "@vitejs/plugin-react": "^4.2.0",
     "autoprefixer": "^10.4.16",
+    "electron": "^42.4.0",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^5.0.0",
     "postcss": "^8.4.31",
     "tailwindcss": "^3.3.5",
     "vite": "^5.0.0",
