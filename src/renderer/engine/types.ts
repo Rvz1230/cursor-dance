@@ -135,7 +135,8 @@ export interface ConfigStore {
 export interface DiagnosticsModule {
   isEnabled(): boolean;
   log(scope: string, payload?: Record<string, unknown>): void;
-  describeTarget?(target: unknown): string;
+  /** 桌面端可返回简短字符串；扩展端返回结构化描述。统一为 unknown，由调用方按需序列化。 */
+  describeTarget?(target: unknown): unknown;
 }
 
 /**

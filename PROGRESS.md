@@ -18,7 +18,7 @@
 - [x] 任务 2.2：迁移 cursor-overlay.ts
 - [x] 任务 2.3：迁移 audio.ts
 - [x] 任务 2.4：迁移 trigger-handlers.ts
-- [ ] 任务 2.5：迁移其余引擎模块
+- [x] 任务 2.5：迁移其余引擎模块
 - [ ] 任务 2.6：主进程鼠标事件捕获
 - [ ] 任务 2.7：overlay 窗口和引擎连线
 - [ ] 任务 2.8：Workbench 预览对接引擎
@@ -46,7 +46,7 @@
 ## 当前状态
 
 - **分支**：desktop/phase-0
-- **上次提交**：阶段二 2.4
+- **上次提交**：阶段二 2.5
 - **阻塞项**：无
-- **扩展状态**：`npm run test` 115 tests 全绿，`npm run build` 与 `npx electron-vite build` 双绿
-- **备注**：任务 2.4 完成——trigger-handlers 已迁到 `src/renderer/engine/trigger-handlers.ts`。去 IIFE、改 `createTriggerHandlers(deps)`，handler 入参从 DOM PointerEvent / WheelEvent 切换为结构化 `CursorEvent`（type / x / y / buttons / deltaY / timestamp）。**桌面端裁剪 hover**：移除 `handlePointerOver` / `handlePointerOut`，`getActionTimingMs` 与 throttleMs 默认值里的 `"hover"` 分支同步删除，与 CLAUDE.md「桌面 5 个 trigger」一致。渲染管线（`visualEffects.* + audioRuntime.playSound`）调用顺序、节流 / 连击 / runIndex 计算逻辑全部原样保留。types.ts 把 `EngineState` 扩到含 `ready / lastTriggerAtByAction / actionRunCounts / actionComboStates / lastLeftPointerDownAt / lastLeftPointerUpAt / lastWheelEventAt / longPressState`；`ConfigStore` 补 `getActiveScheme / getConfig / isCurrentSiteEnabled / getActionConfig / getCursorStateBinding / resolveCursorStateId / matchesTriggerZone`（均可选，桌面端 app-matcher 实现层填）；`TriggerHandlersModule` 从 `unknown` 收紧为含 7 个方法的具体接口；`DiagnosticsModule` 加 `describeTarget?`。`entry.ts` 完成 4 个子模块装配，`entry.test.ts` 把所有 handler 都 assert 一次。下一步任务 2.5 迁移其余引擎模块（config-store / diagnostics / default-config / app-matcher）。
+- **扩展状态**：`npm run test` 134 tests 全绿，`npm run build` 与 `npx electron-vite build` 双绿
+- **备注**：任务 2.5 完成——其余 5 个引擎模块全部从 IIFE 迁到 ES module，5 个新文件落在 `src/renderer/engine/` 下。**diagnostics.ts**：去 chrome.storage.onChanged，改为 `onExternalToggle?` 回调让上层（扩展端 chrome、桌面端 IPC）自行注入；query/localStorage/`__CURSORDANCE_DEBUG__` 三个本地源 + BroadcastChannel 桥保留，事件入栈 / `cursordance:diagnostic` CustomEvent / console.info / 200 条上限字节级保留。**app-matcher.ts**：替代 site-matcher，pattern 加 `target?: "process"|"title"`（默认 process），glob 改为统一 `.*`（process/title 无段结构，与扩展端 host 段语义不同），`resolveAppRule` 形态对照 resolveSiteRule。`app-matcher.test.ts` 覆盖 19 个用例（exact / glob / title-target / edge-cases / resolveAppRule），全绿。**default-config.ts**：4 套主题包定义（mono-geo/drift/molten/sunset）leftClick 字节级保留；`createDefaultThemePacks / mergeThemePackWithFallback / mergeCursorStates / normalizeSiteRules / normalizeConfig / needsMigration / defaultConfig` 全部走 ESM 导出，schemaVersion=3。**atmosphere.ts**：从 439 行缩到 ~180 行——磁吸（scanMagnetTargets / cleanupMagnetTargets / onMagnetOver/Out / MAGNET_SELECTOR）和文本选择态（updateTextSelection / revertTextSelection / findTextElement / isElementTextSelectable / calculateTextMetrics）全部移除（CLAUDE.md no-go：桌面无 DOM 可吸附 / 选择），仅保留 updateFollow + rAF 主循环 + creative-mouse 启停语义；workbenchDraft.atmosphere.mode 字段对齐扩展端，一份配置驱动两端。**config-store.ts**：去 IIFE 改 `createConfigStore(deps)`，BASE_ACTION_CONFIGS **删除 hover** 条目剩 5 条（leftClick/rightClick/doubleClick/longPress/wheel）；chrome.storage 抽象成 `ConfigStoreAdapter`（get/set + 选填 getSessionConfig / getLocalPreviewConfig）；resolveSiteRule 替换为 resolveAppRule，`getActiveScheme / isCurrentSiteEnabled` 走 `deps.getActiveAppInfo()` + `deps.getAppRules()`；`getWorkbenchDraft / mergeActionConfig / getCursorStateBinding / getEffectiveCursorStateConfig / resolveCursorStateId / matchesTriggerZone / getAtmosphereConfig` 字节级保留；`syncConfigFromStorage` 走 storeAdapter 读 CONFIG_STORAGE_KEY + LEGACY_ENABLED_STORAGE_KEY 并按 themePack/cursorStates 拼装资源键。types.ts 微调 `DiagnosticsModule.describeTarget` 返回 unknown 以同时兼容扩展端结构化对象和桌面占位字符串。**未连线 entry.ts**：diagnostics / config-store / atmosphere 是「上层装配」而非「引擎核心管线」（管线 = visualEffects + cursorOverlay + audioRuntime + triggerHandlers），按计划留给任务 2.7（overlay 窗口装配）/ 2.8（Workbench 预览装配）按场景注入。下一步任务 2.6 主进程 uiohook-napi 全局鼠标事件捕获。
