@@ -10,7 +10,7 @@
 ## 阶段一：项目脚手架
 - [x] 任务 1.0：安装 Electron 依赖
 - [x] 任务 1.1：配置 electron-vite + 创建最小入口
-- [ ] 任务 1.2：创建目录结构和占位文件
+- [x] 任务 1.2：创建目录结构和占位文件
 
 ## 阶段二：效果引擎迁移
 - [ ] 任务 2.0：创建引擎 DI 类型和入口
@@ -46,7 +46,7 @@
 ## 当前状态
 
 - **分支**：desktop/phase-0
-- **上次提交**：294fa63 阶段零代码梳理
+- **上次提交**：5f59caf 阶段一 1.0 + 1.1
 - **阻塞项**：无
-- **扩展状态**：`npm run test` 114 tests 全绿，`npm run build` 正常
-- **备注**：任务 1.1 完成（electron.vite.config.mjs 三入口正名 + alias、main 入 single-instance lock + ELECTRON_RENDERER_URL、preload contextBridge、dev:electron / build:electron / start:electron 脚本、main 字段、删除 src/renderer/{index.html,main.tsx} 残留）。`npm run dev:electron` 启动后窗口正常，dev server 5173 各 entry HTTP 200。Electron 二进制需通过 ELECTRON_MIRROR=npmmirror 安装。下一步任务 1.2 整理目录结构与占位（overlay/popup 入口当前已临时存在，需按规范完善 + tailwind config 路径校核）
+- **扩展状态**：`npm run test` 114 tests 全绿，`npm run build` 与 `npx electron-vite build` 双绿
+- **备注**：阶段一 1.0 / 1.1 / 1.2 全部完成。overlay/popup 占位定型（overlay 透明全屏 + cursor:none + pointer-events:none，popup 320×520），tailwind content 显式覆盖 `src/renderer/**`。下一步进入阶段二 — 任务 2.0 创建引擎 DI 类型与入口。
