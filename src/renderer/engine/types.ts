@@ -1,8 +1,9 @@
 // CursorDance 效果引擎共享类型
 //
 // 引擎在扩展端通过 IIFE + window.CursorDanceContentModules 注册（见 public/content-runtime/*）。
-// 桌面端把同一套引擎放到 ES module 形态下，并通过 createEffectEngine 注入 window/document/configStore，
-// 让 overlay 渲染进程与 Workbench 预览面板共享同一份代码（详见 docs/plans/steady-painting-yeti.md）。
+// 桌面端把同一套引擎放到 ES module 形态下，并通过 createEffectEngine 注入
+// window/document/constants/state/configStore，让 overlay 渲染进程与 Workbench 预览面板
+// 共享同一份代码（详见 docs/plans/steady-painting-yeti.md）。
 
 /**
  * 引擎入口接收的结构化光标事件。
@@ -26,33 +27,77 @@ export interface CursorEvent {
 }
 
 /**
- * 引擎模块占位类型。各 createXxx 在阶段 2.1–2.5 单独迁移时会替换为具体形状，
- * 这里先用 unknown 让 entry 编译通过。
+ * DOM 元素 id / 类名常量。
+ * 当前覆盖 visual-effects 的需求；2.2 cursor-overlay 之后视情况扩展。
  */
-export type VisualEffectsModule = unknown;
-export type CursorOverlayModule = unknown;
-export type AudioRuntimeModule = unknown;
-export type TriggerHandlersModule = unknown;
+export interface EngineConstants {
+  ROOT_ID: string;
+  STYLE_ID: string;
+  HIDE_CURSOR_CLASS: string;
+}
 
 /**
- * config 快照 + 操作接口的占位类型。任务 2.5 迁移 config-store.ts 时替换。
+ * 引擎共享的可变状态切片。
+ * 各子模块按需读写自己的字段；非自己的字段保持只读心态，避免互相踩。
  */
-export type ConfigStore = unknown;
+export interface EngineState {
+  /** visual-effects.animateNode 的并发计数 */
+  activeEffects: number;
+  /** 轨道粒子分组缓存，供 clearOrbitalParticles 清理 */
+  orbitalGroups?: { dot: HTMLElement; anim: Animation }[][];
+}
+
+/**
+ * configStore 暴露给引擎的最小接口。
+ * 当前覆盖 visual-effects 的需求；后续 cursor-overlay/audio/trigger-handlers 各自合并到这里。
+ */
+export interface ConfigStore {
+  getActionTextConfig(actionConfig: Record<string, unknown> | undefined): Record<string, unknown>;
+  getActionRippleConfig(actionConfig: Record<string, unknown> | undefined): Record<string, unknown>;
+  getActionParticleConfig(actionConfig: Record<string, unknown> | undefined): Record<string, unknown>;
+  getActionAnimationConfig(actionConfig: Record<string, unknown> | undefined): Record<string, unknown>;
+  getActionImageConfig(actionConfig: Record<string, unknown> | undefined): Record<string, unknown>;
+  getActionCursorFeedbackConfig(actionConfig: Record<string, unknown> | undefined): Record<string, unknown>;
+  getMaxActiveEffects(): number;
+}
 
 /**
  * 创建引擎需要的依赖。
- * 显式注入 window/document 让引擎可以被 overlay 渲染进程、Workbench 预览面板，
- * 甚至单元测试里的 jsdom 复用。
+ * 显式注入 window/document/constants/state/configStore，让引擎可以被 overlay 渲染进程、
+ * Workbench 预览面板，甚至单元测试里的 jsdom 复用。
  */
 export interface EngineDeps {
   window: Window;
   document: Document;
+  constants: EngineConstants;
+  state: EngineState;
   configStore: ConfigStore;
 }
 
 /**
- * createEffectEngine 返回的对象形状。各字段会在阶段二的后续任务里逐个填充。
+ * visual-effects 子模块对外暴露的渲染 API。
+ * 与 public/content-runtime/visual-effects.js 的返回对象一一对应。
  */
+export interface VisualEffectsModule {
+  ensureRoot(): HTMLElement;
+  renderText(x: number, y: number, actionConfig: Record<string, unknown>, actionId: string, runIndex: number): void;
+  renderRipple(x: number, y: number, actionConfig: Record<string, unknown>): void;
+  renderAnimationEffect(x: number, y: number, actionConfig: Record<string, unknown>): void;
+  renderImageEffect(x: number, y: number, actionConfig: Record<string, unknown>): void;
+  renderParticles(x: number, y: number, actionConfig: Record<string, unknown>, runIndex: number): void;
+  renderOrbitalParticles(x: number, y: number, actionConfig: Record<string, unknown>, runIndex: number): void;
+  clearOrbitalParticles(): void;
+  renderCursorOverride(x: number, y: number, actionConfig: Record<string, unknown>): void;
+  hasCursorOverride(actionConfig: Record<string, unknown>): boolean;
+}
+
+/**
+ * 其余子模块占位类型。任务 2.2–2.4 各自迁移时替换为具体形状。
+ */
+export type CursorOverlayModule = unknown;
+export type AudioRuntimeModule = unknown;
+export type TriggerHandlersModule = unknown;
+
 export interface EffectEngine {
   visualEffects: VisualEffectsModule;
   cursorOverlay: CursorOverlayModule;

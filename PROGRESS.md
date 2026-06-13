@@ -14,7 +14,7 @@
 
 ## 阶段二：效果引擎迁移
 - [x] 任务 2.0：创建引擎 DI 类型和入口
-- [ ] 任务 2.1：迁移 visual-effects.ts
+- [x] 任务 2.1：迁移 visual-effects.ts
 - [ ] 任务 2.2：迁移 cursor-overlay.ts
 - [ ] 任务 2.3：迁移 audio.ts
 - [ ] 任务 2.4：迁移 trigger-handlers.ts
@@ -46,7 +46,7 @@
 ## 当前状态
 
 - **分支**：desktop/phase-0
-- **上次提交**：d38a888 阶段一 1.2
+- **上次提交**：a783d32 阶段二 2.0
 - **阻塞项**：无
-- **扩展状态**：`npm run test` 115 tests 全绿（含新增 entry 占位测试），`npm run build` 与 `npx electron-vite build` 双绿
-- **备注**：阶段二开局——任务 2.0 完成，引擎共享 types.ts (CursorEvent / EngineDeps / 子模块占位类型) + entry.ts (createEffectEngine) 已就位。各 createXxx 暂返回空对象，等待 2.1+ 逐个填充。下一步任务 2.1 迁移 visual-effects → src/renderer/engine/visual-effects.ts。
+- **扩展状态**：`npm run test` 115 tests 全绿，`npm run build` 与 `npx electron-vite build` 双绿
+- **备注**：任务 2.1 完成——visual-effects 已迁到 `src/renderer/engine/visual-effects.ts`。去 IIFE、改 `createVisualEffects(deps)`、helper 静态 import 自 `./action-config` + `./compute-specs`，所有 Element.animate() 关键帧字面量原样保留。types.ts 收紧权威接口（EngineDeps / EngineState / EngineConstants / ConfigStore / VisualEffectsModule），entry.ts 接线到真模块。下一步任务 2.2 迁移 cursor-overlay.ts。
