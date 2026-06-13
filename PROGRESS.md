@@ -19,7 +19,7 @@
 - [x] 任务 2.3：迁移 audio.ts
 - [x] 任务 2.4：迁移 trigger-handlers.ts
 - [x] 任务 2.5：迁移其余引擎模块
-- [ ] 任务 2.6：主进程鼠标事件捕获
+- [x] 任务 2.6：主进程鼠标事件捕获
 - [ ] 任务 2.7：overlay 窗口和引擎连线
 - [ ] 任务 2.8：Workbench 预览对接引擎
 
@@ -46,7 +46,7 @@
 ## 当前状态
 
 - **分支**：desktop/phase-0
-- **上次提交**：阶段二 2.5
+- **上次提交**：阶段二 2.6
 - **阻塞项**：无
-- **扩展状态**：`npm run test` 134 tests 全绿，`npm run build` 与 `npx electron-vite build` 双绿
-- **备注**：任务 2.5 完成——其余 5 个引擎模块全部从 IIFE 迁到 ES module，5 个新文件落在 `src/renderer/engine/` 下。**diagnostics.ts**：去 chrome.storage.onChanged，改为 `onExternalToggle?` 回调让上层（扩展端 chrome、桌面端 IPC）自行注入；query/localStorage/`__CURSORDANCE_DEBUG__` 三个本地源 + BroadcastChannel 桥保留，事件入栈 / `cursordance:diagnostic` CustomEvent / console.info / 200 条上限字节级保留。**app-matcher.ts**：替代 site-matcher，pattern 加 `target?: "process"|"title"`（默认 process），glob 改为统一 `.*`（process/title 无段结构，与扩展端 host 段语义不同），`resolveAppRule` 形态对照 resolveSiteRule。`app-matcher.test.ts` 覆盖 19 个用例（exact / glob / title-target / edge-cases / resolveAppRule），全绿。**default-config.ts**：4 套主题包定义（mono-geo/drift/molten/sunset）leftClick 字节级保留；`createDefaultThemePacks / mergeThemePackWithFallback / mergeCursorStates / normalizeSiteRules / normalizeConfig / needsMigration / defaultConfig` 全部走 ESM 导出，schemaVersion=3。**atmosphere.ts**：从 439 行缩到 ~180 行——磁吸（scanMagnetTargets / cleanupMagnetTargets / onMagnetOver/Out / MAGNET_SELECTOR）和文本选择态（updateTextSelection / revertTextSelection / findTextElement / isElementTextSelectable / calculateTextMetrics）全部移除（CLAUDE.md no-go：桌面无 DOM 可吸附 / 选择），仅保留 updateFollow + rAF 主循环 + creative-mouse 启停语义；workbenchDraft.atmosphere.mode 字段对齐扩展端，一份配置驱动两端。**config-store.ts**：去 IIFE 改 `createConfigStore(deps)`，BASE_ACTION_CONFIGS **删除 hover** 条目剩 5 条（leftClick/rightClick/doubleClick/longPress/wheel）；chrome.storage 抽象成 `ConfigStoreAdapter`（get/set + 选填 getSessionConfig / getLocalPreviewConfig）；resolveSiteRule 替换为 resolveAppRule，`getActiveScheme / isCurrentSiteEnabled` 走 `deps.getActiveAppInfo()` + `deps.getAppRules()`；`getWorkbenchDraft / mergeActionConfig / getCursorStateBinding / getEffectiveCursorStateConfig / resolveCursorStateId / matchesTriggerZone / getAtmosphereConfig` 字节级保留；`syncConfigFromStorage` 走 storeAdapter 读 CONFIG_STORAGE_KEY + LEGACY_ENABLED_STORAGE_KEY 并按 themePack/cursorStates 拼装资源键。types.ts 微调 `DiagnosticsModule.describeTarget` 返回 unknown 以同时兼容扩展端结构化对象和桌面占位字符串。**未连线 entry.ts**：diagnostics / config-store / atmosphere 是「上层装配」而非「引擎核心管线」（管线 = visualEffects + cursorOverlay + audioRuntime + triggerHandlers），按计划留给任务 2.7（overlay 窗口装配）/ 2.8（Workbench 预览装配）按场景注入。下一步任务 2.6 主进程 uiohook-napi 全局鼠标事件捕获。
+- **扩展状态**：`npm run test` 143 tests 全绿，`npm run build` 与 `npx electron-vite build` 双绿
+- **备注**：任务 2.6 完成——主进程通过 uiohook-napi 全局捕获鼠标事件并 IPC 广播到所有 BrowserWindow。新增 `src/main/native-events.ts`：抽象 `IInputSource` 接口（start/stop）以便测试注入 FakeSource、未来切换原生绑定；`UiohookInputSource` 实现 mousemove/mousedown/mouseup/wheel 四类事件包装，`buttonsState` 在 down/up 时按位维护，与 PointerEvent.buttons 同口径（1=left/2=right/4=middle）；`uiohookButtonToBitmask` 把 uiohook 风格 1/2/3 → 1/2/4。`WheelAccumulator` 用 threshold=1 + multiplier=100 对齐 DOM WheelEvent.deltaY 量级（每咔哒 100 像素），缓解 macOS 触控板高频 wheel 压力，符号先按透传，留待真机验证。`startGlobalMouseCapture(onEvent, inputSource?)` 单例化 source，重复调用先 stop 旧的；返回 stop 函数并在被替换后变成 no-op。新增 `src/shared/ipc-channels.ts` 三方共享：`CURSOR_EVENT / DEBUG_TOGGLE / STORE_GET / STORE_SET / PREVIEW_AT_VIEWPORT_CENTER`。`src/main/index.ts` 在 app.whenReady 启动捕获并 try/catch 降级，`broadcastCursorEvent` 遍历 `BrowserWindow.getAllWindows()` 用 webContents.send 广播；before-quit 钩子调用 stop。`src/preload/index.ts` 新增 `cursorDanceAPI.onCursorEvent / offCursorEvent`，用 WeakMap 维护 callback → ipcRenderer handler 映射，订阅返回退订函数。新增 9 条单测（按钮位掩码 4 + WheelAccumulator 3 + 总线 2），下一步任务 2.7 overlay 窗口创建并 wire engine。

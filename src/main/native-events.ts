@@ -1,0 +1,192 @@
+// CursorDance 主进程：全局鼠标事件捕获 → CursorEvent 投递
+//
+// 抽象 IInputSource 接口，方便：
+//   - 单元测试用 FakeInputSource 注入合成事件
+//   - 未来切换到其它原生绑定（rdev / mouse-position-tracker / etc）
+//   - 桌面 dev 模式下可临时塞 BrowserView mousemove 桥接
+//
+// IPC 出口最小化：只传 { type, x, y, buttons?, deltaY?, timestamp }，
+// 与 src/renderer/engine/types.ts 的 CursorEvent 一致。
+
+import { uIOhook, type UiohookMouseEvent, type UiohookWheelEvent } from "uiohook-napi";
+
+/** 投递给渲染层的最小事件（与 engine CursorEvent 同形）。 */
+export interface NativeCursorEvent {
+  type: "mousemove" | "mousedown" | "mouseup" | "wheel";
+  x: number;
+  y: number;
+  /** PointerEvent.buttons 同口径位掩码：1=left 2=right 4=middle */
+  buttons?: number;
+  /** wheel 事件携带，单位约等于 DOM WheelEvent.deltaY 风格的「100 像素一档」。
+   *  符号约定先沿用 uiohook rotation 透传，真机验证后再调整（详见 WheelAccumulator）。 */
+  deltaY?: number;
+  /** ms */
+  timestamp: number;
+}
+
+export interface IInputSource {
+  start(callback: (event: NativeCursorEvent) => void): void;
+  stop(): void;
+}
+
+// ============================================================
+// 按钮 / 滚轮辅助
+// ============================================================
+
+// uiohook 的 button 字段：1=left, 2=right, 3=middle（与 X11 风格一致，非位掩码）
+function uiohookButtonToBitmask(button: unknown): number {
+  switch (button) {
+    case 1: return 1;
+    case 2: return 2;
+    case 3: return 4;
+    default: return 0;
+  }
+}
+
+// macOS 触控板会以极小 rotation 高频触发 wheel；累积到阈值才下发，减轻渲染压力。
+// Windows / 物理滚轮 rotation 通常 ±1，会立刻触发。
+const WHEEL_THRESHOLD = 1;
+// uiohook rotation 单位：每「咔哒」±1。乘 100 与 DOM WheelEvent.deltaY 风格的「100 像素一档」对齐。
+const WHEEL_DELTA_MULTIPLIER = 100;
+
+class WheelAccumulator {
+  private accum = 0;
+  feed(rotation: number): number | null {
+    // uiohook rotation 单位：每「咔哒」±1。先按透传 → deltaY = rotation * 100，
+    // 与 DOM WheelEvent 的「100 像素一档」量级对齐。
+    // 真机验证（macOS 自然滚动 / Windows 物理滚轮）后若发现符号与 DOM
+    // 「向下=正、向上=负」相反，再在这里翻一下。
+    this.accum += rotation;
+    if (Math.abs(this.accum) < WHEEL_THRESHOLD) return null;
+    const delta = this.accum * WHEEL_DELTA_MULTIPLIER;
+    this.accum = 0;
+    return delta;
+  }
+}
+
+// ============================================================
+// uiohook 实现
+// ============================================================
+
+export class UiohookInputSource implements IInputSource {
+  private callback: ((event: NativeCursorEvent) => void) | null = null;
+  private buttonsState = 0;
+  private wheel = new WheelAccumulator();
+  private started = false;
+
+  start(callback: (event: NativeCursorEvent) => void): void {
+    if (this.started) return;
+    this.callback = callback;
+
+    uIOhook.on("mousemove", this.onMouseMove);
+    uIOhook.on("mousedown", this.onMouseDown);
+    uIOhook.on("mouseup", this.onMouseUp);
+    uIOhook.on("wheel", this.onWheel);
+
+    uIOhook.start();
+    this.started = true;
+  }
+
+  stop(): void {
+    if (!this.started) return;
+    uIOhook.off("mousemove", this.onMouseMove);
+    uIOhook.off("mousedown", this.onMouseDown);
+    uIOhook.off("mouseup", this.onMouseUp);
+    uIOhook.off("wheel", this.onWheel);
+
+    try {
+      uIOhook.stop();
+    } catch {
+      // uiohook stop 在 macOS 上偶尔抛 invalid state，吞掉即可——进程退出会清理。
+    }
+
+    this.callback = null;
+    this.buttonsState = 0;
+    this.started = false;
+  }
+
+  private onMouseMove = (e: UiohookMouseEvent): void => {
+    this.callback?.({
+      type: "mousemove",
+      x: e.x,
+      y: e.y,
+      buttons: this.buttonsState,
+      timestamp: e.time,
+    });
+  };
+
+  private onMouseDown = (e: UiohookMouseEvent): void => {
+    const bit = uiohookButtonToBitmask(e.button);
+    this.buttonsState |= bit;
+    this.callback?.({
+      type: "mousedown",
+      x: e.x,
+      y: e.y,
+      buttons: this.buttonsState,
+      timestamp: e.time,
+    });
+  };
+
+  private onMouseUp = (e: UiohookMouseEvent): void => {
+    const bit = uiohookButtonToBitmask(e.button);
+    this.buttonsState &= ~bit;
+    this.callback?.({
+      type: "mouseup",
+      x: e.x,
+      y: e.y,
+      buttons: this.buttonsState,
+      timestamp: e.time,
+    });
+  };
+
+  private onWheel = (e: UiohookWheelEvent): void => {
+    const deltaY = this.wheel.feed(e.rotation);
+    if (deltaY === null) return;
+    this.callback?.({
+      type: "wheel",
+      x: e.x,
+      y: e.y,
+      deltaY,
+      buttons: this.buttonsState,
+      timestamp: e.time,
+    });
+  };
+}
+
+// ============================================================
+// 顶层 API
+// ============================================================
+
+let activeSource: IInputSource | null = null;
+
+/**
+ * 启动全局鼠标捕获并把事件投递给 callback。
+ * 返回 stop 函数；多次调用会先 stop 上一个 source。
+ *
+ * inputSource 选填——单元测试可注入 FakeInputSource 校验 IPC 链路。
+ */
+export function startGlobalMouseCapture(
+  onEvent: (event: NativeCursorEvent) => void,
+  inputSource?: IInputSource,
+): () => void {
+  if (activeSource) {
+    activeSource.stop();
+    activeSource = null;
+  }
+  const source = inputSource || new UiohookInputSource();
+  source.start(onEvent);
+  activeSource = source;
+
+  return () => {
+    if (activeSource === source) {
+      source.stop();
+      activeSource = null;
+    }
+  };
+}
+
+// 仅给测试用：暴露内部辅助函数。
+export const __testing__ = {
+  uiohookButtonToBitmask,
+  WheelAccumulator,
+};
