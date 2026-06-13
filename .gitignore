@@ -10,3 +10,4 @@ test-results
 !.env.example
 .vercel
 interview-notes.md
+out/
