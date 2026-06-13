@@ -45,6 +45,9 @@ export interface EngineState {
   activeEffects: number;
   /** 轨道粒子分组缓存，供 clearOrbitalParticles 清理 */
   orbitalGroups?: { dot: HTMLElement; anim: Animation }[][];
+  /** cursor-overlay 复用的软件光标节点（首次同步时创建） */
+  stateCursorNode?: HTMLElement | null;
+  stateCursorImg?: HTMLImageElement | null;
 }
 
 /**
@@ -92,9 +95,28 @@ export interface VisualEffectsModule {
 }
 
 /**
- * 其余子模块占位类型。任务 2.2–2.4 各自迁移时替换为具体形状。
+ * cursor-overlay 子模块的软件光标视觉参数。
+ * 上层把站点开关 + cursor-state 解析的责任承担下来，引擎只需要拿到「这次坐标更新里要不要画、画成什么样」。
  */
-export type CursorOverlayModule = unknown;
+export interface CursorOverlayState {
+  imageDataUrl?: string;
+  /** 单位 px，原 JS 钳位到 [24, 96]，缺省 48 */
+  size?: number;
+  hotspotX?: number;
+  hotspotY?: number;
+}
+
+/**
+ * cursor-overlay 子模块对外暴露的 API。
+ */
+export interface CursorOverlayModule {
+  syncStateCursorOverlay(x: number, y: number, cursorState?: CursorOverlayState): void;
+  clearStateCursorOverlay(): void;
+}
+
+/**
+ * 其余子模块占位类型。任务 2.3–2.4 各自迁移时替换为具体形状。
+ */
 export type AudioRuntimeModule = unknown;
 export type TriggerHandlersModule = unknown;
 

@@ -25,14 +25,16 @@ function makeStubDeps(): EngineDeps {
 }
 
 describe("createEffectEngine (skeleton)", () => {
-  it("wires up visualEffects + remaining placeholders", () => {
+  it("wires up visualEffects + cursorOverlay; audio/trigger placeholders remain", () => {
     const engine = createEffectEngine(makeStubDeps());
     // visualEffects 暴露 10 个方法（renderText/renderRipple/... 见 VisualEffectsModule）
     expect(typeof engine.visualEffects.ensureRoot).toBe("function");
     expect(typeof engine.visualEffects.renderText).toBe("function");
     expect(typeof engine.visualEffects.clearOrbitalParticles).toBe("function");
-    // 2.2–2.4 的子模块尚未迁移
-    expect(engine.cursorOverlay).toEqual({});
+    // cursorOverlay 暴露 syncStateCursorOverlay / clearStateCursorOverlay
+    expect(typeof engine.cursorOverlay.syncStateCursorOverlay).toBe("function");
+    expect(typeof engine.cursorOverlay.clearStateCursorOverlay).toBe("function");
+    // 2.3–2.4 的子模块尚未迁移
     expect(engine.audioRuntime).toEqual({});
     expect(engine.triggerHandlers).toEqual({});
   });

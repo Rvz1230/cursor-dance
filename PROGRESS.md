@@ -15,7 +15,7 @@
 ## 阶段二：效果引擎迁移
 - [x] 任务 2.0：创建引擎 DI 类型和入口
 - [x] 任务 2.1：迁移 visual-effects.ts
-- [ ] 任务 2.2：迁移 cursor-overlay.ts
+- [x] 任务 2.2：迁移 cursor-overlay.ts
 - [ ] 任务 2.3：迁移 audio.ts
 - [ ] 任务 2.4：迁移 trigger-handlers.ts
 - [ ] 任务 2.5：迁移其余引擎模块
@@ -46,7 +46,7 @@
 ## 当前状态
 
 - **分支**：desktop/phase-0
-- **上次提交**：a783d32 阶段二 2.0
+- **上次提交**：8d759dd 阶段二 2.1
 - **阻塞项**：无
 - **扩展状态**：`npm run test` 115 tests 全绿，`npm run build` 与 `npx electron-vite build` 双绿
-- **备注**：任务 2.1 完成——visual-effects 已迁到 `src/renderer/engine/visual-effects.ts`。去 IIFE、改 `createVisualEffects(deps)`、helper 静态 import 自 `./action-config` + `./compute-specs`，所有 Element.animate() 关键帧字面量原样保留。types.ts 收紧权威接口（EngineDeps / EngineState / EngineConstants / ConfigStore / VisualEffectsModule），entry.ts 接线到真模块。下一步任务 2.2 迁移 cursor-overlay.ts。
+- **备注**：任务 2.2 完成——cursor-overlay 已迁到 `src/renderer/engine/cursor-overlay.ts`。去 IIFE、改 `createCursorOverlay(deps)`，签名重构为 `syncStateCursorOverlay(x, y, cursorState?)`：站点开关 + cursor-state 解析责任上移到调用方，引擎不再依赖 configStore，仅依赖 visualEffects.ensureRoot。types.ts 新增 `CursorOverlayState` / `CursorOverlayModule`，`EngineState` 增 `stateCursorNode/stateCursorImg`。entry.ts 装配 cursorOverlay 并把 visualEffects 引用注入。下一步任务 2.3 迁移 audio.ts（保留 Web Audio API + 5 个预设音效，移除 audio ducking）。
