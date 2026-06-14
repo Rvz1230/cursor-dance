@@ -52,6 +52,7 @@
     "@radix-ui/react-toast": "^1.2.15",
     "clsx": "^2.0.0",
     "electron-store": "^11.0.2",
+    "electron-updater": "^6.8.9",
     "framer-motion": "^10.16.4",
     "get-windows": "^9.3.0",
     "lucide-react": "^0.294.0",

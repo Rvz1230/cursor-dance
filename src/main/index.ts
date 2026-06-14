@@ -19,6 +19,7 @@ import { registerWindowControlsIpc, unregisterWindowControlsIpc } from "./window
 import { registerFirstRunIpc, unregisterFirstRunIpc } from "./first-run";
 import { registerAiIpc, unregisterAiIpc } from "./ai-ipc";
 import { startEmbeddedAiServer, stopEmbeddedAiServer } from "./api-server";
+import { registerAutoUpdater } from "./auto-updater";
 import { createTray, destroyTray } from "./tray";
 import {
   onConfigChange,
@@ -33,6 +34,7 @@ let workbenchWindow: BrowserWindow | null = null;
 let stopMouseCapture: (() => void) | null = null;
 let stopDisplayWatcher: (() => void) | null = null;
 let stopEnableWatcher: (() => void) | null = null;
+let stopAutoUpdater: (() => void) | null = null;
 
 const gotTheLock = app.requestSingleInstanceLock();
 
@@ -180,6 +182,10 @@ app.whenReady().then(() => {
     console.error("[cursordance] failed to start embedded AI server:", error);
   });
 
+  // 6) 自动更新（任务 6.1）：仅在 packaged 模式下启用，dev 跳过。
+  //    立即检查一次，之后 4h 轮询；下载完成等到下次正常退出再安装。
+  stopAutoUpdater = registerAutoUpdater();
+
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       workbenchWindow = createWorkbenchWindow();
@@ -203,6 +209,8 @@ app.on("before-quit", () => {
   stopDisplayWatcher = null;
   stopEnableWatcher?.();
   stopEnableWatcher = null;
+  stopAutoUpdater?.();
+  stopAutoUpdater = null;
   destroyTray();
   unregisterStoreIpc();
   unregisterDialogIpc();

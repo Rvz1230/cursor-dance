@@ -42,3 +42,17 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run build --workspace=landing
+
+  build-desktop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # electron-vite 编译 main + preload + renderer 三入口；
+      # uiohook-napi / get-windows 在编译期被 externalize，不会触发原生 dlopen，
+      # 所以 ubuntu 足够拦截 src/main/** 与 src/renderer/engine/** 的编译退化。
+      - run: npm run build:electron

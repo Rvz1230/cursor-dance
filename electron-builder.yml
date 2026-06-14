@@ -84,5 +84,11 @@ nsis:
   allowToChangeInstallationDirectory: true
   shortcutName: CursorDance
 
-# CI 上线再启用 publish 到 GitHub —— 任务 6.1 配置
-publish: null
+# 任务 6.1：自动更新通过 GitHub Releases 分发。
+# CI 暂不自动 publish；首次手动用 `electron-builder build --publish always`
+# 上传 dmg/zip/blockmap/latest-mac.yml/latest.yml 到 Release 即可。
+publish:
+  provider: github
+  owner: Rvz1230
+  repo: cursor-dance
+  releaseType: release
