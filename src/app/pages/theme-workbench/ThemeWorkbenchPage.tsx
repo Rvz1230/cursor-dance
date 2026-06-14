@@ -17,6 +17,7 @@ import { WorkbenchPreviewRail } from "./components/WorkbenchPreviewRail";
 import { getRuntimeConfig } from "./lib/runtimeConfig";
 import { ThemeLibrarySidebar } from "./components/ThemeLibrarySidebar";
 import { WelcomeDialog } from "./components/WelcomeDialog";
+import { AiSettingsDialog } from "./components/AiSettingsDialog";
 import { cn } from "@/components/ui/utils";
 import { ToastProvider, useToast } from "@/components/ui/toast";
 
@@ -41,6 +42,8 @@ export interface WorkbenchHeaderProps {
   resetCurrentTheme: () => void;
   aiPanelOpen?: boolean;
   setAiPanelOpen?: (value: boolean) => void;
+  /** 桌面端：打开 AI 服务设置（API key / baseUrl / model）。扩展端不传。 */
+  openAiSettings?: () => void;
 }
 
 export type WorkbenchHeaderRenderer = (props: WorkbenchHeaderProps) => ReactNode;
@@ -53,6 +56,7 @@ interface ThemeWorkbenchPageProps {
 function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
   const toast = useToast();
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
+  const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
   const [columnWeights, setColumnWeights] = useState({ config: 1.05, preview: 1.25, ai: 1 });
   const [previewProposal, setPreviewProposal] = useState(null);
   const [aiSnapshot, setAiSnapshot] = useState(null);
@@ -246,6 +250,10 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
     resetCurrentTheme: handleResetCurrentTheme,
     aiPanelOpen,
     setAiPanelOpen,
+    openAiSettings:
+      typeof window !== "undefined" && window.cursorDanceAi
+        ? () => setAiSettingsOpen(true)
+        : undefined,
   };
 
   return (
@@ -464,6 +472,9 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
           needsAccessibility={accessibilityAuthorized === false}
           onOpenAccessibilitySettings={handleOpenAccessibilitySettings}
         />
+      ) : null}
+      {aiSettingsOpen && typeof window !== "undefined" && window.cursorDanceAi ? (
+        <AiSettingsDialog open onClose={() => setAiSettingsOpen(false)} />
       ) : null}
     </div>
   );

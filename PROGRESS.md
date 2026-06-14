@@ -37,7 +37,7 @@
 - [x] 任务 4.3：首次启动引导 + 空状态
 
 ## 阶段五：AI API 服务
-- [ ] 任务 5.0：嵌入 AI 服务
+- [x] 任务 5.0：嵌入 AI 服务
 
 ## 阶段六：构建与打包
 - [ ] 任务 6.0：electron-builder 配置
@@ -48,7 +48,7 @@
 ## 当前状态
 
 - **分支**：desktop/phase-0
-- **上次提交**：阶段四 4.2
+- **上次提交**：阶段四 4.3
 - **阻塞项**：无
-- **扩展状态**：`npm run test` 182 tests 全绿，`npm run build` 与 `npx electron-vite build` 双绿
-- **备注**：任务 4.3 完成 —— 桌面端首次启动引导 + 空状态。新增 `src/main/first-run.ts`：用独立 electron-store（name: cursordance-app, key: firstRun）存「是否首次启动」flag，避免污染 cursordance.config；同文件挂 `shell.openExternal` IPC，白名单 `https / http / x-apple.systempreferences / ms-settings`，拒绝 file:// 等危险 scheme（`first-run.test.ts` 6 tests 覆盖）。preload 在 `cursorDanceApp` bridge 上扩展 `getFirstRun / markFirstRunComplete / openExternal` 三个方法（`vite-env.d.ts` 类型同步）。新组件 `components/WelcomeDialog.tsx`：基于 Radix Dialog，三条 tip（点击体验 / 工作台调参 / 应用规则按需启停）+ macOS 未授权时插入「打开系统设置」CTA。`ThemeWorkbenchPage` 挂载时 `Promise.allSettled([getFirstRun, getActiveWindow])`，桌面 + firstRun=true 才打开 dialog；关闭后 `markFirstRunComplete()`，下次启动跳过。空状态升级三处：(1) `ThemeLibrarySidebar` 在 `themes.length===0` 兜底「还没有主题 → 创建新主题」CTA（与「搜索无结果」分开）；(2) `DiagnosticsPanel` 重写空态卡片，桌面端文案改为「桌面任意位置点击 / 长按 / 滚轮」；(3) `AppRulesPanel` 空态加 `AppWindow` icon + 「添加规则」+「为 X 创建禁用规则」双 CTA。`AppRulesPanel` 新增 `openAccessibilitySettings` prop，未授权 amber 提示卡里加链接按钮直跳 `x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility`。下一步任务 5.0 嵌入 AI 服务。
+- **扩展状态**：`npm run test` 191 tests / 27 files 全绿，`npm run build` 与 `npx electron-vite build` 双绿
+- **备注**：任务 5.0 完成 —— 桌面端嵌入 cursor-dance-api。新增 `src/main/api-server.ts`：用 `net.createServer().listen(port, '127.0.0.1')` 探测端口可用性，默认 8787，被占用时退到 OS 分配（port 0），启动前先 `syncEnvFromSettings()` + `configureRateLimiter(process.env)`，导出 `start/stop/getEndpoint` 三个 API。新增 `src/main/ai-config.ts`：用独立 electron-store（name: cursordance-ai）存 AI 配置，apiKey 走 `safeStorage.encryptString` 写入 `apiKeyCipher`（base64），`safeStorage` 不可用时退化为 `apiKeyPlain` 明文槽位；写入时主动清掉对侧槽位避免切换 keychain 状态后两个槽位并存；`readSettingsView()` 只回 `{hasApiKey, baseUrl, model, apiMode, accessToken}`，不向 renderer 暴露 apiKey 明文；`syncEnvFromSettings()` 把 `CURSORDANCE_AI_API_KEY` / `OPENAI_API_KEY` / baseUrl / model / apiMode / accessToken 注入 process.env，空值同步删 env。新增 `src/main/ai-ipc.ts`：注册 `cursordance:ai-get-runtime-config` / `ai-get-user-settings` / `ai-set-user-settings` 三个 ipcMain.handle。`src/main/index.ts` 在 whenReady 里 `registerAiIpc + startEmbeddedAiServer`，`before-quit` 里反注册。preload 扩展 `cursorDanceAi` bridge（getRuntimeConfig / getSettings / setSettings），`vite-env.d.ts` 同步 4 个新 interface。renderer entry 用 top-level await `installAiEndpointGlobals()` 把 `globalThis.VITE_CURSORDANCE_AI_API_ENDPOINT` 等 4 个全局注入 React mount 之前，cursor-dance-api/src/client.js 同步读取这些全局即可工作。新增 `components/AiSettingsDialog.tsx`：三个 provider 预设（DeepSeek / OpenAI / 自定义）+ Base URL / Model / API Key 表单 +「已保存」徽章 +「清除已保存的 API key」按钮，apiKey 留空不下发避免覆盖已存值。`TitleBar` 加 Settings 齿轮按钮（仅桌面端），`ThemeWorkbenchPage` 在 `window.cursorDanceAi` 存在时挂载 dialog。新增 `ai-config.test.ts` 9 tests 覆盖加密 round-trip、视图脱敏、空值清除、明文退化、env sync、槽位切换。下一步任务 6.0 electron-builder 打包配置。

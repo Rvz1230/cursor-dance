@@ -19,6 +19,9 @@ import {
   WINDOW_CLOSE,
   WINDOW_GET_STATE,
   WINDOW_STATE_CHANGED,
+  AI_GET_RUNTIME_CONFIG,
+  AI_GET_USER_SETTINGS,
+  AI_SET_USER_SETTINGS,
 } from "../shared/ipc-channels";
 
 type CursorEventPayload = {
@@ -253,5 +256,55 @@ contextBridge.exposeInMainWorld("cursorDanceWindow", {
       ipcRenderer.off(WINDOW_STATE_CHANGED, handler);
       windowStateListeners.delete(callback);
     };
+  },
+});
+
+// ============================================================
+// 任务 5.0：cursorDanceAi —— 嵌入 AI 服务桥
+//
+// 职责：
+//   - getRuntimeConfig：renderer 启动时拉嵌入服务的 endpoint，注入到 globalThis
+//     让 cursor-dance-api/src/client.js 直接读用，不需要重写客户端。
+//   - getSettings / setSettings：AI 设置面板读 / 写用户配置（apiKey 走 safeStorage）。
+//
+// 安全：
+//   - getSettings 只返回 hasApiKey 标记，永远不回流明文 API key。
+//   - setSettings 走主进程加密存储；apiKey 传空串清除。
+// ============================================================
+
+type AiRuntimeConfig = {
+  endpoint: string | null;
+  streamEndpoint: string | null;
+  agentEndpoint: string | null;
+  accessToken: string;
+};
+
+type AiUserSettingsView = {
+  hasApiKey: boolean;
+  baseUrl: string;
+  model: string;
+  apiMode: string;
+  accessToken: string;
+};
+
+type AiUserSettingsPatch = {
+  apiKey?: string;
+  baseUrl?: string;
+  model?: string;
+  apiMode?: string;
+  accessToken?: string;
+};
+
+contextBridge.exposeInMainWorld("cursorDanceAi", {
+  async getRuntimeConfig(): Promise<AiRuntimeConfig> {
+    return ipcRenderer.invoke(AI_GET_RUNTIME_CONFIG);
+  },
+
+  async getSettings(): Promise<AiUserSettingsView> {
+    return ipcRenderer.invoke(AI_GET_USER_SETTINGS);
+  },
+
+  async setSettings(patch: AiUserSettingsPatch): Promise<AiUserSettingsView> {
+    return ipcRenderer.invoke(AI_SET_USER_SETTINGS, patch);
   },
 });

@@ -17,7 +17,7 @@
 // 切换最大化按钮的图标（最大化 ↔ 还原）。
 
 import { useEffect, useState } from "react";
-import { Bot, Loader2, Maximize2, Minimize2, Minus, RotateCcw, X } from "lucide-react";
+import { Bot, Loader2, Maximize2, Minimize2, Minus, RotateCcw, Settings, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandMark } from "@/components/ui/brand-mark";
 import { Switch } from "@/components/ui/switch";
@@ -43,6 +43,8 @@ interface TitleBarProps {
   resetCurrentTheme: () => void;
   aiPanelOpen?: boolean;
   setAiPanelOpen?: (value: boolean) => void;
+  /** 桌面端：打开 AI 服务设置 dialog（API key / baseUrl / model）。 */
+  openAiSettings?: () => void;
 }
 
 const NO_DRAG_STYLE: React.CSSProperties = { WebkitAppRegion: "no-drag" } as React.CSSProperties;
@@ -61,6 +63,7 @@ export function TitleBar({
   resetCurrentTheme,
   aiPanelOpen,
   setAiPanelOpen,
+  openAiSettings,
 }: TitleBarProps) {
   const bridge = typeof window !== "undefined" ? window.cursorDanceWindow : undefined;
   const isMac = bridge?.platform === "darwin";
@@ -128,6 +131,18 @@ export function TitleBar({
             >
               <Bot className="mr-1.5 h-3.5 w-3.5" />
               AI 助手
+            </Button>
+          ) : null}
+          {openAiSettings ? (
+            <Button
+              variant="outline"
+              className="h-7 w-7 px-0"
+              style={NO_DRAG_STYLE}
+              onClick={openAiSettings}
+              aria-label="AI 服务设置"
+              title="AI 服务设置"
+            >
+              <Settings className="h-3.5 w-3.5" />
             </Button>
           ) : null}
           <div

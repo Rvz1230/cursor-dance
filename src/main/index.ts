@@ -17,6 +17,8 @@ import { registerDialogIpc, unregisterDialogIpc } from "./dialog-handlers";
 import { registerActiveWindowIpc, unregisterActiveWindowIpc } from "./active-window";
 import { registerWindowControlsIpc, unregisterWindowControlsIpc } from "./window-controls";
 import { registerFirstRunIpc, unregisterFirstRunIpc } from "./first-run";
+import { registerAiIpc, unregisterAiIpc } from "./ai-ipc";
+import { startEmbeddedAiServer, stopEmbeddedAiServer } from "./api-server";
 import { createTray, destroyTray } from "./tray";
 import {
   onConfigChange,
@@ -135,6 +137,7 @@ app.whenReady().then(() => {
   registerActiveWindowIpc();
   registerWindowControlsIpc();
   registerFirstRunIpc();
+  registerAiIpc();
 
   // 1) workbench 配置窗口（系统标题栏，任务 4.0 再改自绘）
   workbenchWindow = createWorkbenchWindow();
@@ -171,6 +174,12 @@ app.whenReady().then(() => {
     onEnabledChange: (cb) => onConfigChange(() => cb(getEnabledFromStore())),
   });
 
+  // 5) 嵌入式 AI 服务：在 IPC + 托盘都就位后启动。失败不阻塞主流程——
+  //    AiSchemePanel 在请求失败时会显示错误信息，用户去设置面板填 API key 再重试。
+  startEmbeddedAiServer().catch((error) => {
+    console.error("[cursordance] failed to start embedded AI server:", error);
+  });
+
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       workbenchWindow = createWorkbenchWindow();
@@ -200,6 +209,8 @@ app.on("before-quit", () => {
   unregisterActiveWindowIpc();
   unregisterWindowControlsIpc();
   unregisterFirstRunIpc();
+  unregisterAiIpc();
+  stopEmbeddedAiServer().catch(() => undefined);
   destroyAllOverlays();
 });
 

@@ -43,6 +43,7 @@ interface Window {
   cursorDanceDialog?: CursorDanceDialogBridge
   cursorDanceWindow?: CursorDanceWindowBridge
   cursorDanceApp?: CursorDanceAppBridge
+  cursorDanceAi?: CursorDanceAiBridge
   electronAPI?: {
     platform: NodeJS.Platform
   }
@@ -113,4 +114,33 @@ interface CursorDanceAppBridge {
   getFirstRun: () => Promise<boolean>
   markFirstRunComplete: () => Promise<void>
   openExternal: (target: string) => Promise<{ ok: boolean; error?: string }>
+}
+
+interface CursorDanceAiRuntimeConfig {
+  endpoint: string | null
+  streamEndpoint: string | null
+  agentEndpoint: string | null
+  accessToken: string
+}
+
+interface CursorDanceAiSettingsView {
+  hasApiKey: boolean
+  baseUrl: string
+  model: string
+  apiMode: string
+  accessToken: string
+}
+
+interface CursorDanceAiSettingsPatch {
+  apiKey?: string
+  baseUrl?: string
+  model?: string
+  apiMode?: string
+  accessToken?: string
+}
+
+interface CursorDanceAiBridge {
+  getRuntimeConfig: () => Promise<CursorDanceAiRuntimeConfig>
+  getSettings: () => Promise<CursorDanceAiSettingsView>
+  setSettings: (patch: CursorDanceAiSettingsPatch) => Promise<CursorDanceAiSettingsView>
 }

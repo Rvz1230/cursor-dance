@@ -58,3 +58,15 @@ export const WINDOW_GET_STATE = "cursordance:window-get-state";
 
 /** 主进程 → renderer：调用方窗口最大化 / 还原状态变化广播。 */
 export const WINDOW_STATE_CHANGED = "cursordance:window-state-changed";
+
+/** renderer → 主进程：拉取 AI API 运行时配置（endpoint / accessToken / 服务状态）。
+ *  桌面版的 cursor-dance-api 由主进程嵌入启动，端口动态分配；renderer 启动时
+ *  先 invoke 这个通道拿到 endpoint，再通过 install-runtime-globals 注入到
+ *  globalThis.VITE_CURSORDANCE_AI_API_ENDPOINT 等全局，让 client.js 直接读用。 */
+export const AI_GET_RUNTIME_CONFIG = "cursordance:ai-get-runtime-config";
+
+/** renderer → 主进程：读取 / 写入 AI 用户设置（API key / model / baseUrl 等）。
+ *  API key 用 safeStorage 加密，baseUrl/model 明文存。
+ *  写入后立即热更 process.env 让嵌入的 server 使用最新值，无需重启 API。 */
+export const AI_GET_USER_SETTINGS = "cursordance:ai-get-user-settings";
+export const AI_SET_USER_SETTINGS = "cursordance:ai-set-user-settings";
