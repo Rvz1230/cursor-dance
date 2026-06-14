@@ -6,6 +6,7 @@ import { useThemeWorkbenchState } from "./hooks/useThemeWorkbenchState";
 import { BindingsPanel } from "./components/BindingsPanel";
 import { DiagnosticsPanel } from "./components/DiagnosticsPanel";
 import { SiteRulesPanel } from "./components/SiteRulesPanel";
+import { AppRulesPanel } from "./components/AppRulesPanel";
 import { StatesPanel } from "./components/StatesPanel";
 import { WorkbenchHeader } from "./components/WorkbenchHeader";
 import { AiSchemePanel } from "./components/AiSchemePanel";
@@ -356,17 +357,41 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
 
               {state.workspaceId === "sites" ? (
                 <div className="h-full overflow-y-auto pr-1">
-                  <SiteRulesPanel
-                    siteRules={state.siteRules}
-                    themes={themes}
-                    activeHost={state.site.host}
-                    addSiteRule={addSiteRule}
-                    updateSiteRule={updateSiteRule}
-                    deleteSiteRule={deleteSiteRule}
-                    reorderSiteRules={reorderSiteRules}
-                    toggleSiteRule={toggleSiteRule}
-                    clearAllSiteRules={clearAllSiteRules}
-                  />
+                  {typeof window !== "undefined" && window.cursorDanceApp ? (
+                    <AppRulesPanel
+                      appRules={state.siteRules}
+                      themes={themes}
+                      fetchActiveApp={async () => {
+                        const snap = await window.cursorDanceApp!.getActiveWindow();
+                        if (snap.authorized) {
+                          return {
+                            authorized: true,
+                            processName: snap.processName,
+                            title: snap.title,
+                          };
+                        }
+                        return { authorized: false, message: snap.message };
+                      }}
+                      addAppRule={addSiteRule}
+                      updateAppRule={updateSiteRule}
+                      deleteAppRule={deleteSiteRule}
+                      reorderAppRules={reorderSiteRules}
+                      toggleAppRule={toggleSiteRule}
+                      clearAllAppRules={clearAllSiteRules}
+                    />
+                  ) : (
+                    <SiteRulesPanel
+                      siteRules={state.siteRules}
+                      themes={themes}
+                      activeHost={state.site.host}
+                      addSiteRule={addSiteRule}
+                      updateSiteRule={updateSiteRule}
+                      deleteSiteRule={deleteSiteRule}
+                      reorderSiteRules={reorderSiteRules}
+                      toggleSiteRule={toggleSiteRule}
+                      clearAllSiteRules={clearAllSiteRules}
+                    />
+                  )}
                 </div>
               ) : null}
 

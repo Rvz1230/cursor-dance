@@ -186,7 +186,11 @@ export function useThemeWorkbenchState() {
     currentActionConfig,
     currentConflicts,
     isWorkbench,
-    workspaceItems: WORKSPACES,
+    workspaceItems: WORKSPACES.map((item) =>
+      item.id === "sites" && typeof window !== "undefined" && window.cursorDanceApp
+        ? { ...item, label: "应用规则" }
+        : item,
+    ),
     actionItems: ACTIONS,
     cursorStates: CURSOR_STATES,
     recentCursorAssets: state.recentCursorAssets,
