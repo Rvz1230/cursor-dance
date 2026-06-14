@@ -2,6 +2,11 @@
   "name": "cursor-dance",
   "private": true,
   "version": "0.6.0",
+  "description": "Customizable mouse interaction effects for the desktop and the web.",
+  "author": {
+    "name": "CursorDance",
+    "email": "support@cursordance.app"
+  },
   "license": "AGPL-3.0-only",
   "repository": {
     "type": "git",
@@ -30,7 +35,12 @@
     "test:smoke:attached": "CURSORDANCE_SMOKE_EXTERNAL_SERVER=1 playwright test",
     "dev:electron": "electron-vite dev",
     "build:electron": "electron-vite build",
-    "start:electron": "electron-vite preview"
+    "start:electron": "electron-vite preview",
+    "package:mac": "electron-vite build && electron-builder --mac",
+    "package:mac:arm64": "electron-vite build && electron-builder --mac --arm64",
+    "package:mac:x64": "electron-vite build && electron-builder --mac --x64",
+    "package:win": "electron-vite build && electron-builder --win",
+    "package:dir": "electron-vite build && electron-builder --dir"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",

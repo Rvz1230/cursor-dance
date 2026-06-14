@@ -1,0 +1,88 @@
+appId: com.cursordance.app
+productName: CursorDance
+copyright: Copyright © 2026 CursorDance
+
+# electron-vite 把构建产物落到 out/，下面的 directories 配置让 builder 直接接收 out/ + node_modules
+directories:
+  output: release
+  buildResources: build
+
+# 进入 asar 的源
+files:
+  - out/**/*
+  - "!out/renderer/**/*.map"
+  - package.json
+  - "!**/.DS_Store"
+  - "!**/*.{md,markdown}"
+  - "!**/test/**"
+  - "!**/tests/**"
+  - "!**/*.test.*"
+  - "!**/__tests__/**"
+
+# 不进 asar，直接拷贝到 Resources/ —— public/ 下的 icon-16.png 等运行时资源由
+# resolveTrayIconPath() 在 process.resourcesPath/public/ 下查找。
+extraResources:
+  - from: public
+    to: public
+    filter:
+      - "**/*"
+      - "!**/*.test.*"
+      - "!**/.DS_Store"
+
+# uiohook-napi 的 .node 二进制必须从 asar 里 unpack，否则运行时 dlopen 失败。
+# get-windows 同理 —— 它依赖打包内的 macOS 原生 helper。
+asarUnpack:
+  - "**/node_modules/uiohook-napi/**/*"
+  - "**/node_modules/get-windows/**/*"
+
+mac:
+  category: public.app-category.utilities
+  icon: build/icon.icns
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  # 暂不签名 —— CI 接入再开启 identity / notarize
+  identity: null
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+    - target: zip
+      arch:
+        - x64
+        - arm64
+  extendInfo:
+    NSAppleEventsUsageDescription: CursorDance 需要监听全局鼠标和窗口切换以渲染光标特效。
+    LSUIElement: false
+
+dmg:
+  title: ${productName} ${version}
+  icon: build/icon.icns
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+
+win:
+  # icon 留空 —— electron-builder 自动从 build/icon.png（512×512）派生 .ico
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  shortcutName: CursorDance
+
+# CI 上线再启用 publish 到 GitHub —— 任务 6.1 配置
+publish: null

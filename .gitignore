@@ -11,3 +11,5 @@ test-results
 .vercel
 interview-notes.md
 out/
+release/
+build/icon.iconset/
