@@ -9,7 +9,7 @@
 // store 上 key 名仍叫 siteRules（不破坏扩展端数据契约和现有测试）。
 
 import { useEffect, useState } from "react";
-import { GripVertical, Plus, Trash2, ToggleLeft, ToggleRight, Crosshair } from "lucide-react";
+import { GripVertical, Plus, Trash2, ToggleLeft, ToggleRight, Crosshair, AppWindow, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/utils";
 import { Panel, SectionTitle, DataPill } from "./WorkbenchControls";
@@ -312,6 +312,11 @@ export interface AppRulesPanelProps {
    * 传 null 退化为「无活跃应用」。
    */
   fetchActiveApp?: () => Promise<ActiveAppSnapshot | null>;
+  /**
+   * macOS 未授权时点击「打开系统设置」时使用。在 ThemeWorkbenchPage 注入。
+   * 传 undefined 时面板隐藏该 CTA（仍显示提示文案）。
+   */
+  openAccessibilitySettings?: () => void;
   addAppRule: (rule: { pattern: AppRulePattern; action: AppRuleAction }) => void;
   updateAppRule: (id: string, updates: Partial<AppRule>) => void;
   deleteAppRule: (id: string) => void;
@@ -324,6 +329,7 @@ export function AppRulesPanel({
   appRules = [],
   themes = [],
   fetchActiveApp,
+  openAccessibilitySettings,
   addAppRule,
   updateAppRule,
   deleteAppRule,
@@ -462,8 +468,18 @@ export function AppRulesPanel({
       )}
 
       {activeApp && !activeApp.authorized && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
-          {activeApp.message || "无法获取当前前台应用。"}
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-[11px] text-amber-800">
+          <div className="font-medium">{activeApp.message || "无法获取当前前台应用。"}</div>
+          {openAccessibilitySettings ? (
+            <button
+              type="button"
+              onClick={openAccessibilitySettings}
+              className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-amber-900 underline underline-offset-2 hover:text-amber-700"
+            >
+              打开系统设置 → 隐私与安全 → 辅助功能
+              <ExternalLink className="size-3" />
+            </button>
+          ) : null}
         </div>
       )}
 
@@ -480,10 +496,32 @@ export function AppRulesPanel({
 
       {appRules.length === 0 && !isEditing ? (
         <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-8 text-center">
-          <p className="text-[13px] text-slate-400">暂无应用规则</p>
-          <p className="mt-1 text-[11px] text-slate-300">
-            点击上方 + 添加第一条规则，或为当前前台应用快速创建禁用规则
+          <div className="mx-auto inline-flex size-10 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+            <AppWindow className="size-5" aria-hidden />
+          </div>
+          <p className="mt-3 text-[13px] font-medium text-slate-700">还没有应用规则</p>
+          <p className="mx-auto mt-1.5 max-w-sm text-[11px] leading-5 text-slate-500">
+            按进程名或窗口标题为指定应用启用 / 禁用效果，或切换到不同主题。
           </p>
+          <div className="mt-4 flex items-center justify-center gap-2">
+            <Button
+              variant="default"
+              className="h-8 px-3 text-xs"
+              onClick={handleStartAdd}
+            >
+              <Plus className="mr-1.5 size-3.5" />
+              添加规则
+            </Button>
+            {showQuickAdd ? (
+              <Button
+                variant="outline"
+                className="h-8 px-3 text-xs"
+                onClick={handleQuickAdd}
+              >
+                为 {activeProcess} 创建禁用规则
+              </Button>
+            ) : null}
+          </div>
         </div>
       ) : (
         <div className="space-y-1.5">

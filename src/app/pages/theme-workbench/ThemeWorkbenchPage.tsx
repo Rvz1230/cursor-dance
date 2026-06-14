@@ -16,6 +16,7 @@ import { WorkbenchPanel } from "./components/WorkbenchPanel";
 import { WorkbenchPreviewRail } from "./components/WorkbenchPreviewRail";
 import { getRuntimeConfig } from "./lib/runtimeConfig";
 import { ThemeLibrarySidebar } from "./components/ThemeLibrarySidebar";
+import { WelcomeDialog } from "./components/WelcomeDialog";
 import { cn } from "@/components/ui/utils";
 import { ToastProvider, useToast } from "@/components/ui/toast";
 
@@ -55,6 +56,11 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
   const [columnWeights, setColumnWeights] = useState({ config: 1.05, preview: 1.25, ai: 1 });
   const [previewProposal, setPreviewProposal] = useState(null);
   const [aiSnapshot, setAiSnapshot] = useState(null);
+  // 任务 4.3：首次启动引导
+  // welcomeState: "loading" → "open" → "closed"。loading 期间不渲染 dialog（避免闪现）；
+  // 非桌面环境（cursorDanceApp 不存在）跳过整个流程。
+  const [welcomeState, setWelcomeState] = useState<"loading" | "open" | "closed">("loading");
+  const [accessibilityAuthorized, setAccessibilityAuthorized] = useState<boolean | null>(null);
   const {
     state,
     selected,
@@ -107,6 +113,49 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
   useEffect(() => {
     setPreviewProposal(null);
   }, [selected.actionId, selected.themeId]);
+
+  // 任务 4.3：检测首次启动 + 探测辅助功能授权状态。
+  // 两个 IPC 都是只读查询，挂载时跑一次即可；用户翻 enable/disable 不影响这里。
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      setWelcomeState("closed");
+      return;
+    }
+    const bridge = window.cursorDanceApp;
+    if (!bridge) {
+      // 扩展端 / 静态预览：没有桌面 IPC，永远跳过欢迎流程。
+      setWelcomeState("closed");
+      return;
+    }
+    let cancelled = false;
+    Promise.allSettled([
+      bridge.getFirstRun(),
+      bridge.getActiveWindow(),
+    ]).then(([firstRunResult, activeWindowResult]) => {
+      if (cancelled) return;
+      const isFirstRun = firstRunResult.status === "fulfilled" ? firstRunResult.value === true : false;
+      const authorized = activeWindowResult.status === "fulfilled"
+        ? activeWindowResult.value.authorized === true
+        : false;
+      setAccessibilityAuthorized(authorized);
+      setWelcomeState(isFirstRun ? "open" : "closed");
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  function handleCloseWelcome() {
+    setWelcomeState("closed");
+    if (typeof window !== "undefined") {
+      window.cursorDanceApp?.markFirstRunComplete().catch(() => { /* 写盘失败仅影响下次启动会再展示一次，无副作用 */ });
+    }
+  }
+
+  function handleOpenAccessibilitySettings() {
+    if (typeof window === "undefined") return;
+    // macOS 13+ 的隐私与安全 → 辅助功能直链。
+    const target = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility";
+    window.cursorDanceApp?.openExternal(target).catch(() => { /* 静默；用户也可手动打开 */ });
+  }
 
   if (!state.ui.isHydrated) {
     return <div className="h-dvh bg-slate-100" />;
@@ -372,6 +421,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                         }
                         return { authorized: false, message: snap.message };
                       }}
+                      openAccessibilitySettings={handleOpenAccessibilitySettings}
                       addAppRule={addSiteRule}
                       updateAppRule={updateSiteRule}
                       deleteAppRule={deleteSiteRule}
@@ -406,6 +456,15 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
           </div>
         </div>
       </div>
+      {welcomeState === "open" && typeof window !== "undefined" && window.cursorDanceApp ? (
+        <WelcomeDialog
+          open
+          onClose={handleCloseWelcome}
+          platform={(window.electronAPI?.platform || "darwin") as NodeJS.Platform}
+          needsAccessibility={accessibilityAuthorized === false}
+          onOpenAccessibilitySettings={handleOpenAccessibilitySettings}
+        />
+      ) : null}
     </div>
   );
 }

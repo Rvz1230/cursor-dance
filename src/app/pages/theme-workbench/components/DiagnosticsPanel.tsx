@@ -343,10 +343,18 @@ export function DiagnosticsPanel({ selectedThemeId }) {
             })}
           </div>
         ) : (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-6 text-sm text-slate-600">
-            {scopeFilter !== "all"
-              ? "当前过滤条件下还没有事件。试试切换为「全部」查看。"
-              : "还没有收到 runtime diagnostics 事件。开启诊断后，在目标页面触发一次点击、悬停、滚轮或音频播放，这里就会开始滚动显示原因链路。"}
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-8 text-center">
+            <div className="mx-auto inline-flex size-10 items-center justify-center rounded-full bg-white text-slate-400">
+              <RadioTower className="size-5" aria-hidden />
+            </div>
+            <div className="mt-3 text-sm font-medium text-slate-700">暂无诊断事件</div>
+            <p className="mx-auto mt-1.5 max-w-md text-xs leading-5 text-slate-500">
+              {scopeFilter !== "all"
+                ? "当前过滤条件下还没有事件。试试切换为「全部」查看。"
+                : typeof window !== "undefined" && window.cursorDanceApp
+                  ? "开启诊断后，在桌面任意位置点击、长按或滚轮，事件流会开始滚动展示触发链路。"
+                  : "还没有收到 runtime diagnostics 事件。开启诊断后，在目标页面触发一次点击、悬停、滚轮或音频播放，这里就会开始滚动显示原因链路。"}
+            </p>
           </div>
         )}
       </Panel>

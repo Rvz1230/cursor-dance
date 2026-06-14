@@ -34,7 +34,7 @@
 - [x] 任务 4.0：Workbench 自绘标题栏
 - [x] 任务 4.1：系统托盘
 - [x] 任务 4.2：应用规则面板改造
-- [ ] 任务 4.3：首次启动引导 + 空状态
+- [x] 任务 4.3：首次启动引导 + 空状态
 
 ## 阶段五：AI API 服务
 - [ ] 任务 5.0：嵌入 AI 服务
@@ -48,7 +48,7 @@
 ## 当前状态
 
 - **分支**：desktop/phase-0
-- **上次提交**：阶段四 4.1
+- **上次提交**：阶段四 4.2
 - **阻塞项**：无
-- **扩展状态**：`npm run test` 176 tests 全绿，`npm run build` 与 `npx electron-vite build` 双绿
-- **备注**：任务 4.2 完成 —— 桌面端应用规则面板。新建 `src/app/pages/theme-workbench/components/AppRulesPanel.tsx`：与 SiteRulesPanel 结构对齐（拖拽排序、增删改查、启停切换），但匹配维度从 host/path 切到 process/title，pattern.type 缩到 exact / glob 两种，UI 新增「匹配维度」select 选 process/title、`Crosshair` 按钮一键填入当前前台进程名/标题。`fetchActiveApp` 走 `window.cursorDanceApp.getActiveWindow()`（任务 3.2 已落地），首次挂载时拉一次快照展示当前前台 + 「为 X 添加规则」快速操作；macOS 未授权时面板顶部出 amber 提示卡。**数据契约不动**：复用 store 上 `state.siteRules` + `addSiteRule/...` 全套 reducer actions，因为 `pattern.target` 字段已是可选 + 默认 process（由 app-matcher 兜底），向后兼容扩展端的 `{ type: "exact", value: "example.com" }` 旧数据，`themeDraftAdapter.test.ts` 不需改。`ThemeWorkbenchPage` 在 `state.workspaceId === "sites"` 分支用 `window.cursorDanceApp` 探测桌面环境二选一渲染（桌面 → AppRulesPanel，扩展 → SiteRulesPanel）。`useThemeWorkbenchState` 的 `workspaceItems` 在桌面端把 `sites` tab 的 label 改成「应用规则」（图标 Link2 沿用——后续可单独换 AppWindow，但不在本任务范围）。组件层无新单元测试（项目 vitest 跑 node 环境，无 React DOM 测试基础设施），匹配核心 `app-matcher.test.ts` 已覆盖；UI 行为靠 npm test + 双构建 + 后续手测验证。下一步任务 4.3 首次启动引导 + 空状态。
+- **扩展状态**：`npm run test` 182 tests 全绿，`npm run build` 与 `npx electron-vite build` 双绿
+- **备注**：任务 4.3 完成 —— 桌面端首次启动引导 + 空状态。新增 `src/main/first-run.ts`：用独立 electron-store（name: cursordance-app, key: firstRun）存「是否首次启动」flag，避免污染 cursordance.config；同文件挂 `shell.openExternal` IPC，白名单 `https / http / x-apple.systempreferences / ms-settings`，拒绝 file:// 等危险 scheme（`first-run.test.ts` 6 tests 覆盖）。preload 在 `cursorDanceApp` bridge 上扩展 `getFirstRun / markFirstRunComplete / openExternal` 三个方法（`vite-env.d.ts` 类型同步）。新组件 `components/WelcomeDialog.tsx`：基于 Radix Dialog，三条 tip（点击体验 / 工作台调参 / 应用规则按需启停）+ macOS 未授权时插入「打开系统设置」CTA。`ThemeWorkbenchPage` 挂载时 `Promise.allSettled([getFirstRun, getActiveWindow])`，桌面 + firstRun=true 才打开 dialog；关闭后 `markFirstRunComplete()`，下次启动跳过。空状态升级三处：(1) `ThemeLibrarySidebar` 在 `themes.length===0` 兜底「还没有主题 → 创建新主题」CTA（与「搜索无结果」分开）；(2) `DiagnosticsPanel` 重写空态卡片，桌面端文案改为「桌面任意位置点击 / 长按 / 滚轮」；(3) `AppRulesPanel` 空态加 `AppWindow` icon + 「添加规则」+「为 X 创建禁用规则」双 CTA。`AppRulesPanel` 新增 `openAccessibilitySettings` prop，未授权 amber 提示卡里加链接按钮直跳 `x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility`。下一步任务 5.0 嵌入 AI 服务。

@@ -36,6 +36,16 @@ export const DIALOG_OPEN_THEME_FILE = "cursordance:dialog-open-theme-file";
  *  供 app-matcher 应用规则匹配使用。macOS 无辅助功能权限时返回 unauthorized 状态。 */
 export const APP_GET_ACTIVE_WINDOW = "cursordance:app-get-active-window";
 
+/** renderer → 主进程：读取 / 翻转 firstRun flag。
+ *  flag 单独存盘（key: cursordance:firstRun），不污染 cursordance.config。
+ *  WelcomeDialog 首次启动展示，关闭后写 false；后续启动直接跳过。 */
+export const APP_GET_FIRST_RUN = "cursordance:app-get-first-run";
+export const APP_MARK_FIRST_RUN_COMPLETE = "cursordance:app-mark-first-run-complete";
+
+/** renderer → 主进程：调用 shell.openExternal 打开系统设置 / 文档链接。
+ *  WelcomeDialog 与应用规则面板的「打开辅助功能设置」按钮使用。 */
+export const APP_OPEN_EXTERNAL = "cursordance:app-open-external";
+
 /** renderer → 主进程：自绘标题栏的窗口控制（最小化 / 切换最大化 / 关闭）。
  *  通过 BrowserWindow.fromWebContents(event.sender) 定位调用方窗口，无需带 windowId。 */
 export const WINDOW_MINIMIZE = "cursordance:window-minimize";

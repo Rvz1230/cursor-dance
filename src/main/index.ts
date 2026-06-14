@@ -16,6 +16,7 @@ import { registerStoreIpc, unregisterStoreIpc } from "./ipc-handlers";
 import { registerDialogIpc, unregisterDialogIpc } from "./dialog-handlers";
 import { registerActiveWindowIpc, unregisterActiveWindowIpc } from "./active-window";
 import { registerWindowControlsIpc, unregisterWindowControlsIpc } from "./window-controls";
+import { registerFirstRunIpc, unregisterFirstRunIpc } from "./first-run";
 import { createTray, destroyTray } from "./tray";
 import {
   onConfigChange,
@@ -133,6 +134,7 @@ app.whenReady().then(() => {
   registerDialogIpc();
   registerActiveWindowIpc();
   registerWindowControlsIpc();
+  registerFirstRunIpc();
 
   // 1) workbench 配置窗口（系统标题栏，任务 4.0 再改自绘）
   workbenchWindow = createWorkbenchWindow();
@@ -197,6 +199,7 @@ app.on("before-quit", () => {
   unregisterDialogIpc();
   unregisterActiveWindowIpc();
   unregisterWindowControlsIpc();
+  unregisterFirstRunIpc();
   destroyAllOverlays();
 });
 

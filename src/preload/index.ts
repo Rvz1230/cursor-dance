@@ -11,6 +11,9 @@ import {
   DIALOG_SAVE_THEME_FILE,
   DIALOG_OPEN_THEME_FILE,
   APP_GET_ACTIVE_WINDOW,
+  APP_GET_FIRST_RUN,
+  APP_MARK_FIRST_RUN_COMPLETE,
+  APP_OPEN_EXTERNAL,
   WINDOW_MINIMIZE,
   WINDOW_TOGGLE_MAXIMIZE,
   WINDOW_CLOSE,
@@ -187,6 +190,18 @@ type ActiveWindowSnapshot =
 contextBridge.exposeInMainWorld("cursorDanceApp", {
   async getActiveWindow(): Promise<ActiveWindowSnapshot> {
     return ipcRenderer.invoke(APP_GET_ACTIVE_WINDOW);
+  },
+
+  async getFirstRun(): Promise<boolean> {
+    return ipcRenderer.invoke(APP_GET_FIRST_RUN);
+  },
+
+  async markFirstRunComplete(): Promise<void> {
+    await ipcRenderer.invoke(APP_MARK_FIRST_RUN_COMPLETE);
+  },
+
+  async openExternal(target: string): Promise<{ ok: boolean; error?: string }> {
+    return ipcRenderer.invoke(APP_OPEN_EXTERNAL, target);
   },
 });
 

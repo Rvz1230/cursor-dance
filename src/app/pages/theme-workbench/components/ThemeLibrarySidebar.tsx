@@ -417,6 +417,23 @@ export function ThemeLibrarySidebar({
                 collapsed={collapsed}
               />
             ))
+          ) : themes.length === 0 ? (
+            // 任务 4.3：主题库整体为空（理论上不会发生 —— 默认有 4 套内置主题；
+            // 但桌面端打包时若 default-config 缺失或用户清空 store，需有明确兜底）
+            <div className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-5 text-sm text-slate-600">
+              <div className="text-sm font-semibold text-slate-900">还没有主题</div>
+              <div className="mt-1.5 max-w-[220px] text-xs leading-5 text-pretty text-slate-500">
+                创建你的第一个主题，从空白开始或导入 JSON。
+              </div>
+              <Button
+                variant="default"
+                className="mt-4 h-8 rounded-xl px-3 text-xs"
+                onClick={() => setComposerMode("create")}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                创建新主题
+              </Button>
+            </div>
           ) : (
             <div className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-4 text-sm text-slate-600">
               <div className="text-sm font-semibold text-slate-900">没有找到匹配的主题</div>
