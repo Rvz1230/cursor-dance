@@ -32,7 +32,7 @@
 
 ## 阶段四：UI 迁移
 - [x] 任务 4.0：Workbench 自绘标题栏
-- [ ] 任务 4.1：系统托盘
+- [x] 任务 4.1：系统托盘
 - [ ] 任务 4.2：应用规则面板改造
 - [ ] 任务 4.3：首次启动引导 + 空状态
 
@@ -50,5 +50,5 @@
 - **分支**：desktop/phase-0
 - **上次提交**：阶段四 4.0
 - **阻塞项**：无
-- **扩展状态**：`npm run test` 165 tests 全绿，`npm run build` 与 `npx electron-vite build` 双绿
-- **备注**：任务 4.0 完成 —— Workbench 改用自绘标题栏。`createWorkbenchWindow` 在 macOS 走 `titleBarStyle: 'hiddenInset'` + `trafficLightPosition {x:14,y:14}`（系统仍渲染红绿灯），其它平台 `frame: false`；窗口绑定 `bindWindowStateBroadcast` 监听 maximize/unmaximize/enter|leave-full-screen 把 `{isMaximized,isFullScreen}` 通过 `WINDOW_STATE_CHANGED` 推给 renderer。新增 `src/main/window-controls.ts`：`registerWindowControlsIpc()` 注册 `WINDOW_MINIMIZE/TOGGLE_MAXIMIZE/CLOSE/GET_STATE`，主进程用 `BrowserWindow.fromWebContents(event.sender)` 自动定位调用窗口（renderer 不带 windowId）。`shared/ipc-channels.ts` 新增 5 个 channel。preload 暴露 `cursorDanceWindow` 桥（platform/minimize/toggleMaximize/close/getState/onStateChanged），`vite-env.d.ts` 同步类型定义。新建 `src/renderer/workbench/TitleBar.tsx`：macOS 高度 40px + 80px 左侧避让红绿灯；Windows/Linux 高度 32px + 右侧自绘三按钮（X 按钮 hover 变 rose-500 红）。整条 `-webkit-app-region: drag` 可拖，所有交互元素显式 `no-drag`。`ThemeWorkbenchPage` 新增 `renderHeader` prop（默认走 `WorkbenchHeader`，桌面 entry 注入 `TitleBar`），扩展端零改动。新增 `window-controls.test.ts` 6 用例（snapshot 透传 / senderWindow 找不到 / 已销毁 / 正常 / bind 注册 4 事件 + unbind 解绑 / 销毁后不 send）。下一步任务 4.1 系统托盘。
+- **扩展状态**：`npm run test` 176 tests 全绿,`npm run build` 与 `npx electron-vite build` 双绿
+- **备注**：任务 4.1 完成 —— 系统托盘 + 全局 enabled 同步。新建 `src/main/tray.ts`:`createTray(deps)` 接受 `iconPath / openWorkbench / quitApp / isEnabled / toggleEnabled / onEnabledChange`,对存储无感(依赖注入)。菜单结构:[暂停/开启效果, 分隔, 打开工作台, 分隔, 退出 CursorDance]。macOS 走 `nativeImage.setTemplateImage(true)` 让状态栏明暗自动反色;左键 `tray.on('click')` 直接打开 workbench(覆盖 macOS 默认弹菜单),右键走 contextMenu。enabled 变更通过 onEnabledChange 订阅 → `Menu.buildFromTemplate` 重建上下文菜单。`destroyTray()` 退订 listener + `tray.destroy()`,并在 `before-quit` 调用。重复 `createTray` 自动 destroy 上一个 handle(兼容热重载)。`src/main/index.ts` 接线:`getEnabledFromStore()` 从 `electron-store.cursordance.config.enabled` 读,未写入默认 `true`(与扩展端 `normalizeStoredConfig` 默认一致);`toggleEnabled()` 写回 store 后由 `STORE_CHANGED` 自动广播给所有 renderer,`onConfigChange` 兜底同步 overlay 显隐(show/hide 而不是 destroy,便宜)。`openWorkbench()` 复用现有 window:minimize 时 restore + show + focus,否则 `createWorkbenchWindow()` 重建。`resolveTrayIconPath()` dev 走 `__dirname/../../public/icon-16.png`(prod 留待任务 6.0 接 extraResources)。新增 `tray.test.ts` 11 用例(菜单 label / 结构 / 各项 click / 初次构建 / tray click / onEnabledChange 重建 / destroy 退订 / 重复 createTray);mock `electron` 用 `vi.hoisted` 处理 hoist 顺序。下一步任务 4.2 应用规则面板改造。
