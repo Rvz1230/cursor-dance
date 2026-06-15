@@ -24,6 +24,7 @@ import {
   computeOrbitalParticleSpecs,
   getParticleShapeStyle,
   getAnimationVisualStyle,
+  getParticleTint,
 } from "./compute-specs";
 
 type AnimateOptions = number | { duration?: number; easing?: string; delay?: number };
@@ -444,6 +445,7 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
       node.className = "cd-effect cd-particle";
       node.style.left = x + "px";
       node.style.top = y + "px";
+      node.style.background = getParticleTint(actionConfig, index);
       if (shapeStyle) {
         node.style.width = shapeStyle.width + "px";
         node.style.height = shapeStyle.height + "px";
@@ -480,6 +482,7 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
           trailNode.className = "cd-effect cd-particle";
           trailNode.style.left = x + "px";
           trailNode.style.top = y + "px";
+          trailNode.style.background = getParticleTint(actionConfig, index + t);
           const trailSize = spec.size * (1 - t * 0.32);
           const trailShapeStyle = getParticleShapeStyle(actionConfig, index + t, trailSize);
           if (trailShapeStyle) {
@@ -513,6 +516,7 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
     y: number,
     actionConfig: Record<string, unknown>,
     runIndex: number,
+    actionId?: string,
   ): void {
     void runIndex; // 原 JS 形参不在轨道粒子算法中使用，保留签名一致
     const particleConfig = configStore.getActionParticleConfig(actionConfig);
@@ -533,6 +537,7 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
       dot.className = "cd-effect cd-particle";
       dot.style.left = x + "px";
       dot.style.top = y + "px";
+      dot.style.background = getParticleTint(actionConfig, i);
 
       const shapeStyle = getParticleShapeStyle(actionConfig, i, spec.size);
       if (shapeStyle) {
@@ -568,22 +573,26 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
       dots.push({ dot, anim });
     }
 
-    // store for external cleanup (e.g. hover leave)
-    state.orbitalGroups = state.orbitalGroups || [];
-    state.orbitalGroups.push(dots);
+    // store for external cleanup, keyed by actionId for isolation
+    const key = actionId || "__unknown__";
+    state.orbitalGroups = state.orbitalGroups || {};
+    // clear previous orbital particles for this actionId before creating new ones
+    clearOrbitalParticles(key);
+    state.orbitalGroups[key] = dots;
   }
 
-  function clearOrbitalParticles(): void {
+  function clearOrbitalParticles(actionId?: string): void {
     const groups = state.orbitalGroups;
     if (!groups) return;
-    state.orbitalGroups = [];
-    for (let g = 0; g < groups.length; g++) {
-      const group = groups[g];
+    const keysToClear = actionId ? [actionId] : Object.keys(groups);
+    for (const key of keysToClear) {
+      const group = groups[key];
+      if (!group) continue;
       for (let d = 0; d < group.length; d++) {
-        const item = group[d];
-        item.anim.cancel();
-        item.dot.remove();
+        group[d].anim.cancel();
+        group[d].dot.remove();
       }
+      delete groups[key];
     }
   }
 

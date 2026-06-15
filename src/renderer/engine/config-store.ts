@@ -763,7 +763,7 @@ export function createConfigStore(deps: ConfigStoreDeps): ConfigStoreApi {
 
   function getActionConfig(scheme: ThemePack | null | undefined, actionId: string): Record<string, unknown> | null {
     const draft = getWorkbenchDraft(scheme);
-    return draft.actionConfigs?.[actionId] || draft.actionConfigs?.leftClick || null;
+    return draft.actionConfigs?.[actionId] ?? draft.actionConfigs?.leftClick ?? null;
   }
 
   function getMergedCursorStates(scheme: ThemePack | null | undefined): Record<string, unknown> {

@@ -187,9 +187,7 @@
       visualEffects.renderRipple(coords.x, coords.y, actionConfig);
       var particleCfg = configStore.getActionParticleConfig(actionConfig);
       if (particleCfg.particleMotionMode === "orbital") {
-        // clear previous orbital groups before creating new ones
-        visualEffects.clearOrbitalParticles();
-        visualEffects.renderOrbitalParticles(coords.x, coords.y, actionConfig, runIndex);
+        visualEffects.renderOrbitalParticles(coords.x, coords.y, actionConfig, runIndex, resolvedActionId);
       } else {
         visualEffects.renderParticles(coords.x, coords.y, actionConfig, runIndex);
       }

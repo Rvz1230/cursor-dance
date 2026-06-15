@@ -383,16 +383,17 @@ export function getParticleShapeStyle(
 export function getParticleTint(config: Record<string, unknown>, index: number): string {
   const particleConfig = getActionParticleConfig(config);
   const textConfig = getActionTextConfig(config);
+  const opacity = ((particleConfig.particleOpacity as number) || 88) / 100;
   if (particleConfig.particleColorMode === "跟随飘字色") {
-    return hexToRgba(textConfig.textColor as string | undefined, (particleConfig.particleOpacity as number) / 100);
+    return hexToRgba(textConfig.textColor as string | undefined, opacity);
   }
   const palette = Array.isArray(particleConfig.particlePalette) && particleConfig.particlePalette.length
     ? (particleConfig.particlePalette as string[])
     : ["#FDBA74", "#FDE68A", "#86EFAC", "#93C5FD", "#F9A8D4"];
   if (particleConfig.particleColorMode === "随机轻变化") {
-    return hexToRgba(palette[index % palette.length], (particleConfig.particleOpacity as number) / 100);
+    return hexToRgba(palette[index % palette.length], opacity);
   }
-  return hexToRgba(palette[0] || "#FBBF24", (particleConfig.particleOpacity as number) / 100);
+  return hexToRgba(palette[0] || "#FBBF24", opacity);
 }
 
 // ─── Animation visual style ───────────────────────────────────────────

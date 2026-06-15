@@ -68,6 +68,7 @@
       return { borderRadius: "0", background: "transparent" };
     };
     var getTextContent = helpers.getTextContent || function () { return ""; };
+  var getParticleTint = helpers.getParticleTint || function () { return "rgba(251, 191, 36, 0.88)"; };
 
     var getTextWeight = function (config) {
       return getTextWeightValue((config && config.textWeight) || "常规");
@@ -476,6 +477,7 @@
         node.className = "cd-effect cd-particle";
         node.style.left = x + "px";
         node.style.top = y + "px";
+        node.style.background = getParticleTint(actionConfig, index);
         if (shapeStyle) {
           node.style.width = shapeStyle.width + "px";
           node.style.height = shapeStyle.height + "px";
@@ -512,6 +514,7 @@
             trailNode.className = "cd-effect cd-particle";
             trailNode.style.left = x + "px";
             trailNode.style.top = y + "px";
+            trailNode.style.background = getParticleTint(actionConfig, index + t);
             var trailSize = spec.size * (1 - t * 0.32);
             var trailShapeStyle = getParticleShapeStyle(actionConfig, index + t, trailSize);
             if (trailShapeStyle) {
@@ -540,7 +543,7 @@
       }
     }
 
-    function renderOrbitalParticles(x, y, actionConfig, runIndex) {
+    function renderOrbitalParticles(x, y, actionConfig, runIndex, actionId) {
       var particleConfig = configStore.getActionParticleConfig(actionConfig);
       if (!particleConfig.particle) return;
 
@@ -559,6 +562,7 @@
         dot.className = "cd-effect cd-particle";
         dot.style.left = x + "px";
         dot.style.top = y + "px";
+        dot.style.background = getParticleTint(actionConfig, i);
 
         var shapeStyle = getParticleShapeStyle(actionConfig, i, spec.size);
         if (shapeStyle) {
@@ -594,22 +598,26 @@
         dots.push({ dot: dot, anim: anim });
       }
 
-      // store for external cleanup (e.g. hover leave)
-      state.orbitalGroups = state.orbitalGroups || [];
-      state.orbitalGroups.push(dots);
+      // store for external cleanup, keyed by actionId for isolation
+      var key = actionId || "__unknown__";
+      state.orbitalGroups = state.orbitalGroups || {};
+      // clear previous orbital particles for this actionId before creating new ones
+      clearOrbitalParticles(key);
+      state.orbitalGroups[key] = dots;
     }
 
-    function clearOrbitalParticles() {
+    function clearOrbitalParticles(actionId) {
       var groups = state.orbitalGroups;
       if (!groups) return;
-      state.orbitalGroups = [];
-      for (var g = 0; g < groups.length; g++) {
-        var group = groups[g];
+      var keysToClear = actionId ? [actionId] : Object.keys(groups);
+      for (var ki = 0; ki < keysToClear.length; ki++) {
+        var group = groups[keysToClear[ki]];
+        if (!group) continue;
         for (var d = 0; d < group.length; d++) {
-          var item = group[d];
-          item.anim.cancel();
-          item.dot.remove();
+          group[d].anim.cancel();
+          group[d].dot.remove();
         }
+        delete groups[keysToClear[ki]];
       }
     }
 

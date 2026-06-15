@@ -330,16 +330,17 @@
   function getParticleTint(config, index) {
     var particleConfig = helpers.getActionParticleConfig(config);
     var textConfig = helpers.getActionTextConfig(config);
+    var opacity = (particleConfig.particleOpacity || 88) / 100;
     if (particleConfig.particleColorMode === "跟随飘字色") {
-      return helpers.hexToRgba(textConfig.textColor, particleConfig.particleOpacity / 100);
+      return helpers.hexToRgba(textConfig.textColor, opacity);
     }
     var palette = Array.isArray(particleConfig.particlePalette) && particleConfig.particlePalette.length
       ? particleConfig.particlePalette
       : ["#FDBA74", "#FDE68A", "#86EFAC", "#93C5FD", "#F9A8D4"];
     if (particleConfig.particleColorMode === "随机轻变化") {
-      return helpers.hexToRgba(palette[index % palette.length], particleConfig.particleOpacity / 100);
+      return helpers.hexToRgba(palette[index % palette.length], opacity);
     }
-    return helpers.hexToRgba(palette[0] || "#FBBF24", particleConfig.particleOpacity / 100);
+    return helpers.hexToRgba(palette[0] || "#FBBF24", opacity);
   }
 
   // ─── Animation visual style ───────────────────────────────────────────
