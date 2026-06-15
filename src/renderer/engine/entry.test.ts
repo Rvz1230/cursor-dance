@@ -23,6 +23,8 @@ function makeStubDeps(): EngineDeps {
       getActionTriggerConfig: () => ({}),
       getMaxActiveEffects: () => 0,
     },
+    diagnostics: { isEnabled: () => false, log: () => {} },
+    reportRuntimeError: () => {},
   };
 }
 
@@ -47,5 +49,6 @@ describe("createEffectEngine (skeleton)", () => {
     expect(typeof engine.triggerHandlers.handleWheel).toBe("function");
     expect(typeof engine.triggerHandlers.previewAtViewportCenter).toBe("function");
     expect(typeof engine.triggerHandlers.previewAt).toBe("function");
+    expect(typeof engine.triggerHandlers.simulateAction).toBe("function");
   });
 });

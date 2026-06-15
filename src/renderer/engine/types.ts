@@ -20,6 +20,8 @@ export interface CursorEvent {
   y: number;
   /** 鼠标按键位掩码：1=左 2=右 4=中（与 PointerEvent.buttons 同口径） */
   buttons?: number;
+  /** PointerEvent.button：0=左 1=中 2=右，仅 mousedown/mouseup 携带 */
+  button?: number;
   /** 滚轮 deltaY，仅 wheel 事件携带 */
   deltaY?: number;
   /** 事件时间戳（ms），由捕获方填充，避免引擎自己读时钟 */
@@ -61,8 +63,8 @@ export interface LongPressState {
 export interface EngineState {
   /** visual-effects.animateNode 的并发计数 */
   activeEffects: number;
-  /** 轨道粒子分组缓存，供 clearOrbitalParticles 清理 */
-  orbitalGroups?: { dot: HTMLElement; anim: Animation }[][];
+  /** 轨道粒子分组缓存，按 actionId 隔离，供 clearOrbitalParticles 清理 */
+  orbitalGroups?: Record<string, { dot: HTMLElement; anim: Animation }[]>;
   /** cursor-overlay 复用的软件光标节点（首次同步时创建） */
   stateCursorNode?: HTMLElement | null;
   stateCursorImg?: HTMLImageElement | null;
@@ -118,6 +120,8 @@ export interface ConfigStore {
   ): { actionId: string; cursorStateId: string; inheritedFromDefault?: boolean };
   /** trigger-handlers：从目标元素解析 cursor state id（桌面端通常返回默认） */
   resolveCursorStateId?(target: unknown): string;
+  /** cursor-overlay：获取指定 cursor state 的生效配置（含 imageDataUrl/size/hotspot） */
+  getEffectiveCursorStateConfig?(scheme: unknown, stateId: string): unknown;
   /** trigger-handlers：触发区域匹配。桌面端无 DOM target/event 时返回 true */
   matchesTriggerZone?(
     target: unknown,
@@ -150,6 +154,8 @@ export interface EngineDeps {
   constants: EngineConstants;
   state: EngineState;
   configStore: ConfigStore;
+  diagnostics?: DiagnosticsModule;
+  reportRuntimeError?: (scope: string, message: string) => void;
 }
 
 /**
@@ -163,8 +169,8 @@ export interface VisualEffectsModule {
   renderAnimationEffect(x: number, y: number, actionConfig: Record<string, unknown>): void;
   renderImageEffect(x: number, y: number, actionConfig: Record<string, unknown>): void;
   renderParticles(x: number, y: number, actionConfig: Record<string, unknown>, runIndex: number): void;
-  renderOrbitalParticles(x: number, y: number, actionConfig: Record<string, unknown>, runIndex: number): void;
-  clearOrbitalParticles(): void;
+  renderOrbitalParticles(x: number, y: number, actionConfig: Record<string, unknown>, runIndex: number, actionId?: string): void;
+  clearOrbitalParticles(actionId?: string): void;
   renderCursorOverride(x: number, y: number, actionConfig: Record<string, unknown>): void;
   hasCursorOverride(actionConfig: Record<string, unknown>): boolean;
 }
@@ -215,6 +221,8 @@ export interface TriggerHandlersModule {
    * 桌面 overlay 仍用 previewAtViewportCenter（其内部转调本方法）。
    */
   previewAt(x: number, y: number, schemeId?: string, previewScheme?: unknown, actionId?: string): void;
+  /** 模拟多步动作（doubleClick / longPress），通过真实状态机触发。返回清理函数可取消待执行的 timeout。 */
+  simulateAction(actionId: string, x: number, y: number, scheme: unknown, options?: { holdMs?: number }): () => void;
 }
 
 export interface EffectEngine {

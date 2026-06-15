@@ -23,11 +23,14 @@ export function createEffectEngine(deps: EngineDeps): EffectEngine {
     window: deps.window,
     state: deps.state,
     configStore: deps.configStore,
+    diagnostics: deps.diagnostics,
+    reportRuntimeError: deps.reportRuntimeError,
   });
   const triggerHandlers = createTriggerHandlers({
     window: deps.window,
     document: deps.document,
     state: deps.state,
+    diagnostics: deps.diagnostics,
     configStore: deps.configStore,
     visualEffects,
     audioRuntime,

@@ -115,6 +115,9 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
     state.actionComboStates = state.actionComboStates || {};
   }
 
+  // 桌面端不支持 hover 触发器
+  const DESKTOP_UNSUPPORTED_ACTIONS = new Set(["hover"]);
+
   function triggerAction(
     sourceActionId: string,
     coords: TriggerCoords,
@@ -125,6 +128,14 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
     if (!state.ready) {
       diagnostics?.log("action.skip", {
         reason: "not-ready",
+        sourceActionId,
+        triggerSource,
+      });
+      return;
+    }
+    if (DESKTOP_UNSUPPORTED_ACTIONS.has(sourceActionId)) {
+      diagnostics?.log("action.skip", {
+        reason: "unsupported-on-desktop",
         sourceActionId,
         triggerSource,
       });
@@ -254,9 +265,7 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
     visualEffects.renderRipple(coords.x, coords.y, actionConfig);
     const particleCfg = configStore.getActionParticleConfig(actionConfig);
     if (particleCfg.particleMotionMode === "orbital") {
-      // clear previous orbital groups before creating new ones
-      visualEffects.clearOrbitalParticles();
-      visualEffects.renderOrbitalParticles(coords.x, coords.y, actionConfig, runIndex);
+      visualEffects.renderOrbitalParticles(coords.x, coords.y, actionConfig, runIndex, resolvedActionId);
     } else {
       visualEffects.renderParticles(coords.x, coords.y, actionConfig, runIndex);
     }
@@ -352,6 +361,9 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
     lp.timeoutId = window.setTimeout(() => {
       if (!state.longPressState) return;
       state.longPressState.triggered = true;
+      // 长按已触发，重置双击检测时间戳，避免下次单击被误判为双击
+      state.lastLeftPointerDownAt = 0;
+      state.lastLeftPointerUpAt = 0;
       if (!state.longPressState.releaseMode) {
         triggerAction("longPress", { x: state.longPressState.x, y: state.longPressState.y, target: state.longPressState.target, event: null }, state.longPressState.scheme, {
           throttleMs: state.longPressState.thresholdMs,
@@ -368,6 +380,9 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
     }
     const duration = Date.now() - state.longPressState.startedAt;
     if (state.longPressState.releaseMode && duration >= state.longPressState.thresholdMs) {
+      // 长按松开触发，重置双击检测时间戳
+      state.lastLeftPointerDownAt = 0;
+      state.lastLeftPointerUpAt = 0;
       triggerAction(
         "longPress",
         {
@@ -399,6 +414,15 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
   }
 
   function handlePointerUp(event: CursorEvent): void {
+    // 右键/中键抬起：只清理长按状态机，不触发左键/双击逻辑
+    if (event.button !== undefined && event.button !== 0) {
+      if (state.longPressState) {
+        window.clearTimeout(state.longPressState.timeoutId);
+        state.longPressState = null;
+      }
+      return;
+    }
+
     const scheme = configStore.getActiveScheme?.();
     const lpState = state.longPressState;
     const longPressFired = lpState && (
@@ -497,15 +521,83 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
     });
   }
 
+  function simulateAction(actionId: string, x: number, y: number, scheme: unknown): () => void {
+    // 重置状态机时间戳，确保模拟在干净状态下运行
+    state.lastLeftPointerDownAt = 0;
+    state.lastLeftPointerUpAt = 0;
+    if (state.longPressState) {
+      if (state.longPressState.timeoutId !== undefined) window.clearTimeout(state.longPressState.timeoutId);
+      state.longPressState = null;
+    }
+
+    const mkEvt = (type: string): CursorEvent => ({
+      type,
+      x,
+      y,
+      buttons: 1,
+      button: 0,
+      timestamp: Date.now(),
+    });
+
+    const pendingTimeouts: number[] = [];
+    const noop = (): void => {};
+
+    if (actionId === "doubleClick") {
+      handleLeftPointerDown(mkEvt("mousedown"));
+      handlePointerUp(mkEvt("mouseup"));
+      const dblConfig = configStore.getActionConfig?.(scheme, "doubleClick");
+      const interval = getActionTimingMs("doubleClick", dblConfig);
+      const tid = window.setTimeout(() => {
+        handleLeftPointerDown(mkEvt("mousedown"));
+        handlePointerUp(mkEvt("mouseup"));
+      }, Math.min(interval / 2, 80));
+      pendingTimeouts.push(tid);
+      return () => { for (const id of pendingTimeouts) window.clearTimeout(id); };
+    }
+
+    if (actionId === "longPress") {
+      const lpConfig = configStore.getActionConfig?.(scheme, "longPress");
+      const threshold = getActionTimingMs("longPress", lpConfig);
+      handleLeftPointerDown(mkEvt("mousedown"));
+      const tid = window.setTimeout(() => {
+        handlePointerUp(mkEvt("mouseup"));
+      }, threshold + 20);
+      pendingTimeouts.push(tid);
+      return () => { for (const id of pendingTimeouts) window.clearTimeout(id); };
+    }
+
+    // 其他动作走原来的 force-trigger
+    triggerAction(actionId, { x, y, target: document.body, event: null }, scheme, {
+      force: true,
+      resolvedActionId: actionId,
+      throttleMs: 0,
+      triggerSource: "preview-center",
+    });
+    return noop;
+  }
+
+  let pendingSimCleanup: (() => void) | null = null;
+
   function previewAt(x: number, y: number, schemeId?: string, previewScheme?: unknown, actionId?: string): void {
     if (!configStore.isCurrentSiteEnabled?.()) return;
     const config = configStore.getConfig?.();
     const resolvedScheme = previewScheme
       || (config?.schemes.find((scheme) => scheme.id === (schemeId || config?.activeSchemeId)))
       || configStore.getActiveScheme?.();
-    triggerAction(actionId || "leftClick", { x, y, target: document.body, event: null }, resolvedScheme, {
+    const resolvedActionId = actionId || "leftClick";
+
+    // 取消上一次模拟残留的 timeout，避免快速切换动作时泄漏
+    if (pendingSimCleanup) { pendingSimCleanup(); pendingSimCleanup = null; }
+
+    // 多步动作走状态机模拟
+    if (resolvedActionId === "doubleClick" || resolvedActionId === "longPress") {
+      pendingSimCleanup = simulateAction(resolvedActionId, x, y, resolvedScheme);
+      return;
+    }
+
+    triggerAction(resolvedActionId, { x, y, target: document.body, event: null }, resolvedScheme, {
       force: true,
-      resolvedActionId: actionId || "leftClick",
+      resolvedActionId,
       throttleMs: 0,
       triggerSource: "preview-center",
     });
@@ -526,5 +618,6 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
     handleWheel,
     previewAtViewportCenter,
     previewAt,
+    simulateAction,
   };
 }
