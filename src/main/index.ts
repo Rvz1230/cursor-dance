@@ -1,8 +1,6 @@
 import { app, BrowserWindow } from "electron";
-import { existsSync } from "fs";
-import { join } from "path";
-import { fileURLToPath } from "url";
 import { startGlobalMouseCapture, type NativeCursorEvent } from "./native-events";
+import { broadcastToWindows } from "./broadcast";
 import {
   createOverlayWindow,
   createWorkbenchWindow,
@@ -28,8 +26,6 @@ import {
 } from "./electron-store";
 import { CURSOR_EVENT } from "../shared/ipc-channels";
 
-const __dirname = fileURLToPath(new URL(".", import.meta.url));
-
 let workbenchWindow: BrowserWindow | null = null;
 let stopMouseCapture: (() => void) | null = null;
 let stopDisplayWatcher: (() => void) | null = null;
@@ -43,16 +39,7 @@ if (!gotTheLock) {
 }
 
 function broadcastCursorEvent(event: NativeCursorEvent): void {
-  // overlay 窗口和 workbench 都订阅同一个频道；发到所有 BrowserWindow，
-  // 渲染进程自行决定是否消费（overlay 走 engine 渲染，workbench 走预览面板）。
-  for (const win of BrowserWindow.getAllWindows()) {
-    if (win.isDestroyed()) continue;
-    try {
-      win.webContents.send(CURSOR_EVENT, event);
-    } catch {
-      // renderer 进程可能正在关闭或导航，IPC 管道已断，忽略即可。
-    }
-  }
+  broadcastToWindows(() => BrowserWindow.getAllWindows(), CURSOR_EVENT, event);
 }
 
 function ensureOverlayPerDisplay(): void {
@@ -110,31 +97,6 @@ function openWorkbench(): void {
   workbenchWindow = createWorkbenchWindow();
 }
 
-function resolveTrayIconPath(): string {
-  // 在 dev 与 prod 下分别尝试几个可能位置，第一个真实存在的命中。
-  // dev: electron-vite 把 main 编到 <repo>/out/main/index.js，public/ 留在仓库根；
-  //      app.getAppPath() = <repo>/out/main 或 <repo>，两边各试一次。
-  // prod: electron-builder extraResources 把 public/ 打到 process.resourcesPath/public/。
-  //
-  // 用 fs.existsSync 显式校验，避免 nativeImage 静默拿到空图。
-  const candidates = [
-    join(app.getAppPath(), "public/icon-16.png"),
-    join(app.getAppPath(), "../public/icon-16.png"),
-    join(app.getAppPath(), "../../public/icon-16.png"),
-    join(__dirname, "../../public/icon-16.png"),
-    join(process.resourcesPath ?? "", "public/icon-16.png"),
-  ];
-  for (const p of candidates) {
-    try {
-      if (existsSync(p)) return p;
-    } catch {
-      // ignore
-    }
-  }
-  // 都不存在——返回第一个候选，让 nativeImage 走错误分支并由 tray.ts 打日志。
-  return candidates[0]!;
-}
-
 app.whenReady().then(() => {
   // 0) 在所有窗口创建之前注册 store/live preview 的 ipcMain.handle，
   //    否则 renderer 启动时第一波 invoke 会拿不到 handler 直接挂。
@@ -172,7 +134,6 @@ app.whenReady().then(() => {
     setOverlayVisibility(getEnabledFromStore());
   });
   createTray({
-    iconPath: resolveTrayIconPath(),
     openWorkbench,
     quitApp: () => app.quit(),
     isEnabled: getEnabledFromStore,

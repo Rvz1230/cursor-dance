@@ -13,11 +13,38 @@
 // 销毁路径：destroyTray() 取消订阅 + 销毁 Tray 实例；before-quit 时调用，避免 macOS 残留
 // 状态栏图标。
 
-import { Menu, Tray, nativeImage, type MenuItemConstructorOptions } from "electron";
+import { app, Menu, Tray, nativeImage, type MenuItemConstructorOptions } from "electron";
+import { existsSync } from "fs";
+import { join } from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
+
+/**
+ * 在 dev 与 prod 下分别尝试几个可能位置，返回第一个真实存在的图标路径。
+ * 都不存在时返回第一个候选，让 nativeImage 走错误分支并打印日志。
+ */
+function resolveIconPath(): string {
+  const candidates = [
+    join(app.getAppPath(), "public/icon-16.png"),
+    join(app.getAppPath(), "../public/icon-16.png"),
+    join(app.getAppPath(), "../../public/icon-16.png"),
+    join(__dirname, "../../public/icon-16.png"),
+    join(process.resourcesPath ?? "", "public/icon-16.png"),
+  ];
+  for (const p of candidates) {
+    try {
+      if (existsSync(p)) return p;
+    } catch {
+      // ignore
+    }
+  }
+  return candidates[0]!;
+}
 
 export interface TrayDeps {
-  /** 16×16 PNG 图标的绝对路径，调用方负责传 native 路径（dev / prod 不同）。 */
-  iconPath: string;
+  /** 16×16 PNG 图标的绝对路径。省略时由 tray 内部 resolveIconPath() 自动探测。 */
+  iconPath?: string;
   /** 打开或聚焦 workbench 窗口；不存在时由调用方创建。 */
   openWorkbench: () => void;
   /** 退出整个应用。注入而不是直接调 app.quit()，方便测试。 */
@@ -71,15 +98,16 @@ export function createTray(deps: TrayDeps): TrayHandle {
     activeHandle.destroy();
   }
 
-  const image = nativeImage.createFromPath(deps.iconPath);
+  const iconPath = deps.iconPath ?? resolveIconPath();
+  const image = nativeImage.createFromPath(iconPath);
   if (image.isEmpty()) {
     console.error(
-      `[CursorDance] tray icon load FAILED at: ${deps.iconPath}. ` +
+      `[CursorDance] tray icon load FAILED at: ${iconPath}. ` +
         `状态栏不会显示图标。请检查路径或图标文件本身。`,
     );
   } else {
     console.log(
-      `[CursorDance] tray icon loaded: ${deps.iconPath} (${image.getSize().width}x${
+      `[CursorDance] tray icon loaded: ${iconPath} (${image.getSize().width}x${
         image.getSize().height
       })`,
     );

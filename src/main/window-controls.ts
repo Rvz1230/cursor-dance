@@ -16,6 +16,7 @@ import {
   WINDOW_STATE_CHANGED,
   WINDOW_TOGGLE_MAXIMIZE,
 } from "../shared/ipc-channels";
+import { broadcastToWindows } from "./broadcast";
 
 export interface WindowState {
   isMaximized: boolean;
@@ -44,11 +45,7 @@ function snapshot(win: BrowserWindow): WindowState {
 export function bindWindowStateBroadcast(win: BrowserWindow): () => void {
   const broadcast = () => {
     if (win.isDestroyed()) return;
-    try {
-      win.webContents.send(WINDOW_STATE_CHANGED, snapshot(win));
-    } catch {
-      // renderer 可能正在关闭/导航，IPC 管道已断，忽略即可。
-    }
+    broadcastToWindows(() => [win], WINDOW_STATE_CHANGED, snapshot(win));
   };
   win.on("maximize", broadcast);
   win.on("unmaximize", broadcast);
