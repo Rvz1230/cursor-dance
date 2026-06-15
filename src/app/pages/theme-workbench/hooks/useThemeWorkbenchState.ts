@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useReducer, useRef } from "react";
 import {
-  ACTIONS,
+  PLATFORM_ACTIONS,
   CURSOR_STATES,
   WORKSPACES,
   buildDefaultCursorStateActions,
@@ -191,7 +191,7 @@ export function useThemeWorkbenchState() {
         ? { ...item, label: "应用规则" }
         : item,
     ),
-    actionItems: ACTIONS,
+    actionItems: PLATFORM_ACTIONS,
     cursorStates: CURSOR_STATES,
     recentCursorAssets: state.recentCursorAssets,
     setWorkspaceId: (value) => dispatch({ type: "workspace/set", payload: value }),

@@ -333,6 +333,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                       actionLabel={formatActionLabel(selected.actionId)}
                       actionId={selected.actionId}
                       config={previewActionConfig || currentActionConfig}
+                      actionConfigsMap={draft?.actionConfigs}
                       disabled={siteAction === "disable"}
                       previewMode={Boolean(previewActionConfig)}
                       updateActionConfig={updateActionConfig}

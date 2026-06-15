@@ -145,6 +145,12 @@ export const ACTIONS = [
   { id: "hover", label: "悬停", hint: "切状态或轻提示" },
 ];
 
+const isDesktop = typeof window !== "undefined" && !!(window as unknown as { cursorDanceApp?: unknown }).cursorDanceApp;
+
+export const PLATFORM_ACTIONS = isDesktop
+  ? ACTIONS.filter((a) => a.id !== "hover")
+  : ACTIONS;
+
 export const CURSOR_STATES = [
   { id: "default", label: "默认", detail: "Normal · 48 × 48", icon: MousePointer2, defaultMode: "源" },
   { id: "pointer", label: "手型", detail: "Pointer · 48 × 48", icon: Hand, defaultMode: "继承" },

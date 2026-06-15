@@ -157,4 +157,19 @@ export function useThemeWorkbenchPersistence({ state, dispatch, configRef }) {
     state.selection.actionId,
     state.selection.cursorStateId,
   ]);
+
+  // enabled 开关变更 → 立即持久化（不等"保存"按钮），
+  // 否则 overlay 重启后从 electron-store 读到旧值，动效不触发。
+  const prevEnabledRef = useRef(state.ui.enabled);
+  useEffect(() => {
+    if (!state.ui.isHydrated) return;
+    if (state.ui.enabled === prevEnabledRef.current) return;
+    prevEnabledRef.current = state.ui.enabled;
+    const baseConfig = configRef.current;
+    if (!baseConfig) return;
+    const nextConfig = buildStoredConfigFromWorkbench(baseConfig, stateRef.current);
+    writeExtensionConfig(nextConfig).then((savedConfig) => {
+      configRef.current = savedConfig;
+    }).catch(() => {});
+  }, [state.ui.isHydrated, state.ui.enabled, configRef]);
 }

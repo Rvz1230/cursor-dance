@@ -428,7 +428,7 @@ function InteractiveTimeline({ tracks, totalMs, updateActionConfig }) {
   );
 }
 
-function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, outputs, triggerInterval, updateActionConfig, atmosphere }) {
+function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, actionConfigsMap, outputs, triggerInterval, updateActionConfig, atmosphere }) {
   const textConfig = useMemo(() => getActionTextConfig(config), [config]);
   const particleConfig = useMemo(() => getActionParticleConfig(config), [config]);
   const rippleConfig = useMemo(() => getActionRippleConfig(config), [config]);
@@ -456,7 +456,17 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, out
   configRef.current = config;
   const actionIdRef = useRef(actionId);
   actionIdRef.current = actionId;
+  const actionConfigsMapRef = useRef(actionConfigsMap);
+  actionConfigsMapRef.current = actionConfigsMap;
   const engineRef = useRef(null);
+
+  // ── 预览模拟状态 ──
+  const [simState, setSimState] = useState<
+    | { type: "idle" }
+    | { type: "longPress-holding"; startedAt: number; thresholdMs: number }
+    | { type: "doubleClick-waiting" }
+  >({ type: "idle" });
+  const [lpProgress, setLpProgress] = useState(0);
 
   useEffect(() => {
     const host = effectsHostRef.current;
@@ -493,10 +503,18 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, out
       getConfig: () => ({ schemes: [previewScheme], activeSchemeId: previewScheme.id }),
       getActiveScheme: () => previewScheme,
       isCurrentSiteEnabled: () => true,
-      getActionConfig: (_scheme, _actionId) => configRef.current,
+      getActionConfig: (_scheme, actionId) => {
+        const map = actionConfigsMapRef.current;
+        if (map && map[actionId]) return map[actionId];
+        return configRef.current;
+      },
       getCursorStateBinding: (_scheme, _stateId, sourceActionId) => ({ actionId: sourceActionId, cursorStateId: "" }),
       resolveCursorStateId: () => "",
-      matchesTriggerZone: () => true,
+      matchesTriggerZone: (_target, _zone, _event, opts) => {
+        // 预览 doubleClick 时不应触发 longPress
+        if (opts?.actionId === "longPress" && actionIdRef.current !== "longPress") return false;
+        return true;
+      },
     };
     const engine = createEffectEngine({
       window,
@@ -537,11 +555,56 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, out
     if (rect.width <= 0 || rect.height <= 0) return;
     const cx = Math.round(rect.width / 2);
     const cy = Math.round(rect.height / 2);
-    handle.engine.triggerHandlers.previewAt(cx, cy, undefined, undefined, actionIdRef.current);
+    const aid = actionIdRef.current;
+
+    // 模拟多步动作时更新视觉状态
+    if (aid === "longPress") {
+      const holdMs = config.holdMs || 420;
+      setSimState({ type: "longPress-holding", startedAt: Date.now(), thresholdMs: holdMs });
+      setLpProgress(0);
+    } else if (aid === "doubleClick") {
+      setSimState({ type: "doubleClick-waiting" });
+      setTimeout(() => setSimState({ type: "idle" }), 300);
+    } else {
+      setSimState({ type: "idle" });
+    }
+
+    handle.engine.triggerHandlers.previewAt(cx, cy, undefined, undefined, aid);
     // triggerInterval 仅在 buildTimelineTracks / 触发频率里使用，这里依赖 runId 即可。
     void triggerInterval;
     void comboIndex;
-  }, [runId, disabled, comboIndex, triggerInterval]);
+  }, [runId, disabled, comboIndex, triggerInterval, config.holdMs]);
+
+  // longPress 进度环 rAF 驱动
+  useEffect(() => {
+    if (simState.type !== "longPress-holding") {
+      setLpProgress(0);
+      return;
+    }
+    let raf: number;
+    const animate = () => {
+      const elapsed = Date.now() - simState.startedAt;
+      const pct = Math.min(100, (elapsed / simState.thresholdMs) * 100);
+      setLpProgress(pct);
+      if (pct < 100) raf = requestAnimationFrame(animate);
+      else setSimState({ type: "idle" });
+    };
+    raf = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(raf);
+  }, [simState]);
+
+  // actionId 切换时重置引擎状态机
+  useEffect(() => {
+    const handle = engineRef.current;
+    if (!handle) return;
+    handle.state.lastLeftPointerDownAt = 0;
+    handle.state.lastLeftPointerUpAt = 0;
+    if (handle.state.longPressState?.timeoutId !== undefined) {
+      window.clearTimeout(handle.state.longPressState.timeoutId);
+    }
+    handle.state.longPressState = null;
+    setSimState({ type: "idle" });
+  }, [actionId]);
 
   useEffect(() => {
     const el = stageRef.current;
@@ -628,6 +691,24 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, out
           aria-hidden="true"
         />
 
+        {/* 模拟指示器 */}
+        {simState.type === "longPress-holding" && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <div
+              className="size-12 rounded-full border-2 border-slate-300"
+              style={{
+                background: `conic-gradient(#7C3AED ${lpProgress}%, transparent ${lpProgress}%)`,
+              }}
+            />
+          </div>
+        )}
+        {simState.type === "doubleClick-waiting" && (
+          <div className="pointer-events-none absolute bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-2">
+            <span className="size-2.5 rounded-full bg-teal-500 shadow-sm shadow-teal-300" />
+            <span className="size-2.5 rounded-full bg-slate-300" />
+          </div>
+        )}
+
         {/* 氛围动效预览层 */}
         <AtmosphereStagePreview
           atmosphere={atmosphere}
@@ -663,7 +744,7 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, out
   );
 }
 
-export function WorkbenchPreviewRail({ actionLabel, actionId = "leftClick", config, disabled = false, previewMode = false, updateActionConfig, atmosphere }) {
+export function WorkbenchPreviewRail({ actionLabel, actionId = "leftClick", config, actionConfigsMap, disabled = false, previewMode = false, updateActionConfig, atmosphere }) {
   const [runId, setRunId] = useState(0);
   const [comboIndex, setComboIndex] = useState(1);
   const [autoPlay, setAutoPlay] = useState(true);
@@ -710,6 +791,14 @@ export function WorkbenchPreviewRail({ actionLabel, actionId = "leftClick", conf
     lastComboFireRef.current = 0;
     setComboIndex(1);
 
+    // 多步动作模拟耗时长，自动播放间隔需要下限
+    const simOverhead = actionId === "longPress"
+      ? (config.holdMs || 420) + 400
+      : actionId === "doubleClick"
+        ? (config.holdMs || 320) + 400
+        : 0;
+    const effectiveInterval = Math.max(triggerInterval, simOverhead);
+
     const tick = () => {
       const now = Date.now();
       setRunId((value) => (value + 1) % 1000000);
@@ -720,7 +809,7 @@ export function WorkbenchPreviewRail({ actionLabel, actionId = "leftClick", conf
       lastComboFireRef.current = now;
     };
 
-    timerRef.current = window.setInterval(tick, triggerInterval);
+    timerRef.current = window.setInterval(tick, effectiveInterval);
     return () => {
       if (timerRef.current !== null) {
         window.clearInterval(timerRef.current);
@@ -773,7 +862,7 @@ export function WorkbenchPreviewRail({ actionLabel, actionId = "leftClick", conf
           </div>
         }
       >
-        <SimplePreviewStage config={config} disabled={disabled} runId={runId} comboIndex={displayComboIndex} actionId={actionId} outputs={outputs} triggerInterval={triggerInterval} updateActionConfig={updateActionConfig} atmosphere={atmosphere} />
+        <SimplePreviewStage config={config} disabled={disabled} runId={runId} comboIndex={displayComboIndex} actionId={actionId} actionConfigsMap={actionConfigsMap} outputs={outputs} triggerInterval={triggerInterval} updateActionConfig={updateActionConfig} atmosphere={atmosphere} />
       </Panel>
     </div>
   );

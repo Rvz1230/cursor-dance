@@ -1,5 +1,5 @@
 import { cn } from "@/components/ui/utils";
-import { ACTIONS, getConflictsForAction } from "../model/workbenchSchema";
+import { PLATFORM_ACTIONS, getConflictsForAction } from "../model/workbenchSchema";
 import { DataPill, Panel } from "./WorkbenchControls";
 
 export function BindingsPanel({ actionConfigs, actionId, setActionId, currentConflicts }) {
@@ -36,7 +36,7 @@ export function BindingsPanel({ actionConfigs, actionId, setActionId, currentCon
               </tr>
             </thead>
             <tbody>
-              {ACTIONS.map((action) => {
+              {PLATFORM_ACTIONS.map((action) => {
                 const config = actionConfigs[action.id];
                 const rowConflicts = getConflictsForAction(action.id, actionConfigs);
                 const active = action.id === actionId;

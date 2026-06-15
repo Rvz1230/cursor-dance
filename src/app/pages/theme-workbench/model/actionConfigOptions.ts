@@ -130,6 +130,7 @@ export const ACTION_PARTICLE_FIELDS = [
   "orbitalCount",
   "orbitalRadius",
   "orbitalSpeed",
+  "particleStagger",
 ];
 export const ACTION_RIPPLE_FIELDS = [
   "ripple",
