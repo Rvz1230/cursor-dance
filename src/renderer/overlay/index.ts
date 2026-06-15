@@ -27,6 +27,7 @@ type CursorEventPayload = {
   x: number;
   y: number;
   buttons?: number;
+  button?: number;
   deltaY?: number;
   timestamp: number;
 };
@@ -93,11 +94,14 @@ const engine = createEffectEngine({
   constants,
   state,
   configStore,
+  diagnostics,
+  reportRuntimeError: (scope, message) => diagnostics.log("runtime-error", { scope, message }),
 });
 
 // 启动时同步走一次：先用默认 config 让 trigger-handlers 立刻可用，
 // 随后异步从 bridge 拉真实 config 并 setConfig 刷新。
 configStore.setConfig(defaultConfig);
+invalidateCursorStateCache();
 state.ready = true;
 engine.visualEffects.ensureRoot();
 
@@ -105,31 +109,28 @@ if (bridge) {
   bridge
     .getConfig()
     .then((stored) => {
-      if (stored) configStore.setConfig(stored);
+      if (stored) { configStore.setConfig(stored); invalidateCursorStateCache(); }
     })
     .catch((error) => {
       console.error("[cursordance] overlay 初始 config 拉取失败:", error);
     });
 
-  // workbench 改完 config 后,广播过来这里; 重新 setConfig 即可让 configStore 内部
-  // 走 normalizeConfig + state.config 更新,trigger-handlers 下次触发就用新值.
   bridge.onChange((next) => {
-    if (next) configStore.setConfig(next);
+    if (next) { configStore.setConfig(next); invalidateCursorStateCache(); }
   });
 
-  // live preview 优先级高于持久化 config —— 工作台预览面板临时改色时,
-  // overlay 立刻跟随; clearLivePreview (next === null) 时回退到当前持久化 config.
   bridge.onLivePreviewChange((next) => {
     if (next) {
       configStore.setConfig(next);
+      invalidateCursorStateCache();
     } else {
       bridge
         .getConfig()
         .then((stored) => {
-          if (stored) configStore.setConfig(stored);
-          else configStore.setConfig(defaultConfig);
+          if (stored) { configStore.setConfig(stored); invalidateCursorStateCache(); }
+          else { configStore.setConfig(defaultConfig); invalidateCursorStateCache(); }
         })
-        .catch(() => configStore.setConfig(defaultConfig));
+        .catch(() => { configStore.setConfig(defaultConfig); invalidateCursorStateCache(); });
     }
   });
 } else {
@@ -156,6 +157,7 @@ function toEngineCursorEvent(payload: CursorEventPayload): CursorEvent {
     x: localX,
     y: localY,
     buttons: payload.buttons,
+    button: payload.button,
     deltaY: payload.deltaY,
     timestamp: payload.timestamp,
   };
@@ -165,13 +167,39 @@ function isInsideThisOverlay(event: CursorEvent): boolean {
   return event.x >= 0 && event.y >= 0 && event.x <= window.innerWidth && event.y <= window.innerHeight;
 }
 
+// 缓存 cursor state 解析结果——桌面端永远 resolveCursorStateId(null) → "default"，
+// 且 imageDataUrl/size/hotspot 只在 config 变更时才变，不需要每帧重算。
+let cachedCursorState: { imageDataUrl: string; size: number; hotspotX: number; hotspotY: number } | undefined;
+let cursorStateCacheDirty = true;
+
+function invalidateCursorStateCache(): void {
+  cursorStateCacheDirty = true;
+}
+
+function resolveCachedCursorState(): typeof cachedCursorState {
+  if (!cursorStateCacheDirty) return cachedCursorState;
+  cursorStateCacheDirty = false;
+  cachedCursorState = undefined;
+  if (configStore.isCurrentSiteEnabled?.() !== false) {
+    const scheme = configStore.getActiveScheme?.();
+    const stateId = configStore.resolveCursorStateId?.(null) ?? "default";
+    const raw = configStore.getEffectiveCursorStateConfig?.(scheme, stateId) as
+      | { imageDataUrl?: string; size?: number; hotspotX?: number; hotspotY?: number }
+      | undefined
+      | null;
+    if (raw?.imageDataUrl) {
+      cachedCursorState = { imageDataUrl: raw.imageDataUrl, size: raw.size, hotspotX: raw.hotspotX, hotspotY: raw.hotspotY };
+    }
+  }
+  return cachedCursorState;
+}
+
 function dispatch(payload: CursorEventPayload): void {
   const cursorEvent = toEngineCursorEvent(payload);
   if (!isInsideThisOverlay(cursorEvent)) return;
 
-  // 软件光标跟随（不论站点是否启用都先维护节点存在；configStore 内部判定要不要画）
   if (payload.type === "mousemove") {
-    engine.cursorOverlay.syncStateCursorOverlay(cursorEvent.x, cursorEvent.y, undefined);
+    engine.cursorOverlay.syncStateCursorOverlay(cursorEvent.x, cursorEvent.y, resolveCachedCursorState());
     return;
   }
 

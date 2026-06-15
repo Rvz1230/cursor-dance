@@ -29,6 +29,7 @@ type CursorEventPayload = {
   x: number;
   y: number;
   buttons?: number;
+  button?: number;
   deltaY?: number;
   timestamp: number;
 };

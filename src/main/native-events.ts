@@ -17,6 +17,8 @@ export interface NativeCursorEvent {
   y: number;
   /** PointerEvent.buttons 同口径位掩码：1=left 2=right 4=middle */
   buttons?: number;
+  /** PointerEvent.button 同口径：0=left 1=middle 2=right，仅 mousedown/mouseup 携带 */
+  button?: number;
   /** wheel 事件携带，单位约等于 DOM WheelEvent.deltaY 风格的「100 像素一档」。
    *  符号约定先沿用 uiohook rotation 透传，真机验证后再调整（详见 WheelAccumulator）。 */
   deltaY?: number;
@@ -40,6 +42,16 @@ function uiohookButtonToBitmask(button: unknown): number {
     case 2: return 2;
     case 3: return 4;
     default: return 0;
+  }
+}
+
+// uiohook button → PointerEvent.button：0=left, 1=middle, 2=right
+function uiohookButtonToDomButton(button: unknown): number {
+  switch (button) {
+    case 1: return 0;
+    case 3: return 1;
+    case 2: return 2;
+    default: return -1;
   }
 }
 
@@ -123,6 +135,7 @@ export class UiohookInputSource implements IInputSource {
       x: e.x,
       y: e.y,
       buttons: this.buttonsState,
+      button: uiohookButtonToDomButton(e.button),
       timestamp: e.time,
     });
   };
@@ -135,6 +148,7 @@ export class UiohookInputSource implements IInputSource {
       x: e.x,
       y: e.y,
       buttons: this.buttonsState,
+      button: uiohookButtonToDomButton(e.button),
       timestamp: e.time,
     });
   };
