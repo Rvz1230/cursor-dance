@@ -44,7 +44,11 @@ function snapshot(win: BrowserWindow): WindowState {
 export function bindWindowStateBroadcast(win: BrowserWindow): () => void {
   const broadcast = () => {
     if (win.isDestroyed()) return;
-    win.webContents.send(WINDOW_STATE_CHANGED, snapshot(win));
+    try {
+      win.webContents.send(WINDOW_STATE_CHANGED, snapshot(win));
+    } catch {
+      // renderer 可能正在关闭/导航，IPC 管道已断，忽略即可。
+    }
   };
   win.on("maximize", broadcast);
   win.on("unmaximize", broadcast);

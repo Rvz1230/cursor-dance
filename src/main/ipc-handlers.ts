@@ -26,7 +26,11 @@ type GetAllWindows = () => BrowserWindow[];
 function broadcast(getAllWindows: GetAllWindows, channel: string, payload: unknown): void {
   for (const win of getAllWindows()) {
     if (win.isDestroyed()) continue;
-    win.webContents.send(channel, payload);
+    try {
+      win.webContents.send(channel, payload);
+    } catch {
+      // renderer 可能正在关闭/导航，IPC 管道已断，忽略即可。
+    }
   }
 }
 

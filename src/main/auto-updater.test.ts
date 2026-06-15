@@ -13,11 +13,13 @@ vi.mock("electron", () => ({
 }));
 
 vi.mock("electron-updater", () => ({
-  autoUpdater: {
-    autoDownload: false,
-    autoInstallOnAppQuit: false,
-    checkForUpdatesAndNotify,
-    on: onListener,
+  default: {
+    autoUpdater: {
+      autoDownload: false,
+      autoInstallOnAppQuit: false,
+      checkForUpdatesAndNotify,
+      on: onListener,
+    },
   },
 }));
 

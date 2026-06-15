@@ -47,7 +47,11 @@ function broadcastCursorEvent(event: NativeCursorEvent): void {
   // 渲染进程自行决定是否消费（overlay 走 engine 渲染，workbench 走预览面板）。
   for (const win of BrowserWindow.getAllWindows()) {
     if (win.isDestroyed()) continue;
-    win.webContents.send(CURSOR_EVENT, event);
+    try {
+      win.webContents.send(CURSOR_EVENT, event);
+    } catch {
+      // renderer 进程可能正在关闭或导航，IPC 管道已断，忽略即可。
+    }
   }
 }
 

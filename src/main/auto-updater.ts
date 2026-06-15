@@ -15,7 +15,8 @@
 //   - 验证 dev (skipped) / packaged (调度 + interval) / stop 清理三条路径
 
 import { app } from "electron";
-import { autoUpdater } from "electron-updater";
+import pkg from "electron-updater";
+const { autoUpdater } = pkg;
 
 const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
 
