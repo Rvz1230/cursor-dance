@@ -88,6 +88,33 @@ const configStore = createConfigStore({
   // 暂时不传，configStore 会回退到 config.enabled 全局开关。
 });
 
+// 缓存 cursor state 解析结果——桌面端永远 resolveCursorStateId(null) → "default"，
+// 且 imageDataUrl/size/hotspot 只在 config 变更时才变，不需要每帧重算。
+let cachedCursorState: { imageDataUrl: string; size: number; hotspotX: number; hotspotY: number } | undefined;
+let cursorStateCacheDirty = true;
+
+function invalidateCursorStateCache(): void {
+  cursorStateCacheDirty = true;
+}
+
+function resolveCachedCursorState(): typeof cachedCursorState {
+  if (!cursorStateCacheDirty) return cachedCursorState;
+  cursorStateCacheDirty = false;
+  cachedCursorState = undefined;
+  if (configStore.isCurrentSiteEnabled?.() !== false) {
+    const scheme = configStore.getActiveScheme?.();
+    const stateId = configStore.resolveCursorStateId?.(null) ?? "default";
+    const raw = configStore.getEffectiveCursorStateConfig?.(scheme, stateId) as
+      | { imageDataUrl?: string; size?: number; hotspotX?: number; hotspotY?: number }
+      | undefined
+      | null;
+    if (raw?.imageDataUrl) {
+      cachedCursorState = { imageDataUrl: raw.imageDataUrl, size: raw.size, hotspotX: raw.hotspotX, hotspotY: raw.hotspotY };
+    }
+  }
+  return cachedCursorState;
+}
+
 const engine = createEffectEngine({
   window,
   document,
@@ -165,33 +192,6 @@ function toEngineCursorEvent(payload: CursorEventPayload): CursorEvent {
 
 function isInsideThisOverlay(event: CursorEvent): boolean {
   return event.x >= 0 && event.y >= 0 && event.x <= window.innerWidth && event.y <= window.innerHeight;
-}
-
-// 缓存 cursor state 解析结果——桌面端永远 resolveCursorStateId(null) → "default"，
-// 且 imageDataUrl/size/hotspot 只在 config 变更时才变，不需要每帧重算。
-let cachedCursorState: { imageDataUrl: string; size: number; hotspotX: number; hotspotY: number } | undefined;
-let cursorStateCacheDirty = true;
-
-function invalidateCursorStateCache(): void {
-  cursorStateCacheDirty = true;
-}
-
-function resolveCachedCursorState(): typeof cachedCursorState {
-  if (!cursorStateCacheDirty) return cachedCursorState;
-  cursorStateCacheDirty = false;
-  cachedCursorState = undefined;
-  if (configStore.isCurrentSiteEnabled?.() !== false) {
-    const scheme = configStore.getActiveScheme?.();
-    const stateId = configStore.resolveCursorStateId?.(null) ?? "default";
-    const raw = configStore.getEffectiveCursorStateConfig?.(scheme, stateId) as
-      | { imageDataUrl?: string; size?: number; hotspotX?: number; hotspotY?: number }
-      | undefined
-      | null;
-    if (raw?.imageDataUrl) {
-      cachedCursorState = { imageDataUrl: raw.imageDataUrl, size: raw.size, hotspotX: raw.hotspotX, hotspotY: raw.hotspotY };
-    }
-  }
-  return cachedCursorState;
 }
 
 function dispatch(payload: CursorEventPayload): void {

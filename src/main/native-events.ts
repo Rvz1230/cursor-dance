@@ -97,7 +97,19 @@ export class UiohookInputSource implements IInputSource {
 
     uIOhook.start();
     this.started = true;
+    console.log("[uiohook] started — listening for global mouse events");
+
+    // macOS 辅助功能权限检测：启动 2 秒后如果还没收到任何 mousemove，
+    // 大概率是缺少辅助功能权限
+    setTimeout(() => {
+      if (this.eventCount === 0) {
+        console.warn("[uiohook] NO events received after 2s — macOS may require Accessibility permission.");
+        console.warn("[uiohook] Go to: System Settings → Privacy & Security → Accessibility → enable this app");
+      }
+    }, 2000);
   }
+
+  private eventCount = 0;
 
   stop(): void {
     if (!this.started) return;
@@ -118,6 +130,7 @@ export class UiohookInputSource implements IInputSource {
   }
 
   private onMouseMove = (e: UiohookMouseEvent): void => {
+    this.eventCount++;
     this.callback?.({
       type: "mousemove",
       x: e.x,
@@ -128,6 +141,7 @@ export class UiohookInputSource implements IInputSource {
   };
 
   private onMouseDown = (e: UiohookMouseEvent): void => {
+    this.eventCount++;
     const bit = uiohookButtonToBitmask(e.button);
     this.buttonsState |= bit;
     this.callback?.({
