@@ -128,11 +128,13 @@ export function hydrateWorkbenchState(config, site) {
   const selectedThemeId = resolveSelectedThemeId(themeLibrary, draftsByTheme, config.activeThemePackId);
   const workspaceAliasMap = {
     workspace: "workbench",
+    states: "states",
+    sites: "sites",
     diagnostics: "diagnostics",
     assets: "workbench",
   };
   const resolvedWorkspace = workspaceAliasMap[config.editor?.lastWorkspace] || config.editor?.lastWorkspace || "workbench";
-  const PRIMARY_WORKSPACES = ["workbench", "states"];
+  const PRIMARY_WORKSPACES = ["workbench", "states", "sites"];
   const workspaceId = PRIMARY_WORKSPACES.includes(resolvedWorkspace) ? resolvedWorkspace : "workbench";
   const selectedActionId = PLATFORM_ACTIONS.some((item) => item.id === config.editor?.lastActionId) ? config.editor.lastActionId : "leftClick";
   const selectedCursorStateId = CURSOR_STATES.some((item) => item.id === config.editor?.lastCursorState) ? config.editor.lastCursorState : "default";

@@ -51,6 +51,8 @@ export interface LongPressState {
   target: unknown;
   scheme: unknown;
   triggered: boolean;
+  /** 防双重触发守卫：超时路径和 release 路径互斥依赖 releaseMode，fired 作为 belt-and-suspenders 保护 */
+  fired: boolean;
   releaseMode: boolean;
   thresholdMs: number;
   timeoutId?: number;

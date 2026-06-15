@@ -348,6 +348,7 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
       target: coords.target,
       scheme,
       triggered: false,
+      fired: false,
       releaseMode: longPressTriggerConfig.triggerTiming === "松开后触发",
       thresholdMs: getActionTimingMs("longPress", longPressConfig),
     };
@@ -364,7 +365,8 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
       // 长按已触发，重置双击检测时间戳，避免下次单击被误判为双击
       state.lastLeftPointerDownAt = 0;
       state.lastLeftPointerUpAt = 0;
-      if (!state.longPressState.releaseMode) {
+      if (!state.longPressState.releaseMode && !state.longPressState.fired) {
+        state.longPressState.fired = true;
         triggerAction("longPress", { x: state.longPressState.x, y: state.longPressState.y, target: state.longPressState.target, event: null }, state.longPressState.scheme, {
           throttleMs: state.longPressState.thresholdMs,
           triggerSource: "longpress-timeout",
@@ -379,7 +381,8 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
       window.clearTimeout(state.longPressState.timeoutId);
     }
     const duration = Date.now() - state.longPressState.startedAt;
-    if (state.longPressState.releaseMode && duration >= state.longPressState.thresholdMs) {
+    if (state.longPressState.releaseMode && duration >= state.longPressState.thresholdMs && !state.longPressState.fired) {
+      state.longPressState.fired = true;
       // 长按松开触发，重置双击检测时间戳
       state.lastLeftPointerDownAt = 0;
       state.lastLeftPointerUpAt = 0;

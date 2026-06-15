@@ -264,6 +264,7 @@
         target: event.target,
         scheme,
         triggered: false,
+        fired: false,
         releaseMode: longPressTriggerConfig.triggerTiming === "松开后触发",
         thresholdMs: getActionTimingMs("longPress", longPressConfig),
       };
@@ -276,7 +277,8 @@
       state.longPressState.timeoutId = window.setTimeout(() => {
         if (!state.longPressState) return;
         state.longPressState.triggered = true;
-        if (!state.longPressState.releaseMode) {
+        if (!state.longPressState.releaseMode && !state.longPressState.fired) {
+          state.longPressState.fired = true;
           triggerAction("longPress", { x: state.longPressState.x, y: state.longPressState.y, target: state.longPressState.target }, state.longPressState.scheme, {
             throttleMs: state.longPressState.thresholdMs,
             triggerSource: "longpress-timeout",
@@ -289,7 +291,8 @@
       if (!state.longPressState) return;
       window.clearTimeout(state.longPressState.timeoutId);
       const duration = Date.now() - state.longPressState.startedAt;
-      if (state.longPressState.releaseMode && duration >= state.longPressState.thresholdMs) {
+      if (state.longPressState.releaseMode && duration >= state.longPressState.thresholdMs && !state.longPressState.fired) {
+        state.longPressState.fired = true;
         triggerAction(
           "longPress",
           {
