@@ -15,8 +15,7 @@
 //     是为了保持与 chrome.storage 单 key 语义一致，writeConfig 总是替换全部
 //   - live preview 用普通对象引用 + 简单事件分发；进程退出即丢
 
-import pkg from "electron-store";
-const { default: ElectronStore } = pkg;
+import ElectronStore from "electron-store";
 
 type Config = unknown;
 type Listener<T> = (value: T) => void;
