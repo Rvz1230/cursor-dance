@@ -164,14 +164,6 @@ function setEnvAll(keys: string[], value: string): void {
   }
 }
 
-// safeStorage 仅在 app.whenReady 之后可用；renderer 启动期就调用会拿到 isEncryptionAvailable=false。
-// 调用方需要确保在 whenReady 之后再 read/write。这里不强制 throw，因为 ensureStore() 自身依赖 app。
-export function ensureReady(): void {
-  if (!app.isReady()) {
-    throw new Error("ai-config must be accessed after app.whenReady()");
-  }
-}
-
 export const __testing__ = {
   reset(): void {
     store = null;

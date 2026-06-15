@@ -5,9 +5,6 @@
 /** 主进程 → overlay/workbench：全局鼠标事件投递 */
 export const CURSOR_EVENT = "cursordance:cursor-event";
 
-/** 主进程 → overlay/workbench：debug toggle 推送 */
-export const DEBUG_TOGGLE = "cursordance:debug-toggle";
-
 /** renderer → 主进程：读取 / 写入 electron-store 持久化 config */
 export const STORE_GET = "cursordance:store-get";
 export const STORE_SET = "cursordance:store-set";

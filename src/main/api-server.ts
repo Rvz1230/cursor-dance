@@ -74,10 +74,6 @@ export async function startEmbeddedAiServer(): Promise<{ port: number }> {
   return { port: resolvedPort };
 }
 
-export function getEmbeddedAiServerPort(): number | null {
-  return resolvedPort;
-}
-
 export function getEmbeddedAiServerEndpoint(): string | null {
   if (!resolvedPort) return null;
   return `http://${HOST}:${resolvedPort}/api/ai/scheme-proposals`;
