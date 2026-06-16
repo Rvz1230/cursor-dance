@@ -15,7 +15,7 @@
 export interface CursorEvent {
   /** "mousemove" | "mousedown" | "mouseup" | "click" | "dblclick" | "wheel" | ... */
   type: string;
-  /** 屏幕坐标，已乘以 DPR */
+  /** overlay 窗口本地 DIP 坐标 */
   x: number;
   y: number;
   /** 鼠标按键位掩码：1=左 2=右 4=中（与 PointerEvent.buttons 同口径） */
@@ -24,7 +24,7 @@ export interface CursorEvent {
   button?: number;
   /** 滚轮 deltaY，仅 wheel 事件携带 */
   deltaY?: number;
-  /** 事件时间戳（ms），由捕获方填充，避免引擎自己读时钟 */
+  /** 事件时间戳。扩展端为 ms；桌面端为 uiohook 原始单位（macOS 纳秒，Windows ms），引擎当前未读取此字段 */
   timestamp: number;
 }
 

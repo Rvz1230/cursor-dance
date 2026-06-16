@@ -39,7 +39,7 @@ if (!gotTheLock) {
 }
 
 function broadcastCursorEvent(event: NativeCursorEvent): void {
-  broadcastToWindows(() => BrowserWindow.getAllWindows(), CURSOR_EVENT, event);
+  broadcastToWindows(() => [...getOverlayWindows().values()], CURSOR_EVENT, event);
 }
 
 function ensureOverlayPerDisplay(): void {

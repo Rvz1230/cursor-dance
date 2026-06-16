@@ -6,11 +6,11 @@
 //      并订阅 STORE_CHANGED / LIVE_PREVIEW_CHANGED 实时刷新
 //   3. 装配 diagnostics
 //   4. 监听主进程通过 cursorDanceAPI.onCursorEvent 转发的 NativeCursorEvent，
-//      做坐标系转换（screen device-px → overlay DIP），分派到 trigger-handlers。
+//      做坐标系转换（全局 DIP → overlay 窗口本地坐标），分派到 trigger-handlers。
 //
 // overlay 窗口是全屏覆盖某个 display，其 (window.screenX, window.screenY) 就是
-// display.bounds 在 DIP 坐标系下的左上角。事件坐标按 device px 给的，要除以 DPR
-// 后减去 screenX/Y。
+// display.bounds 在 DIP 坐标系下的左上角。uiohook（CGEventGetLocation /
+// MSLLHOOKSTRUCT.pt）给出的坐标已经是 DIP，与 screenX/Y 同一坐标系，直接相减即可。
 
 import {
   createEffectEngine,
@@ -174,11 +174,10 @@ if (!api) {
 }
 
 function toEngineCursorEvent(payload: CursorEventPayload): CursorEvent {
-  // uiohook 给的是 device px 全局屏幕坐标。overlay window 是全屏覆盖某 display，
-  // window.screenX/Y 是 DIP 系下的 display 左上角；devicePixelRatio 是当前 display 的缩放。
-  const dpr = window.devicePixelRatio || 1;
-  const localX = payload.x / dpr - window.screenX;
-  const localY = payload.y / dpr - window.screenY;
+  // uiohook（CGEventGetLocation / MSLLHOOKSTRUCT.pt）返回 DIP 逻辑坐标，
+  // 与 window.screenX/Y 同一坐标系，直接相减得到 overlay 窗口本地坐标。
+  const localX = payload.x - window.screenX;
+  const localY = payload.y - window.screenY;
   return {
     type: payload.type,
     x: localX,
