@@ -13,7 +13,7 @@ const PATTERN_TYPE_LABELS = {
 function PatternLabel({ pattern }) {
   if (!pattern || !pattern.type) return <span className="text-slate-400">—</span>;
   return (
-    <code className="text-[11px] font-medium text-slate-700 bg-slate-100 rounded-md px-1.5 py-0.5">
+    <code className="text-2xs font-medium text-slate-700 bg-slate-100 rounded-md px-1.5 py-0.5">
       {pattern.value || "(空)"}
     </code>
   );
@@ -71,19 +71,19 @@ function RuleRow({ rule, themes, onToggle, onEdit, onDelete, onDragStart, onDrag
       </button>
 
       <div className="flex-1 min-w-0 flex items-center gap-2">
-        <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider shrink-0">
+        <span className="text-2xs font-medium text-slate-400 shrink-0">
           {PATTERN_TYPE_LABELS[rule.pattern?.type] || rule.pattern?.type}
         </span>
         <PatternLabel pattern={rule.pattern} />
         <ActionBadge action={rule.action} />
         {themeName && (
-          <span className="text-[10px] text-slate-400 truncate">{themeName}</span>
+          <span className="text-2xs text-slate-400 truncate">{themeName}</span>
         )}
       </div>
 
       <button
         onClick={() => onEdit(rule.id)}
-        className="shrink-0 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors opacity-0 group-hover:opacity-100"
+        className="shrink-0 rounded-lg px-2 py-1 text-2xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors opacity-0 group-hover:opacity-100"
       >
         编辑
       </button>
@@ -107,11 +107,11 @@ function RuleEditor({ draft, themes, onChange, onSave, onCancel }) {
       <SectionTitle>规则编辑</SectionTitle>
 
       <div className="space-y-2">
-        <label className="block text-[11px] font-medium text-slate-500">匹配方式</label>
+        <label className="block text-2xs font-medium text-slate-500">匹配方式</label>
         <select
           value={draft.pattern?.type || "exact"}
           onChange={(e) => onChange({ ...draft, pattern: { ...draft.pattern, type: e.target.value } })}
-          className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[13px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-200"
+          className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-200"
         >
           <option value="exact">精确域名 — example.com</option>
           <option value="glob">通配符 — *.example.com / **.example.com</option>
@@ -120,18 +120,18 @@ function RuleEditor({ draft, themes, onChange, onSave, onCancel }) {
       </div>
 
       <div className="space-y-2">
-        <label className="block text-[11px] font-medium text-slate-500">匹配值</label>
+        <label className="block text-2xs font-medium text-slate-500">匹配值</label>
         <input
           type="text"
           value={draft.pattern?.value || ""}
           onChange={(e) => onChange({ ...draft, pattern: { ...draft.pattern, value: e.target.value } })}
           placeholder={draft.pattern?.type === "path" ? "example.com/blog" : "example.com"}
-          className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-[13px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
+          className="w-full rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
         />
       </div>
 
       <div className="space-y-2">
-        <label className="block text-[11px] font-medium text-slate-500">操作</label>
+        <label className="block text-2xs font-medium text-slate-500">操作</label>
         <select
           value={actionType}
           onChange={(e) => {
@@ -141,7 +141,7 @@ function RuleEditor({ draft, themes, onChange, onSave, onCancel }) {
               action: nextType === "disable" ? "disable" : { enable: true },
             });
           }}
-          className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[13px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-200"
+          className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-200"
         >
           <option value="disable">禁用效果</option>
           <option value="enable">启用效果</option>
@@ -150,7 +150,7 @@ function RuleEditor({ draft, themes, onChange, onSave, onCancel }) {
 
       {actionType === "enable" && (
         <div className="space-y-2">
-          <label className="block text-[11px] font-medium text-slate-500">主题 (可选)</label>
+          <label className="block text-2xs font-medium text-slate-500">主题 (可选)</label>
           <select
             value={draft.action?.theme || ""}
             onChange={(e) => {
@@ -160,7 +160,7 @@ function RuleEditor({ draft, themes, onChange, onSave, onCancel }) {
                 action: { enable: true, ...(theme ? { theme } : {}) },
               });
             }}
-            className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[13px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-200"
+            className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-200"
           >
             <option value="">跟随全局主题</option>
             {themes.map((t) => (
@@ -290,7 +290,7 @@ export function SiteRulesPanel({
       </div>
 
       {activeHost && (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-2xs text-slate-500">
           当前站点 <code className="font-medium text-slate-700">{activeHost}</code>
         </div>
       )}
@@ -307,8 +307,8 @@ export function SiteRulesPanel({
 
       {siteRules.length === 0 && !isEditing ? (
         <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-8 text-center">
-          <p className="text-[13px] text-slate-400">暂无站点规则</p>
-          <p className="mt-1 text-[11px] text-slate-300">
+          <p className="text-sm text-slate-400">暂无站点规则</p>
+          <p className="mt-1 text-2xs text-slate-300">
             点击上方 + 添加第一条规则，或通过 URL 测试器快速添加当前站点
           </p>
         </div>
@@ -333,7 +333,7 @@ export function SiteRulesPanel({
       {siteRules.length > 0 && (
         <button
           onClick={clearAllSiteRules}
-          className="text-[11px] text-slate-400 hover:text-rose-500 transition-colors"
+          className="text-2xs text-slate-400 hover:text-rose-500 transition-colors"
         >
           清除全部规则
         </button>

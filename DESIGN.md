@@ -65,10 +65,31 @@
 - 标题：`text-sm font-semibold` + `text-balance`
 - 正文：`text-sm` / `text-xs` + `text-pretty`
 - 辅助文字：`text-xs text-slate-500`
+- 密集展示：`text-2xs`（10px）— 时间轴刻度、chip 内数值、tooltip 等 UI 密集区域
 - 数据展示：`tabular-nums`
 - 紧凑 UI：`truncate` 或 `line-clamp`
+- **禁止** `text-[9px]` / `text-[10px]` / `text-[11px]` / `text-[13px]` 等非标准字号（统一用 `text-2xs` 或 `text-xs`）
 - **禁止** `tracking-*`（不改 letter-spacing）
 - **禁止** `uppercase` 作为视觉风格
+
+#### 排版层级（Typography Hierarchy）
+一组弹窗 / 面板内的文本层级用「字号 × 字重 × 颜色」三元组表达，每下一级都同时降一档。这是 `AiSettingsDialog` 已落地的样板，新写面板沿用即可：
+
+| 角色 | 类名 | 用途示例 |
+| --- | --- | --- |
+| L1 容器标题 | `text-base font-semibold text-slate-900` | Dialog 标题、面板主标题 |
+| L2 段落 / 描述 | `text-xs leading-relaxed text-slate-500` | 标题下的解释、说明性副本 |
+| L3 表单标签 | `text-xs font-medium text-slate-600` | Input / Select 的 `<label>` |
+| L4 输入控件文本 | `text-sm text-slate-700`（由 `<Input>` 内置） | 用户填入的值 |
+| L5 内联徽标 / 提示 | `text-2xs font-semibold` 或 `text-2xs text-slate-400` | 「已保存」、状态徽标、刻度数字 |
+| L6 行动按钮 | `text-xs font-medium`（高度 `h-7` / `h-8`） | 段内可点的次级按钮 |
+| 反馈条 | `rounded-xl bg-{tone}-50 px-3 py-2 text-xs leading-relaxed text-{tone}-700` | 错误 / 成功条 |
+
+要点：
+- L1→L5 字号单调递减（base → xs → 2xs），字重最多 `semibold`，不堆叠多重 `font-bold`。
+- 颜色饱和度跟字号同步衰减：`slate-900` → `-600` → `-500` → `-400`，禁止反向（小字反而更深更显眼）。
+- 标签（L3）始终 `font-medium`，描述（L2）始终 `font-normal`，避免「标签当正文」错位。
+- 同一面板内不要出现两种 L1。需要分组时用 `SectionTitle` 或 `text-xs font-medium text-slate-600` 的 L3 当组标题。
 
 ### 间距 & 尺寸（Spacing & Sizing）
 - 图标按钮：`size-9`（36px）或 `size-8`（32px）

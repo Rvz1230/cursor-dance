@@ -101,7 +101,7 @@ export function TitleBar({
           <BrandMark size="sm" />
           <div className="hidden min-w-0 sm:block">
             <div className="text-xs font-semibold leading-tight text-slate-950">CursorDance</div>
-            <div className="text-[10px] leading-tight text-slate-500">主题工作台</div>
+            <div className="text-2xs leading-tight text-slate-500">主题工作台</div>
           </div>
         </div>
 

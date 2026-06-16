@@ -28,7 +28,7 @@ export function WorkbenchPanel({ actionId, config, updateActionConfig, conflicts
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
             <div>
-              <div className="font-medium">当前动作有 {conflicts.length} 个待明确项</div>
+              <div className="font-semibold">当前动作有 {conflicts.length} 个待明确项</div>
               <ul className={cn("mt-2 list-disc space-y-1 pl-4")}>
                 {conflicts.map((item) => (
                   <li key={item}>{item}</li>

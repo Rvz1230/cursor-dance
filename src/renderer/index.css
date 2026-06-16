@@ -1,3 +1,27 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ── FieldRow container query ──────────────────────────────────
+   父容器 .field-row-container 设置 container-type: inline-size
+   列宽 ≥ 280px：两列 [80px label] [1fr control]
+   列宽 < 280px：堆叠，label 在上 control 在下
+   ────────────────────────────────────────────────────────────── */
+@layer components {
+  .field-row-container {
+    container-type: inline-size;
+    container-name: field-row;
+  }
+
+  /* 宽列：两列 grid，标签列 80px */
+  @container field-row (min-width: 280px) {
+    .field-row {
+      grid-template-columns: 80px minmax(0, 1fr);
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .field-row-label {
+      min-width: 0;
+    }
+  }
+}

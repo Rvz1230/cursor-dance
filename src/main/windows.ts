@@ -143,8 +143,10 @@ export function destroyAllOverlays(): void {
 export function createWorkbenchWindow(): BrowserWindow {
   const isMac = process.platform === "darwin";
   const win = new BrowserWindow({
-    width: 1280,
-    height: 860,
+    width: 960,
+    height: 680,
+    minWidth: 720,
+    minHeight: 480,
     show: false,
     frame: isMac ? undefined : false,
     titleBarStyle: isMac ? "hiddenInset" : "default",

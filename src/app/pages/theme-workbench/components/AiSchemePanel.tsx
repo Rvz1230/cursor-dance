@@ -120,7 +120,7 @@ function MessageBubble({ message, onEdit, actionId, notify }) {
   return (
     <div className={cn("flex flex-col gap-0.5 group", isAssistant ? "items-start" : "items-end")}>
       {kindLabel ? (
-        <span className={cn("mb-0.5 rounded-full border px-2 py-0.5 text-[10px] font-medium leading-none", kindTone)}>
+        <span className={cn("mb-0.5 rounded-full border px-2 py-0.5 text-2xs font-medium leading-none", kindTone)}>
           {kindLabel}
         </span>
       ) : null}
@@ -142,13 +142,13 @@ function MessageBubble({ message, onEdit, actionId, notify }) {
                   const isBlock = /language-/.test(className || "");
                   if (isBlock) {
                     return (
-                      <pre className="mt-1 mb-1 overflow-x-auto rounded-lg bg-slate-100 p-2 text-[11px] leading-5">
+                      <pre className="mt-1 mb-1 overflow-x-auto rounded-lg bg-slate-100 p-2 text-2xs leading-5">
                         <code className={className} {...props}>{children}</code>
                       </pre>
                     );
                   }
                   return (
-                    <code className="rounded bg-slate-200/70 px-1 py-0.5 text-[11px] font-mono" {...props}>
+                    <code className="rounded bg-slate-200/70 px-1 py-0.5 text-2xs font-mono" {...props}>
                       {children}
                     </code>
                   );
@@ -445,7 +445,7 @@ function ProposalCard({ result, previewActive }) {
         <div>
           <SectionToggle label="更多信息" section="meta" />
           {openSections.meta ? (
-            <div className="flex flex-wrap items-center gap-1.5 px-3 py-1 text-[11px] text-slate-400">
+            <div className="flex flex-wrap items-center gap-1.5 px-3 py-1 text-2xs text-slate-400">
               <span>消耗 ~{result.totalTokens.toLocaleString()} tokens</span>
               {result.totalCacheHitTokens > 0 ? (
                 <>
@@ -487,9 +487,9 @@ function ToolCallBadge({ toolCall, toolResult }) {
         <Wrench className="size-3.5 shrink-0 text-slate-500" />
         <span className="font-medium text-slate-700">{labels[name] || name}</span>
         {toolResult?.ok === false ? (
-          <span className="ml-auto rounded-full bg-rose-100 px-1.5 py-0.5 text-rose-700 text-[10px] font-medium">失败</span>
+          <span className="ml-auto rounded-full bg-rose-100 px-1.5 py-0.5 text-rose-700 text-2xs font-medium">失败</span>
         ) : toolResult?.ok ? (
-          <span className="ml-auto rounded-full bg-emerald-100 px-1.5 py-0.5 text-emerald-700 text-[10px] font-medium">完成</span>
+          <span className="ml-auto rounded-full bg-emerald-100 px-1.5 py-0.5 text-emerald-700 text-2xs font-medium">完成</span>
         ) : null}
       </button>
       {expanded ? (
@@ -532,19 +532,19 @@ function AgentTimeline({ steps, isRunning, totalSteps }) {
         <Bot className="size-4 text-sky-600" />
         <span className="text-sm font-semibold text-sky-800">Agent 步骤</span>
         {isRunning ? (
-          <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-100 px-2 py-0.5 text-[11px] font-medium text-sky-700">
+          <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-100 px-2 py-0.5 text-2xs font-medium text-sky-700">
             <Loader2 className="size-3 animate-spin" />
             运行中
           </span>
         ) : (
-          <span className="ml-auto rounded-full border border-sky-200 bg-sky-100 px-2 py-0.5 text-[11px] font-medium text-sky-700">{stepLabel}</span>
+          <span className="ml-auto rounded-full border border-sky-200 bg-sky-100 px-2 py-0.5 text-2xs font-medium text-sky-700">{stepLabel}</span>
         )}
       </div>
       <div className="space-y-2">
         {steps.map((step) => (
           <div key={step.index} className="rounded-xl border border-sky-100 bg-white p-2.5">
             <div className="flex items-start gap-2">
-              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-sky-100 text-[11px] font-bold text-sky-700">{step.index}</span>
+              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-sky-100 text-2xs font-bold text-sky-700">{step.index}</span>
               <div className="min-w-0 flex-1">
                 {step.thought ? (
                   <div className="text-xs leading-5 text-slate-600 line-clamp-2">{step.thought}</div>
@@ -560,10 +560,10 @@ function AgentTimeline({ steps, isRunning, totalSteps }) {
                 )}
               </div>
               {step.durationMs ? (
-                <span className="shrink-0 text-[11px] text-slate-400">{step.durationMs}ms</span>
+                <span className="shrink-0 text-2xs text-slate-400">{step.durationMs}ms</span>
               ) : null}
               {step.tokenUsage?.total_tokens ? (
-                <span className="shrink-0 text-[11px] text-slate-400">{step.tokenUsage.total_tokens} tk</span>
+                <span className="shrink-0 text-2xs text-slate-400">{step.tokenUsage.total_tokens} tk</span>
               ) : null}
             </div>
             {step.toolCalls?.length > 0 ? (
@@ -605,7 +605,7 @@ function ModeSwitcher({ useAgent, onToggle, disabled }) {
     <div className="relative" ref={ref}>
       <button
         type="button"
-        className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium text-slate-500 transition-colors hover:bg-slate-100"
+        className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-2xs font-medium text-slate-500 transition-colors hover:bg-slate-100"
         disabled={disabled}
         onClick={() => setOpen(!open)}
         aria-expanded={open}
@@ -629,7 +629,7 @@ function ModeSwitcher({ useAgent, onToggle, disabled }) {
               <span className="text-xs font-semibold text-slate-800">快速模式</span>
               {!useAgent ? <Check className="ml-auto size-3.5 text-slate-600" /> : null}
             </div>
-            <div className="mt-0.5 text-[11px] leading-4 text-slate-500 text-pretty">
+            <div className="mt-0.5 text-2xs leading-4 text-slate-500 text-pretty">
               一步生成，适合简单需求（调整参数、开关效果）
             </div>
           </button>
@@ -645,10 +645,10 @@ function ModeSwitcher({ useAgent, onToggle, disabled }) {
               <span className="text-xs font-semibold text-slate-800">Agent 模式</span>
               {useAgent ? <Check className="ml-auto size-3.5 text-slate-600" /> : null}
             </div>
-            <div className="mt-0.5 text-[11px] leading-4 text-slate-500 text-pretty">
+            <div className="mt-0.5 text-2xs leading-4 text-slate-500 text-pretty">
               分步推理 · 工具调用，适合复杂修改，支持多动作
             </div>
-            <div className="mt-1 text-[11px] leading-4 text-slate-400">
+            <div className="mt-1 text-2xs leading-4 text-slate-400">
               可读取/修改多个动作配置，支持撤销
             </div>
           </button>
@@ -1085,7 +1085,7 @@ export function AiSchemePanel({
           <ModeSwitcher useAgent={useAgent} onToggle={setUseAgent} disabled={isGenerating} />
           {confirmClear ? (
             <div className="flex items-center gap-1 rounded-xl bg-rose-50 px-2 py-1">
-              <span className="text-[11px] font-medium text-rose-700">确认清空？</span>
+              <span className="text-2xs font-medium text-rose-700">确认清空？</span>
               <button
                 type="button"
                 className="inline-flex size-6 items-center justify-center rounded-lg bg-white text-rose-600 transition-colors hover:bg-rose-100"
@@ -1157,13 +1157,13 @@ export function AiSchemePanel({
                             const isBlock = /language-/.test(className || "");
                             if (isBlock) {
                               return (
-                                <pre className="mt-1 mb-1 overflow-x-auto rounded-lg bg-slate-100 p-2 text-[11px] leading-5">
+                                <pre className="mt-1 mb-1 overflow-x-auto rounded-lg bg-slate-100 p-2 text-2xs leading-5">
                                   <code className={className} {...props}>{children}</code>
                                 </pre>
                               );
                             }
                             return (
-                              <code className="rounded bg-slate-200/70 px-1 py-0.5 text-[11px] font-mono" {...props}>
+                              <code className="rounded bg-slate-200/70 px-1 py-0.5 text-2xs font-mono" {...props}>
                                 {children}
                               </code>
                             );

@@ -193,7 +193,7 @@ export function AiSettingsDialog({ open, onClose }: AiSettingsDialogProps) {
             <label htmlFor="ai-api-key" className="flex items-center gap-1.5 text-xs font-medium text-slate-600">
               <KeyRound className="size-3.5" aria-hidden />
               API Key
-              {hasApiKey ? <span className="ml-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">已保存</span> : null}
+              {hasApiKey ? <span className="ml-1 rounded-full bg-emerald-100 px-2 py-0.5 text-2xs font-semibold text-emerald-700">已保存</span> : null}
             </label>
             <Input
               id="ai-api-key"

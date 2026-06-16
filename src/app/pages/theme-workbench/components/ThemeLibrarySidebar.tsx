@@ -241,7 +241,7 @@ export function ThemeLibrarySidebar({
   const [pendingDeleteTheme, setPendingDeleteTheme] = useState(null);
   const [pendingSwitchThemeId, setPendingSwitchThemeId] = useState(null);
   const [isSwitching, setIsSwitching] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
 
   const filteredThemes = useMemo(() => {
     const keyword = query.trim().toLowerCase();
@@ -337,9 +337,9 @@ export function ThemeLibrarySidebar({
   const currentThemeName = themes.find((t) => t.id === themeId)?.name || "当前主题";
 
   return (
-    <aside className={cn("flex shrink-0 flex-col border-r border-slate-200 bg-slate-100 transition-[width] duration-200", collapsed ? "w-[76px]" : "w-[304px]")}>
+    <aside className={cn("flex shrink-0 flex-col border-r border-slate-200 bg-slate-100 transition-[width] duration-200", collapsed ? "w-[60px]" : "w-[240px]")}>
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className={cn("px-3 py-2.5", collapsed && "flex justify-center")}>
+        <div className={cn("py-2.5", collapsed ? "px-2 flex justify-center" : "px-3")}>
           {collapsed ? (
             <div className="flex flex-col items-center gap-2">
               <Button
@@ -399,7 +399,7 @@ export function ThemeLibrarySidebar({
           </div>
         ) : null}
 
-        <div className={cn("min-h-0 flex-1 space-y-2 overflow-y-auto px-3 pb-3 pt-2", collapsed && "space-y-3")}>
+        <div className={cn("min-h-0 flex-1 overflow-y-auto pb-3 pt-2", collapsed ? "px-2 space-y-3" : "px-3 space-y-2")}>
           {filteredThemes.length ? (
             filteredThemes.map((theme) => (
               <ThemeCard

@@ -148,7 +148,7 @@ export function WorkspaceItem({ item, active, onClick, compact = false }: { item
       onClick={onClick}
       className={cn(
         compact
-          ? "inline-flex whitespace-nowrap items-center gap-2 rounded-xl border px-2.5 py-1.5 text-sm transition-[transform,color,background-color,border-color,box-shadow] active:scale-[0.97]"
+          ? "inline-flex h-7 whitespace-nowrap items-center gap-1.5 rounded-xl border px-2.5 text-xs font-medium transition-[transform,color,background-color,border-color,box-shadow] active:scale-[0.97]"
           : "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors",
         compact
           ? active
@@ -159,8 +159,8 @@ export function WorkspaceItem({ item, active, onClick, compact = false }: { item
             : "text-slate-600 hover:bg-white hover:text-slate-900"
       )}
     >
-      <Icon className="h-4 w-4" />
-      <span className="font-medium">{item.label}</span>
+      <Icon className={cn(compact ? "h-3.5 w-3.5" : "h-4 w-4")} />
+      <span className={cn(compact ? "" : "font-medium")}>{item.label}</span>
     </button>
   );
 }

@@ -62,7 +62,7 @@ const PATTERN_TARGET_LABELS: Record<PatternTarget, string> = {
 function PatternLabel({ pattern }: { pattern?: AppRulePattern | null }) {
   if (!pattern || !pattern.type) return <span className="text-slate-400">—</span>;
   return (
-    <code className="text-[11px] font-medium text-slate-700 bg-slate-100 rounded-md px-1.5 py-0.5">
+    <code className="text-2xs font-medium text-slate-700 bg-slate-100 rounded-md px-1.5 py-0.5">
       {pattern.value || "(空)"}
     </code>
   );
@@ -133,19 +133,19 @@ function RuleRow({ rule, themes, onToggle, onEdit, onDelete, onDragStart, onDrag
       </button>
 
       <div className="flex-1 min-w-0 flex items-center gap-2">
-        <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider shrink-0">
+        <span className="text-2xs font-medium text-slate-400 shrink-0">
           {targetLabel} · {typeLabel}
         </span>
         <PatternLabel pattern={rule.pattern} />
         <ActionBadge action={rule.action} />
         {themeName && (
-          <span className="text-[10px] text-slate-400 truncate">{themeName}</span>
+          <span className="text-2xs text-slate-400 truncate">{themeName}</span>
         )}
       </div>
 
       <button
         onClick={() => onEdit(rule.id)}
-        className="shrink-0 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors opacity-0 group-hover:opacity-100"
+        className="shrink-0 rounded-lg px-2 py-1 text-2xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors opacity-0 group-hover:opacity-100"
       >
         编辑
       </button>
@@ -194,14 +194,14 @@ function RuleEditor({ draft, themes, activeApp, onChange, onSave, onCancel }: Ru
       <SectionTitle>规则编辑</SectionTitle>
 
       <div className="space-y-2">
-        <label className="block text-[11px] font-medium text-slate-500">匹配维度</label>
+        <label className="block text-2xs font-medium text-slate-500">匹配维度</label>
         <select
           value={target}
           onChange={(e) => onChange({
             ...draft,
             pattern: { ...draft.pattern, target: e.target.value as PatternTarget },
           })}
-          className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[13px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-200"
+          className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-200"
         >
           <option value="process">进程名 — 应用进程显示名（macOS app 名 / Windows 进程名）</option>
           <option value="title">窗口标题 — 当前前台窗口标题</option>
@@ -209,14 +209,14 @@ function RuleEditor({ draft, themes, activeApp, onChange, onSave, onCancel }: Ru
       </div>
 
       <div className="space-y-2">
-        <label className="block text-[11px] font-medium text-slate-500">匹配方式</label>
+        <label className="block text-2xs font-medium text-slate-500">匹配方式</label>
         <select
           value={patternType}
           onChange={(e) => onChange({
             ...draft,
             pattern: { ...draft.pattern, type: e.target.value as PatternType },
           })}
-          className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[13px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-200"
+          className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-200"
         >
           <option value="exact">精确匹配 — 完整字符串相等（不区分大小写）</option>
           <option value="glob">通配符 — *、**、? 通配（不区分大小写）</option>
@@ -224,20 +224,20 @@ function RuleEditor({ draft, themes, activeApp, onChange, onSave, onCancel }: Ru
       </div>
 
       <div className="space-y-2">
-        <label className="block text-[11px] font-medium text-slate-500">匹配值</label>
+        <label className="block text-2xs font-medium text-slate-500">匹配值</label>
         <div className="flex items-stretch gap-1.5">
           <input
             type="text"
             value={draft.pattern?.value || ""}
             onChange={(e) => onChange({ ...draft, pattern: { ...draft.pattern, value: e.target.value } })}
             placeholder={placeholder}
-            className="flex-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-[13px] text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
+            className="flex-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"
           />
           {activeApp?.authorized && (
             <button
               type="button"
               onClick={() => fillFromActiveApp(target)}
-              className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-medium text-slate-600 hover:bg-slate-100"
+              className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-2xs font-medium text-slate-600 hover:bg-slate-100"
               title={`使用当前前台${target === "title" ? "窗口标题" : "进程名"}`}
             >
               <Crosshair className="size-3" />
@@ -248,7 +248,7 @@ function RuleEditor({ draft, themes, activeApp, onChange, onSave, onCancel }: Ru
       </div>
 
       <div className="space-y-2">
-        <label className="block text-[11px] font-medium text-slate-500">操作</label>
+        <label className="block text-2xs font-medium text-slate-500">操作</label>
         <select
           value={actionType}
           onChange={(e) => {
@@ -258,7 +258,7 @@ function RuleEditor({ draft, themes, activeApp, onChange, onSave, onCancel }: Ru
               action: nextType === "disable" ? "disable" : { enable: true },
             });
           }}
-          className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[13px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-200"
+          className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-200"
         >
           <option value="disable">在该应用中禁用效果</option>
           <option value="enable">在该应用中启用效果</option>
@@ -267,7 +267,7 @@ function RuleEditor({ draft, themes, activeApp, onChange, onSave, onCancel }: Ru
 
       {actionType === "enable" && (
         <div className="space-y-2">
-          <label className="block text-[11px] font-medium text-slate-500">主题 (可选)</label>
+          <label className="block text-2xs font-medium text-slate-500">主题 (可选)</label>
           <select
             value={(draft.action as AppRuleEnableAction)?.theme || ""}
             onChange={(e) => {
@@ -277,7 +277,7 @@ function RuleEditor({ draft, themes, activeApp, onChange, onSave, onCancel }: Ru
                 action: { enable: true, ...(theme ? { theme } : {}) },
               });
             }}
-            className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[13px] text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-200"
+            className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-200"
           >
             <option value="">跟随全局主题</option>
             {themes.map((t) => (
@@ -459,7 +459,7 @@ export function AppRulesPanel({
       </div>
 
       {activeApp && activeApp.authorized && (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-500 space-y-0.5">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-2xs text-slate-500 space-y-0.5">
           <div>当前前台 <code className="font-medium text-slate-700">{activeApp.processName}</code></div>
           {activeApp.title && (
             <div className="truncate">窗口标题 <code className="font-medium text-slate-600">{activeApp.title}</code></div>
@@ -468,13 +468,13 @@ export function AppRulesPanel({
       )}
 
       {activeApp && !activeApp.authorized && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-[11px] text-amber-800">
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-2xs text-amber-800">
           <div className="font-medium">{activeApp.message || "无法获取当前前台应用。"}</div>
           {openAccessibilitySettings ? (
             <button
               type="button"
               onClick={openAccessibilitySettings}
-              className="mt-1 inline-flex items-center gap-1 text-[11px] font-medium text-amber-900 underline underline-offset-2 hover:text-amber-700"
+              className="mt-1 inline-flex items-center gap-1 text-2xs font-medium text-amber-900 underline underline-offset-2 hover:text-amber-700"
             >
               打开系统设置 → 隐私与安全 → 辅助功能
               <ExternalLink className="size-3" />
@@ -499,8 +499,8 @@ export function AppRulesPanel({
           <div className="mx-auto inline-flex size-10 items-center justify-center rounded-full bg-slate-100 text-slate-400">
             <AppWindow className="size-5" aria-hidden />
           </div>
-          <p className="mt-3 text-[13px] font-medium text-slate-700">还没有应用规则</p>
-          <p className="mx-auto mt-1.5 max-w-sm text-[11px] leading-5 text-slate-500">
+          <p className="mt-3 text-sm font-medium text-slate-700">还没有应用规则</p>
+          <p className="mx-auto mt-1.5 max-w-sm text-2xs leading-5 text-slate-500">
             按进程名或窗口标题为指定应用启用 / 禁用效果，或切换到不同主题。
           </p>
           <div className="mt-4 flex items-center justify-center gap-2">
@@ -544,7 +544,7 @@ export function AppRulesPanel({
       {appRules.length > 0 && (
         <button
           onClick={clearAllAppRules}
-          className="text-[11px] text-slate-400 hover:text-rose-500 transition-colors"
+          className="text-2xs text-slate-400 hover:text-rose-500 transition-colors"
         >
           清除全部规则
         </button>

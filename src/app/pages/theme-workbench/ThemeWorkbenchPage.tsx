@@ -310,7 +310,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                         ) : null}
                       </div>
 
-                      <div className="min-h-0 overflow-y-auto pr-1">
+                      <div className="field-row-container min-h-0 overflow-y-auto pr-1">
                         <WorkbenchPanel
                           actionId={selected.actionId}
                           config={currentActionConfig}

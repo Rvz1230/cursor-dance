@@ -77,18 +77,18 @@ export function WelcomeDialog({
                 <tip.icon className="size-3.5" aria-hidden />
               </span>
               <div className="min-w-0">
-                <div className="text-[13px] font-medium text-slate-900">{tip.title}</div>
-                <p className="mt-0.5 text-[12px] leading-5 text-slate-500">{tip.body}</p>
+                <div className="text-sm font-semibold text-slate-900">{tip.title}</div>
+                <p className="mt-0.5 text-xs leading-5 text-slate-500">{tip.body}</p>
               </div>
             </div>
           ))}
 
           {platform === "darwin" && needsAccessibility ? (
             <div className="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3">
-              <div className="flex items-start gap-2 text-[12px] text-amber-900">
+              <div className="flex items-start gap-2 text-xs text-amber-900">
                 <SettingsIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
                 <div className="min-w-0">
-                  <div className="font-medium">建议授予「辅助功能」权限</div>
+                  <div className="font-semibold">建议授予「辅助功能」权限</div>
                   <p className="mt-0.5 leading-5">
                     用于按应用切换主题 / 禁用效果——粒子和声音本身不需要权限。
                   </p>
@@ -96,7 +96,7 @@ export function WelcomeDialog({
                     <button
                       type="button"
                       onClick={onOpenAccessibilitySettings}
-                      className="mt-1.5 text-[12px] font-medium text-amber-900 underline underline-offset-2 hover:text-amber-700"
+                      className="mt-1.5 text-xs font-medium text-amber-900 underline underline-offset-2 hover:text-amber-700"
                     >
                       打开系统设置 → 隐私与安全 → 辅助功能
                     </button>

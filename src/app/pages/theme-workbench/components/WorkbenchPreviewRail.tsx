@@ -192,7 +192,7 @@ function TrackHandle({ side, track, totalMs, pxPerMs, updateActionConfig }) {
       </div>
       {isDragging && tooltipMs !== null ? (
         <div
-          className="absolute -top-8 z-30 -translate-x-1/2 rounded-lg bg-slate-900 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-white shadow-lg pointer-events-none whitespace-nowrap"
+          className="absolute -top-8 z-30 -translate-x-1/2 rounded-lg bg-slate-900 px-2 py-0.5 text-2xs font-semibold tabular-nums text-white shadow-lg pointer-events-none whitespace-nowrap"
           style={{ left: posPct }}
         >
           {isLeft
@@ -240,7 +240,7 @@ function TimelineTrackRow({ track, totalMs, pxPerMs, updateActionConfig, isEven 
     )}>
       <div className="flex items-center gap-1.5">
         <span className={cn("size-1.5 rounded-full shrink-0", tone.dot)} />
-        <span className={cn("text-[11px] font-semibold select-none truncate", tone.text)}>{track.label}</span>
+        <span className={cn("text-2xs font-semibold select-none truncate", tone.text)}>{track.label}</span>
         {isDirty ? (
           <button
             type="button"
@@ -310,7 +310,7 @@ function TimelineTrackRow({ track, totalMs, pxPerMs, updateActionConfig, isEven 
           {/* duration label inside block */}
           {track.configuredDuration && (track.end - track.start) / totalMs > 0.18 ? (
             <span className={cn(
-              "absolute inset-0 flex items-center justify-center text-[9px] font-semibold tabular-nums select-none pointer-events-none",
+              "absolute inset-0 flex items-center justify-center text-2xs font-semibold tabular-nums select-none pointer-events-none",
               tone.text
             )}>
               {track.configuredDuration}ms
@@ -366,19 +366,19 @@ function InteractiveTimeline({ tracks, totalMs, updateActionConfig }) {
       <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-2">
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-slate-700">时间轴编排</span>
-          <span className="text-[10px] tabular-nums text-slate-400 bg-slate-100 rounded-md px-1.5 py-0.5">{totalMs}ms</span>
+          <span className="text-2xs tabular-nums text-slate-400 bg-slate-100 rounded-md px-1.5 py-0.5">{totalMs}ms</span>
         </div>
         <div className="flex items-center gap-1.5">
           {hasAnyDirty ? (
             <button
               type="button"
-              className="rounded-md px-2 py-0.5 text-[11px] font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+              className="rounded-md px-2 py-0.5 text-2xs font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
               onClick={resetAll}
             >
               重置全部
             </button>
           ) : null}
-          <span className="text-[10px] text-slate-400 hidden sm:inline">拖拽边缘调整时长 · 拖拽中部调整延迟</span>
+          <span className="text-2xs text-slate-400 hidden sm:inline">拖拽边缘调整时长 · 拖拽中部调整延迟</span>
         </div>
       </div>
 
@@ -400,7 +400,7 @@ function InteractiveTimeline({ tracks, totalMs, updateActionConfig }) {
             style={{ left: `${(tick / totalMs) * 100}%`, transform: tick === 0 ? "translateX(0)" : tick === totalMs ? "translateX(-100%)" : "translateX(-50%)" }}
           >
             <div className="h-3.5 w-px bg-slate-400" />
-            <span className="mt-0.5 text-[9px] tabular-nums text-slate-500 leading-none">
+            <span className="mt-0.5 text-2xs tabular-nums text-slate-500 leading-none">
               {formatTickMs(tick)}
             </span>
           </div>
