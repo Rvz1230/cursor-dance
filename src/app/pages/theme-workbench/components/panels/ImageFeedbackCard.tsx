@@ -94,7 +94,7 @@ export function ImageFeedbackCard({ config, updateActionConfig, panelId }) {
                     <Upload className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-sm font-semibold text-slate-900 text-balance">上传 PNG / WebP / SVG</div>
+                    <div className="text-xs font-medium text-slate-600 text-balance">上传 PNG / WebP / SVG</div>
                     <div className="mt-1 text-xs text-slate-500">建议 300 KB 以内，先做一张点击贴纸。</div>
                   </div>
                 </div>
@@ -116,7 +116,7 @@ export function ImageFeedbackCard({ config, updateActionConfig, panelId }) {
                       <img src={preset.asset.imageDataUrl} alt={`${preset.label} preview`} className="object-contain" style={{ width: "40px", height: "40px" }} />
                     </div>
                     <div className="min-w-0">
-                      <div className="text-sm font-semibold text-slate-800 text-balance">{preset.label}</div>
+                      <div className="text-xs font-medium text-slate-600 text-balance">{preset.label}</div>
                       <div className="mt-1 text-xs leading-5 text-slate-500">{preset.hint}</div>
                     </div>
                   </button>
@@ -157,7 +157,7 @@ export function ImageFeedbackCard({ config, updateActionConfig, panelId }) {
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4">
-              <div className="text-sm font-semibold text-slate-900 text-balance">当前预览</div>
+              <div className="text-xs font-medium text-slate-600 text-balance">当前预览</div>
               <div className="mt-4 flex h-32 items-center justify-center rounded-2xl border border-slate-200 bg-purple-50 shadow-sm">
                 {config.imageDataUrl ? (
                   <img src={config.imageDataUrl} alt="image effect preview" style={buildImagePreviewStyle(config)} />
@@ -176,17 +176,14 @@ export function ImageFeedbackCard({ config, updateActionConfig, panelId }) {
           <SectionTitle>动画</SectionTitle>
           <FieldRow
             label="持续时间"
-            hint="停留多久。"
             control={<ControlSlider disabled={!config.imageEnabled} value={config.imageDuration} min={240} max={1600} onValueChange={(value) => updateActionConfig({ imageDuration: value[0] })} suffix="ms" label="持续时间" />}
           />
           <FieldRow
             label="水平偏移"
-            hint="左右位置。"
             control={<ControlSlider disabled={!config.imageEnabled} value={config.imageOffsetX} min={-36} max={36} onValueChange={(value) => updateActionConfig({ imageOffsetX: value[0] })} suffix="px" label="水平偏移" />}
           />
           <FieldRow
             label="垂直偏移"
-            hint="上下位置。"
             control={<ControlSlider disabled={!config.imageEnabled} value={config.imageOffsetY} min={-48} max={24} onValueChange={(value) => updateActionConfig({ imageOffsetY: value[0] })} suffix="px" label="垂直偏移" />}
           />
         </SettingSection>
@@ -195,12 +192,10 @@ export function ImageFeedbackCard({ config, updateActionConfig, panelId }) {
           <SectionTitle>样式</SectionTitle>
           <FieldRow
             label="贴纸尺寸"
-            hint="图片显示尺寸。"
             control={<ControlSlider disabled={!config.imageEnabled} value={config.imageSize} min={24} max={120} onValueChange={(value) => updateActionConfig({ imageSize: value[0] })} suffix="px" label="贴纸尺寸" />}
           />
           <FieldRow
             label="透明度"
-            hint="整体透明度。"
             control={<ControlSlider disabled={!config.imageEnabled} value={config.imageOpacity} min={20} max={100} onValueChange={(value) => updateActionConfig({ imageOpacity: value[0] })} suffix="%" label="透明度" />}
           />
         </SettingSection>

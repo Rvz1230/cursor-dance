@@ -20,12 +20,15 @@ import { WelcomeDialog } from "./components/WelcomeDialog";
 import { AiSettingsDialog } from "./components/AiSettingsDialog";
 import { cn } from "@/components/ui/utils";
 import { ToastProvider, useToast } from "@/components/ui/toast";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { isDesktop } from "@/shared/runtime";
 
 export default function ThemeWorkbenchPage({ renderHeader }: ThemeWorkbenchPageProps = {}) {
   return (
     <ToastProvider>
-      <ThemeWorkbenchPageContent renderHeader={renderHeader} />
+      <TooltipProvider>
+        <ThemeWorkbenchPageContent renderHeader={renderHeader} />
+      </TooltipProvider>
     </ToastProvider>
   );
 }

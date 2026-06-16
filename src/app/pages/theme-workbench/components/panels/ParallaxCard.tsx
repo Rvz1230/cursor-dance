@@ -17,19 +17,18 @@ export function ParallaxCard({ value, onChange }) {
     >
       <FieldRow
         label="启用"
-        hint="页面元素跟随鼠标偏移，产生景深感。"
+        tooltip="页面元素跟随鼠标偏移，产生景深感。"
         control={<Switch checked={value.enabled} onCheckedChange={(next) => onChange({ enabled: next })} aria-label="视差景深开关" />}
       />
       {value.enabled ? (
         <>
           <FieldRow
             label="强度"
-            hint="视差偏移的幅度。"
             control={<SmallSelect value={value.intensity} options={PARALLAX_INTENSITY_OPTIONS} onChange={(val) => onChange({ intensity: val })} />}
           />
           <FieldRow
             label="目标选择器"
-            hint="CSS 选择器，匹配需要视差效果的元素。"
+            tooltip="CSS 选择器，匹配需要视差效果的元素。"
             control={<Input value={value.selector} onChange={(e) => onChange({ selector: e.target.value })} aria-label="目标选择器" />}
           />
         </>

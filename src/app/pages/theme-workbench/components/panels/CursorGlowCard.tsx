@@ -15,24 +15,21 @@ export function CursorGlowCard({ value, onChange }) {
     >
       <FieldRow
         label="启用"
-        hint="开启光标周围的光晕效果。"
+        tooltip="开启光标周围的光晕效果。"
         control={<Switch checked={value.enabled} onCheckedChange={(next) => onChange({ enabled: next })} aria-label="光标光晕开关" />}
       />
       {value.enabled ? (
         <>
           <FieldRow
             label="光晕大小"
-            hint="光晕的直径。"
             control={<ControlSlider value={value.size} min={40} max={300} onValueChange={(val) => onChange({ size: val[0] })} suffix="px" label="光晕大小" />}
           />
           <FieldRow
             label="透明度"
-            hint="光晕的不透明度。"
             control={<ControlSlider value={Math.round(value.opacity * 100)} min={1} max={50} onValueChange={(val) => onChange({ opacity: val[0] / 100 })} suffix="%" label="透明度" />}
           />
           <FieldRow
             label="光晕颜色"
-            hint="光晕的色调。"
             control={<ColorOptions value={value.color} onChange={(color) => onChange({ color })} />}
           />
         </>

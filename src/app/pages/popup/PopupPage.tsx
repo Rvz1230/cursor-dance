@@ -65,12 +65,12 @@ function ParticleBlock({ ac, accent }) {
 
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium"
+      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-2xs font-medium"
       style={{ backgroundColor: `${accent}12`, color: accent }}
     >
       <Sparkles className="size-3.5" />
       <span>{style}</span>
-      <span className="text-[9px] opacity-60">·</span>
+      <span className="text-2xs opacity-60">·</span>
       <span className="tabular-nums">{count}</span>
       <span className="opacity-60">{dir}</span>
     </span>
@@ -84,12 +84,12 @@ function RippleBlock({ ac, accent }) {
 
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium"
+      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-2xs font-medium"
       style={{ boxShadow: `inset 0 0 0 1px ${accent}28`, color: accent }}
     >
       <CircleDashed className="size-3.5" />
       <span>{style}</span>
-      <span className="text-[9px] opacity-60">·</span>
+      <span className="text-2xs opacity-60">·</span>
       <span className="tabular-nums">{size}px</span>
     </span>
   );
@@ -103,12 +103,12 @@ function TextBlock({ ac }) {
 
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium"
+      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-2xs font-medium"
       style={{ backgroundColor: `${color}10`, color }}
     >
       <Type className="size-3.5" />
       <span className="font-medium truncate max-w-[72px]">"{text}"</span>
-      {size > 0 && <><span className="text-[9px] opacity-60">·</span><span className="tabular-nums">{size}px</span></>}
+      {size > 0 && <><span className="text-2xs opacity-60">·</span><span className="tabular-nums">{size}px</span></>}
     </span>
   );
 }
@@ -118,7 +118,7 @@ function SoundBlock({ ac }) {
   const vol = ac.volume != null ? ac.volume : 0;
 
   return (
-    <span className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium bg-slate-100 text-slate-500">
+    <span className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-2xs font-medium bg-slate-100 text-slate-500">
       <Volume2 className="size-3.5" />
       <span className="tabular-nums">{vol}%</span>
     </span>
@@ -130,7 +130,7 @@ function AnimationBlock({ ac, accent }) {
   const style = ac.animationStyle || "聚焦脉冲";
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium"
+      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-2xs font-medium"
       style={{ backgroundColor: `${accent}12`, color: accent }}
     >
       <Wand2 className="size-3.5" />
@@ -144,12 +144,12 @@ function ImageBlock({ ac, accent }) {
   const size = ac.imageSize || 56;
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium"
+      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-2xs font-medium"
       style={{ boxShadow: `inset 0 0 0 1px ${accent}28`, color: accent }}
     >
       <ImagePlus className="size-3.5" />
       <span>图片</span>
-      <span className="text-[9px] opacity-60">·</span>
+      <span className="text-2xs opacity-60">·</span>
       <span className="tabular-nums">{size}px</span>
     </span>
   );
@@ -162,7 +162,7 @@ function CursorFeedbackBlock({ ac, accent }) {
   if (!hasGlow && !hasShake && !hasTrail) return null;
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium"
+      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-2xs font-medium"
       style={{ backgroundColor: `${accent}08`, color: accent }}
     >
       <MousePointer2 className="size-3.5" />
@@ -266,9 +266,9 @@ function IdentityCard({ actionConfig, accent, name, Icon: ThemeIcon, enabled, si
           >
             <ThemeIcon className="size-[15px]" style={{ color: accent }} />
           </div>
-          <h2 className="text-sm font-bold truncate" style={{ color: accent }}>{name}</h2>
+          <h2 className="text-base font-semibold truncate" style={{ color: accent }}>{name}</h2>
           {hasSiteRule && (
-            <span className="ml-auto inline-flex items-center gap-1 rounded-md bg-slate-100 px-1.5 py-0.5 text-[9px] font-medium text-slate-500">
+            <span className="ml-auto inline-flex items-center gap-1 rounded-md bg-slate-100 px-1.5 py-0.5 text-2xs font-medium text-slate-500">
               <Monitor className="size-2.5" />
               站点规则
             </span>
@@ -278,7 +278,7 @@ function IdentityCard({ actionConfig, accent, name, Icon: ThemeIcon, enabled, si
         {!hasEffects ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-2">
             <p className="text-xs text-slate-400">暂无特效配置</p>
-            <p className="text-[10px] text-slate-300">可前往工作台配置效果</p>
+            <p className="text-2xs text-slate-400">可前往工作台配置效果</p>
           </div>
         ) : (
           <div className="flex flex-1 flex-col min-h-0 pt-2 gap-2">
@@ -292,7 +292,7 @@ function IdentityCard({ actionConfig, accent, name, Icon: ThemeIcon, enabled, si
               {/* Motion group */}
               {(actionConfig?.particle || actionConfig?.ripple || actionConfig?.animationEnabled) && (
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-[9px] font-semibold tracking-wider text-slate-400">动效</span>
+                  <span className="text-xs font-semibold text-xs font-semibold text-slate-400">动效</span>
                   <div className="flex flex-wrap gap-1">
                     <ParticleBlock ac={actionConfig} accent={accent} />
                     <RippleBlock ac={actionConfig} accent={accent} />
@@ -303,7 +303,7 @@ function IdentityCard({ actionConfig, accent, name, Icon: ThemeIcon, enabled, si
               {/* Feedback group */}
               {(actionConfig?.textEnabled || actionConfig?.sound || actionConfig?.imageEnabled || actionConfig?.cursorGlowColor?.trim() || actionConfig?.shake || actionConfig?.cursorTrailEnabled) && (
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-[9px] font-semibold tracking-wider text-slate-400">反馈</span>
+                  <span className="text-xs font-semibold text-xs font-semibold text-slate-400">反馈</span>
                   <div className="flex flex-wrap gap-1">
                     <TextBlock ac={actionConfig} />
                     <SoundBlock ac={actionConfig} />
@@ -358,7 +358,7 @@ function NoticeBar({ notice, onDismiss }) {
       className={cn("mx-4 mb-1 flex items-center gap-2 rounded-lg px-3 py-1.5", bgMap[notice.tone] || bgMap.slate)}
     >
       <span className={cn("size-1.5 shrink-0 rounded-full", dotMap[notice.tone])} />
-      <span className={cn("text-[11px] leading-tight", textMap[notice.tone])}>{notice.message}</span>
+      <span className={cn("text-2xs leading-tight", textMap[notice.tone])}>{notice.message}</span>
       <button
         type="button"
         onClick={onDismiss}
@@ -430,7 +430,7 @@ function ThemeCarousel({ themes, activeId, onSelect, accent }) {
                   <CardIcon className="size-5" style={{ color: active ? tAccent : "#94a3b8" }} />
                 ) : (
                   <span
-                    className="text-base font-bold"
+                    className="text-base font-semibold"
                     style={{ color: active ? tAccent : "#94a3b8" }}
                   >
                     {t.name.length <= 2 ? t.name : t.name.slice(0, 2)}
@@ -438,7 +438,7 @@ function ThemeCarousel({ themes, activeId, onSelect, accent }) {
                 )}
               </div>
               <span
-                className="text-[9px] font-semibold"
+                className="text-xs font-semibold"
                 style={{
                   color: active ? tAccent : "#cbd5e1",
                   opacity: active ? 1 : Math.abs(raw) <= 1 ? 0.6 : 0,
@@ -575,7 +575,7 @@ export default function PopupPage() {
       {/* ── header ── */}
       <header className="flex shrink-0 items-center gap-2 px-4 pt-3.5 pb-2">
         <img src="logo.svg" alt="" className="size-6 rounded-md" />
-        <span className="text-[13px] font-bold text-slate-900">CursorDance</span>
+        <span className="text-base font-semibold text-slate-900">CursorDance</span>
         <div className="ml-auto flex items-center">
           <Toggle checked={enabled} onChange={setEnabled} />
         </div>
@@ -620,7 +620,7 @@ export default function PopupPage() {
       {/* ── disabled overlay label ── */}
       {!enabled && (
         <div className="absolute inset-x-0 top-1/2 z-20 flex -translate-y-1/2 items-center justify-center pointer-events-none">
-          <span className="rounded-full bg-white/80 px-3 py-1 text-[11px] font-semibold text-slate-400 shadow-sm ring-1 ring-slate-200/60 backdrop-blur-sm">
+          <span className="rounded-full bg-white/80 px-3 py-1 text-2xs font-semibold text-slate-400 shadow-sm ring-1 ring-slate-200/60 backdrop-blur-sm">
             全局特效已暂停
           </span>
         </div>
@@ -643,7 +643,7 @@ export default function PopupPage() {
         <button
           type="button"
           onClick={openOptionsPage}
-          className="flex h-9 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white text-[12px] font-semibold text-slate-600 shadow-sm transition-colors hover:bg-slate-50 active:scale-[0.97]"
+          className="flex h-9 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-600 shadow-sm transition-colors hover:bg-slate-50 active:scale-[0.97]"
           aria-label="打开工作台"
         >
           <Settings className="size-3.5" />
@@ -653,7 +653,7 @@ export default function PopupPage() {
           type="button"
           onClick={handlePreview}
           disabled={busyKey === "preview" || busyKey === "theme" || previewingId != null || !enabled}
-          className="flex h-9 items-center justify-center gap-1.5 rounded-xl text-[12px] font-semibold text-white shadow-sm transition-colors active:scale-[0.97] disabled:opacity-40"
+          className="flex h-9 items-center justify-center gap-1.5 rounded-xl text-xs font-medium text-white shadow-sm transition-colors active:scale-[0.97] disabled:opacity-40"
           aria-label="在标签页预览"
           style={{
             backgroundColor: enabled && !busyKey ? accent : "#94a3b8",

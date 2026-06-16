@@ -171,7 +171,7 @@ export function ActionTab({ item, active, onClick }: { item: { id: string; label
       type="button"
       onClick={onClick}
       className={cn(
-        "min-w-fit rounded-xl border px-3 py-1.5 text-sm font-medium transition-[transform,color,background-color,border-color,box-shadow] active:scale-[0.97]",
+        "min-w-fit rounded-xl border px-3 py-1.5 text-xs font-medium transition-[transform,color,background-color,border-color,box-shadow] active:scale-[0.97]",
         active ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900"
       )}
     >

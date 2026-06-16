@@ -24,7 +24,7 @@ export function WorkbenchHeader({
         <div className="flex shrink-0 items-center gap-2.5">
           <BrandMark size="sm" />
           <div className="min-w-0">
-            <div className="text-sm font-semibold text-slate-950 text-balance">CursorDance</div>
+            <div className="text-base font-semibold text-slate-900 text-balance">CursorDance</div>
             <div className="text-xs text-slate-500 text-pretty">主题工作台</div>
           </div>
         </div>

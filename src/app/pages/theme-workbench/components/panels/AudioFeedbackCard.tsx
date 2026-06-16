@@ -32,17 +32,14 @@ export function AudioFeedbackCard({ config, updateActionConfig, panelId }) {
           <SectionTitle>素材</SectionTitle>
           <FieldRow
             label="音效素材"
-            hint="音色。"
             control={<SmallSelect value={config.soundFile} options={SOUND_FILE_OPTIONS} onChange={config.sound ? (value) => updateActionConfig({ soundFile: value, sound: true }) : undefined} />}
           />
           <FieldRow
             label="触发策略"
-            hint="播放策略。"
             control={<SmallSelect value={config.soundTriggerMode} options={AUDIO_TRIGGER_OPTIONS} onChange={config.sound ? (value) => updateActionConfig({ soundTriggerMode: value, sound: true }) : undefined} />}
           />
           <FieldRow
             label="混音方式"
-            hint="与页面音频的关系。"
             control={<SmallSelect value={config.soundBlendMode} options={AUDIO_BLEND_OPTIONS} onChange={config.sound ? (value) => updateActionConfig({ soundBlendMode: value, sound: true }) : undefined} />}
           />
         </SettingSection>
@@ -51,22 +48,18 @@ export function AudioFeedbackCard({ config, updateActionConfig, panelId }) {
           <SectionTitle>节奏</SectionTitle>
           <FieldRow
             label="音量"
-            hint="音量。"
             control={<ControlSlider disabled={!config.sound} value={config.volume} min={0} max={100} onValueChange={(value) => updateActionConfig({ volume: value[0] })} suffix="%" label="音量" />}
           />
           <FieldRow
             label="播放速度"
-            hint="速度。"
             control={<ControlSlider disabled={!config.sound} value={config.playbackRate} min={80} max={130} onValueChange={(value) => updateActionConfig({ playbackRate: value[0] })} suffix="%" label="播放速度" />}
           />
           <FieldRow
             label="启动延迟"
-            hint="延迟。"
             control={<ControlSlider disabled={!config.sound} value={config.soundDelay} min={0} max={240} onValueChange={(value) => updateActionConfig({ soundDelay: value[0] })} suffix="ms" label="启动延迟" />}
           />
           <FieldRow
             label="淡出时长"
-            hint="淡出。"
             control={<ControlSlider disabled={!config.sound} value={config.soundFadeOut} min={0} max={240} onValueChange={(value) => updateActionConfig({ soundFadeOut: value[0] })} suffix="ms" label="淡出时长" />}
           />
         </SettingSection>

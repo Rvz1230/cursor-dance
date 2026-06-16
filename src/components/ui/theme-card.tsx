@@ -135,7 +135,7 @@ export function ThemeCard({
                     }}
                     onClick={(event) => event.stopPropagation()}
                     maxLength={30}
-                    className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-1.5 py-0.5 text-sm font-semibold text-slate-900 outline-none ring-2 ring-slate-950/20 ring-offset-0"
+                    className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-1.5 py-0.5 text-sm text-slate-700 outline-none ring-2 ring-slate-950/20 ring-offset-0"
                     autoFocus
                     onFocus={(event) => event.target.select()}
                   />
@@ -144,7 +144,7 @@ export function ThemeCard({
               ) : (
                 <>
                   <div
-                    className="min-w-0 truncate text-sm font-semibold text-slate-900 select-none"
+                    className="min-w-0 truncate text-sm font-medium text-slate-900 select-none"
                     title={theme.name}
                     onDoubleClick={(event) => { event.stopPropagation(); startRename(); }}
                   >{theme.name}</div>

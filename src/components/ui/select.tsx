@@ -34,7 +34,7 @@ export function Select({ value, options, onValueChange, disabled = false, placeh
                 <SelectPrimitive.Item
                   key={optionValue}
                   value={optionValue}
-                  className="relative flex min-h-9 cursor-default select-none items-center rounded-lg py-2 pl-8 pr-3 text-sm text-slate-700 outline-none data-[highlighted]:bg-slate-100 data-[highlighted]:text-slate-950 data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                  className="relative flex min-h-9 cursor-default select-none items-center rounded-lg py-2 pl-8 pr-3 text-sm text-slate-700 outline-none data-[highlighted]:bg-slate-100 data-[highlighted]:text-slate-900 data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
                   title={String(optionLabel)}
                 >
                   <SelectPrimitive.ItemIndicator className="absolute left-2.5 inline-flex items-center">

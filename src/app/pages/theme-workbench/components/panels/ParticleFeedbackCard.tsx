@@ -75,7 +75,7 @@ export function ParticleFeedbackCard({ config, updateActionConfig, panelId }) {
           <SectionTitle>发射</SectionTitle>
           <FieldRow
             label="运动模式"
-            hint="喷射扩散 = 一次性 burst；轨道呼吸 = 持续环绕呼吸。"
+            tooltip="喷射扩散 = 一次性 burst；轨道呼吸 = 持续环绕呼吸。"
             control={
               <SmallSelect
                 value={config.particleMotionMode || "burst"}
@@ -86,7 +86,6 @@ export function ParticleFeedbackCard({ config, updateActionConfig, panelId }) {
           />
           <FieldRow
             label="粒子形态"
-            hint="形态。"
             control={<SmallSelect value={config.particleStyle} options={PARTICLE_STYLE_OPTIONS} onChange={config.particle ? (value) => updateActionConfig({ particleStyle: value, particle: true }) : undefined} />}
           />
 
@@ -94,22 +93,19 @@ export function ParticleFeedbackCard({ config, updateActionConfig, panelId }) {
             <>
               <FieldRow
                 label="粒子数量"
-                hint="数量。"
                 control={<ControlSlider disabled={!config.particle} value={config.particleCount} min={0} max={40} onValueChange={(value) => updateActionConfig({ particleCount: value[0], particle: value[0] > 0 })} label="粒子数量" />}
               />
               <FieldRow
                 label="扩散范围"
-                hint="范围。"
                 control={<ControlSlider disabled={!config.particle} value={config.particleSpread} min={0} max={90} onValueChange={(value) => updateActionConfig({ particleSpread: value[0] })} label="扩散范围" />}
               />
               <FieldRow
                 label="扩散方向"
-                hint="方向。"
                 control={<SmallSelect value={config.particleDirection} options={PARTICLE_DIRECTION_OPTIONS} onChange={config.particle ? (value) => updateActionConfig({ particleDirection: value, particle: true }) : undefined} />}
               />
               <FieldRow
                 label="发射间隔"
-                hint="每个粒子之间的发射延迟，0 表示同时发射。在「旋转扫射」模式下效果最明显。"
+                tooltip="每个粒子之间的发射延迟，0 表示同时发射。「旋转扫射」模式下效果最明显。"
                 control={<ControlSlider disabled={!config.particle} value={config.particleStagger ?? 26} min={0} max={100} onValueChange={(value) => updateActionConfig({ particleStagger: value[0] })} suffix="ms/个" label="发射间隔" />}
               />
             </>
@@ -119,22 +115,20 @@ export function ParticleFeedbackCard({ config, updateActionConfig, panelId }) {
             <>
               <FieldRow
                 label="轨道点数"
-                hint="围绕中心旋转的粒子数量。"
                 control={<ControlSlider disabled={!config.particle} value={config.orbitalCount ?? 6} min={3} max={16} step={1} onValueChange={(value) => updateActionConfig({ orbitalCount: value[0] })} suffix="个" label="轨道点数" />}
               />
               <FieldRow
                 label="轨道半径"
-                hint="粒子到中心的距离。"
                 control={<ControlSlider disabled={!config.particle} value={config.orbitalRadius ?? 32} min={16} max={80} step={2} onValueChange={(value) => updateActionConfig({ orbitalRadius: value[0] })} suffix="px" label="轨道半径" />}
               />
               <FieldRow
                 label="公转速度"
-                hint="转完一圈的时长。"
+                tooltip="转完一圈的时长。"
                 control={<ControlSlider disabled={!config.particle} value={config.orbitalSpeed ?? 3} min={1} max={8} step={1} onValueChange={(value) => updateActionConfig({ orbitalSpeed: value[0] })} suffix="秒/圈" label="公转速度" />}
               />
               <FieldRow
                 label="持续时长"
-                hint="0 = 持续循环，鼠标离开或再次触发时结束。>0 则指定时长后自动淡出。"
+                tooltip="0 = 持续循环，鼠标离开或再次触发时结束。>0 则指定时长后自动淡出。"
                 control={<ControlSlider disabled={!config.particle} value={config.particleDuration ?? 0} min={0} max={5000} step={100} onValueChange={(value) => updateActionConfig({ particleDuration: value[0] })} suffix="ms" label="持续时长" />}
               />
             </>
@@ -145,29 +139,26 @@ export function ParticleFeedbackCard({ config, updateActionConfig, panelId }) {
           <SectionTitle>样式</SectionTitle>
           <FieldRow
             label="粒子尺寸"
-            hint="尺寸。"
             control={<ControlSlider disabled={!config.particle} value={config.particleSize} min={6} max={24} onValueChange={(value) => updateActionConfig({ particleSize: value[0] })} suffix="px" label="粒子尺寸" />}
           />
           {!isOrbital && (
             <FieldRow
               label="持续时间"
-              hint="粒子从出现到消失的时长。"
+              tooltip="粒子从出现到消失的时长。"
               control={<ControlSlider disabled={!config.particle} value={config.particleDuration} min={240} max={1200} onValueChange={(value) => updateActionConfig({ particleDuration: value[0] })} suffix="ms" label="持续时间" />}
             />
           )}
           <FieldRow
             label="透明度"
-            hint="透明度。"
             control={<ControlSlider disabled={!config.particle} value={config.particleOpacity} min={20} max={100} onValueChange={(value) => updateActionConfig({ particleOpacity: value[0] })} suffix="%" label="透明度" />}
           />
           <FieldRow
             label="颜色策略"
-            hint="颜色来源。"
             control={<SmallSelect value={config.particleColorMode} options={PARTICLE_COLOR_MODE_OPTIONS} onChange={config.particle ? (value) => updateActionConfig({ particleColorMode: value }) : undefined} />}
           />
           <FieldRow
             label="预设色板"
-            hint={config.particleColorMode === "跟随飘字色" ? "当前模式不使用色板。" : "点击选择预设色板。修改后将自动切换为自定义色板。"}
+            tooltip={config.particleColorMode === "跟随飘字色" ? "当前模式不使用色板。" : "点击选择预设色板。修改后将自动切换为自定义色板。"}
             control={
               <PaletteSwatches
                 presets={PARTICLE_PALETTE_PRESETS}
@@ -183,27 +174,23 @@ export function ParticleFeedbackCard({ config, updateActionConfig, panelId }) {
             <SectionTitle>物理</SectionTitle>
             <FieldRow
               label="物理预设"
-              hint="一键应用重力、风力和弹跳的组合。"
+              tooltip="一键应用重力、风力和弹跳的组合。"
               control={<SmallSelect value="" options={PARTICLE_PHYSICS_PRESET_OPTIONS} onChange={config.particle ? (value) => { if (value && PARTICLE_PHYSICS_PRESET_VALUES[value]) { updateActionConfig({ ...PARTICLE_PHYSICS_PRESET_VALUES[value], particle: true }); } } : undefined} label="物理预设" />}
             />
             <FieldRow
               label="重力强度"
-              hint="粒子下落力度。"
               control={<ControlSlider disabled={!config.particle} value={config.particleGravity || 0} min={0} max={100} onValueChange={(value) => updateActionConfig({ particleGravity: value[0] })} suffix="" label="重力强度" />}
             />
             <FieldRow
               label="风力偏移"
-              hint="水平漂移方向。"
               control={<ControlSlider disabled={!config.particle} value={config.particleWind || 0} min={-50} max={50} onValueChange={(value) => updateActionConfig({ particleWind: value[0] })} suffix="" label="风力偏移" />}
             />
             <FieldRow
               label="弹跳强度"
-              hint="粒子反弹力度。"
               control={<ControlSlider disabled={!config.particle} value={config.particleBounce || 0} min={0} max={100} onValueChange={(value) => updateActionConfig({ particleBounce: value[0] })} suffix="" label="弹跳强度" />}
             />
             <FieldRow
               label="拖尾效果"
-              hint="粒子后方追加光尾。"
               control={<Switch checked={config.particleTrail || false} disabled={!config.particle} onCheckedChange={(next) => updateActionConfig({ particleTrail: next })} aria-label="拖尾开关" />}
             />
           </SettingSection>

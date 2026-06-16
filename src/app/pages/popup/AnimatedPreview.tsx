@@ -246,7 +246,7 @@ function TextPreview({ config, durationMs, burstIndex }) {
 
   return (
     <span
-      className="font-bold leading-none text-center pointer-events-none"
+      className="font-semibold leading-none text-center pointer-events-none"
       style={cssVars({
         color,
         fontSize: size,

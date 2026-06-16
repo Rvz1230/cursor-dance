@@ -21,17 +21,14 @@ export function CursorFeedbackCard({ config, updateActionConfig, panelId }) {
           <SectionTitle>命中反馈</SectionTitle>
           <FieldRow
             label="敲击抖动"
-            hint="抖动强度。"
             control={<ControlSlider value={config.shake} min={0} max={80} onValueChange={(value) => updateActionConfig({ shake: value[0] })} suffix="%" label="抖动强度" />}
           />
           <FieldRow
             label="动作光标"
-            hint="触发时的临时光标。"
             control={<SmallSelect value={config.cursorOverride} options={CURSOR_OVERRIDE_OPTIONS} onChange={(value) => updateActionConfig({ cursorOverride: value })} />}
           />
           <FieldRow
             label="光标尺寸"
-            hint="尺寸。"
             control={<ControlSlider value={config.cursorSize} min={32} max={72} onValueChange={(value) => updateActionConfig({ cursorSize: value[0] })} suffix="px" label="光标尺寸" />}
           />
         </SettingSection>
@@ -40,26 +37,24 @@ export function CursorFeedbackCard({ config, updateActionConfig, panelId }) {
           <SectionTitle>光标轨迹</SectionTitle>
           <FieldRow
             label="启用轨迹"
-            hint="光标移动时留下光尾。"
+            tooltip="光标移动时留下光尾。"
             control={<Switch checked={config.cursorTrailEnabled || false} onCheckedChange={(next) => updateActionConfig({ cursorTrailEnabled: next })} aria-label="光标轨迹开关" />}
           />
           {config.cursorTrailEnabled ? (
             <>
               <FieldRow
                 label="轨迹点数"
-                hint="轨迹光点的数量。"
                 control={<ControlSlider value={config.cursorTrailCount || 5} min={1} max={12} onValueChange={(value) => updateActionConfig({ cursorTrailCount: value[0] })} label="轨迹点数" />}
               />
               <FieldRow
                 label="轨迹透明度"
-                hint="轨迹光点的不透明度。"
                 control={<ControlSlider value={config.cursorTrailOpacity || 50} min={20} max={100} onValueChange={(value) => updateActionConfig({ cursorTrailOpacity: value[0] })} suffix="%" label="轨迹透明度" />}
               />
             </>
           ) : null}
           <FieldRow
             label="光晕颜色"
-            hint="光标光晕色，留空则无光晕。"
+            tooltip="光标光晕色，留空则无光晕。"
             control={<ColorOptions disabled={false} value={config.cursorGlowColor || ""} onChange={(color) => updateActionConfig({ cursorGlowColor: color })} />}
           />
         </SettingSection>

@@ -59,7 +59,7 @@ export function WelcomeDialog({
               <Sparkles className="size-5" aria-hidden />
             </span>
             <div>
-              <h2 id="cursordance-welcome-title" className="text-base font-semibold text-slate-950">
+              <h2 id="cursordance-welcome-title" className="text-base font-semibold text-slate-900">
                 CursorDance 已就绪
               </h2>
               <p className="text-xs text-slate-500">把鼠标变成你独有的视觉签名</p>
@@ -77,7 +77,7 @@ export function WelcomeDialog({
                 <tip.icon className="size-3.5" aria-hidden />
               </span>
               <div className="min-w-0">
-                <div className="text-sm font-semibold text-slate-900">{tip.title}</div>
+                <div className="text-xs font-medium text-slate-600">{tip.title}</div>
                 <p className="mt-0.5 text-xs leading-5 text-slate-500">{tip.body}</p>
               </div>
             </div>

@@ -43,17 +43,17 @@ export function AssetsPanel({
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <div className="text-xs text-slate-500">当前动作贴纸</div>
-            <div className="mt-2 text-2xl font-semibold text-slate-900">{summary.counts.hasActionImageAsset ? "1" : "0"}</div>
+            <div className="mt-2 text-base font-semibold text-slate-900 tabular-nums">{summary.counts.hasActionImageAsset ? "1" : "0"}</div>
             <div className="mt-2 text-sm text-slate-600">集中查看当前动作是否绑定图片贴纸，以及它现在是否处于启用状态。</div>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <div className="text-xs text-slate-500">光标状态素材</div>
-            <div className="mt-2 text-2xl font-semibold text-slate-900">{summary.counts.cursor}</div>
+            <div className="mt-2 text-base font-semibold text-slate-900 tabular-nums">{summary.counts.cursor}</div>
             <div className="mt-2 text-sm text-slate-600">这里汇总当前主题里已经配置过图片的光标状态，方便快速排查继承链是否齐全。</div>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <div className="text-xs text-slate-500">最近导入素材</div>
-            <div className="mt-2 text-2xl font-semibold text-slate-900">{summary.counts.recent}</div>
+            <div className="mt-2 text-base font-semibold text-slate-900 tabular-nums">{summary.counts.recent}</div>
             <div className="mt-2 text-sm text-slate-600">最近上传过的光标素材会保留在这里，方便回看和重复使用。</div>
           </div>
         </div>
@@ -79,7 +79,7 @@ export function AssetsPanel({
               <AssetPreview asset={summary.actionImageAsset} alt={`${summary.actionImageAsset.actionLabel} sticker`} className="h-[132px] w-[132px]" />
               <div className="space-y-3">
                 <div>
-                  <div className="text-lg font-semibold text-slate-900">{summary.actionImageAsset.label}</div>
+                  <div className="text-sm font-medium text-slate-900">{summary.actionImageAsset.label}</div>
                   <div className="mt-1 text-sm text-slate-500">{summary.actionImageAsset.actionLabel}</div>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -111,7 +111,7 @@ export function AssetsPanel({
                   <div className="flex items-center gap-3">
                     <AssetPreview asset={asset} alt={asset.name} className="h-20 w-20 shrink-0" />
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-slate-900">{asset.name}</div>
+                      <div className="truncate text-sm text-slate-700">{asset.name}</div>
                       <div className="mt-1 text-xs text-slate-500">{asset.mimeType}</div>
                       <div className="mt-2 flex flex-wrap gap-2">
                         <DataPill>{asset.size}px</DataPill>
@@ -156,7 +156,7 @@ export function AssetsPanel({
                 <div className="flex items-center gap-3">
                   <AssetPreview asset={asset} alt={`${asset.label} cursor`} className="h-20 w-20 shrink-0" />
                   <div className="min-w-0">
-                    <div className="text-sm font-semibold text-slate-900">{asset.label}</div>
+                    <div className="text-xs font-medium text-slate-600">{asset.label}</div>
                     <div className="mt-1 text-xs text-slate-500">热点 {asset.hotspotX}, {asset.hotspotY}</div>
                     <div className="mt-2">
                       <DataPill>{asset.size}px</DataPill>

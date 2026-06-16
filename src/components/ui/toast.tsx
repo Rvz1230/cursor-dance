@@ -47,7 +47,7 @@ export function ToastProvider({ children }) {
             >
               <Icon className={cn('mt-0.5 size-4 shrink-0', tone.iconClass)} aria-hidden="true" />
               <div className="min-w-0">
-                <ToastPrimitive.Title className="text-sm font-medium text-slate-900 text-pretty">
+                <ToastPrimitive.Title className="text-xs font-medium text-slate-600 text-pretty">
                   {item.title}
                 </ToastPrimitive.Title>
                 {item.description ? (

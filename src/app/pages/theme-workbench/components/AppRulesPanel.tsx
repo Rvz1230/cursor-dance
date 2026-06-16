@@ -499,7 +499,7 @@ export function AppRulesPanel({
           <div className="mx-auto inline-flex size-10 items-center justify-center rounded-full bg-slate-100 text-slate-400">
             <AppWindow className="size-5" aria-hidden />
           </div>
-          <p className="mt-3 text-sm font-medium text-slate-700">还没有应用规则</p>
+          <p className="mt-3 text-xs font-medium text-slate-600">还没有应用规则</p>
           <p className="mx-auto mt-1.5 max-w-sm text-2xs leading-5 text-slate-500">
             按进程名或窗口标题为指定应用启用 / 禁用效果，或切换到不同主题。
           </p>

@@ -41,17 +41,17 @@ export function ColorOptions({
         <button
           type="button"
           disabled={disabled}
-          className="grid h-9 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-left text-sm text-slate-800 shadow-sm transition-colors hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="grid h-9 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-left text-sm text-slate-700 shadow-sm transition-colors hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <span className="size-5 rounded-md border border-slate-200" style={{ backgroundColor: normalizedValue }} />
-          <span className="truncate font-mono text-sm uppercase">{normalizedValue}</span>
+          <span className="truncate font-mono text-sm">{normalizedValue}</span>
           <ChevronDown className="size-4 text-slate-400" aria-hidden="true" />
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-72">
         <div className="space-y-3">
           <div>
-            <div className="text-xs font-medium text-slate-500">推荐颜色</div>
+            <div className="text-xs font-medium text-slate-600">推荐颜色</div>
             <div className="mt-2 flex flex-wrap gap-2">
               {colors.map((color) => (
                 <button
@@ -93,7 +93,7 @@ export function ColorOptions({
               onKeyDown={(event) => {
                 if (event.key === "Enter") commitColor(event.currentTarget.value);
               }}
-              className="rounded-xl bg-white font-mono uppercase"
+              className="rounded-xl bg-white font-mono"
               placeholder="#B45309"
             />
           </div>

@@ -307,7 +307,7 @@ function SchemeOverview({ scheme }) {
     <div className="mb-2 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
       <div className="flex min-w-0 items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="truncate text-sm font-semibold text-slate-900">{scheme.name}</div>
+          <div className="truncate text-sm text-slate-700">{scheme.name}</div>
           <div className="mt-1 text-xs leading-5 text-slate-600 text-pretty">{scheme.summary}</div>
         </div>
       </div>
@@ -378,7 +378,7 @@ function ProposalCard({ result, previewActive }) {
     <div className="min-h-0 rounded-2xl border border-slate-200 bg-white p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <div className="truncate text-sm font-semibold text-slate-900">AI 方案提案</div>
+          <div className="truncate text-sm font-medium text-slate-900">AI 方案提案</div>
           <div className="mt-0.5 text-xs text-slate-500">
             {result.targets?.length > 1 ? `${result.targets.length} 个动作` : result.target?.label || "当前动作"} · {previewActive ? "实时预览正在使用这版建议" : "确认前不会写入当前配置"}
           </div>
@@ -426,7 +426,7 @@ function ProposalCard({ result, previewActive }) {
                     <div className="min-w-0 text-slate-500">
                       <span className="truncate align-middle">{item.beforeLabel}</span>
                       <span className="mx-1 text-slate-400">-&gt;</span>
-                      <span className="truncate font-semibold text-slate-900 align-middle">{item.afterLabel}</span>
+                      <span className="truncate font-medium text-slate-700 align-middle">{item.afterLabel}</span>
                     </div>
                   </div>
                 ))}
@@ -530,7 +530,7 @@ function AgentTimeline({ steps, isRunning, totalSteps }) {
     <div className="rounded-2xl border border-sky-100 bg-sky-50/50 p-3">
       <div className="mb-2 flex items-center gap-2">
         <Bot className="size-4 text-sky-600" />
-        <span className="text-sm font-semibold text-sky-800">Agent 步骤</span>
+        <span className="text-xs font-medium text-sky-700">Agent 步骤</span>
         {isRunning ? (
           <span className="ml-auto inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-100 px-2 py-0.5 text-2xs font-medium text-sky-700">
             <Loader2 className="size-3 animate-spin" />
@@ -544,7 +544,7 @@ function AgentTimeline({ steps, isRunning, totalSteps }) {
         {steps.map((step) => (
           <div key={step.index} className="rounded-xl border border-sky-100 bg-white p-2.5">
             <div className="flex items-start gap-2">
-              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-sky-100 text-2xs font-bold text-sky-700">{step.index}</span>
+              <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-sky-100 text-2xs font-semibold text-sky-700">{step.index}</span>
               <div className="min-w-0 flex-1">
                 {step.thought ? (
                   <div className="text-xs leading-5 text-slate-600 line-clamp-2">{step.thought}</div>
@@ -626,7 +626,7 @@ function ModeSwitcher({ useAgent, onToggle, disabled }) {
           >
             <div className="flex items-center gap-2">
               <Zap className="size-3.5 text-slate-400" />
-              <span className="text-xs font-semibold text-slate-800">快速模式</span>
+              <span className="text-xs font-medium text-slate-600">快速模式</span>
               {!useAgent ? <Check className="ml-auto size-3.5 text-slate-600" /> : null}
             </div>
             <div className="mt-0.5 text-2xs leading-4 text-slate-500 text-pretty">
@@ -642,7 +642,7 @@ function ModeSwitcher({ useAgent, onToggle, disabled }) {
           >
             <div className="flex items-center gap-2">
               <Wrench className="size-3.5 text-slate-400" />
-              <span className="text-xs font-semibold text-slate-800">Agent 模式</span>
+              <span className="text-xs font-medium text-slate-600">Agent 模式</span>
               {useAgent ? <Check className="ml-auto size-3.5 text-slate-600" /> : null}
             </div>
             <div className="mt-0.5 text-2xs leading-4 text-slate-500 text-pretty">
@@ -1303,7 +1303,7 @@ export function AiSchemePanel({
               onKeyDown={handleKeyDown}
               placeholder={cooldownActive ? "冷却中，请稍候…" : "例如：科技感一点、低调、不要声音、粒子少一点"}
               rows={1}
-              className="max-h-[112px] min-h-[48px] w-full resize-none bg-transparent px-1 py-1.5 text-sm leading-5 text-slate-800 outline-none placeholder:text-slate-400"
+              className="max-h-[112px] min-h-[48px] w-full resize-none bg-transparent px-1 py-1.5 text-sm leading-5 text-slate-700 outline-none placeholder:text-slate-400"
             />
             {isGenerating ? (
               <button

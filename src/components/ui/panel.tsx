@@ -38,7 +38,7 @@ export function Panel({
       ) : null}
       <div className="min-w-0">
         <div className="flex min-w-0 items-center gap-2">
-          <h3 className="truncate text-sm font-semibold text-slate-900 text-balance">{title}</h3>
+          <h3 className="truncate text-sm font-medium text-slate-900 text-balance">{title}</h3>
         </div>
         {summary ? <div className="mt-0.5 truncate text-xs text-slate-500 text-pretty">{summary}</div> : null}
       </div>

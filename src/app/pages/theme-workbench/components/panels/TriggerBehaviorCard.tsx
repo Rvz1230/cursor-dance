@@ -17,17 +17,15 @@ export function TriggerBehaviorCard({ actionId, config, updateActionConfig, pane
     >
       <FieldRow
         label="触发时机"
-        hint="触发节点。"
         control={<SmallSelect value={config.triggerTiming} options={triggerMeta.timing} onChange={(value) => updateActionConfig({ triggerTiming: value })} />}
       />
       <FieldRow
         label="作用范围"
-        hint="监听目标。"
         control={<SmallSelect value={config.triggerZone} options={triggerMeta.zones} onChange={(value) => updateActionConfig({ triggerZone: value })} />}
       />
       <FieldRow
         label={timingMeta.label}
-        hint={timingMeta.hint}
+        tooltip={timingMeta.hint}
         control={<ControlSlider value={config.holdMs} min={timingMeta.min} max={timingMeta.max} onValueChange={(value) => updateActionConfig({ holdMs: value[0] })} suffix="ms" label={timingMeta.label} />}
       />
     </Panel>

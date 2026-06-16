@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { CheckCircle2, FileJson, PanelLeftClose, PanelLeftOpen, Plus, Upload } from "lucide-react";
+import { CheckCircle2, FileJson, PanelLeftClose, PanelLeftOpen, Plus, Search, Upload } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -134,7 +134,7 @@ function ThemeComposerModal({
           {mode === "create" ? (
             <div className="space-y-4">
               <div className="space-y-1.5">
-                <label htmlFor="theme-create-name" className="text-xs font-medium text-slate-500">主题名称</label>
+                <label htmlFor="theme-create-name" className="text-xs font-medium text-slate-600">主题名称</label>
                 <Input
                   id="theme-create-name"
                   value={createName}
@@ -150,12 +150,12 @@ function ThemeComposerModal({
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-slate-500">起始模板</label>
+                <label className="text-xs font-medium text-slate-600">起始模板</label>
                 <SmallSelect value={createBaseThemeId} options={baseThemeOptions} onChange={setCreateBaseThemeId} label="选择起始模板" />
               </div>
 
               <div className="space-y-1.5">
-                <label htmlFor="theme-create-description" className="text-xs font-medium text-slate-500">主题说明</label>
+                <label htmlFor="theme-create-description" className="text-xs font-medium text-slate-600">主题说明</label>
                 <textarea
                   id="theme-create-description"
                   value={createDescription}
@@ -341,27 +341,16 @@ export function ThemeLibrarySidebar({
       <div className="flex min-h-0 flex-1 flex-col">
         <div className={cn("py-2.5", collapsed ? "px-2 flex justify-center" : "px-3")}>
           {collapsed ? (
-            <div className="flex flex-col items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-9 rounded-xl"
-                aria-label="展开主题库"
-                title="展开主题库"
-                onClick={() => setCollapsed(false)}
-              >
-                <PanelLeftOpen className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={composerMode === "create" ? "default" : "outline"}
-                size="icon"
-                className="size-9 rounded-xl"
-                aria-label="新建主题"
-                onClick={() => setComposerMode((current) => (current === "create" ? "" : "create"))}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-9 rounded-xl"
+              aria-label="展开主题库"
+              title="展开主题库"
+              onClick={() => setCollapsed(false)}
+            >
+              <PanelLeftOpen className="h-4 w-4" />
+            </Button>
           ) : (
             <div className="flex items-center gap-2">
               <Button
@@ -374,21 +363,15 @@ export function ThemeLibrarySidebar({
               >
                 <PanelLeftClose className="h-4 w-4" />
               </Button>
-              <Input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="搜索主题包"
-                className="h-9 flex-1 bg-white"
-              />
-              <Button
-                variant={composerMode === "create" ? "default" : "outline"}
-                className="h-9 shrink-0 rounded-xl px-3 text-xs"
-                aria-label="新建主题"
-                onClick={() => setComposerMode((current) => (current === "create" ? "" : "create"))}
-              >
-                <Plus className="mr-1.5 h-4 w-4" />
-                新建
-              </Button>
+              <div className="relative min-w-0 flex-1">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                <Input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="搜索主题包"
+                  className="h-9 w-full bg-white pl-8"
+                />
+              </div>
             </div>
           )}
         </div>
@@ -418,10 +401,8 @@ export function ThemeLibrarySidebar({
               />
             ))
           ) : themes.length === 0 ? (
-            // 任务 4.3：主题库整体为空（理论上不会发生 —— 默认有 4 套内置主题；
-            // 但桌面端打包时若 default-config 缺失或用户清空 store，需有明确兜底）
             <div className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-5 text-sm text-slate-600">
-              <div className="text-sm font-semibold text-slate-900">还没有主题</div>
+              <div className="text-xs font-medium text-slate-600">还没有主题</div>
               <div className="mt-1.5 max-w-[220px] text-xs leading-5 text-pretty text-slate-500">
                 创建你的第一个主题，从空白开始或导入 JSON。
               </div>
@@ -436,7 +417,7 @@ export function ThemeLibrarySidebar({
             </div>
           ) : (
             <div className="rounded-xl border border-dashed border-slate-300 bg-white px-4 py-4 text-sm text-slate-600">
-              <div className="text-sm font-semibold text-slate-900">没有找到匹配的主题</div>
+              <div className="text-xs font-medium text-slate-600">没有找到匹配的主题</div>
               <div className="mt-1.5 max-w-[220px] text-xs leading-5 text-pretty text-slate-500">换个关键词，或者新建一个主题继续编辑。</div>
               <Button variant="outline" className="mt-4 h-8 rounded-xl px-3 text-xs" onClick={() => setComposerMode("create")}>
                 <Plus className="mr-2 h-4 w-4" />
@@ -445,6 +426,30 @@ export function ThemeLibrarySidebar({
             </div>
           )}
         </div>
+      </div>
+
+      <div className={cn("shrink-0 border-t border-slate-200", collapsed ? "px-2 py-2.5 flex justify-center" : "px-3 py-2.5")}>
+        {collapsed ? (
+          <Button
+            variant={composerMode === "create" ? "default" : "outline"}
+            size="icon"
+            className="size-9 rounded-xl"
+            aria-label="新建主题"
+            onClick={() => setComposerMode((current) => (current === "create" ? "" : "create"))}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        ) : (
+          <Button
+            variant={composerMode === "create" ? "default" : "outline"}
+            className="h-9 w-full rounded-xl text-xs"
+            aria-label="新建主题"
+            onClick={() => setComposerMode((current) => (current === "create" ? "" : "create"))}
+          >
+            <Plus className="mr-1.5 h-4 w-4" />
+            新建
+          </Button>
+        )}
       </div>
 
       <ThemeComposerModal
@@ -463,9 +468,9 @@ export function ThemeLibrarySidebar({
         if (!open) setPendingDeleteTheme(null);
       }}>
         <AlertDialogContent>
-          <AlertDialogTitle className="text-base font-semibold text-slate-950">删除主题？</AlertDialogTitle>
+          <AlertDialogTitle className="text-base font-semibold text-slate-900">删除主题？</AlertDialogTitle>
           <AlertDialogDescription className="mt-2 text-sm leading-6 text-slate-600 text-pretty">
-            确定删除主题“{pendingDeleteTheme?.name}”吗？此操作会在下次保存时写入扩展配置。
+            确定删除主题"{pendingDeleteTheme?.name}"吗？此操作会在下次保存时写入扩展配置。
           </AlertDialogDescription>
           <div className="mt-5 flex justify-end gap-2">
             <AlertDialogCancel className="inline-flex h-9 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
@@ -485,7 +490,7 @@ export function ThemeLibrarySidebar({
         if (!open) setPendingSwitchThemeId(null);
       }}>
         <AlertDialogContent>
-          <AlertDialogTitle className="text-base font-semibold text-slate-950">
+          <AlertDialogTitle className="text-base font-semibold text-slate-900">
             「{currentThemeName}」有未保存的更改
           </AlertDialogTitle>
           <AlertDialogDescription className="mt-2 text-sm leading-6 text-slate-600 text-pretty">

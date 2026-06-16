@@ -657,7 +657,7 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, act
         />
         <div className="absolute inset-x-5 top-5 flex items-start justify-between gap-3 text-xs text-slate-500">
           <div className="min-w-0">
-            <div className="text-sm font-semibold text-slate-900 text-balance">效果舞台</div>
+            <div className="text-sm font-medium text-slate-900 text-balance">效果舞台</div>
             <div className="mt-1 text-xs text-slate-500 text-pretty">{getPreviewTriggerSummary(config)}</div>
           </div>
           <div className="flex max-w-[55%] flex-wrap justify-end gap-1.5">

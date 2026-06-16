@@ -329,7 +329,7 @@ export function DiagnosticsPanel({ selectedThemeId }) {
               return (
                 <article key={`${entry.scope}-${entry.at}-${index}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                   <div className="flex flex-wrap items-center gap-2">
-                    <div className="text-sm font-semibold text-slate-900">{formatScopeLabel(entry.scope)}</div>
+                    <div className="text-xs font-medium text-slate-600">{formatScopeLabel(entry.scope)}</div>
                     <DataPill>{formatEntryTime(entry.at)}</DataPill>
                     {entry.actionId ? <DataPill tone="teal">{entry.actionId}</DataPill> : null}
                   </div>
@@ -348,7 +348,7 @@ export function DiagnosticsPanel({ selectedThemeId }) {
             <div className="mx-auto inline-flex size-10 items-center justify-center rounded-full bg-white text-slate-400">
               <RadioTower className="size-5" aria-hidden />
             </div>
-            <div className="mt-3 text-sm font-medium text-slate-700">暂无诊断事件</div>
+            <div className="mt-3 text-xs font-medium text-slate-600">暂无诊断事件</div>
             <p className="mx-auto mt-1.5 max-w-md text-xs leading-5 text-slate-500">
               {scopeFilter !== "all"
                 ? "当前过滤条件下还没有事件。试试切换为「全部」查看。"

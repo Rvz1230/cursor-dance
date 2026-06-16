@@ -44,7 +44,7 @@ export function WorkbenchPanel({ actionId, config, updateActionConfig, conflicts
           <div className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-white ring-1 ring-slate-200">
             <Sparkles className="size-6 text-slate-400" />
           </div>
-          <h3 className="mt-3 text-sm font-semibold text-slate-900 text-balance">还没有开启任何效果</h3>
+          <h3 className="mt-3 text-xs font-medium text-slate-600 text-balance">还没有开启任何效果</h3>
           <p className="mt-1.5 max-w-[260px] mx-auto text-xs leading-5 text-slate-500 text-pretty">
             展开下方的效果卡片，打开飘字、粒子、波纹或音效中的至少一项，预览区域会实时展示反馈。
           </p>

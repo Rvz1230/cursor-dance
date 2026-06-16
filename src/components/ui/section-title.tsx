@@ -1,5 +1,5 @@
 import { cn } from "@/components/ui/utils";
 
 export function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <div className="mb-3 text-sm font-semibold text-slate-900 text-balance">{children}</div>;
+  return <div className="mb-3 text-xs font-medium text-slate-600 text-balance">{children}</div>;
 }

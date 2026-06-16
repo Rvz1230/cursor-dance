@@ -85,7 +85,7 @@ function CursorPreview({ asset, size = 40, emptyClassName = "" }) {
 
 function NumberStepper({ label, value, max, onChange }) {
   return (
-    <label className="grid gap-1 text-xs font-medium text-slate-500">
+    <label className="grid gap-1 text-xs font-medium text-slate-600">
       {label}
       <div className="grid grid-cols-[32px_minmax(0,1fr)_32px] overflow-hidden rounded-xl border border-slate-200 bg-white">
         <button type="button" className="text-slate-500 hover:bg-slate-50" onClick={() => onChange(clamp(value - 1, 0, max))} aria-label={`${label} 减 1`}>
@@ -97,7 +97,7 @@ function NumberStepper({ label, value, max, onChange }) {
           max={max}
           value={value}
           onChange={(event) => onChange(clamp(Number(event.target.value), 0, max))}
-          className="min-w-0 border-x border-slate-200 px-2 py-2 text-center text-sm font-semibold tabular-nums text-slate-900 outline-none"
+          className="min-w-0 border-x border-slate-200 px-2 py-2 text-center text-sm tabular-nums text-slate-700 outline-none"
           aria-label={label}
         />
         <button type="button" className="text-slate-500 hover:bg-slate-50" onClick={() => onChange(clamp(value + 1, 0, max))} aria-label={`${label} 加 1`}>
@@ -311,7 +311,7 @@ export function StatesPanel({
                 <Upload className="h-4 w-4" />
               </div>
               <div className="min-w-0">
-                <div className="text-sm font-semibold text-slate-900">拖入或批量上传光标素材</div>
+                <div className="text-xs font-medium text-slate-600">拖入或批量上传光标素材</div>
                 <div className="mt-1 text-xs text-slate-500">按文件名自动匹配 default / pointer / text / help / wait / disabled。</div>
               </div>
             </div>
@@ -346,7 +346,7 @@ export function StatesPanel({
                       <div className="flex min-w-0 items-center justify-between gap-2">
                         <div className="flex min-w-0 items-center gap-1.5">
                           <Icon className="h-3.5 w-3.5 shrink-0 text-slate-500" />
-                          <div className="truncate text-sm font-semibold text-slate-900">{state.label}</div>
+                          <div className="truncate text-xs font-medium text-slate-600">{state.label}</div>
                         </div>
                         <DataPill tone={state.status.tone}>{state.status.label}</DataPill>
                       </div>
@@ -366,14 +366,14 @@ export function StatesPanel({
 
           {pendingFiles.length ? (
             <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/60 p-3">
-              <div className="mb-2 text-sm font-semibold text-amber-900">需要确认</div>
+              <div className="mb-2 text-xs font-medium text-amber-900">需要确认</div>
               <div className="grid gap-2">
                 {pendingFiles.map((pendingFile) => (
                   <div key={pendingFile.id} className="grid gap-2 rounded-xl bg-white px-3 py-2 md:grid-cols-[minmax(0,1fr)_170px_auto] md:items-center">
                     <div className="flex min-w-0 items-center gap-2">
                       <CursorPreview asset={pendingFile.asset} size={28} />
                       <div className="min-w-0">
-                        <div className="truncate text-sm font-medium text-slate-900">{pendingFile.fileName}</div>
+                        <div className="truncate text-sm text-slate-700">{pendingFile.fileName}</div>
                         <div className="text-xs text-slate-500">{pendingFile.reason}</div>
                       </div>
                     </div>
@@ -410,11 +410,11 @@ export function StatesPanel({
 
         <div className="space-y-3">
           <section className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <div className="mb-2 text-sm font-semibold text-slate-900">当前素材</div>
+            <div className="mb-2 text-xs font-medium text-slate-600">当前素材</div>
             <div className="flex items-center gap-2.5">
               <CursorPreview asset={effectiveAsset} size={42} />
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-semibold text-slate-900">{currentAsset.name || (effectiveAsset.imageDataUrl ? "已绑定素材" : "未绑定素材")}</div>
+                <div className="truncate text-sm text-slate-700">{currentAsset.name || (effectiveAsset.imageDataUrl ? "已绑定素材" : "未绑定素材")}</div>
                 <div className="mt-1 text-xs text-slate-500">
                   {(currentAsset.sourceWidth || TARGET_CURSOR_SIZE)} x {(currentAsset.sourceHeight || TARGET_CURSOR_SIZE)} · PNG / WebP / SVG
                 </div>
@@ -436,7 +436,7 @@ export function StatesPanel({
           </section>
 
           <section className="rounded-xl border border-slate-200 bg-white p-3">
-            <div className="mb-2 text-sm font-semibold text-slate-900">来源策略</div>
+            <div className="mb-2 text-xs font-medium text-slate-600">来源策略</div>
             <div className={cn("grid gap-1 rounded-xl bg-slate-100 p-1", stateId === "default" ? "grid-cols-1" : "grid-cols-2")}>
               {(stateId === "default" ? ["源"] : ["继承", "覆盖"]).map((mode) => (
                 <button
@@ -456,7 +456,7 @@ export function StatesPanel({
 
           <section className="rounded-xl border border-slate-200 bg-white p-3">
             <div className="mb-2 flex items-center justify-between gap-2">
-              <div className="text-sm font-semibold text-slate-900">热点编辑器</div>
+              <div className="text-xs font-medium text-slate-600">热点编辑器</div>
               <DataPill tone="slate">{currentAsset.hotspotX}, {currentAsset.hotspotY}</DataPill>
             </div>
             <div
@@ -523,7 +523,7 @@ export function StatesPanel({
           </section>
 
           <section>
-            <div className="mb-2 text-sm font-semibold text-slate-900">动作模板</div>
+            <div className="mb-2 text-xs font-medium text-slate-600">动作模板</div>
             <select
               value={currentActionId}
               onChange={(event) => updateCursorStateAction(event.target.value)}
@@ -536,7 +536,7 @@ export function StatesPanel({
 
           {recentCursorAssets?.length ? (
             <section className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-3">
-              <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-900">
+              <div className="mb-2 flex items-center gap-2 text-xs font-medium text-slate-600">
                 <Wand2 className="h-4 w-4 text-emerald-700" />最近素材
               </div>
               <div className="grid grid-cols-3 gap-2">

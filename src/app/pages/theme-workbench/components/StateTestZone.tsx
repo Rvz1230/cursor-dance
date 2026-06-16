@@ -68,7 +68,7 @@ export function StateTestZone({
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
         <div className="min-w-0">
-          <h3 className="text-sm font-semibold text-slate-900">状态测试沙箱</h3>
+          <h3 className="text-sm font-medium text-slate-900">状态测试沙箱</h3>
           <p className="mt-0.5 text-xs text-slate-500">鼠标移至下方元素，实时查看状态匹配效果</p>
         </div>
         <Button variant="ghost" className="shrink-0 rounded-xl px-2.5 text-xs" onClick={onClose}>
@@ -78,18 +78,18 @@ export function StateTestZone({
 
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
         <section className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-          <div className="text-xs font-medium text-slate-500">当前状态</div>
+          <div className="text-xs font-medium text-slate-600">当前状态</div>
           <div className="mt-1.5 flex items-center gap-3">
             <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white">
               {resolvedAsset?.imageDataUrl ? (
                 <img src={resolvedAsset.imageDataUrl} alt="" className="h-12 w-12 object-contain" />
               ) : (
-                <span className="text-2xl text-slate-300">—</span>
+                <span className="text-2xs text-slate-400">—</span>
               )}
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-slate-900">
+                <span className="text-sm text-slate-700">
                   {activeStateMeta?.label || "默认"}
                 </span>
                 <DataPill tone={activeStateId === "default" ? "slate" : "teal"}>
@@ -108,7 +108,7 @@ export function StateTestZone({
         </section>
 
         <section className="rounded-xl border border-slate-200 bg-white p-3">
-          <div className="mb-2 text-xs font-medium text-slate-500">测试元素</div>
+          <div className="mb-2 text-xs font-medium text-slate-600">测试元素</div>
           <div className="grid gap-2">
             {TEST_ZONES.map((zone) => {
               const isActive = activeZoneId === zone.id;
@@ -130,7 +130,7 @@ export function StateTestZone({
                     <div className="h-4 w-4 shrink-0 rounded-full bg-slate-200" />
                   )}
                   <div className="min-w-0 flex-1">
-                    <div className={cn("text-sm", isActive ? "font-semibold text-emerald-900" : "font-medium text-slate-700")}>
+                    <div className={cn("text-sm", isActive ? "font-medium text-emerald-900" : "font-medium text-slate-900")}>
                       {zone.element === "input" ? (
                         <span className="inline-block rounded border border-slate-300 bg-white px-2 py-0.5 text-xs text-slate-600">
                           {zone.label}

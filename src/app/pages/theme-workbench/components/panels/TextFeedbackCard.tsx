@@ -46,37 +46,35 @@ export function TextFeedbackCard({ config, updateActionConfig, panelId }) {
           <SectionTitle>内容</SectionTitle>
           <FieldRow
             label="飘字类型"
-            hint="数字或文案。"
+            tooltip="数字或文案。"
             control={<SmallSelect value={config.textKind} options={TEXT_KIND_OPTIONS} onChange={config.textEnabled ? (value) => updateActionConfig({ textKind: value, textEnabled: true }) : undefined} />}
           />
           {config.textKind === "数字飘字" ? (
             <>
               <FieldRow
                 label="数字样式"
-                hint="显示形式。"
                 control={<SmallSelect value={config.textStyle} options={NUMBER_STYLE_OPTIONS} onChange={config.textEnabled ? (value) => updateActionConfig({ textStyle: value, textEnabled: true }) : undefined} />}
               />
               <FieldRow
                 label="数字模式"
-                hint="默认或模板。"
                 control={<SmallSelect value={config.textMode} options={TEXT_MODE_OPTIONS} onChange={config.textEnabled ? (value) => updateActionConfig({ textMode: value, textEnabled: true }) : undefined} />}
               />
               {config.textMode === "模板模式" ? (
                 <FieldRow
                   label="模板字符串"
-                  hint="${number} 为占位符。"
+                  tooltip="${number} 为占位符。"
                   control={<Input disabled={!config.textEnabled} value={config.textTemplate} onChange={(event) => updateActionConfig({ textTemplate: event.target.value, textEnabled: true })} className="rounded-2xl bg-white" />}
                 />
               ) : null}
               <FieldRow
                 label="连击累加"
-                hint="连续触发累加。"
+                tooltip="连续触发累加。"
                 control={<Switch checked={config.comboEnabled} disabled={!config.textEnabled} onCheckedChange={(next) => updateActionConfig({ comboEnabled: next, textEnabled: true })} aria-label="连击累加开关" />}
               />
               {config.comboEnabled ? (
                 <FieldRow
                   label="连击窗口"
-                  hint="多久以内算连续。"
+                  tooltip="多久以内算连续。"
                   control={<ControlSlider disabled={!config.textEnabled} value={config.comboWindowMs || 900} min={120} max={3000} onValueChange={(value) => updateActionConfig({ comboWindowMs: value[0] })} suffix="ms" label="连击窗口" />}
                 />
               ) : null}
@@ -85,12 +83,11 @@ export function TextFeedbackCard({ config, updateActionConfig, panelId }) {
             <>
               <FieldRow
                 label="显示模式"
-                hint="顺序或随机。"
                 control={<SmallSelect value={config.textTagPlayMode} options={TEXT_TAG_PLAY_OPTIONS} onChange={config.textEnabled ? (value) => updateActionConfig({ textTagPlayMode: value, textEnabled: true }) : undefined} />}
               />
               <FieldRow
                 label="标签内容"
-                hint="多条轮播。"
+                tooltip="多条轮播。"
                 control={
                   <TextTagEditor
                     tags={config.textTags}
@@ -113,22 +110,18 @@ export function TextFeedbackCard({ config, updateActionConfig, panelId }) {
           <SectionTitle>动画</SectionTitle>
           <FieldRow
             label="持续时间"
-            hint="显示时长。"
             control={<ControlSlider disabled={!config.textEnabled} value={config.textDuration} min={300} max={1800} onValueChange={(value) => updateActionConfig({ textDuration: value[0], textEnabled: true })} suffix="ms" label="持续时间" />}
           />
           <FieldRow
             label="缓动效果"
-            hint="运动节奏。"
             control={<SmallSelect value={config.textEasing} options={TEXT_EASING_OPTIONS} onChange={config.textEnabled ? (value) => updateActionConfig({ textEasing: value, textEnabled: true }) : undefined} />}
           />
           <FieldRow
             label="水平偏移"
-            hint="左右偏移。"
             control={<ControlSlider disabled={!config.textEnabled} value={config.textOffsetX} min={-24} max={24} onValueChange={(value) => updateActionConfig({ textOffsetX: value[0] })} suffix="px" label="水平偏移" />}
           />
           <FieldRow
             label="垂直偏移"
-            hint="上下偏移。"
             control={<ControlSlider disabled={!config.textEnabled} value={config.textOffsetY} min={-48} max={12} onValueChange={(value) => updateActionConfig({ textOffsetY: value[0] })} suffix="px" label="垂直偏移" />}
           />
         </SettingSection>
@@ -137,18 +130,16 @@ export function TextFeedbackCard({ config, updateActionConfig, panelId }) {
           <SectionTitle>样式</SectionTitle>
           <FieldRow
             label="飘字大小"
-            hint="字号。"
             control={<ControlSlider disabled={!config.textEnabled} value={config.fontSize} min={14} max={30} onValueChange={(value) => updateActionConfig({ fontSize: value[0] })} suffix="px" label="飘字大小" />}
           />
           <FieldRow
             label="飘字字体"
-            hint="字体。"
             control={<SmallSelect value={fontPresetValue} options={TEXT_FONT_PRESETS} onChange={config.textEnabled ? (value) => updateActionConfig({ textFontFamily: value }) : undefined} label="飘字字体" />}
           />
           {fontPresetValue === "自定义" ? (
             <FieldRow
               label="字体名称"
-              hint="本机字体。"
+              tooltip="本机字体。"
               control={
                 <Input
                   disabled={!config.textEnabled}
@@ -161,25 +152,21 @@ export function TextFeedbackCard({ config, updateActionConfig, panelId }) {
               }
             />
           ) : null}
-          <FieldRow label="飘字颜色" hint="颜色。" control={<ColorOptions disabled={!config.textEnabled} value={config.textColor} onChange={(color) => updateActionConfig({ textColor: color })} />} />
+          <FieldRow label="飘字颜色" control={<ColorOptions disabled={!config.textEnabled} value={config.textColor} onChange={(color) => updateActionConfig({ textColor: color })} />} />
           <FieldRow
             label="透明度"
-            hint="透明度。"
             control={<ControlSlider disabled={!config.textEnabled} value={config.textOpacity} min={20} max={100} onValueChange={(value) => updateActionConfig({ textOpacity: value[0] })} suffix="%" label="透明度" />}
           />
           <FieldRow
             label="字重"
-            hint="粗细。"
             control={<SmallSelect value={config.textWeight} options={TEXT_WEIGHT_OPTIONS} onChange={config.textEnabled ? (value) => updateActionConfig({ textWeight: value }) : undefined} />}
           />
           <FieldRow
             label="描边"
-            hint="描边宽度。"
             control={<ControlSlider disabled={!config.textEnabled} value={config.textOutlineWidth} min={0} max={3} onValueChange={(value) => updateActionConfig({ textOutlineWidth: value[0] })} suffix="px" label="描边" />}
           />
           <FieldRow
             label="阴影效果"
-            hint="阴影。"
             control={<SmallSelect value={config.textShadow} options={TEXT_SHADOW_OPTIONS} onChange={config.textEnabled ? (value) => updateActionConfig({ textShadow: value }) : undefined} />}
           />
         </SettingSection>

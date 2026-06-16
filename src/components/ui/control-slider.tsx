@@ -68,7 +68,7 @@ export function ControlSlider({
         </div>
       </div>
       <div className="relative shrink-0 inline-grid rounded-xl bg-white ring-1 ring-slate-200">
-        <span className="invisible col-start-1 row-start-1 px-2 py-1.5 text-sm font-semibold tabular-nums" aria-hidden="true">
+        <span className="invisible col-start-1 row-start-1 px-2 py-1.5 text-sm tabular-nums" aria-hidden="true">
           {String(value)}{suffix}
         </span>
         <div className="col-start-1 row-start-1 flex items-center gap-0.5 px-2 py-1.5">
@@ -86,7 +86,7 @@ export function ControlSlider({
               commitValue(Number(raw));
             }}
             onBlur={(event) => commitValue(Number(event.target.value))}
-            className="w-full bg-transparent pr-0.5 text-right text-sm font-semibold tabular-nums text-slate-800 outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+            className="w-full bg-transparent pr-0.5 text-right text-sm tabular-nums text-slate-700 outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed"
           />
           {suffix ? <span className="shrink-0 text-xs font-medium text-slate-500">{suffix}</span> : null}
         </div>
