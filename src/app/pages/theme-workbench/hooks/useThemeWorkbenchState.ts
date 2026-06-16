@@ -33,6 +33,7 @@ import {
   reducer,
 } from "./themeWorkbenchStateStore";
 import { useThemeWorkbenchPersistence } from "./useThemeWorkbenchPersistence";
+import { isDesktop } from "@/shared/runtime";
 
 export function useThemeWorkbenchState() {
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -187,7 +188,7 @@ export function useThemeWorkbenchState() {
     currentConflicts,
     isWorkbench,
     workspaceItems: WORKSPACES.map((item) =>
-      item.id === "sites" && typeof window !== "undefined" && window.cursorDanceApp
+      item.id === "sites" && isDesktop()
         ? { ...item, label: "应用规则" }
         : item,
     ),

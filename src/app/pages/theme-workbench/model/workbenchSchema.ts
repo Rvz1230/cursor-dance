@@ -88,6 +88,7 @@ import {
 } from "./actionConfigSchema";
 import { ANIMATION_EASING_OPTIONS } from "./actionConfigOptions";
 import { getDefaultActionConfigs } from "./actionConfigPresets";
+import { isDesktop } from "@/shared/runtime";
 
 export const WORKSPACES = [
   { id: "workbench", label: "主题工作台", icon: Wand2 },
@@ -145,9 +146,7 @@ export const ACTIONS = [
   { id: "hover", label: "悬停", hint: "切状态或轻提示" },
 ];
 
-const isDesktop = typeof window !== "undefined" && !!(window as unknown as { cursorDanceApp?: unknown }).cursorDanceApp;
-
-export const PLATFORM_ACTIONS = isDesktop
+export const PLATFORM_ACTIONS = isDesktop()
   ? ACTIONS.filter((a) => a.id !== "hover")
   : ACTIONS;
 

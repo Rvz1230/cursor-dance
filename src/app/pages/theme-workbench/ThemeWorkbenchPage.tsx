@@ -20,6 +20,7 @@ import { WelcomeDialog } from "./components/WelcomeDialog";
 import { AiSettingsDialog } from "./components/AiSettingsDialog";
 import { cn } from "@/components/ui/utils";
 import { ToastProvider, useToast } from "@/components/ui/toast";
+import { isDesktop } from "@/shared/runtime";
 
 export default function ThemeWorkbenchPage({ renderHeader }: ThemeWorkbenchPageProps = {}) {
   return (
@@ -415,7 +416,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
 
               {state.workspaceId === "sites" ? (
                 <div className="h-full overflow-y-auto pr-1">
-                  {typeof window !== "undefined" && window.cursorDanceApp ? (
+                  {isDesktop() ? (
                     <AppRulesPanel
                       appRules={state.siteRules}
                       themes={themes}
@@ -465,7 +466,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
           </div>
         </div>
       </div>
-      {welcomeState === "open" && typeof window !== "undefined" && window.cursorDanceApp ? (
+      {welcomeState === "open" && isDesktop() ? (
         <WelcomeDialog
           open
           onClose={handleCloseWelcome}

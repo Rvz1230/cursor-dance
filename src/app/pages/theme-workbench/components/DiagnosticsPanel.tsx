@@ -13,6 +13,7 @@ import {
   writeDiagnosticDebugFlag,
 } from "../lib/extensionConfig";
 import { appendDiagnosticEntry, summarizeLivePreviewConfig } from "../lib/diagnosticsSurface";
+import { isDesktop } from "@/shared/runtime";
 
 const DIAGNOSTICS_STORAGE_KEY = "cursordance.debug";
 
@@ -351,7 +352,7 @@ export function DiagnosticsPanel({ selectedThemeId }) {
             <p className="mx-auto mt-1.5 max-w-md text-xs leading-5 text-slate-500">
               {scopeFilter !== "all"
                 ? "当前过滤条件下还没有事件。试试切换为「全部」查看。"
-                : typeof window !== "undefined" && window.cursorDanceApp
+                : isDesktop()
                   ? "开启诊断后，在桌面任意位置点击、长按或滚轮，事件流会开始滚动展示触发链路。"
                   : "还没有收到 runtime diagnostics 事件。开启诊断后，在目标页面触发一次点击、悬停、滚轮或音频播放，这里就会开始滚动显示原因链路。"}
             </p>

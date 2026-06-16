@@ -3,12 +3,12 @@ import { startGlobalMouseCapture, type NativeCursorEvent } from "./native-events
 import { broadcastToWindows } from "./broadcast";
 import {
   createOverlayWindow,
-  createWorkbenchWindow,
   destroyAllOverlays,
   destroyOverlayWindow,
   getOverlayWindows,
   syncOverlayBounds,
-} from "./windows";
+} from "./overlay-window";
+import { createWorkbenchWindow } from "./workbench-window";
 import { getAllDisplays, onDisplayChanges } from "./screen-utils";
 import { registerStoreIpc, unregisterStoreIpc } from "./ipc-handlers";
 import { registerDialogIpc, unregisterDialogIpc } from "./dialog-handlers";

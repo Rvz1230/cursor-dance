@@ -15,6 +15,11 @@
 //     节流 / 连击 / runIndex 计算逻辑全部原样保留。
 //
 // 调用方在桌面端是 src/renderer/overlay；扩展端继续由 trigger-handlers.js 注册。
+//
+// 重构说明：
+//   长按状态机 → long-press-state.ts
+//   双击检测   → double-click-detector.ts
+//   预览模拟   → preview-simulation.ts
 
 import type {
   AudioRuntimeModule,
@@ -26,6 +31,10 @@ import type {
   TriggerHandlersModule,
   VisualEffectsModule,
 } from "./types";
+
+import { createLongPressTracker, type LongPressTracker } from "./long-press-state";
+import { createDoubleClickDetector, type DoubleClickDetector } from "./double-click-detector";
+import { createPreviewSimulation, type PreviewSimulation } from "./preview-simulation";
 
 export interface TriggerHandlersDeps {
   window: Window;
@@ -68,6 +77,8 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
   // cursorOverlay 在扩展端由 handlePointerOver/Out 调用；桌面端 hover 已裁剪，
   // overlay 同步光标的责任移到上层（src/renderer/overlay 直接监听 IPC mousemove）。
   void _cursorOverlay;
+
+  // ── helpers ──────────────────────────────────────────────────────
 
   function getActionTimingMs(actionId: string, actionConfig: Record<string, unknown> | undefined): number {
     const rawValue = Number(actionConfig?.holdMs);
@@ -114,6 +125,8 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
     state.actionRunCounts = state.actionRunCounts || {};
     state.actionComboStates = state.actionComboStates || {};
   }
+
+  // ── triggerAction (核心触发管线) ─────────────────────────────────
 
   // 桌面端不支持 hover 触发器
   const DESKTOP_UNSUPPORTED_ACTIONS = new Set(["hover"]);
@@ -296,6 +309,30 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
     window.setTimeout(run, delayMs);
   }
 
+  // ── 子模块：长按状态机 + 双击检测 ────────────────────────────────
+
+  const doubleClickDetector: DoubleClickDetector = createDoubleClickDetector({
+    state,
+    diagnostics,
+  });
+
+  const longPressTracker: LongPressTracker = createLongPressTracker({
+    window,
+    state,
+    diagnostics,
+    fireAction(x, y, target, event, scheme, throttleMs, triggerSource) {
+      triggerAction("longPress", { x, y, target, event }, scheme, {
+        throttleMs,
+        triggerSource,
+      });
+    },
+    resetDoubleClick() {
+      doubleClickDetector.reset();
+    },
+  });
+
+  // ── 事件处理器 ───────────────────────────────────────────────────
+
   function handleLeftPointerDown(event: CursorEvent): void {
     const scheme = configStore.getActiveScheme?.();
     const leftClickConfig = configStore.getActionConfig?.(scheme, "leftClick");
@@ -315,163 +352,82 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
       });
     }
 
+    // 双击检测（按下时序）
     const doubleClickConfig = configStore.getActionConfig?.(scheme, "doubleClick");
     const doubleClickTriggerConfig = configStore.getActionTriggerConfig(doubleClickConfig);
     const doubleClickInterval = getActionTimingMs("doubleClick", doubleClickConfig);
-    const now = Date.now();
     if (doubleClickTriggerConfig.triggerTiming === "第二次按下时") {
-      if (now - (state.lastLeftPointerDownAt || 0) <= doubleClickInterval) {
+      const result = doubleClickDetector.checkDown(doubleClickInterval);
+      if (result.isDouble) {
         triggerAction("doubleClick", coords, scheme, {
           throttleMs: doubleClickInterval,
           triggerSource: "double-click-down",
         });
-        state.lastLeftPointerDownAt = 0;
+        doubleClickDetector.reset();
       } else {
-        state.lastLeftPointerDownAt = now;
-        diagnostics?.log("action.arm", {
-          actionId: "doubleClick",
-          triggerSource: "double-click-down",
-          windowMs: doubleClickInterval,
-        });
+        doubleClickDetector.recordDown();
       }
     } else {
-      state.lastLeftPointerDownAt = now;
+      doubleClickDetector.recordDown();
     }
 
+    // 长按 arm
     if (!longPressArmed) return;
-
-    const lp: NonNullable<EngineState["longPressState"]> = {
-      startedAt: Date.now(),
-      pointerId: (event as unknown as { pointerId?: number }).pointerId,
-      x: event.x,
-      y: event.y,
-      target: coords.target,
+    longPressTracker.arm(event, {
       scheme,
-      triggered: false,
-      fired: false,
+      target: coords.target,
       releaseMode: longPressTriggerConfig.triggerTiming === "松开后触发",
       thresholdMs: getActionTimingMs("longPress", longPressConfig),
-    };
-    state.longPressState = lp;
-    diagnostics?.log("action.arm", {
-      actionId: "longPress",
-      triggerSource: "longpress-arm",
-      thresholdMs: lp.thresholdMs,
     });
-
-    lp.timeoutId = window.setTimeout(() => {
-      if (!state.longPressState) return;
-      state.longPressState.triggered = true;
-      // 长按已触发，重置双击检测时间戳，避免下次单击被误判为双击
-      state.lastLeftPointerDownAt = 0;
-      state.lastLeftPointerUpAt = 0;
-      if (!state.longPressState.releaseMode && !state.longPressState.fired) {
-        state.longPressState.fired = true;
-        triggerAction("longPress", { x: state.longPressState.x, y: state.longPressState.y, target: state.longPressState.target, event: null }, state.longPressState.scheme, {
-          throttleMs: state.longPressState.thresholdMs,
-          triggerSource: "longpress-timeout",
-        });
-      }
-    }, lp.thresholdMs);
-  }
-
-  function finishLongPress(event: CursorEvent | null): void {
-    if (!state.longPressState) return;
-    if (state.longPressState.timeoutId !== undefined) {
-      window.clearTimeout(state.longPressState.timeoutId);
-    }
-    const duration = Date.now() - state.longPressState.startedAt;
-    if (state.longPressState.releaseMode && duration >= state.longPressState.thresholdMs && !state.longPressState.fired) {
-      state.longPressState.fired = true;
-      // 长按松开触发，重置双击检测时间戳
-      state.lastLeftPointerDownAt = 0;
-      state.lastLeftPointerUpAt = 0;
-      triggerAction(
-        "longPress",
-        {
-          x: event?.x ?? state.longPressState.x,
-          y: event?.y ?? state.longPressState.y,
-          target: (event as unknown as { target?: unknown })?.target ?? state.longPressState.target,
-          event,
-        },
-        state.longPressState.scheme,
-        {
-          throttleMs: state.longPressState.thresholdMs,
-          triggerSource: "longpress-release",
-        },
-      );
-    }
-    state.longPressState = null;
-  }
-
-  function cancelLongPress(): void {
-    if (!state.longPressState) return;
-    if (state.longPressState.timeoutId !== undefined) {
-      window.clearTimeout(state.longPressState.timeoutId);
-    }
-    diagnostics?.log("action.skip", {
-      actionId: "longPress",
-      reason: "longpress-cancelled",
-    });
-    state.longPressState = null;
   }
 
   function handlePointerUp(event: CursorEvent): void {
     // 右键/中键抬起：只清理长按状态机，不触发左键/双击逻辑
     if (event.button !== undefined && event.button !== 0) {
-      if (state.longPressState) {
-        window.clearTimeout(state.longPressState.timeoutId);
-        state.longPressState = null;
+      if (longPressTracker.isArmed) {
+        longPressTracker.cancel();
       }
       return;
     }
 
     const scheme = configStore.getActiveScheme?.();
-    const lpState = state.longPressState;
-    const longPressFired = lpState && (
-      lpState.triggered ||
-      (lpState.releaseMode && (Date.now() - lpState.startedAt) >= lpState.thresholdMs)
-    );
+    const longPressFired = longPressTracker.isFiredOrTriggered(event);
 
-    finishLongPress(event);
+    longPressTracker.finish(event);
 
     const coords = makeCoordsFromEvent(event);
     if (!longPressFired) {
       const leftClickConfig = configStore.getActionConfig?.(scheme, "leftClick");
       const leftClickTriggerConfig = configStore.getActionTriggerConfig(leftClickConfig);
-      if (leftClickTriggerConfig.triggerTiming !== "按下时" || lpState) {
+      if (leftClickTriggerConfig.triggerTiming !== "按下时" || longPressTracker.isArmed) {
         scheduleActionTrigger("leftClick", coords, scheme, getActionTimingMs("leftClick", leftClickConfig), {
           triggerSource: "left-pointer-up",
         });
       }
     }
 
+    // 双击检测（松开时序）
     const doubleClickConfig = configStore.getActionConfig?.(scheme, "doubleClick");
     const doubleClickTriggerConfig = configStore.getActionTriggerConfig(doubleClickConfig);
     const doubleClickInterval = getActionTimingMs("doubleClick", doubleClickConfig);
-    const now = Date.now();
     if (doubleClickTriggerConfig.triggerTiming !== "第二次按下时") {
-      if (now - (state.lastLeftPointerUpAt || 0) <= doubleClickInterval) {
+      const result = doubleClickDetector.checkUp(doubleClickInterval);
+      if (result.isDouble) {
         triggerAction("doubleClick", coords, scheme, {
           throttleMs: doubleClickInterval,
           triggerSource: "double-click-up",
         });
-        state.lastLeftPointerUpAt = 0;
+        doubleClickDetector.reset();
       } else {
-        state.lastLeftPointerUpAt = now;
-        diagnostics?.log("action.arm", {
-          actionId: "doubleClick",
-          triggerSource: "double-click-up",
-          windowMs: doubleClickInterval,
-        });
+        doubleClickDetector.recordUp();
       }
     } else {
-      state.lastLeftPointerUpAt = now;
+      doubleClickDetector.recordUp();
     }
   }
 
   function handlePointerCancel(): void {
-    cancelLongPress();
+    longPressTracker.cancel();
   }
 
   function handleRightPointerDown(event: CursorEvent): void {
@@ -524,92 +480,38 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
     });
   }
 
-  function simulateAction(actionId: string, x: number, y: number, scheme: unknown): () => void {
-    // 重置状态机时间戳，确保模拟在干净状态下运行
-    state.lastLeftPointerDownAt = 0;
-    state.lastLeftPointerUpAt = 0;
-    if (state.longPressState) {
-      if (state.longPressState.timeoutId !== undefined) window.clearTimeout(state.longPressState.timeoutId);
-      state.longPressState = null;
-    }
+  // ── 预览模拟 ────────────────────────────────────────────────────
 
-    const mkEvt = (type: string): CursorEvent => ({
-      type,
-      x,
-      y,
-      buttons: 1,
-      button: 0,
-      timestamp: Date.now(),
-    });
+  // preview-simulation 需要 handleLeftPointerDown / handlePointerUp，
+  // 但这两个函数在上面才定义。通过可变引用桥接，避免循环依赖。
+  const handlerRefs: {
+    handleLeftPointerDown: ((event: CursorEvent) => void) | null;
+    handlePointerUp: ((event: CursorEvent) => void) | null;
+  } = {
+    handleLeftPointerDown: null,
+    handlePointerUp: null,
+  };
+  handlerRefs.handleLeftPointerDown = handleLeftPointerDown;
+  handlerRefs.handlePointerUp = handlePointerUp;
 
-    const pendingTimeouts: number[] = [];
-    const noop = (): void => {};
+  const previewSim = createPreviewSimulation({
+    window,
+    document,
+    state,
+    configStore,
+    longPressTracker,
+    doubleClickDetector,
+    getActionTimingMs,
+    triggerAction(sourceActionId, coords, scheme, options) {
+      triggerAction(sourceActionId, coords as TriggerCoords, scheme, options as TriggerOptions);
+    },
+    handleLeftPointerDown: (event) => handlerRefs.handleLeftPointerDown!(event),
+    handlePointerUp: (event) => handlerRefs.handlePointerUp!(event),
+  });
 
-    if (actionId === "doubleClick") {
-      handleLeftPointerDown(mkEvt("mousedown"));
-      handlePointerUp(mkEvt("mouseup"));
-      const dblConfig = configStore.getActionConfig?.(scheme, "doubleClick");
-      const interval = getActionTimingMs("doubleClick", dblConfig);
-      const tid = window.setTimeout(() => {
-        handleLeftPointerDown(mkEvt("mousedown"));
-        handlePointerUp(mkEvt("mouseup"));
-      }, Math.min(interval / 2, 80));
-      pendingTimeouts.push(tid);
-      return () => { for (const id of pendingTimeouts) window.clearTimeout(id); };
-    }
-
-    if (actionId === "longPress") {
-      const lpConfig = configStore.getActionConfig?.(scheme, "longPress");
-      const threshold = getActionTimingMs("longPress", lpConfig);
-      handleLeftPointerDown(mkEvt("mousedown"));
-      const tid = window.setTimeout(() => {
-        handlePointerUp(mkEvt("mouseup"));
-      }, threshold + 20);
-      pendingTimeouts.push(tid);
-      return () => { for (const id of pendingTimeouts) window.clearTimeout(id); };
-    }
-
-    // 其他动作走原来的 force-trigger
-    triggerAction(actionId, { x, y, target: document.body, event: null }, scheme, {
-      force: true,
-      resolvedActionId: actionId,
-      throttleMs: 0,
-      triggerSource: "preview-center",
-    });
-    return noop;
-  }
-
-  let pendingSimCleanup: (() => void) | null = null;
-
-  function previewAt(x: number, y: number, schemeId?: string, previewScheme?: unknown, actionId?: string): void {
-    if (!configStore.isCurrentSiteEnabled?.()) return;
-    const config = configStore.getConfig?.();
-    const resolvedScheme = previewScheme
-      || (config?.schemes.find((scheme) => scheme.id === (schemeId || config?.activeSchemeId)))
-      || configStore.getActiveScheme?.();
-    const resolvedActionId = actionId || "leftClick";
-
-    // 取消上一次模拟残留的 timeout，避免快速切换动作时泄漏
-    if (pendingSimCleanup) { pendingSimCleanup(); pendingSimCleanup = null; }
-
-    // 多步动作走状态机模拟
-    if (resolvedActionId === "doubleClick" || resolvedActionId === "longPress") {
-      pendingSimCleanup = simulateAction(resolvedActionId, x, y, resolvedScheme);
-      return;
-    }
-
-    triggerAction(resolvedActionId, { x, y, target: document.body, event: null }, resolvedScheme, {
-      force: true,
-      resolvedActionId,
-      throttleMs: 0,
-      triggerSource: "preview-center",
-    });
-  }
-
-  function previewAtViewportCenter(schemeId?: string, previewScheme?: unknown, actionId?: string): void {
-    const x = Math.round(window.innerWidth / 2);
-    const y = Math.round(window.innerHeight / 2);
-    previewAt(x, y, schemeId, previewScheme, actionId);
+  // 公共 API 包装：保留 simulateAction 的 options 参数签名
+  function simulateAction(actionId: string, x: number, y: number, scheme: unknown, _options?: { holdMs?: number }): () => void {
+    return previewSim.simulateAction(actionId, x, y, scheme);
   }
 
   return {
@@ -619,8 +521,8 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
     handlePointerCancel,
     handleContextMenu,
     handleWheel,
-    previewAtViewportCenter,
-    previewAt,
+    previewAtViewportCenter: previewSim.previewAtViewportCenter,
+    previewAt: previewSim.previewAt,
     simulateAction,
   };
 }
