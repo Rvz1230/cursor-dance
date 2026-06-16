@@ -4,7 +4,7 @@ export default {
     "./index.html",
     "./popup.html",
     "./src/**/*.{js,ts,jsx,tsx}",
-    "./src/renderer/**/*.{html,js,ts,jsx,tsx}",
+    "./src/desktop/renderer/**/*.{html,js,ts,jsx,tsx}",
     "./*.jsx",
   ],
   theme: {

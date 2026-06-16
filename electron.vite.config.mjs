@@ -12,7 +12,7 @@ export default defineConfig({
     build: {
       rollupOptions: {
         input: {
-          index: resolve(__dirname, "src/main/index.ts"),
+          index: resolve(__dirname, "src/desktop/main/index.ts"),
         },
       },
     },
@@ -22,13 +22,13 @@ export default defineConfig({
     build: {
       rollupOptions: {
         input: {
-          index: resolve(__dirname, "src/preload/index.ts"),
+          index: resolve(__dirname, "src/desktop/preload/index.ts"),
         },
       },
     },
   },
   renderer: {
-    root: resolve(__dirname, "src/renderer"),
+    root: resolve(__dirname, "src/desktop/renderer"),
     resolve: {
       alias: {
         "@": srcDir,
@@ -49,9 +49,9 @@ export default defineConfig({
     build: {
       rollupOptions: {
         input: {
-          workbench: resolve(__dirname, "src/renderer/workbench/index.html"),
-          overlay: resolve(__dirname, "src/renderer/overlay/index.html"),
-          popup: resolve(__dirname, "src/renderer/popup/index.html"),
+          workbench: resolve(__dirname, "src/desktop/renderer/workbench/index.html"),
+          overlay: resolve(__dirname, "src/desktop/renderer/overlay/index.html"),
+          popup: resolve(__dirname, "src/desktop/renderer/popup/index.html"),
         },
       },
     },

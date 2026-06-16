@@ -30,6 +30,7 @@ export default defineConfig(({ mode }) => {
   return {
     base: "./",
     appType: "mpa",
+    publicDir: path.resolve(__dirname, "extension"),
     plugins: [react(), excludeTestFilesPlugin()],
     define: {
       "globalThis.VITE_CURSORDANCE_AI_API_ENDPOINT": JSON.stringify(
@@ -52,13 +53,13 @@ export default defineConfig(({ mode }) => {
       environment: "node",
       include: [
         "src/**/*.test.{js,ts,tsx}",
-        "public/**/*.test.js",
+        "extension/**/*.test.js",
         "scripts/**/*.test.js",
         "server/**/*.test.js",
         "landing/src/**/*.test.js",
       ],
       deps: {
-        inline: ["**/public/config-runtime/*.js"],
+        inline: ["**/extension/config-runtime/*.js"],
       },
     },
     resolve: {

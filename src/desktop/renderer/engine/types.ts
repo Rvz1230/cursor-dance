@@ -1,6 +1,6 @@
 // CursorDance 效果引擎共享类型
 //
-// 引擎在扩展端通过 IIFE + window.CursorDanceContentModules 注册（见 public/content-runtime/*）。
+// 引擎在扩展端通过 IIFE + window.CursorDanceContentModules 注册（见 extension/content-runtime/*）。
 // 桌面端把同一套引擎放到 ES module 形态下，并通过 createEffectEngine 注入
 // window/document/constants/state/configStore，让 overlay 渲染进程与 Workbench 预览面板
 // 共享同一份代码（详见 docs/plans/steady-painting-yeti.md）。
@@ -134,7 +134,7 @@ export interface ConfigStore {
 }
 
 /**
- * diagnostics 子模块对引擎暴露的接口。完整实现见 public/content-runtime/diagnostics.js
+ * diagnostics 子模块对引擎暴露的接口。完整实现见 extension/content-runtime/diagnostics.js
  * （扩展端）和未来的 src/renderer/engine/diagnostics.ts（任务 2.5 之后再迁）。
  * describeTarget 桌面端可返回 "no-target" 之类的占位字符串。
  */
@@ -162,7 +162,7 @@ export interface EngineDeps {
 
 /**
  * visual-effects 子模块对外暴露的渲染 API。
- * 与 public/content-runtime/visual-effects.js 的返回对象一一对应。
+ * 与 extension/content-runtime/visual-effects.js 的返回对象一一对应。
  */
 export interface VisualEffectsModule {
   ensureRoot(): HTMLElement;

@@ -19,11 +19,11 @@ files:
   - "!**/*.test.*"
   - "!**/__tests__/**"
 
-# 不进 asar，直接拷贝到 Resources/ —— public/ 下的 icon-16.png 等运行时资源由
-# resolveTrayIconPath() 在 process.resourcesPath/public/ 下查找。
+# 不进 asar，直接拷贝到 Resources/ —— extension/ 下的 icon-16.png 等运行时资源由
+# resolveTrayIconPath() 在 process.resourcesPath/extension/ 下查找。
 extraResources:
-  - from: public
-    to: public
+  - from: extension
+    to: extension
     filter:
       - "**/*"
       - "!**/*.test.*"

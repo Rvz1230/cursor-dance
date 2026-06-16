@@ -1,6 +1,6 @@
 // CursorDance 配置存储 / 解析
 //
-// 从 public/content-runtime/config-store.js 迁移而来（任务 2.5）。关键调整：
+// 从 extension/content-runtime/config-store.js 迁移而来（任务 2.5）。关键调整：
 //   - 去 IIFE，改为 createConfigStore(deps)，依赖通过参数注入。
 //   - **删除 hover BASE_ACTION_CONFIG 条目**：桌面端不支持 hover 触发（CLAUDE.md
 //     no-go）。BASE_ACTION_CONFIGS 现有 5 条：leftClick / rightClick /

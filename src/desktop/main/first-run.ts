@@ -13,7 +13,7 @@ import {
   APP_GET_FIRST_RUN,
   APP_MARK_FIRST_RUN_COMPLETE,
   APP_OPEN_EXTERNAL,
-} from "../shared/ipc-channels";
+} from "../../shared/ipc-channels";
 
 const FIRST_RUN_KEY = "firstRun";
 

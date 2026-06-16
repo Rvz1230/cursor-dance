@@ -1,6 +1,6 @@
 // CursorDance 触发器分发层
 //
-// 从 public/content-runtime/trigger-handlers.js 迁移而来（任务 2.4）。
+// 从 extension/content-runtime/trigger-handlers.js 迁移而来（任务 2.4）。
 // 关键调整：
 //   - 去 IIFE，改为 export function createTriggerHandlers(deps)。
 //   - 入参从 DOM PointerEvent / WheelEvent 切换为结构化 CursorEvent。

@@ -14,7 +14,7 @@ import {
   AI_GET_RUNTIME_CONFIG,
   AI_GET_USER_SETTINGS,
   AI_SET_USER_SETTINGS,
-} from "../shared/ipc-channels";
+} from "../../shared/ipc-channels";
 import {
   readSettingsView,
   writeSettings,

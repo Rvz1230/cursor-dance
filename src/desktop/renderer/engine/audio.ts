@@ -1,6 +1,6 @@
 // CursorDance 音频运行时
 //
-// 从 public/content-runtime/audio.js 迁移而来（任务 2.3）。
+// 从 extension/content-runtime/audio.js 迁移而来（任务 2.3）。
 // 桌面版相对扩展版的关键裁剪：
 //   - 移除 duckPageMedia / scheduleDuckReassert / scheduleMediaRestore
 //     / applyDuckTarget / getPageMediaElements / resolveAudioDuckProfile。

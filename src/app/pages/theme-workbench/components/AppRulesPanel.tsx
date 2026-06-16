@@ -4,7 +4,7 @@
 // 和拖拽 / 增删 / 启停语义；UI 维度从「URL host/path」切到「进程名 / 窗口标题」+
 // exact / glob 两种 pattern.type，新增 pattern.target 选择匹配维度。
 //
-// 与 src/renderer/engine/app-matcher.ts 的 AppRule 数据形态保持一致：
+// 与 src/desktop/renderer/engine/app-matcher.ts 的 AppRule 数据形态保持一致：
 //   { id, pattern: { type, value, target }, action: "disable" | { enable, theme? }, enabled }
 // store 上 key 名仍叫 siteRules（不破坏扩展端数据契约和现有测试）。
 
@@ -308,7 +308,7 @@ export interface AppRulesPanelProps {
   themes: ThemeOption[];
   /**
    * 桌面 IPC 探针：每次面板打开 / 焦点变化时拉取当前前台窗口快照。
-   * 实现见 src/preload/index.ts 的 cursorDanceApp.getActiveWindow。
+   * 实现见 src/desktop/preload/index.ts 的 cursorDanceApp.getActiveWindow。
    * 传 null 退化为「无活跃应用」。
    */
   fetchActiveApp?: () => Promise<ActiveAppSnapshot | null>;

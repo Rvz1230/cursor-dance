@@ -1,6 +1,6 @@
 // CursorDance 视觉效果渲染层
 //
-// 从 public/content-runtime/visual-effects.js 迁移而来（任务 2.1）。
+// 从 extension/content-runtime/visual-effects.js 迁移而来（任务 2.1）。
 // 保留所有 Element.animate() 调用与关键帧字面量，仅做 ESM 化与 TS 类型补全：
 //   - 去掉 IIFE + window.CursorDanceContentModules 注册
 //   - 改为 export function createVisualEffects(deps)
@@ -8,7 +8,7 @@
 //   - 不再访问 chrome.* / audio-duck-profile（原文件本就没有这两类引用）
 //
 // 调用方在桌面端是 src/renderer/overlay 与 Workbench 预览面板；
-// 在扩展端继续由 public/content-runtime/visual-effects.js 注册。两份代码必须保持等价。
+// 在扩展端继续由 extension/content-runtime/visual-effects.js 注册。两份代码必须保持等价。
 
 import type { EngineDeps, VisualEffectsModule } from "./types";
 import {

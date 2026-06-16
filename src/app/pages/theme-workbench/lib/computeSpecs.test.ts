@@ -23,11 +23,11 @@ import {
 
 const COMPUTE_SPECS_PATH = path.resolve(
   import.meta.dirname,
-  "../../../../../public/config-runtime/compute-specs.js",
+  "../../../../../extension/config-runtime/compute-specs.js",
 );
 const ACTION_CONFIG_PATH = path.resolve(
   import.meta.dirname,
-  "../../../../../public/config-runtime/action-config.js",
+  "../../../../../extension/config-runtime/action-config.js",
 );
 
 /** Install the compute-specs.js IIFE with minimal stubs for its dependencies. */

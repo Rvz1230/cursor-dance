@@ -19,7 +19,7 @@ import {
 } from "../model/workbenchSchema";
 import { Panel } from "./WorkbenchControls";
 import { AtmosphereStagePreview } from "./AtmosphereStagePreview";
-import { createEffectEngine, type EngineConstants, type EngineState } from "@/renderer/engine/entry";
+import { createEffectEngine, type EngineConstants, type EngineState } from "@/desktop/renderer/engine/entry";
 import {
   getActionAnimationConfig as engineGetActionAnimationConfig,
   getActionAudioConfig as engineGetActionAudioConfig,
@@ -29,7 +29,7 @@ import {
   getActionRippleConfig as engineGetActionRippleConfig,
   getActionTextConfig as engineGetActionTextConfig,
   getActionTriggerConfig as engineGetActionTriggerConfig,
-} from "@/renderer/engine/action-config";
+} from "@/desktop/renderer/engine/action-config";
 
 function formatTriggerInterval(ms) {
   if (ms < 1000) return `${ms}ms`;

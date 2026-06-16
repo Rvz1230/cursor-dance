@@ -18,6 +18,8 @@ The repo uses **npm workspaces** for monorepo management:
 - `landing/` — independent Vite landing page build
 - Root — core extension (Vite MPA: workbench + popup + content scripts) + desktop app (electron-vite: main + preload + renderer)
 
+See `ARCHITECTURE.md` for the directory layout and platform boundaries.
+
 ## Commands
 ```
 # Extension
@@ -42,7 +44,7 @@ npm run package:win   # electron-builder --win
 - Design tokens and UI components in `src/components/ui/` are shared across extension and desktop
 
 ### Chrome Extension (existing)
-- Three entrypoints: Workbench (`index.html`), Popup (`popup.html`), Content scripts (`public/`)
+- Three entrypoints: Workbench (`index.html`), Popup (`popup.html`), Content scripts (`extension/`)
 - Content scripts use IIFE registration (`window.CursorDanceContentModules`) because ES modules aren't available
 - Storage: `chrome.storage.local` with localStorage fallback
 - Build: Vite 5 MPA (`vite.config.js`)
@@ -50,40 +52,42 @@ npm run package:win   # electron-builder --win
 ### Electron Desktop App (new)
 ```
 src/
-├── main/              # Electron main process
-│   ├── index.ts       # App lifecycle, single-instance lock
-│   ├── windows.ts     # createOverlayWindow, createWorkbenchWindow
-│   ├── tray.ts        # System tray + context menu
-│   ├── ipc-handlers.ts # All ipcMain.handle registrations
-│   ├── native-events.ts # uiohook-napi global mouse capture
-│   ├── electron-store.ts # electron-store config persistence
-│   └── api-server.ts  # cursor-dance-api embedded in main process
-├── preload/
-│   └── index.ts       # contextBridge: cursorDanceAPI, cursorDanceStorage
-├── renderer/
-│   ├── engine/        # Shared effect engine (used by both Workbench preview AND overlay)
-│   │   ├── visual-effects.ts   # Element.animate() rendering
-│   │   ├── cursor-overlay.ts   # Software cursor
-│   │   ├── audio.ts            # Web Audio API synthesis
-│   │   ├── trigger-handlers.ts # Event → action pipeline
-│   │   ├── config-store.ts     # Config resolution
-│   │   ├── compute-specs.ts    # Particle/ripple/animation math
-│   │   ├── action-config.ts    # Action config field pickers
-│   │   ├── text-semantics.ts   # Text classification (pure data)
-│   │   ├── default-config.ts   # Default action configs
-│   │   ├── app-matcher.ts      # App rule matching (replaces site-matcher)
-│   │   └── diagnostics.ts      # Runtime event logging
-│   ├── workbench/     # ThemeWorkbenchPage (reused from extension)
-│   ├── overlay/       # Overlay window entry (thin: IPC binding → engine)
-│   └── popup/         # Tray popup panel (reused from extension)
-└── shared/
-    ├── storage/
-    │   └── StorageAdapter.ts  # Storage interface (ChromeStorageAdapter vs ElectronStoreAdapter)
-    └── ipc-channels.ts        # IPC channel name constants
+├── app/                # Shared UI — Workbench + Popup pages (both platforms)
+├── components/         # Shared UI component library
+├── shared/             # Shared utilities + runtime detection
+│   ├── ipc-channels.ts   # Desktop IPC channel constants
+│   └── runtime.ts        # PLATFORM / isDesktop() / isExtension()
+└── desktop/            # Desktop app (Electron) — all desktop-only code
+    ├── main/              # Electron main process
+    │   ├── index.ts       # App lifecycle, single-instance lock
+    │   ├── windows.ts     # createOverlayWindow, createWorkbenchWindow
+    │   ├── tray.ts        # System tray + context menu
+    │   ├── ipc-handlers.ts # All ipcMain.handle registrations
+    │   ├── native-events.ts # uiohook-napi global mouse capture
+    │   ├── electron-store.ts # electron-store config persistence
+    │   └── api-server.ts  # cursor-dance-api embedded in main process
+    ├── preload/
+    │   └── index.ts       # contextBridge: cursorDanceAPI, cursorDanceStorage
+    └── renderer/
+        ├── engine/        # Shared effect engine (used by both Workbench preview AND overlay)
+        │   ├── visual-effects.ts   # Element.animate() rendering
+        │   ├── cursor-overlay.ts   # Software cursor
+        │   ├── audio.ts            # Web Audio API synthesis
+        │   ├── trigger-handlers.ts # Event → action pipeline
+        │   ├── config-store.ts     # Config resolution
+        │   ├── compute-specs.ts    # Particle/ripple/animation math
+        │   ├── action-config.ts    # Action config field pickers
+        │   ├── text-semantics.ts   # Text classification (pure data)
+        │   ├── default-config.ts   # Default action configs
+        │   ├── app-matcher.ts      # App rule matching (replaces site-matcher)
+        │   └── diagnostics.ts      # Runtime event logging
+        ├── workbench/     # ThemeWorkbenchPage (reused from extension)
+        ├── overlay/       # Overlay window entry (thin: IPC binding → engine)
+        └── popup/         # Tray popup panel (reused from extension)
 ```
 
 ### Content script module system (extension only)
-Content scripts can't use ES modules, so `public/` uses IIFE registration via `window.CursorDanceContentModules`. Load order (defined in `manifest.json`):
+Content scripts can't use ES modules, so `extension/` uses IIFE registration via `window.CursorDanceContentModules`. Load order (defined in `manifest.json`):
 ```
 text-semantics.js → action-config.js → config.js
 → diagnostics.js → config-store.js → visual-effects.js
@@ -161,7 +165,7 @@ Independent Vite + React build for the public website. Not part of the Electron 
 
 ### Extension-specific
 - Do NOT add `behavior.click.effects` back — this old format was removed (2026-05-24)
-- Do NOT rewrite `public/content.js` broadly; add focused runtime modules instead
+- Do NOT rewrite `extension/content.js` broadly; add focused runtime modules instead
 - Keep popup, workbench, and content runtime data shapes synchronized
 
 ### Desktop-specific
@@ -169,7 +173,7 @@ Independent Vite + React build for the public website. Not part of the Electron 
 - Do NOT mix native widgets with Chromium-rendered UI — all UI surfaces use the same design tokens
 - Do NOT add `hover` trigger action on desktop (no DOM context)
 - Do NOT add audio ducking on desktop (no page media)
-- Do NOT let engine logic diverge between extension and desktop — changes to `src/renderer/engine/` must be reflected in `public/content-runtime/` equivalents
+- Do NOT let engine logic diverge between extension and desktop — changes to `src/desktop/renderer/engine/` must be reflected in `extension/content-runtime/` equivalents
 
 ### General
 - Read `docs/project-stabilization-todo.md` and `docs/engineering-backlog.md` before large architecture changes

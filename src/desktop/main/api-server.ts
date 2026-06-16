@@ -11,8 +11,8 @@
 //   再自己 listen(0)，方便拿到真实端口。startServer 是 dev 脚本用的便捷封装。
 
 import { createServer } from "node:net";
-import { configureRateLimiter } from "../../cursor-dance-api/src/rate-limiter.mjs";
-import { createApp } from "../../cursor-dance-api/src/server.mjs";
+import { configureRateLimiter } from "../../../cursor-dance-api/src/rate-limiter.mjs";
+import { createApp } from "../../../cursor-dance-api/src/server.mjs";
 import { syncEnvFromSettings } from "./ai-config";
 
 const DEFAULT_PORT = 8787;

@@ -1,7 +1,7 @@
 # CursorDance
 
 <p align="center">
-  <img src="public/icon-128.png" alt="CursorDance" width="128" height="128">
+  <img src="extension/icon-128.png" alt="CursorDance" width="128" height="128">
 </p>
 
 <p align="center">

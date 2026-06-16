@@ -44,7 +44,7 @@
 
 ### 解决方案摘要
 
-- 在 `public/content-runtime/audio-duck-profile.js` 中添加了站点特定音频压低配置层。
+- 在 `extension/content-runtime/audio-duck-profile.js` 中添加了站点特定音频压低配置层。
 - B 站现在使用更强的压低目标、更长的压低时长和周期性重新施加，以减少播放器端状态覆盖。
 - 诊断系统现在会暴露站点标识、压低配置和重新施加活动，使媒体混音行为可追溯。
 - 本地冒烟测试现在模拟了类似 B 站的媒体状态重新施加，并验证三种 `soundBlendMode` 值保持可区分。

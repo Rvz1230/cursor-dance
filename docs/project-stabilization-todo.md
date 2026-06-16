@@ -9,7 +9,7 @@
 项目已不再处于结构不稳定的状态。下一阶段应从大范围重构转向：
 
 1. 用测试锁定行为
-2. 降低 `public/content.js` 的运行时维护风险
+2. 降低 `extension/content.js` 的运行时维护风险
 3. 完成剩余的产品功能
 
 ## 当前基线
@@ -17,7 +17,7 @@
 - 配置语义在 Popup、工作台和内容运行时之间已基本统一。
 - 存储、实时预览和草稿适配已分离为独立模块。
 - 动作配置语义现在有共享的分组辅助函数，供适配器、预览和运行时读取使用。
-- `public/content.js` 已精简为运行时装配层，聚焦模块放在 `public/content-runtime/` 下。
+- `extension/content.js` 已精简为运行时装配层，聚焦模块放在 `extension/content-runtime/` 下。
 - 项目现在有通过 `package.json` 暴露的 `vitest` 单元测试覆盖和 Playwright 冒烟测试覆盖。
 
 ## 完成快照
@@ -27,7 +27,7 @@
 - `P0-1` 完成：使用 `vitest` 添加了轻量级单元测试，以及 `test` / `test:watch` 脚本。
 - `P0-2` 完成：配置转换不变量和适配器回归已覆盖。
 - `P0-3` 完成：浏览器级冒烟测试覆盖了 popup/workbench/runtime 同步。
-- `P1-1` 完成：`public/content.js` 已拆分为聚焦的运行时模块。
+- `P1-1` 完成：`extension/content.js` 已拆分为聚焦的运行时模块。
 - `P1-2` 完成：`actionConfig` 存储和编辑器边界已规范化。
 - `P1-3` 完成：可切换的运行时诊断已实现，可从工作台查看。
 - `P2-1` 完成：主题复制/删除/导出生命周期已完整。
@@ -66,7 +66,7 @@
 - 涉及文件：
   - `src/app/pages/theme-workbench/lib/themeDraftAdapter.js`
   - `src/app/pages/theme-workbench/lib/runtimeConfig.js`
-  - `public/config.js`
+  - `extension/config.js`
 - 建议测试用例：
   - 木鱼方案文字配置保留数字模式语义
   - 自定义文字标签保留顺序和主文本
@@ -83,7 +83,7 @@
   - 验证 Popup 选中的主题与内容运行时效果输出匹配
 - 建议工具：Playwright 或其他浏览器级冒烟工具
 - 涉及文件：
-  - `public/content.js`
+  - `extension/content.js`
   - `src/app/pages/popup/usePopupState.js`
   - `src/app/pages/theme-workbench/hooks/useThemeWorkbenchState.js`
   - `src/app/pages/theme-workbench/lib/extensionStorage.js`
@@ -91,7 +91,7 @@
 
 ### P1：降低运行时维护风险
 
-#### 任务 P1-1：将 `public/content.js` 拆分为内部运行时模块
+#### 任务 P1-1：将 `extension/content.js` 拆分为内部运行时模块
 
 状态：已完成（2026-05-14）
 
@@ -104,8 +104,8 @@
   - `runtime-cursor-overlay`
 - 约束：保持外部行为不变；保持扩展打包输出与当前清单使用兼容
 - 涉及文件：
-  - `public/content.js`
-  - `public/config.js`
+  - `extension/content.js`
+  - `extension/config.js`
 - 完成定义：事件接线、渲染、音频和光标覆盖逻辑不再混在一个文件中；每个模块有且仅有一个明确职责
 
 #### 任务 P1-2：规范化 `actionConfig` 模型边界
@@ -130,7 +130,7 @@
   - 基于待办项 `CD-002` 构建
   - 为动作解析、触发区域过滤和媒体压低添加可切换的调试通道
 - 涉及文件：
-  - `public/content.js`
+  - `extension/content.js`
   - 工作台中未来的调试设置入口或隐藏开关
 - 完成定义：开发者可以不用手动猜测来解释某个动作为何触发或未触发
 
@@ -192,7 +192,7 @@
 
 - 配置转换测试存在且通过
 - 至少一个浏览器级冒烟测试覆盖 popup/workbench/runtime 同步
-- `public/content.js` 不再是一个大的混合职责文件
+- `extension/content.js` 不再是一个大的混合职责文件
 - 主题生命周期操作覆盖创建、导入、复制、删除和导出
 
 当前状态：截至 2026-05-14 已满足以上全部停止条件。
@@ -207,7 +207,7 @@
 
 稳定化计划完成后，下一阶段应优先选择小型、低风险的清理，而非新的架构变动。
 
-1. 拆分 `public/config.js` 中的热点辅助函数，减少运行时适配器蔓延。
+1. 拆分 `extension/config.js` 中的热点辅助函数，减少运行时适配器蔓延。
 2. 将 `useThemeWorkbenchState.js` 拆分为水合、主题生命周期和实时预览副作用等更窄的 hook。
 3. 将 `actionConfigSchema.js` 拆分为字段组、预设值和存储辅助函数，避免新特效卡片不断扩展同一个文件。
 4. 如果引入另一个重要的运行时特效，考虑按特效类型拆分 `visual-effects.js`。
@@ -216,7 +216,7 @@
 
 截至 2026-05-14，最大的文件为：
 
-- `public/config.js`：694 行
+- `extension/config.js`：694 行
 - `src/app/pages/theme-workbench/model/actionConfigSchema.js`：632 行
 - `src/app/pages/theme-workbench/hooks/useThemeWorkbenchState.js`：605 行
-- `public/content-runtime/visual-effects.js`：544 行
+- `extension/content-runtime/visual-effects.js`：544 行

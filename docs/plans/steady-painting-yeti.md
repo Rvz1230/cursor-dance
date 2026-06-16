@@ -44,7 +44,7 @@ CursorDance 目前是一个 Chrome Manifest V3 扩展，在网页内渲染光标
 Workbench 预览面板的 `SimplePreviewStage` 和 overlay 窗口都 import 同一个 `engine/visual-effects.ts`，调用相同的 `renderParticles(x, y, config)` 等函数。Workbench 预览渲染在一个内嵌 `<div class="preview-stage">` 里（绝对定位、800×400），overlay 渲染在全屏浮层里——渲染目标不同，但渲染逻辑完全相同。
 
 具体做法：
-- 把 `public/content-runtime/visual-effects.js` 迁移为 `src/renderer/engine/visual-effects.ts`（ES module）
+- 把 `extension/content-runtime/visual-effects.js` 迁移为 `src/desktop/renderer/engine/visual-effects.ts`（ES module）
 - Workbench 预览面板和 overlay 入口都 import 它
 - 预览面板用 `previewAtViewportCenter()` 模拟一次鼠标事件，overlay 用全局鼠标 IPC 事件
 - 现有的 `WorkbenchPreviewRail.tsx` 里 CSS @keyframes 预览代码逐步废弃，改为调用 engine 模块
@@ -225,7 +225,7 @@ Renderer Processes（渲染进程）
 
 **动作**：
 ```typescript
-// src/shared/storage/StorageAdapter.ts（新文件）
+// src/shared/StorageAdapter.ts（新文件）
 interface StorageAdapter {
   readConfig(): Promise<Config>;
   writeConfig(config: Config): Promise<void>;
@@ -249,12 +249,12 @@ interface StorageAdapter {
 
 ### 0.3 纯函数文件迁移
 
-**问题**：`public/config-runtime/compute-specs.js`、`action-config.js`、`text-semantics.js` 是零依赖纯函数，但写成 IIFE 挂 `window.CursorDanceConfigHelpers`，桌面版 ES module 不能 import。
+**问题**：`extension/config-runtime/compute-specs.js`、`action-config.js`、`text-semantics.js` 是零依赖纯函数，但写成 IIFE 挂 `window.CursorDanceConfigHelpers`，桌面版 ES module 不能 import。
 
 **动作**：
-- 迁成 `src/renderer/engine/compute-specs.ts`、`action-config.ts`、`text-semantics.ts`
+- 迁成 `src/desktop/renderer/engine/compute-specs.ts`、`action-config.ts`、`text-semantics.ts`
 - 导出为具名 ESM export
-- 插件版的 `public/config-runtime/` 里用 `window.CursorDanceConfigHelpers` 继续引用，不破坏现有扩展构建
+- 插件版的 `extension/config-runtime/` 里用 `window.CursorDanceConfigHelpers` 继续引用，不破坏现有扩展构建
 - 注意：`action-config.js` 和 `text-semantics.js` 是「两个入口同一份逻辑」，保证两边同步即可
 
 ### 0.4 清理 Chrome API 降级代码
@@ -269,9 +269,9 @@ interface StorageAdapter {
 
 | 梳理动作 | 影响范围 | 产出 |
 |----------|----------|------|
-| 提取 `StorageAdapter` 接口 | `storage/` 目录 | `src/shared/storage/StorageAdapter.ts`，双版本各注入实现 |
+| 提取 `StorageAdapter` 接口 | `storage/` 目录 | `src/shared/StorageAdapter.ts`，双版本各注入实现 |
 | 抽 `WorkbenchControls` 通用部分到 `ui/` | `src/components/ui/` | Panel, FieldRow, ControlSlider, SectionTitle, SmallSelect, ColorOptions, ThemeCard |
-| `compute-specs.js` → `.ts` | `public/config-runtime/` → `src/renderer/engine/` | 双版本共用纯函数 |
+| `compute-specs.js` → `.ts` | `extension/config-runtime/` → `src/desktop/renderer/engine/` | 双版本共用纯函数 |
 | `action-config.js` → `.ts` | 同上 | 双版本共用纯函数 |
 | `text-semantics.js` → `.ts` | 同上 | 双版本共用纯函数 |
 | 清理 `chrome.*` 降级代码 | `storage/*.ts` | 删除约 200 行（仅针对桌面版分支） |
@@ -308,7 +308,7 @@ interface StorageAdapter {
        └── overlay/       # NEW: 透明浮层效果引擎
            ├── index.html
            ├── index.ts   # 入口：绑定 IPC 事件 → trigger pipeline
-           └── engine/    # 从 public/content-runtime/ 迁移的效果模块
+           └── engine/    # 从 extension/content-runtime/ 迁移的效果模块
    ```
 
 3. **electron-vite.config.mjs**
@@ -338,13 +338,13 @@ interface StorageAdapter {
 
 ### 2.1 事件源替换
 
-**现状**：`public/content-runtime/trigger-handlers.js` 监听 `document` 上的 DOM 指针事件（capture phase）。
+**现状**：`extension/content-runtime/trigger-handlers.js` 监听 `document` 上的 DOM 指针事件（capture phase）。
 
 **改造**：
-1. `src/main/native-events.ts` → 使用 `uiohook-napi` 捕获全局鼠标事件（mousemove, mousedown, mouseup, wheel）。**不含 hover**——桌面版不做悬停动作（5 种触发动作：左键、右键、双击、长按、滚轮）
+1. `src/desktop/main/native-events.ts` → 使用 `uiohook-napi` 捕获全局鼠标事件（mousemove, mousedown, mouseup, wheel）。**不含 hover**——桌面版不做悬停动作（5 种触发动作：左键、右键、双击、长按、滚轮）
 2. 主进程通过 IPC 广播到所有 overlay 窗口：`overlayWindow.webContents.send('cursor-event', normalizedEvent)`
 3. preload 暴露 `window.cursorDanceAPI.onCursorEvent(callback)`
-4. `src/renderer/overlay/index.ts` 将 IPC 事件桥接到 trigger pipeline
+4. `src/desktop/renderer/overlay/index.ts` 将 IPC 事件桥接到 trigger pipeline
 
 **注意**：`uiohook-napi` 可能在某些平台有问题（Apple Silicon, 特定 Linux 发行版）。抽象一个 `IInputSource` 接口，必要时可替换为 `iohook` 或 `@nut-tree/nut-js`。
 
@@ -386,7 +386,7 @@ win.webContents.setFrameRate(60);
 
 `type: 'normal'` 而非 `'toolbar'/'panel'`，因为在 macOS 14+ 上 `panel` 类型与虚拟桌面切换存在已知冲突。
 
-`src/main/screen-utils.ts` 负责：
+`src/desktop/main/screen-utils.ts` 负责：
 - `screen.getAllDisplays()` 遍历创建窗口
 - 监听 `display-added` / `display-removed` / `display-metrics-changed`
 - DPI 缩放因子处理
@@ -398,7 +398,7 @@ win.webContents.setFrameRate(60);
 **插件版的预览与运行时是两个不同的实现**（`WorkbenchPreviewRail.tsx` 用 CSS @keyframes + `<style>` 注入，`visual-effects.js` 用 `Element.animate()`），桌面版统一为**单一引擎**。
 
 ```
-统一渲染引擎 (src/renderer/engine/)
+统一渲染引擎 (src/desktop/renderer/engine/)
 ├── visual-effects.ts      ← Element.animate() 渲染
 ├── cursor-overlay.ts      ← 软件光标
 ├── audio.ts               ← Web Audio API
@@ -420,12 +420,12 @@ Workbench 预览          Overlay 窗口
 使用 previewAtCenter()  使用全局鼠标 IPC 事件
 ```
 
-- 引擎模块放在 `src/renderer/engine/`（共享路径，绕开 workbench/overlay 目录）
+- 引擎模块放在 `src/desktop/renderer/engine/`（共享路径，绕开 workbench/overlay 目录）
 - 预览面板和 overlay 入口都 **import 同一个 `visual-effects.ts`**，调用相同的 `renderParticles(x, y, config)` 等函数
 - 唯一区别：预览用 `previewAtViewportCenter()` 模拟，overlay 用全局鼠标 IPC 事件
 - 不需要验证一致性——代码是同一份
 
-**引擎入口**（`src/renderer/engine/entry.ts`）做 DI 注入：
+**引擎入口**（`src/desktop/renderer/engine/entry.ts`）做 DI 注入：
 ```typescript
 export function createEffectEngine(deps: {
   window: Window;
@@ -442,7 +442,7 @@ export function createEffectEngine(deps: {
 
 预览面板和 overlay 各自提供自己的 `window`/`document`，引擎逻辑完全共享。
 
-从 `public/content-runtime/` 迁移到 `src/renderer/engine/`：
+从 `extension/content-runtime/` 迁移到 `src/desktop/renderer/engine/`：
 
 | 源文件 | 新文件 | 改动 |
 |--------|--------|------|
@@ -467,7 +467,7 @@ export function createEffectEngine(deps: {
 ### 2.5 可复用的关键文件
 
 以下纯逻辑代码几乎不需要改动：
-- `public/config-runtime/compute-specs.js` — 粒子物理、波纹层、动画视觉样式计算
+- `extension/config-runtime/compute-specs.js` — 粒子物理、波纹层、动画视觉样式计算
 - `src/app/pages/theme-workbench/hooks/themeWorkbenchStateStore.ts` — 状态管理 reducer
 - `src/app/pages/theme-workbench/model/` — 数据模型和默认配置
 - `src/components/ui/` — 所有 shadcn-style UI 组件
@@ -482,7 +482,7 @@ export function createEffectEngine(deps: {
 **现状**：`src/app/pages/theme-workbench/lib/storage/chrome-api.ts` 通过 `getChromeApi()` 抽象，`config-io.ts` 实现 chrome.storage.local/session 读写。
 
 **改造**：
-- 创建 `src/main/electron-store.ts`，封装 `electron-store`（本地 JSON 文件）
+- 创建 `src/desktop/main/electron-store.ts`，封装 `electron-store`（本地 JSON 文件）
 - 通过 preload bridge 暴露给渲染进程：
   ```typescript
   contextBridge.exposeInMainWorld('cursorDanceStorage', {
@@ -542,7 +542,7 @@ export function createEffectEngine(deps: {
 
 ### 4.2 Popup → 系统托盘
 
-**重构**：`src/main/tray.ts`
+**重构**：`src/desktop/main/tray.ts`
 - 系统托盘图标 + 右键菜单（开启/关闭、打开工作台、退出）
 - 可选的托盘弹出面板：复用 `PopupPage` 组件，渲染到一个 320×520 的无边框浮动窗口（类似 1Password / Dropbox 的托盘面板）
 
@@ -563,7 +563,7 @@ export function createEffectEngine(deps: {
 将 `cursor-dance-api/` 作为 Electron 主进程内的模块直接运行（因为它是纯 I/O 绑定的 HTTP 代理，不会阻塞事件循环）：
 
 ```typescript
-// src/main/api-server.ts
+// src/desktop/main/api-server.ts
 import { createServer } from '../../cursor-dance-api/src/server.mjs';
 const server = createServer();
 server.listen(port);
@@ -585,9 +585,9 @@ renderer: {
   build: {
     rollupOptions: {
       input: {
-        workbench: 'src/renderer/workbench/index.html',
-        overlay: 'src/renderer/overlay/index.html',
-        popupTray: 'src/renderer/popup/index.html',
+        workbench: 'src/desktop/renderer/workbench/index.html',
+        overlay: 'src/desktop/renderer/overlay/index.html',
+        popupTray: 'src/desktop/renderer/popup/index.html',
       },
     },
   },
@@ -610,7 +610,7 @@ macOS 需要：
 
 ### 6.4 保持 Chrome 扩展构建
 
-现有的 `vite.config.js` 和 `public/` 目录**完全不动**。`package.json` 中保留 `dev` / `build` 脚本用于扩展构建，新增 `dev:electron` / `build:electron` / `package:mac` / `package:win` 脚本。
+现有的 `vite.config.js` 和 `extension/` 目录**完全不动**。`package.json` 中保留 `dev` / `build` 脚本用于扩展构建，新增 `dev:electron` / `build:electron` / `package:mac` / `package:win` 脚本。
 
 ---
 
@@ -652,7 +652,7 @@ macOS 需要：
 **`compute-specs.js` 对 `window` 全局的隐式依赖。** 这个文件看起来是纯函数，但实际上它引用了 `globalThis.CursorDanceConfigHelpers` 上的其他函数。迁 `.ts` 时这些跨模块引用需要改成显式 import，可能爆出原来被 IIFE 包装掩盖的循环引用问题。
 → **缓解**：迁一个模块跑一次 `npm run test`，不批量迁。vitest 能直接 import TypeScript，测试不会漏。
 
-**TypeScript 严格模式差异。** 插件版 `strict: false` 允许大量 `any` 和隐式 `undefined` 通过编译。迁成 `.ts` 放到 `src/renderer/engine/` 下时，如果该目录启用了 `strict: true`，会出现很多类型错误。
+**TypeScript 严格模式差异。** 插件版 `strict: false` 允许大量 `any` 和隐式 `undefined` 通过编译。迁成 `.ts` 放到 `src/desktop/renderer/engine/` 下时，如果该目录启用了 `strict: true`，会出现很多类型错误。
 → **缓解**：阶段零不提高任何文件的严格度。迁 `.ts` 时保留 `strict: false` 配置，类型收紧放在后续迭代单独做。
 
 ### 阶段一可能遇到的
@@ -746,17 +746,17 @@ main ─────────────────────────
 **前置**：`main` 分支 `npm run build` + `npm run test` 全绿
 
 **交付物**：
-- [ ] `src/shared/storage/StorageAdapter.ts` — 接口定义
+- [ ] `src/shared/StorageAdapter.ts` — 接口定义
 - [ ] `ChromeStorageAdapter` — 封装 chrome.storage 实现（保持现有降级逻辑）
 - [ ] Panel, FieldRow, ControlSlider, SectionTitle, SmallSelect, ColorOptions, ThemeCard 移入 `src/components/ui/`
-- [ ] `compute-specs.ts`, `action-config.ts`, `text-semantics.ts` 在 `src/renderer/engine/` 重建为 ES module
+- [ ] `compute-specs.ts`, `action-config.ts`, `text-semantics.ts` 在 `src/desktop/renderer/engine/` 重建为 ES module
 - [ ] storage 中 chrome.* 降级代码清理（仅桌面版路径，保留扩展版降级）
 
 **验收**：
 - [ ] `npm run build` 扩展构建成功
 - [ ] `npm run test` 98 tests 全绿
 - [ ] `npm run test:smoke` 通过
-- [ ] IDE 中 `src/renderer/engine/compute-specs.ts` 可以 import 并调用纯函数
+- [ ] IDE 中 `src/desktop/renderer/engine/compute-specs.ts` 可以 import 并调用纯函数
 
 **不交付**：不写任何 Electron 代码，不改任何业务逻辑
 
@@ -767,9 +767,9 @@ main ─────────────────────────
 **交付物**：
 - [ ] `electron`, `electron-vite`, `electron-builder` 安装
 - [ ] `electron-vite.config.mjs` 配置（main + preload + 3 renderer entry）
-- [ ] `src/main/index.ts` — 启动后创建空白 1280×860 窗口
-- [ ] `src/preload/index.ts` — contextBridge 占位
-- [ ] `src/renderer/workbench/index.html` + entry — 渲染 ThemeWorkbenchPage
+- [ ] `src/desktop/main/index.ts` — 启动后创建空白 1280×860 窗口
+- [ ] `src/desktop/preload/index.ts` — contextBridge 占位
+- [ ] `src/desktop/renderer/workbench/index.html` + entry — 渲染 ThemeWorkbenchPage
 - [ ] `npm run dev:electron` 可启动并展示 Workbench 页面
 - [ ] Tailwind CSS + PostCSS 在 renderer 进程中正常生效
 
@@ -785,15 +785,15 @@ main ─────────────────────────
 **前置**：阶段一全部验收通过
 
 **交付物**：
-- [ ] `src/renderer/engine/visual-effects.ts` — Element.animate() 渲染，DI 注入 window/document
-- [ ] `src/renderer/engine/cursor-overlay.ts` — 软件光标 DOM 跟随
-- [ ] `src/renderer/engine/audio.ts` — Web Audio API（移除音频闪避）
-- [ ] `src/renderer/engine/trigger-handlers.ts` — 5 种动作 pipeline（移除 hover）
-- [ ] `src/renderer/engine/config-store.ts` — 不吃 chrome.*，吃静态注入
-- [ ] `src/renderer/engine/atmosphere.ts` — 仅 normal follow 模式
-- [ ] `src/renderer/engine/app-matcher.ts` — 进程名/标题匹配（替换 site-matcher）
-- [ ] `src/main/native-events.ts` — uiohook-napi 封装 + IInputSource 接口
-- [ ] `src/renderer/overlay/index.html` + entry — overlay 窗口绑定 IPC 事件
+- [ ] `src/desktop/renderer/engine/visual-effects.ts` — Element.animate() 渲染，DI 注入 window/document
+- [ ] `src/desktop/renderer/engine/cursor-overlay.ts` — 软件光标 DOM 跟随
+- [ ] `src/desktop/renderer/engine/audio.ts` — Web Audio API（移除音频闪避）
+- [ ] `src/desktop/renderer/engine/trigger-handlers.ts` — 5 种动作 pipeline（移除 hover）
+- [ ] `src/desktop/renderer/engine/config-store.ts` — 不吃 chrome.*，吃静态注入
+- [ ] `src/desktop/renderer/engine/atmosphere.ts` — 仅 normal follow 模式
+- [ ] `src/desktop/renderer/engine/app-matcher.ts` — 进程名/标题匹配（替换 site-matcher）
+- [ ] `src/desktop/main/native-events.ts` — uiohook-napi 封装 + IInputSource 接口
+- [ ] `src/desktop/renderer/overlay/index.html` + entry — overlay 窗口绑定 IPC 事件
 - [ ] 单 overlay 窗口（当前主显示器）可渲染效果
 - [ ] Workbench 预览面板 import engine 模块，替换 CSS @keyframes 预览
 
@@ -860,7 +860,7 @@ main ─────────────────────────
 **前置**：阶段一完成（完全独立）
 
 **交付物**：
-- [ ] `src/main/api-server.ts` — cursor-dance-api 内嵌或 fork
+- [ ] `src/desktop/main/api-server.ts` — cursor-dance-api 内嵌或 fork
 - [ ] 端口探测 + 回退（默认 8787，占用则随机）
 - [ ] API key 安全存储（`safeStorage.encryptString`）
 - [ ] API 端点从 electron-store 读取（Workbench 设置面板可配置）

@@ -14,7 +14,7 @@
 //   - resolveAppRule 行为对照 resolveSiteRule：按顺序找首个匹配，
 //     `disable` / `{ enable, theme? }` 两种 action。
 //
-// 测试参考 public/content-runtime/site-matcher.test.js —— 桌面版稍后会补
+// 测试参考 extension/content-runtime/site-matcher.test.js —— 桌面版稍后会补
 // app-matcher.test.ts，逻辑骨架在这里先稳定下来。
 
 export type AppRuleTarget = "process" | "title";

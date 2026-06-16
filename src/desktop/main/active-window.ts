@@ -20,7 +20,7 @@
 
 import { ipcMain } from "electron";
 import { activeWindowSync, type Result as ActiveWindowResult } from "get-windows";
-import { APP_GET_ACTIVE_WINDOW } from "../shared/ipc-channels";
+import { APP_GET_ACTIVE_WINDOW } from "../../shared/ipc-channels";
 
 export interface ActiveWindowOwner {
   /** 进程显示名（macOS: app 名，Windows: 进程名 + 扩展，Linux: WM_CLASS） */

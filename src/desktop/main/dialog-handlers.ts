@@ -9,7 +9,7 @@ import { dialog, ipcMain, BrowserWindow } from "electron";
 import {
   DIALOG_SAVE_THEME_FILE,
   DIALOG_OPEN_THEME_FILE,
-} from "../shared/ipc-channels";
+} from "../../shared/ipc-channels";
 
 const THEME_FILE_FILTERS = [
   { name: "CursorDance Theme", extensions: ["cursordance-theme.json", "json"] },

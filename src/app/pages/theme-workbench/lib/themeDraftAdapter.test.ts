@@ -10,9 +10,9 @@ import {
 } from "./themeDraftAdapter";
 import { buildThemeExportPayload } from "./extensionStorage";
 
-const textSemanticsSource = readFileSync(new URL("../../../../../public/config-runtime/text-semantics.js", import.meta.url), "utf8");
-const actionConfigSource = readFileSync(new URL("../../../../../public/config-runtime/action-config.js", import.meta.url), "utf8");
-const publicConfigSource = readFileSync(new URL("../../../../../public/config.js", import.meta.url), "utf8");
+const textSemanticsSource = readFileSync(new URL("../../../../../extension/config-runtime/text-semantics.js", import.meta.url), "utf8");
+const actionConfigSource = readFileSync(new URL("../../../../../extension/config-runtime/action-config.js", import.meta.url), "utf8");
+const publicConfigSource = readFileSync(new URL("../../../../../extension/config.js", import.meta.url), "utf8");
 
 function installWindowStub(overrides = {}) {
   globalThis.window = {

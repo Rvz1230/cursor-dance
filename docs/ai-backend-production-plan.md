@@ -66,7 +66,7 @@ VITE_CURSORDANCE_AI_API_ACCESS_TOKEN=optional_shared_token
 
 ## 扩展清单
 
-源文件 `public/manifest.json` 不应包含宽泛的远程主机权限。确定生产 API 域名后，构建并准备打包清单：
+源文件 `extension/manifest.json` 不应包含宽泛的远程主机权限。确定生产 API 域名后，构建并准备打包清单：
 
 ```bash
 npm run build

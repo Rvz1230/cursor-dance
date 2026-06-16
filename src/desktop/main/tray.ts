@@ -1,7 +1,7 @@
 // 任务 4.1：系统托盘
 //
 // 托盘形态：
-//   - 图标：public/icon-16.png（构建时由 electron-vite 把 public/ 映射到 out/renderer 与
+//   - 图标：extension/icon-16.png（构建时由 electron-vite 把 extension/ 映射到 out/renderer 与
 //     resources/ 之外的位置；这里依赖运行时拿到一个绝对路径，由 createTray 调用方注入）
 //   - 左键点击：打开 / 聚焦 workbench 窗口
 //   - 右键菜单：[ 开启效果 / 暂停效果, 分隔线, 打开工作台, 分隔线, 退出 ]
@@ -26,11 +26,11 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url));
  */
 function resolveIconPath(): string {
   const candidates = [
-    join(app.getAppPath(), "public/icon-16.png"),
-    join(app.getAppPath(), "../public/icon-16.png"),
-    join(app.getAppPath(), "../../public/icon-16.png"),
-    join(__dirname, "../../public/icon-16.png"),
-    join(process.resourcesPath ?? "", "public/icon-16.png"),
+    join(app.getAppPath(), "extension/icon-16.png"),
+    join(app.getAppPath(), "../extension/icon-16.png"),
+    join(app.getAppPath(), "../../extension/icon-16.png"),
+    join(__dirname, "../../extension/icon-16.png"),
+    join(process.resourcesPath ?? "", "extension/icon-16.png"),
   ];
   for (const p of candidates) {
     try {
@@ -114,7 +114,7 @@ export function createTray(deps: TrayDeps): TrayHandle {
   }
   // macOS：理论上应该用 setTemplateImage 让系统按状态栏明暗自动反色，
   // 但 template image 要求图标必须含 alpha 通道（透明 = 不显示，黑色 = 显示）。
-  // 当前 public/icon-16.png 是 RGB 无 alpha，标记为 template 后在 macOS 14+
+  // 当前 extension/icon-16.png 是 RGB 无 alpha，标记为 template 后在 macOS 14+
   // 会被渲染成空——直接看不见。先按非 template 走（彩色图标），等任务 6.0
   // 重做应用图标资源时再补一份 template-friendly 的单色 icon。
 

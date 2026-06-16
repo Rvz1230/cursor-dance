@@ -22,7 +22,7 @@ import {
   AI_GET_RUNTIME_CONFIG,
   AI_GET_USER_SETTINGS,
   AI_SET_USER_SETTINGS,
-} from "../shared/ipc-channels";
+} from "../../shared/ipc-channels";
 
 type CursorEventPayload = {
   type: "mousemove" | "mousedown" | "mouseup" | "wheel";

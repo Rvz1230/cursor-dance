@@ -12,7 +12,7 @@ import {
   STORE_SET_LIVE_PREVIEW,
   STORE_CLEAR_LIVE_PREVIEW,
   LIVE_PREVIEW_CHANGED,
-} from "../shared/ipc-channels";
+} from "../../shared/ipc-channels";
 import {
   readConfig,
   writeConfig,

@@ -1,6 +1,6 @@
 // CursorDance 默认配置 + 主题工厂
 //
-// 从 public/config.js 迁移而来（任务 2.5）。关键调整：
+// 从 extension/config.js 迁移而来（任务 2.5）。关键调整：
 //   - 去 IIFE / globalThis.CursorDanceDefaultConfig，改为 ES module 导出。
 //   - 内置 4 套主题包（mono-geo / drift / molten / sunset）的 leftClick
 //     默认配置 **字节级保留**，与扩展端 cursor 颜色 / 粒子 / 涟漪一一对应。

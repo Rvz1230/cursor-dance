@@ -15,7 +15,7 @@ import {
   WINDOW_MINIMIZE,
   WINDOW_STATE_CHANGED,
   WINDOW_TOGGLE_MAXIMIZE,
-} from "../shared/ipc-channels";
+} from "../../shared/ipc-channels";
 import { broadcastToWindows } from "./broadcast";
 
 export interface WindowState {

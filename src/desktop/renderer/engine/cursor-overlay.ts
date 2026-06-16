@@ -1,6 +1,6 @@
 // CursorDance 软件光标渲染层
 //
-// 从 public/content-runtime/cursor-overlay.js 迁移而来（任务 2.2）。
+// 从 extension/content-runtime/cursor-overlay.js 迁移而来（任务 2.2）。
 // 关键调整：
 //   - 去 IIFE，改为 export function createCursorOverlay(deps)
 //   - syncStateCursorOverlay 不再消费 DOM Event。坐标 + 已解析的目标光标

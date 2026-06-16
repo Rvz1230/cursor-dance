@@ -79,22 +79,22 @@
 ## 必须遵守
 - 新文件用 TypeScript，不改任何函数内部逻辑
 - 去掉 IIFE 包装，改成 ES module export
-- 不改 `public/` 目录下的原始文件
+- 不改 `extension/` 目录下的原始文件
 - 完成后 `npm run test` 全绿
 
 ## 任务
 将 3 个纯函数文件从 IIFE 格式迁移为 TypeScript ES module。
 
-1. 读取 `public/config-runtime/compute-specs.js`
+1. 读取 `extension/config-runtime/compute-specs.js`
    - 去掉 (function() { ... })() 和 window.CursorDanceConfigHelpers = { ... }
    - 每个函数改成 export function
-   - 输出到 `src/renderer/engine/compute-specs.ts`
+   - 输出到 `src/desktop/renderer/engine/compute-specs.ts`
 
-2. 读取 `public/config-runtime/action-config.js`，同样处理
-   - 输出到 `src/renderer/engine/action-config.ts`
+2. 读取 `extension/config-runtime/action-config.js`，同样处理
+   - 输出到 `src/desktop/renderer/engine/action-config.ts`
 
-3. 读取 `public/config-runtime/text-semantics.js`，同样处理
-   - 输出到 `src/renderer/engine/text-semantics.ts`
+3. 读取 `extension/config-runtime/text-semantics.js`，同样处理
+   - 输出到 `src/desktop/renderer/engine/text-semantics.ts`
 
 4. 如果文件内引用了其他 CursorDanceConfigHelpers 的函数，改成从对应 .ts 文件 import
 
@@ -142,25 +142,25 @@
 创建 electron-vite 构建配置和最小 Electron 入口文件。
 
 1. 新建 `electron-vite.config.mjs`：
-   - main entry: src/main/index.ts
-   - preload entry: src/preload/index.ts  
+   - main entry: src/desktop/main/index.ts
+   - preload entry: src/desktop/preload/index.ts  
    - renderer 三入口：
-     workbench: src/renderer/workbench/index.html
-     overlay: src/renderer/overlay/index.html
-     popupTray: src/renderer/popup/index.html
+     workbench: src/desktop/renderer/workbench/index.html
+     overlay: src/desktop/renderer/overlay/index.html
+     popupTray: src/desktop/renderer/popup/index.html
    - resolve alias: @ → src/renderer
    - Tailwind CSS v3 + PostCSS 配置
    - 参考现有 vite.config.js 的 define (VITE_* 变量)
 
-2. 新建 `src/main/index.ts`：
+2. 新建 `src/desktop/main/index.ts`：
    - app.whenReady() → 创建 1280×860 窗口，加载 workbench 入口
    - app.on('window-all-closed') → app.quit()
    - app.requestSingleInstanceLock() 单实例锁
 
-3. 新建 `src/preload/index.ts`：
+3. 新建 `src/desktop/preload/index.ts`：
    - contextBridge.exposeInMainWorld('electronAPI', { platform: process.platform })
 
-4. 新建 `src/renderer/workbench/index.html` + `entry.tsx`：
+4. 新建 `src/desktop/renderer/workbench/index.html` + `entry.tsx`：
    - 渲染 ThemeWorkbenchPage，从现有 main.tsx 复制逻辑
 
 5. package.json 加脚本：
@@ -182,13 +182,13 @@
 ## 任务
 创建桌面版所需的剩余目录和占位入口文件。
 
-1. 创建目录：src/renderer/overlay/, src/renderer/popup/
-2. 创建 `src/renderer/overlay/index.html` + `index.ts`：
+1. 创建目录：src/desktop/renderer/overlay/, src/desktop/renderer/popup/
+2. 创建 `src/desktop/renderer/overlay/index.html` + `index.ts`：
    - 最小入口 console.log('overlay ready')
    - 全屏 100vw×100vh，背景透明
-3. 创建 `src/renderer/popup/index.html` + `entry.tsx`：
+3. 创建 `src/desktop/renderer/popup/index.html` + `entry.tsx`：
    - 渲染现有 PopupPage，固定 320×520
-4. 更新 tailwind.config.js content 路径包含 src/renderer/
+4. 更新 tailwind.config.js content 路径包含 src/desktop/renderer/
 
 ## 验证
 - `npm run build` 成功
@@ -212,12 +212,12 @@
 ## 任务
 创建引擎 DI 容器类型定义和入口。
 
-1. 新建 `src/renderer/engine/types.ts`：
+1. 新建 `src/desktop/renderer/engine/types.ts`：
    - CursorEvent: { type: string, x: number, y: number, buttons?: number, deltaY?: number, timestamp: number }
    - EngineDeps: { window, document, configStore }
    - 其他引擎内需要共享的类型
 
-2. 新建 `src/renderer/engine/entry.ts`：
+2. 新建 `src/desktop/renderer/engine/entry.ts`：
    - 导出 createEffectEngine(deps: EngineDeps)
    - 返回 { visualEffects, audioRuntime, cursorOverlay, triggerHandlers }
    - 目前各模块返回空对象占位（后续任务逐个实现）
@@ -238,7 +238,7 @@
 - 完成后 `npm run test` 全绿
 
 ## 任务
-将 `public/content-runtime/visual-effects.js` 迁移为 `src/renderer/engine/visual-effects.ts`。
+将 `extension/content-runtime/visual-effects.js` 迁移为 `src/desktop/renderer/engine/visual-effects.ts`。
 
 1. 完整读取 visual-effects.js
 2. 去掉 IIFE 包装，改为 export function createVisualEffects(deps)
@@ -260,7 +260,7 @@
 你是 CursorDance 桌面版开发者。
 
 ## 任务
-将 `public/content-runtime/cursor-overlay.js` 迁移为 `src/renderer/engine/cursor-overlay.ts`。
+将 `extension/content-runtime/cursor-overlay.js` 迁移为 `src/desktop/renderer/engine/cursor-overlay.ts`。
 
 1. 完整读取 cursor-overlay.js
 2. 改为 export function createCursorOverlay(deps)
@@ -281,7 +281,7 @@
 你是 CursorDance 桌面版开发者。
 
 ## 任务
-将 `public/content-runtime/audio.js` 迁移为 `src/renderer/engine/audio.ts`。
+将 `extension/content-runtime/audio.js` 迁移为 `src/desktop/renderer/engine/audio.ts`。
 
 1. 完整读取 audio.js
 2. 改为 export function createAudioRuntime(deps)
@@ -302,7 +302,7 @@
 你是 CursorDance 桌面版开发者。
 
 ## 任务
-将 `public/content-runtime/trigger-handlers.js` 迁移为 `src/renderer/engine/trigger-handlers.ts`。
+将 `extension/content-runtime/trigger-handlers.js` 迁移为 `src/desktop/renderer/engine/trigger-handlers.ts`。
 
 1. 完整读取 trigger-handlers.js
 2. 改为 export function createTriggerHandlers(deps)
@@ -328,23 +328,23 @@
 ## 任务
 迁移 config-store、atmosphere、diagnostics、default-config、app-matcher 到引擎目录。
 
-1. config-store.js → src/renderer/engine/config-store.ts
+1. config-store.js → src/desktop/renderer/engine/config-store.ts
    - 去掉 IIFE，chrome.storage 调用替换为 deps 注入的静态 config
    - getBaseActionConfigs() 保留
    - resolveCursorStateId 保留
    - site rule 匹配改为 app rule 匹配
 
-2. atmosphere.js → src/renderer/engine/atmosphere.ts
+2. atmosphere.js → src/desktop/renderer/engine/atmosphere.ts
    - 只保留 normal follow 模式（updateFollow + rAF animate 循环，约 60 行）
    - 移除：元素磁铁、文本选择、blend layer、querySelector（约 300 行）
 
-3. config.js → src/renderer/engine/default-config.ts
+3. config.js → src/desktop/renderer/engine/default-config.ts
    - 去掉 IIFE，ES module export
 
-4. diagnostics.js → src/renderer/engine/diagnostics.ts
+4. diagnostics.js → src/desktop/renderer/engine/diagnostics.ts
    - 去掉 IIFE，保留事件日志逻辑
 
-5. site-matcher.js → src/renderer/engine/app-matcher.ts
+5. site-matcher.js → src/desktop/renderer/engine/app-matcher.ts
    - URL hostname 匹配改为进程名/标题匹配
    - 保留 exact / glob 两种模式
 
@@ -365,18 +365,18 @@
 ## 任务
 实现全局鼠标事件捕获和 IPC 广播。
 
-1. 新建 `src/main/native-events.ts`：
+1. 新建 `src/desktop/main/native-events.ts`：
    - 定义 IInputSource 接口：start(callback), stop()
    - 实现 UiohookInputSource 封装 uiohook-napi
    - mousemove/mousedown/mouseup/wheel 事件映射
    - macOS 滚轮处理：累积 delta 达阈值再触发（防触控板事件爆炸）
    - 导出 startGlobalMouseCapture(onEvent): () => void
 
-2. src/main/index.ts 中：
+2. src/desktop/main/index.ts 中：
    - 启动鼠标捕获
    - 事件广播到所有 overlay 窗口：webContents.send('cursor-event', event)
 
-3. src/preload/index.ts 中：
+3. src/desktop/preload/index.ts 中：
    - 暴露 onCursorEvent(callback) 和 offCursorEvent()
 
 ## 验证
@@ -392,7 +392,7 @@
 ## 任务
 将透明浮层窗口和效果引擎接通——鼠标事件 → IPC → overlay → 引擎 → DOM 渲染。
 
-1. 在 src/main/windows.ts 中实现 createOverlayWindow(display)：
+1. 在 src/desktop/main/windows.ts 中实现 createOverlayWindow(display)：
    - BrowserWindow: transparent, frame: false, alwaysOnTop ('screen-saver'), focusable: false
    - setIgnoreMouseEvents(true, { forward: true })
    - setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
@@ -401,12 +401,12 @@
    - 注入 CSS * { cursor: none !important }
    - 每个 display 一个窗口，存储在 Map<displayId, BrowserWindow>
 
-2. 实现 src/main/screen-utils.ts：
+2. 实现 src/desktop/main/screen-utils.ts：
    - screen.getAllDisplays() 遍历创建
    - 监听 display-added/removed/metrics-changed
    - DPI scaleFactor 处理
 
-3. 实现 src/renderer/overlay/index.ts：
+3. 实现 src/desktop/renderer/overlay/index.ts：
    - import createEffectEngine from engine/entry
    - 监听 cursor-event IPC → handleCursorEvent
    - 软件光标由 cursorOverlay 模块渲染
@@ -450,16 +450,16 @@
 ## 任务
 实现 StorageAdapter 接口的桌面版适配器。
 
-1. 新建 `src/main/electron-store.ts`：
+1. 新建 `src/desktop/main/electron-store.ts`：
    - 初始化 electron-store（schema 定义存储 key）
    - 导出 readConfig(), writeConfig(), onDidChange()
 
-2. 新建 `src/renderer/adapters/ElectronStoreAdapter.ts`：
+2. 新建 `src/desktop/renderer/adapters/ElectronStoreAdapter.ts`：
    - 实现 src/shared/storage/StorageAdapter 接口
    - 所有方法通过 ipcRenderer.invoke 调用主进程
    - onChanged 通过 ipcRenderer.on 监听
 
-3. src/main/ipc-handlers.ts 中注册：
+3. src/desktop/main/ipc-handlers.ts 中注册：
    - ipcMain.handle('storage:read-config', ...)
    - ipcMain.handle('storage:write-config', ...)
    - 写操作后 webContents.send 广播 'storage:config-changed'
@@ -537,7 +537,7 @@
 为 Workbench 窗口创建自绘标题栏，与 workspace tab 栏合并。
 
 1. 修改 createWorkbenchWindow：frame: false, titleBarStyle: 'hidden'
-2. 新建 `src/renderer/workbench/TitleBar.tsx`：
+2. 新建 `src/desktop/renderer/workbench/TitleBar.tsx`：
    - 高度 40px(macOS)/32px(Windows)
    - -webkit-app-region: drag 可拖拽
    - tabs 按钮设 no-drag
@@ -561,7 +561,7 @@
 ## 任务
 创建系统托盘。
 
-1. 新建 `src/main/tray.ts`：
+1. 新建 `src/desktop/main/tray.ts`：
    - 图标使用 public/icons/icon_16.png
    - 右键菜单：[开启/关闭, 分隔线, 打开工作台, 分隔线, 退出]
    - 点击托盘 → 弹出 PopupPage 浮动面板（可选）
@@ -638,7 +638,7 @@
 ## 任务
 将 cursor-dance-api 嵌入 Electron 主进程。
 
-1. 新建 `src/main/api-server.ts`：
+1. 新建 `src/desktop/main/api-server.ts`：
    - import createServer from cursor-dance-api
    - 端口探测：默认 8787，占用则随机
    - 端口写入 electron-store
@@ -698,10 +698,10 @@
 集成 electron-updater 和更新 CI。
 
 1. 安装 electron-updater
-2. src/main/index.ts：启动后 checkForUpdatesAndNotify，每 4h 检查
+2. src/desktop/main/index.ts：启动后 checkForUpdatesAndNotify，每 4h 检查
 3. electron-builder.yml 配置 publish: github
 4. CI 新增 build-desktop job，与现有 job 并行
-5. 条件触发：src/renderer/engine/** 改动触发双构建
+5. 条件触发：src/desktop/renderer/engine/** 改动触发双构建
 
 ## 验证
 - CI 双构建通过

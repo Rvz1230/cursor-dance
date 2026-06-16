@@ -5,7 +5,7 @@ import { getDefaultActionConfigs } from "../model/actionConfigPresets";
 
 const CONFIG_STORE_PATH = path.resolve(
   import.meta.dirname,
-  "../../../../../public/content-runtime/config-store.js"
+  "../../../../../extension/content-runtime/config-store.js"
 );
 
 function extractBaseActionConfigs() {

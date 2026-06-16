@@ -24,7 +24,7 @@ CursorDance 在 `http://*/*` 和 `https://*/*` 上运行，因为其核心功能
 
 ### `host_permissions`
 
-源文件 `public/manifest.json` 不包含宽泛的远程主机权限。构建打包扩展时运行：
+源文件 `extension/manifest.json` 不包含宽泛的远程主机权限。构建打包扩展时运行：
 
 ```bash
 npm run build

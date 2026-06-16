@@ -1,6 +1,6 @@
 // CursorDance 桌面端「氛围光标」（双圆点跟随）
 //
-// 从 public/content-runtime/atmosphere.js 迁移而来（任务 2.5）。桌面裁剪：
+// 从 extension/content-runtime/atmosphere.js 迁移而来（任务 2.5）。桌面裁剪：
 //   - **删除元素磁吸**：scanMagnetTargets / cleanupMagnetTargets / onMagnetOver / onMagnetOut
 //     与 MAGNET_SELECTOR 全部移除——overlay 跑在桌面层之上，没有 DOM 元素可吸附。
 //   - **删除文本选择态**：updateTextSelection / revertTextSelection / findTextElement /

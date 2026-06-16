@@ -1,6 +1,6 @@
 // CursorDance 诊断日志
 //
-// 从 public/content-runtime/diagnostics.js 迁移而来（任务 2.5）。
+// 从 extension/content-runtime/diagnostics.js 迁移而来（任务 2.5）。
 // 关键调整：
 //   - 去 IIFE，改为 export function createDiagnostics(deps)。
 //   - 移除 chrome.storage.onChanged / chrome.storage.local 桥（桌面端通过

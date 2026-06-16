@@ -24,7 +24,7 @@ import {
   readConfig,
   writeConfig,
 } from "./electron-store";
-import { CURSOR_EVENT } from "../shared/ipc-channels";
+import { CURSOR_EVENT } from "../../shared/ipc-channels";
 
 let workbenchWindow: BrowserWindow | null = null;
 let stopMouseCapture: (() => void) | null = null;
