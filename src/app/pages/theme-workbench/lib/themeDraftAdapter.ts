@@ -37,6 +37,15 @@ function buildDraftActionConfigs(baseDraft, themePack) {
   );
 }
 
+function buildResetActionConfigs(baseDraft, themePack, actionConfigs) {
+  const storedResetActionConfigs = themePack?.workbenchDraft?.resetActionConfigs;
+  if (storedResetActionConfigs) {
+    return buildDraftActionConfigs(baseDraft, { workbenchDraft: { actionConfigs: storedResetActionConfigs } });
+  }
+  const isBuiltInTheme = THEMES.some((theme) => theme.id === themePack?.id);
+  return isBuiltInTheme ? buildDraftActionConfigs(baseDraft, undefined) : buildDraftActionConfigs({ actionConfigs }, undefined);
+}
+
 export function themePackToThemeLibraryItem(themePack, fallbackIndex = 0) {
   return buildThemeLibraryItem(themePack, fallbackIndex);
 }
@@ -78,6 +87,7 @@ function buildDraftFromThemePack(themePack) {
   const themeId = themePack?.id;
   const baseDraft = createThemeDraft(themeId);
   const cursorDraft = buildDraftCursorMaps(baseDraft, themePack);
+  const actionConfigs = buildDraftActionConfigs(baseDraft, themePack);
 
   return {
     ...baseDraft,
@@ -85,7 +95,8 @@ function buildDraftFromThemePack(themePack) {
     cursorModes: cursorDraft.cursorModes,
     cursorStateActions: cursorDraft.cursorStateActions,
     cursorStateAssets: cursorDraft.cursorStateAssets,
-    actionConfigs: buildDraftActionConfigs(baseDraft, themePack),
+    actionConfigs,
+    resetActionConfigs: buildResetActionConfigs(baseDraft, themePack, actionConfigs),
   };
 }
 
@@ -109,7 +120,7 @@ export function createWorkbenchThemeState(themeLibrary = THEMES) {
   return {
     themeLibrary: nextThemeLibrary,
     draftsByTheme: nextDraftsByTheme,
-    selectedThemeId: resolveSelectedThemeId(nextThemeLibrary, nextDraftsByTheme),
+    selectedThemeId: resolveSelectedThemeId(nextThemeLibrary, nextDraftsByTheme, undefined),
   };
 }
 
@@ -176,6 +187,7 @@ function buildStoredThemePack(themeId, draft, previousConfig, themeRecord) {
     kind: themeRecord?.kind === "内置" ? "builtin" : previousThemePack.kind || "custom",
     workbenchDraft: {
       actionConfigs: pickStoredWorkbenchActionConfigs(draft.actionConfigs),
+      resetActionConfigs: pickStoredWorkbenchActionConfigs(draft.resetActionConfigs || draft.actionConfigs),
       ...(storedAtmosphere ? { atmosphere: storedAtmosphere } : {}),
     },
     cursorStates: Object.fromEntries(

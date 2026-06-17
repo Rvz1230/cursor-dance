@@ -13,8 +13,9 @@ import {
   SettingSection,
   SmallSelect,
 } from "../WorkbenchControls";
+import { ResetCardButton } from "./ResetCardButton";
 
-export function AudioFeedbackCard({ config, updateActionConfig, panelId }) {
+export function AudioFeedbackCard({ config, updateActionConfig, panelId, reset }) {
   return (
     <Panel
       id={panelId}
@@ -25,7 +26,12 @@ export function AudioFeedbackCard({ config, updateActionConfig, panelId }) {
       defaultOpen={config.sound}
       enabled={config.sound}
       summary={config.sound ? `${config.soundFile} · ${config.volume}% · ${config.soundBlendMode}` : "关闭音频反馈"}
-      action={<Switch checked={config.sound} onCheckedChange={(next) => updateActionConfig({ sound: next })} aria-label="音效播放开关" />}
+      action={
+        <div className="flex items-center gap-2">
+          {reset ? <ResetCardButton dirty={reset.dirty} onReset={reset.onReset} /> : null}
+          <Switch checked={config.sound} onCheckedChange={(next) => updateActionConfig({ sound: next })} aria-label="音效播放开关" />
+        </div>
+      }
     >
       <div className="space-y-4">
         <SettingSection disabled={!config.sound}>

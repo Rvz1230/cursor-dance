@@ -219,11 +219,8 @@ function dispatch(payload: CursorEventPayload): void {
   }
 
   if (payload.type === "mousedown") {
-    // PointerEvent.buttons 位掩码：1=left 2=right
-    const isLeft = (payload.buttons ?? 0) & 1;
-    const isRight = (payload.buttons ?? 0) & 2;
-    if (isLeft) engine.triggerHandlers.handleLeftPointerDown(cursorEvent);
-    else if (isRight) {
+    if (payload.button === 0) engine.triggerHandlers.handleLeftPointerDown(cursorEvent);
+    else if (payload.button === 2) {
       engine.triggerHandlers.handleRightPointerDown(cursorEvent);
       engine.triggerHandlers.handleContextMenu(cursorEvent);
     }

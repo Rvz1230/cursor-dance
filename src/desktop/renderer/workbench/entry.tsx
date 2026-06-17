@@ -15,6 +15,6 @@ await installAiEndpointGlobals();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <ThemeWorkbenchPage renderHeader={(props) => <TitleBar {...props} />} />
+    <ThemeWorkbenchPage renderHeader={() => <TitleBar />} />
   </React.StrictMode>,
 );

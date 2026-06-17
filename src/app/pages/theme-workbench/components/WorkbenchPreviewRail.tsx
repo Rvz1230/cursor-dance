@@ -10,6 +10,7 @@ import {
 } from "../lib/preview";
 import { useTimelineDrag } from "../lib/useTimelineDrag";
 import {
+  PANEL_META,
   getActionAnimationConfig,
   getActionAudioConfig,
   getActionImageConfig,
@@ -38,13 +39,13 @@ function formatTriggerInterval(ms) {
 
 function buildOutputTags({ textConfig, particleConfig, rippleConfig, audioConfig, animationConfig, imageConfig, config }) {
   const tags = [];
-  if (textConfig.textEnabled) tags.push({ id: "card-text", label: "飘字" });
-  if (rippleConfig.ripple) tags.push({ id: "card-ripple", label: "波纹" });
-  if (particleConfig.particle) tags.push({ id: "card-particle", label: "粒子" });
-  if (audioConfig.sound) tags.push({ id: "card-audio", label: "音效" });
-  if (animationConfig.animationEnabled) tags.push({ id: "card-animation", label: "动画" });
-  if (imageConfig.imageEnabled && imageConfig.imageDataUrl) tags.push({ id: "card-image", label: "贴纸" });
-  if (config.cursorOverride && config.cursorOverride !== "跟随当前状态") tags.push({ id: "card-cursor", label: "光标" });
+  if (textConfig.textEnabled) tags.push({ id: "card-text", label: "飘字", icon: PANEL_META.text.icon });
+  if (rippleConfig.ripple) tags.push({ id: "card-ripple", label: "波纹", icon: PANEL_META.ripple.icon });
+  if (particleConfig.particle) tags.push({ id: "card-particle", label: "粒子", icon: PANEL_META.particles.icon });
+  if (audioConfig.sound) tags.push({ id: "card-audio", label: "音效", icon: PANEL_META.audio.icon });
+  if (animationConfig.animationEnabled) tags.push({ id: "card-animation", label: "动画", icon: PANEL_META.animation.icon });
+  if (imageConfig.imageEnabled && imageConfig.imageDataUrl) tags.push({ id: "card-image", label: "贴纸", icon: PANEL_META.image.icon });
+  if (config.cursorOverride && config.cursorOverride !== "跟随当前状态") tags.push({ id: "card-cursor", label: "光标", icon: PANEL_META.cursor.icon });
   return tags;
 }
 
@@ -661,18 +662,22 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, act
             <div className="mt-1 text-xs text-slate-500 text-pretty">{getPreviewTriggerSummary(config)}</div>
           </div>
           <div className="flex max-w-[55%] flex-wrap justify-end gap-1.5">
-            {outputs.length ? outputs.map((tag) => (
-              <button
-                key={tag.id}
-                type="button"
-                onClick={() => {
-                  document.getElementById(tag.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-                }}
-                className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-slate-400 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
-              >
-                {tag.label}
-              </button>
-            )) : (
+            {outputs.length ? outputs.map((tag) => {
+              const Icon = tag.icon;
+              return (
+                <button
+                  key={tag.id}
+                  type="button"
+                  onClick={() => {
+                    document.getElementById(tag.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-slate-400 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
+                >
+                  {Icon ? <Icon className="size-3 text-slate-500" aria-hidden="true" /> : null}
+                  <span>{tag.label}</span>
+                </button>
+              );
+            }) : (
               <span className="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700">暂无输出</span>
             )}
           </div>

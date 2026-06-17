@@ -323,8 +323,10 @@ export function buildDefaultCursorStateAssets() {
 }
 
 export function createThemeDraft(themeId) {
+  const actionConfigs = getDefaultActionConfigs(themeId);
   return {
-    actionConfigs: getDefaultActionConfigs(themeId),
+    actionConfigs,
+    resetActionConfigs: getDefaultActionConfigs(themeId),
     cursorModes: Object.fromEntries(CURSOR_STATES.map((item) => [item.id, item.defaultMode])),
     cursorStateActions: buildDefaultCursorStateActions(),
     cursorStateAssets: buildDefaultCursorStateAssets(),

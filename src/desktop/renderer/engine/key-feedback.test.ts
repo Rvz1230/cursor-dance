@@ -8,12 +8,17 @@ import type { EngineDeps, EngineState, NativeKeyboardEvent } from "./types";
 
 // uiohook UiohookKey 数值，与 key-layout-map.ts 内联的 K 对象保持一致
 const KEY_A = 30;
+const KEY_K = 37;
 const KEY_SHIFT = 42;
+const KEY_DIGIT_1 = 2;
+const KEY_SLASH = 53;
 const KEY_FN_UNMAPPED = 99999;
 
 interface FakeAnimation {
   finishHandlers: Array<() => void>;
   cancelHandlers: Array<() => void>;
+  keyframes: Keyframe[];
+  options: KeyframeAnimationOptions;
   addEventListener(type: "finish" | "cancel", cb: () => void, _opts: { once: boolean }): void;
   finish(): void;
 }
@@ -51,10 +56,12 @@ function createFakeElement(): FakeElement {
     append(child) {
       this.appended.push(child);
     },
-    animate() {
+    animate(keyframes, options) {
       const anim: FakeAnimation = {
         finishHandlers: [],
         cancelHandlers: [],
+        keyframes,
+        options,
         addEventListener(type, cb) {
           if (type === "finish") this.finishHandlers.push(cb);
           else this.cancelHandlers.push(cb);
@@ -251,10 +258,69 @@ describe("key-feedback: rendering", () => {
     expect(root.appended[0].textContent).toBe("A");
   });
 
-  it("ignores modifier keys is handled at native-events.ts (not here)", () => {
-    // 此模块不抑制 Shift/Ctrl —— 主进程已过滤
-    // 但单独 Shift 键在 keyDisplayCharacter 中无映射 → 实际仍 skip
+  it("makes bounce visible near the screen edge before the overshoot", () => {
+    const { deps, root } = makeFakeDeps({ animationStyle: "bounce" });
+    const mod = createKeyFeedback(deps);
+    mod.handleKeyboardEvent(makeKeyEvent(KEY_A));
+    const keyframes = root.appended[0].animations[0].keyframes;
+    expect(keyframes[1].offset).toBe(0.12);
+    expect(keyframes[1].opacity).toBe(defaultKeyFeedbackConfig.opacity / 100);
+    expect(String(keyframes[1].transform)).toContain("scale(0.82)");
+  });
+
+  it("raindrop respects configured origin edge and keyboard layout mapping", () => {
+    const { deps, root } = makeFakeDeps({
+      animationStyle: "raindrop",
+      originEdge: "bottom",
+      originMapping: "keyboardLayout",
+    });
+    const mod = createKeyFeedback(deps);
+    mod.handleKeyboardEvent(makeKeyEvent(KEY_A));
+    const style = root.appended[0].style.cssText;
+    expect(style).toContain("left:192px");
+    expect(style).toContain("top:1104px");
+  });
+
+  it("raindrop applies wind perpendicular to horizontal entry", () => {
+    const { deps, root } = makeFakeDeps({
+      animationStyle: "raindrop",
+      originEdge: "left",
+      originMapping: "center",
+      wind: 1,
+      gravity: 0,
+    });
+    const mod = createKeyFeedback(deps);
+    mod.handleKeyboardEvent(makeKeyEvent(KEY_A));
+    const keyframes = root.appended[0].animations[0].keyframes;
+    const finalFrame = keyframes[keyframes.length - 1];
+    expect(String(finalFrame?.transform)).toContain("324px)");
+  });
+
+  it("renders typed characters for Shift-modified symbol keys", () => {
+    const { deps, root } = makeFakeDeps({ cooldownMs: 0 });
+    const mod = createKeyFeedback(deps);
+    mod.handleKeyboardEvent({ ...makeKeyEvent(KEY_DIGIT_1), shiftKey: true });
+    mod.handleKeyboardEvent({ ...makeKeyEvent(KEY_SLASH), shiftKey: true });
+    expect(root.appended[0].textContent).toBe("!");
+    expect(root.appended[1].textContent).toBe("?");
+  });
+
+  it("renders shortcut chords when Command / Control / Option are held", () => {
     const { deps, root } = makeFakeDeps();
+    const mod = createKeyFeedback(deps);
+    mod.handleKeyboardEvent({ ...makeKeyEvent(KEY_K), metaKey: true });
+    expect(root.appended[0].textContent).toBe("⌘K");
+  });
+
+  it("renders standalone modifier keys when enabled", () => {
+    const { deps, root } = makeFakeDeps({ showModifierKeys: true });
+    const mod = createKeyFeedback(deps);
+    mod.handleKeyboardEvent(makeKeyEvent(KEY_SHIFT));
+    expect(root.appended[0].textContent).toBe("⇧");
+  });
+
+  it("skips standalone modifier keys when disabled", () => {
+    const { deps, root } = makeFakeDeps({ showModifierKeys: false });
     const mod = createKeyFeedback(deps);
     mod.handleKeyboardEvent(makeKeyEvent(KEY_SHIFT));
     expect(root.appended.length).toBe(0);

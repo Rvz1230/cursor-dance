@@ -218,13 +218,17 @@ export function reducer(state, action) {
     }
     case "theme/reset-current": {
       const themeId = state.selection.themeId;
+      const resetDraft = createThemeDraft(themeId);
+      const resetActionConfigs = state.draftsByTheme[themeId]?.resetActionConfigs || resetDraft.resetActionConfigs;
       return {
         ...state,
         ui: { ...state.ui, unsaved: true, saveError: "", dirtyThemes: { ...state.ui.dirtyThemes, [themeId]: true } },
         draftsByTheme: {
           ...state.draftsByTheme,
           [themeId]: {
-            ...createThemeDraft(themeId),
+            ...resetDraft,
+            actionConfigs: resetActionConfigs,
+            resetActionConfigs,
           },
         },
       };

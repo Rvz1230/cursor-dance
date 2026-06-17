@@ -4,8 +4,9 @@ import {
   PANEL_META,
 } from "../../model/workbenchSchema";
 import { ColorOptions, ControlSlider, FieldRow, Panel, SectionTitle, SettingSection, SmallSelect } from "../WorkbenchControls";
+import { ResetCardButton } from "./ResetCardButton";
 
-export function CursorFeedbackCard({ config, updateActionConfig, panelId }) {
+export function CursorFeedbackCard({ config, updateActionConfig, panelId, reset }) {
   return (
     <Panel
       id={panelId}
@@ -15,6 +16,7 @@ export function CursorFeedbackCard({ config, updateActionConfig, panelId }) {
       collapsible
       defaultOpen={config.cursorOverride !== "跟随当前状态" || config.shake > 0}
       summary={`${config.cursorOverride} · ${config.cursorSize}px · 抖动 ${config.shake}%`}
+      action={reset ? <ResetCardButton dirty={reset.dirty} onReset={reset.onReset} /> : undefined}
     >
       <div className="space-y-4">
         <SettingSection>

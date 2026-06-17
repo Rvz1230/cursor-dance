@@ -1,11 +1,12 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bot, Check, CheckCircle2, ChevronDown, ChevronRight, Copy, Eye, Loader2, PenLine, RotateCcw, Send, Square, ThumbsDown, ThumbsUp, Trash2, Wrench, X, Zap } from "lucide-react";
+import { Bot, Check, CheckCircle2, ChevronDown, ChevronRight, Copy, Eye, Loader2, PenLine, RotateCcw, Send, Settings, Square, ThumbsDown, ThumbsUp, Trash2, Wrench, X, Zap } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const Markdown = ReactMarkdown as any;
 import { Button } from "@/components/ui/button";
+import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/components/ui/utils";
 import { getAiRequestErrorMessage, requestAiSchemeEditStreaming, requestAiAgentRun } from "../lib/aiSchemeAssistant";
 import { saveConversation, loadConversation, deleteConversation, sweepExpiredConversations } from "../lib/storage/ai-conversation";
@@ -672,6 +673,7 @@ export function AiSchemePanel({
   aiSnapshot,
   onRevertAiChanges,
   onClearAiSnapshot,
+  onOpenAiSettings,
   variant = "dock",
 }) {
   const [prompt, setPrompt] = useState("");
@@ -1083,6 +1085,20 @@ export function AiSchemePanel({
       action={(
         <div className="flex items-center gap-1.5">
           <ModeSwitcher useAgent={useAgent} onToggle={setUseAgent} disabled={isGenerating} />
+          {onOpenAiSettings ? (
+            <Tooltip content="AI 服务设置" side="top">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-8 rounded-xl text-slate-400 hover:text-slate-700"
+                onClick={onOpenAiSettings}
+                aria-label="AI 服务设置"
+              >
+                <Settings className="size-4" aria-hidden="true" />
+              </Button>
+            </Tooltip>
+          ) : null}
           {confirmClear ? (
             <div className="flex items-center gap-1 rounded-xl bg-rose-50 px-2 py-1">
               <span className="text-2xs font-medium text-rose-700">确认清空？</span>

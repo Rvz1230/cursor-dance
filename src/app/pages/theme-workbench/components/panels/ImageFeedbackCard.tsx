@@ -13,6 +13,7 @@ import {
   SectionTitle,
   SettingSection,
 } from "../WorkbenchControls";
+import { ResetCardButton } from "./ResetCardButton";
 
 const MAX_IMAGE_EFFECT_UPLOAD_BYTES = 300 * 1024;
 
@@ -25,7 +26,7 @@ function buildImagePreviewStyle(config) {
   };
 }
 
-export function ImageFeedbackCard({ config, updateActionConfig, panelId }) {
+export function ImageFeedbackCard({ config, updateActionConfig, panelId, reset }) {
   const fileInputRef = useRef(null);
   const [assetMessage, setAssetMessage] = useState("");
   const [assetTone, setAssetTone] = useState("slate");
@@ -66,7 +67,12 @@ export function ImageFeedbackCard({ config, updateActionConfig, panelId }) {
       defaultOpen={config.imageEnabled}
       enabled={config.imageEnabled}
       summary={config.imageEnabled ? `${config.imageSize}px · ${config.imageOpacity}%` : "关闭图片贴纸"}
-      action={<Switch checked={config.imageEnabled} onCheckedChange={(next) => updateActionConfig({ imageEnabled: next })} aria-label="图片反馈开关" />}
+      action={
+        <div className="flex items-center gap-2">
+          {reset ? <ResetCardButton dirty={reset.dirty} onReset={reset.onReset} /> : null}
+          <Switch checked={config.imageEnabled} onCheckedChange={(next) => updateActionConfig({ imageEnabled: next })} aria-label="图片反馈开关" />
+        </div>
+      }
     >
       <div className="space-y-4">
         <input

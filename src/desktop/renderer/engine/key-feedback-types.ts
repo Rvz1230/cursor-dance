@@ -20,6 +20,8 @@ export interface KeyFeedbackConfig {
   color: string;
   opacity: number;
   uppercase: boolean;
+  showModifierKeys: boolean;
+  keyDisplayMode: "typed" | "physical";
   // ── 动画参数 ──
   duration: number;
   easing: string;
@@ -53,6 +55,8 @@ export const defaultKeyFeedbackConfig: KeyFeedbackConfig = {
   color: "#F59E0B",
   opacity: 90,
   uppercase: false,
+  showModifierKeys: true,
+  keyDisplayMode: "typed",
   duration: 900,
   easing: "弹跳",
   scale: 1.0,
@@ -65,8 +69,8 @@ export const defaultKeyFeedbackConfig: KeyFeedbackConfig = {
   trail: false,
   trailLength: 3,
   splash: false,
-  cooldownMs: 50,
-  maxSimultaneous: 20,
+  cooldownMs: 35,
+  maxSimultaneous: 30,
   delay: 0,
 };
 

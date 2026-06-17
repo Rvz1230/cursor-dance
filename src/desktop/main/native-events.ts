@@ -8,7 +8,7 @@
 // IPC 出口最小化：只传 { type, x, y, buttons?, deltaY?, timestamp }，
 // 与 src/renderer/engine/types.ts 的 CursorEvent 一致。
 
-import { uIOhook, type UiohookMouseEvent, type UiohookWheelEvent, type UiohookKeyboardEvent, UiohookKey } from "uiohook-napi";
+import { uIOhook, type UiohookMouseEvent, type UiohookWheelEvent, type UiohookKeyboardEvent } from "uiohook-napi";
 
 /** 投递给渲染层的最小事件（与 engine CursorEvent 同形）。 */
 export interface NativeCursorEvent {
@@ -92,15 +92,6 @@ class WheelAccumulator {
 // ============================================================
 // uiohook 实现
 // ============================================================
-
-// 修饰键键码集合：单独按下时不产生视觉效果
-const MODIFIER_KEYCODES = new Set<number>([
-  UiohookKey.Shift, UiohookKey.ShiftRight,
-  UiohookKey.Ctrl, UiohookKey.CtrlRight,
-  UiohookKey.Alt, UiohookKey.AltRight,
-  UiohookKey.Meta, UiohookKey.MetaRight,
-  UiohookKey.CapsLock, UiohookKey.NumLock, UiohookKey.ScrollLock,
-]);
 
 export class UiohookInputSource implements IInputSource {
   private callback: ((event: NativeCursorEvent) => void) | null = null;
@@ -208,8 +199,6 @@ export class UiohookInputSource implements IInputSource {
   };
 
   private onKeyDown = (e: UiohookKeyboardEvent): void => {
-    // 修饰键单独按下时不产生视觉效果
-    if (MODIFIER_KEYCODES.has(e.keycode)) return;
     this.keyboardCallback?.({
       type: "keydown",
       keycode: e.keycode,

@@ -21,12 +21,13 @@ import {
   SmallSelect,
   TextTagEditor,
 } from "../WorkbenchControls";
+import { ResetCardButton } from "./ResetCardButton";
 
 function getFontPresetValue(value) {
   return TEXT_FONT_PRESETS.includes(value) ? value : "自定义";
 }
 
-export function TextFeedbackCard({ config, updateActionConfig, panelId }) {
+export function TextFeedbackCard({ config, updateActionConfig, panelId, reset }) {
   const fontPresetValue = getFontPresetValue(config.textFontFamily || "系统默认");
 
   return (
@@ -39,7 +40,12 @@ export function TextFeedbackCard({ config, updateActionConfig, panelId }) {
       defaultOpen={config.textEnabled}
       enabled={config.textEnabled}
       summary={config.textEnabled ? `${config.textKind} · ${config.fontSize}px · ${config.textColor}` : "关闭飘字反馈"}
-      action={<Switch checked={config.textEnabled} onCheckedChange={(next) => updateActionConfig({ textEnabled: next })} aria-label="飘字开关" />}
+      action={
+        <div className="flex items-center gap-2">
+          {reset ? <ResetCardButton dirty={reset.dirty} onReset={reset.onReset} /> : null}
+          <Switch checked={config.textEnabled} onCheckedChange={(next) => updateActionConfig({ textEnabled: next })} aria-label="飘字开关" />
+        </div>
+      }
     >
       <div className="space-y-4">
         <SettingSection disabled={!config.textEnabled}>

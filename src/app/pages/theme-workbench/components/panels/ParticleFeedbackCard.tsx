@@ -18,6 +18,7 @@ import {
   SettingSection,
   SmallSelect,
 } from "../WorkbenchControls";
+import { ResetCardButton } from "./ResetCardButton";
 
 function PaletteSwatches({ presets, value, onChange }) {
   const currentKey = Object.entries(presets).find(
@@ -55,7 +56,7 @@ function PaletteSwatches({ presets, value, onChange }) {
   );
 }
 
-export function ParticleFeedbackCard({ config, updateActionConfig, panelId }) {
+export function ParticleFeedbackCard({ config, updateActionConfig, panelId, reset }) {
   const isOrbital = config.particleMotionMode === "orbital";
 
   return (
@@ -68,7 +69,12 @@ export function ParticleFeedbackCard({ config, updateActionConfig, panelId }) {
       defaultOpen={config.particle}
       enabled={config.particle}
       summary={config.particle ? (isOrbital ? `轨道呼吸 · ${config.orbitalCount || 6} 点` : `${config.particleStyle} · ${config.particleCount} 个 · ${config.particleDirection}`) : "关闭粒子反馈"}
-      action={<Switch checked={config.particle} onCheckedChange={(next) => updateActionConfig({ particle: next })} aria-label="粒子开关" />}
+      action={
+        <div className="flex items-center gap-2">
+          {reset ? <ResetCardButton dirty={reset.dirty} onReset={reset.onReset} /> : null}
+          <Switch checked={config.particle} onCheckedChange={(next) => updateActionConfig({ particle: next })} aria-label="粒子开关" />
+        </div>
+      }
     >
       <div className="space-y-4">
         <SettingSection disabled={!config.particle}>

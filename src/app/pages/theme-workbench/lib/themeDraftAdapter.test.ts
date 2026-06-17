@@ -91,6 +91,38 @@ describe("themeDraftAdapter", () => {
       cursorStateId: "wait",
     });
     expect(state.draftsByTheme["mono-geo"].actionConfigs.leftClick.textContent).toBe("已保存");
+    expect(state.draftsByTheme["mono-geo"].resetActionConfigs.leftClick.textContent).toBe("+1");
+  });
+
+  it("uses imported custom theme action configs as the reset baseline when no explicit baseline exists", () => {
+    const state = hydrateWorkbenchState(
+      {
+        enabled: true,
+        activeThemePackId: "custom-import",
+        themePacks: [
+          {
+            id: "custom-import",
+            name: "导入主题",
+            kind: "custom",
+            workbenchDraft: {
+              actionConfigs: {
+                leftClick: {
+                  textContent: "导入默认",
+                  particleCount: 33,
+                },
+              },
+            },
+          },
+        ],
+        siteRules: [],
+        editor: {},
+      },
+      { host: "example.com" }
+    );
+
+    expect(state.draftsByTheme["custom-import"].actionConfigs.leftClick.textContent).toBe("导入默认");
+    expect(state.draftsByTheme["custom-import"].resetActionConfigs.leftClick.textContent).toBe("导入默认");
+    expect(state.draftsByTheme["custom-import"].resetActionConfigs.leftClick.particleCount).toBe(33);
   });
 
   it("builds preview theme packs with ordered text tags and cursor overrides", () => {

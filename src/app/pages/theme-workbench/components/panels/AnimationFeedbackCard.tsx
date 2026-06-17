@@ -14,8 +14,9 @@ import {
   SettingSection,
   SmallSelect,
 } from "../WorkbenchControls";
+import { ResetCardButton } from "./ResetCardButton";
 
-export function AnimationFeedbackCard({ config, updateActionConfig, panelId }) {
+export function AnimationFeedbackCard({ config, updateActionConfig, panelId, reset }) {
   return (
     <Panel
       id={panelId}
@@ -26,7 +27,12 @@ export function AnimationFeedbackCard({ config, updateActionConfig, panelId }) {
       defaultOpen={config.animationEnabled}
       enabled={config.animationEnabled}
       summary={config.animationEnabled ? `${config.animationStyle} · ${config.animationDuration}ms · ${config.animationEasing}` : "关闭基础动画"}
-      action={<Switch checked={config.animationEnabled} onCheckedChange={(next) => updateActionConfig({ animationEnabled: next })} aria-label="动画反馈开关" />}
+      action={
+        <div className="flex items-center gap-2">
+          {reset ? <ResetCardButton dirty={reset.dirty} onReset={reset.onReset} /> : null}
+          <Switch checked={config.animationEnabled} onCheckedChange={(next) => updateActionConfig({ animationEnabled: next })} aria-label="动画反馈开关" />
+        </div>
+      }
     >
       <div className="space-y-4">
         <SettingSection disabled={!config.animationEnabled}>

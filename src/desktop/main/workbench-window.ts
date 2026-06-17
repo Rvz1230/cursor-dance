@@ -1,8 +1,9 @@
 // CursorDance 桌面 — workbench 窗口管理
 //
 // macOS：titleBarStyle: 'hiddenInset' —— 系统仍渲染左上角红绿灯（trafficLights），
-// 整个窗口顶部 40px 由 TitleBar 自绘且 -webkit-app-region: drag。trafficLightPosition
-// 给红绿灯留 14/14 内边距，对齐 DESIGN-desktop.md 的「左侧 80px 留给红绿灯」。
+// 整个窗口顶部 32px 由 TitleBar 自绘且 -webkit-app-region: drag。红绿灯系统硬控大小
+// (~12px 直径)，不可调；trafficLightPosition 控制的是红绿灯在窗口内的偏移。
+// 收紧到 { x: 11, y: 7 } 让视觉比例和 Finder/Safari 等原生 32px 标题栏一致。
 //
 // Windows / Linux：frame: false —— 完全无系统装饰，TitleBar 自绘 minimize / maximize /
 // close 三个按钮（通过 cursordance:window-* IPC 调用 BrowserWindow 方法）。
@@ -27,7 +28,7 @@ export function createWorkbenchWindow(): BrowserWindow {
     show: false,
     frame: isMac ? undefined : false,
     titleBarStyle: isMac ? "hiddenInset" : "default",
-    trafficLightPosition: isMac ? { x: 14, y: 14 } : undefined,
+    trafficLightPosition: isMac ? { x: 11, y: 7 } : undefined,
     backgroundColor: "#f1f5f9",
     webPreferences: {
       preload: join(__dirname, "../preload/index.mjs"),

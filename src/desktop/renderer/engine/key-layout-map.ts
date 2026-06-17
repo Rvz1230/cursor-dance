@@ -177,7 +177,7 @@ const keyDisplayMap = new Map<number, string>([
 ]);
 
 // ═══════════════════════════════════════════════════════════════
-// 修饰键集合（单独按下时不产生视觉效果）
+// 修饰键集合
 // ═══════════════════════════════════════════════════════════════
 
 export const MODIFIER_KEYCODES = new Set<number>([
@@ -187,6 +187,58 @@ export const MODIFIER_KEYCODES = new Set<number>([
   K.Meta, K.MetaRight,
   K.CapsLock, K.NumLock, K.ScrollLock,
 ]);
+
+const modifierDisplayMap = new Map<number, string>([
+  [K.Shift, "⇧"], [K.ShiftRight, "⇧"],
+  [K.Ctrl, "⌃"], [K.CtrlRight, "⌃"],
+  [K.Alt, "⌥"], [K.AltRight, "⌥"],
+  [K.Meta, "⌘"], [K.MetaRight, "⌘"],
+  [K.CapsLock, "⇪"], [K.NumLock, "Num"], [K.ScrollLock, "Scroll"],
+]);
+
+const shiftedDisplayMap = new Map<number, string>([
+  [K.Backquote, "~"], [K.Digit1, "!"], [K.Digit2, "@"],
+  [K.Digit3, "#"], [K.Digit4, "$"], [K.Digit5, "%"],
+  [K.Digit6, "^"], [K.Digit7, "&"], [K.Digit8, "*"],
+  [K.Digit9, "("], [K.Digit0, ")"], [K.Minus, "_"],
+  [K.Equal, "+"], [K.BracketLeft, "{"], [K.BracketRight, "}"],
+  [K.Backslash, "|"], [K.Semicolon, ":"], [K.Quote, "\""],
+  [K.Comma, "<"], [K.Period, ">"], [K.Slash, "?"],
+]);
+
+// ═══════════════════════════════════════════════════════════════
+// 组合键显示
+// ═══════════════════════════════════════════════════════════════
+
+export interface KeyDisplayEvent {
+  keycode: number;
+  altKey?: boolean;
+  ctrlKey?: boolean;
+  metaKey?: boolean;
+  shiftKey?: boolean;
+}
+
+export interface KeyDisplayOptions {
+  showModifierKeys?: boolean;
+  keyDisplayMode?: "typed" | "physical";
+}
+
+function modifierPrefix(event: KeyDisplayEvent): string {
+  return [
+    event.metaKey ? "⌘" : "",
+    event.ctrlKey ? "⌃" : "",
+    event.altKey ? "⌥" : "",
+    event.shiftKey ? "⇧" : "",
+  ].join("");
+}
+
+function hasShortcutModifier(event: KeyDisplayEvent): boolean {
+  return Boolean(event.metaKey || event.ctrlKey || event.altKey);
+}
+
+function isShiftOnly(event: KeyDisplayEvent): boolean {
+  return Boolean(event.shiftKey && !hasShortcutModifier(event));
+}
 
 // ═══════════════════════════════════════════════════════════════
 // 导出辅助函数
@@ -200,4 +252,30 @@ export function keyLayoutNormalizedX(keycode: number): number {
 /** 返回键码对应的显示字符，未映射键返回 null（调用方应跳过）。 */
 export function keyDisplayCharacter(keycode: number): string | null {
   return keyDisplayMap.get(keycode) ?? null;
+}
+
+/** 返回单独修饰键对应的显示字符，未映射键返回 null。 */
+export function modifierKeyDisplayCharacter(keycode: number): string | null {
+  return modifierDisplayMap.get(keycode) ?? null;
+}
+
+/** 返回带修饰键前缀的显示文本，例如 Shift+1 → !、Meta+K → ⌘K。 */
+export function keyDisplayLabel(event: KeyDisplayEvent, options: KeyDisplayOptions = {}): string | null {
+  const showModifierKeys = options.showModifierKeys ?? true;
+  const keyDisplayMode = options.keyDisplayMode ?? "typed";
+
+  if (MODIFIER_KEYCODES.has(event.keycode)) {
+    return showModifierKeys ? modifierKeyDisplayCharacter(event.keycode) : null;
+  }
+
+  if (keyDisplayMode === "typed" && isShiftOnly(event)) {
+    const shifted = shiftedDisplayMap.get(event.keycode);
+    if (shifted) return shifted;
+  }
+
+  const base = keyDisplayCharacter(event.keycode);
+  if (base === null) return null;
+
+  if (keyDisplayMode === "typed" && isShiftOnly(event)) return base;
+  return `${modifierPrefix(event)}${base}`;
 }

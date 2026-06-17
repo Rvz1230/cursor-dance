@@ -25,7 +25,7 @@ export function Panel({
   contentClassName?: string
   collapsible?: boolean
   defaultOpen?: boolean
-  summary?: string
+  summary?: React.ReactNode
   enabled?: boolean
   id?: string
 }) {

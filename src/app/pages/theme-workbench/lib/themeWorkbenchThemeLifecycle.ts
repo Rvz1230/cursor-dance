@@ -51,6 +51,13 @@ export function resolveImportedThemePack(rawValue) {
   return candidate;
 }
 
+function withActionResetBaseline(draft) {
+  return {
+    ...draft,
+    resetActionConfigs: cloneValue(draft.actionConfigs),
+  };
+}
+
 export function buildCreateThemePayload({ themeLibrary, draftsByTheme }, { name, description = "", basedOnThemeId = "blank" }) {
   const trimmedName = name.trim();
   if (!trimmedName) {
@@ -62,7 +69,7 @@ export function buildCreateThemePayload({ themeLibrary, draftsByTheme }, { name,
   const baseDraft =
     basedOnThemeId === "blank"
       ? createThemeDraft(themeId)
-      : cloneValue(draftsByTheme[basedOnThemeId] || createThemeDraft(themeId));
+      : withActionResetBaseline(cloneValue(draftsByTheme[basedOnThemeId] || createThemeDraft(themeId)));
   const basedOnTheme = themeLibrary.find((item) => item.id === basedOnThemeId);
 
   return {
@@ -101,7 +108,7 @@ export function buildDuplicateThemePayload({ themeLibrary, draftsByTheme }, them
         summary: sourceTheme.description?.trim() ? sourceTheme.description.trim() : `复制自 ${sourceTheme.name}`,
         description: sourceTheme.description || "",
       },
-      draft: cloneValue(sourceDraft),
+      draft: withActionResetBaseline(cloneValue(sourceDraft)),
     },
   };
 }

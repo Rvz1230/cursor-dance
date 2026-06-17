@@ -26,6 +26,7 @@ describe("themeWorkbenchThemeLifecycle", () => {
         draftsByTheme: {
           "mono-geo": {
             actionConfigs: { leftClick: { textContent: "几何" } },
+            resetActionConfigs: { leftClick: { textContent: "几何默认" } },
           },
         },
       },
@@ -35,6 +36,7 @@ describe("themeWorkbenchThemeLifecycle", () => {
     expect(duplicatedName).toBe("几何 副本 2");
     expect(payload.theme.id).toBe("几何-副本-2");
     expect(payload.draft.actionConfigs.leftClick.textContent).toBe("几何");
+    expect(payload.draft.resetActionConfigs.leftClick.textContent).toBe("几何");
   });
 
   it("returns a delete fallback target and blocks builtin themes", () => {
@@ -72,5 +74,6 @@ describe("themeWorkbenchThemeLifecycle", () => {
     expect(payload.theme.name).toBe("新主题");
     expect(payload.theme.summary).toContain("基于 几何 创建");
     expect(payload.draft.actionConfigs.leftClick.textContent).toBe("几何");
+    expect(payload.draft.resetActionConfigs.leftClick.textContent).toBe("几何");
   });
 });

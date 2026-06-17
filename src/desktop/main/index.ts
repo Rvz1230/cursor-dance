@@ -1,4 +1,5 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, nativeImage } from "electron";
+import { join } from "path";
 import { startGlobalMouseCapture, type NativeCursorEvent, type NativeKeyboardEvent } from "./native-events";
 import { broadcastToWindows } from "./broadcast";
 import {
@@ -102,6 +103,14 @@ function openWorkbench(): void {
 }
 
 app.whenReady().then(() => {
+  if (process.platform === "darwin" && !app.isPackaged && app.dock) {
+    const iconPath = join(app.getAppPath(), "build/icon.png");
+    const icon = nativeImage.createFromPath(iconPath);
+    if (!icon.isEmpty()) {
+      app.dock.setIcon(icon);
+    }
+  }
+
   // 0) 在所有窗口创建之前注册 store/live preview 的 ipcMain.handle，
   //    否则 renderer 启动时第一波 invoke 会拿不到 handler 直接挂。
   registerStoreIpc(() => BrowserWindow.getAllWindows());

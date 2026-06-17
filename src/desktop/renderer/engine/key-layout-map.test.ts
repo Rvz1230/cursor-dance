@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   keyLayoutNormalizedX,
   keyDisplayCharacter,
+  keyDisplayLabel,
   MODIFIER_KEYCODES,
 } from "./key-layout-map";
 
@@ -14,7 +15,11 @@ const Backspace = 14;
 const ArrowLeft = 57419;
 const F1 = 59;
 const Shift = 42;
+const Meta = 3675;
 const Ctrl = 29;
+const Digit1 = 2;
+const Slash = 53;
+const K = 37;
 const CapsLock = 58;
 
 describe("keyLayoutNormalizedX", () => {
@@ -60,6 +65,40 @@ describe("keyDisplayCharacter", () => {
   });
 });
 
+describe("keyDisplayLabel", () => {
+  it("prefers typed characters for Shift-modified symbol keys", () => {
+    expect(keyDisplayLabel({ keycode: Digit1, shiftKey: true })).toBe("!");
+    expect(keyDisplayLabel({ keycode: Slash, shiftKey: true })).toBe("?");
+  });
+
+  it("keeps uppercase letters as typed characters for Shift-modified letters", () => {
+    expect(keyDisplayLabel({ keycode: A, shiftKey: true })).toBe("A");
+  });
+
+  it("prefixes shortcut modifiers in a stable order", () => {
+    expect(keyDisplayLabel({ keycode: K, metaKey: true })).toBe("⌘K");
+    expect(keyDisplayLabel({ keycode: K, altKey: true, shiftKey: true })).toBe("⌥⇧K");
+    expect(keyDisplayLabel({ keycode: A, ctrlKey: true, altKey: true, shiftKey: true, metaKey: true })).toBe("⌘⌃⌥⇧A");
+  });
+
+  it("renders standalone modifier keys when enabled", () => {
+    expect(keyDisplayLabel({ keycode: Shift }, { showModifierKeys: true })).toBe("⇧");
+    expect(keyDisplayLabel({ keycode: Meta }, { showModifierKeys: true })).toBe("⌘");
+    expect(keyDisplayLabel({ keycode: Ctrl }, { showModifierKeys: true })).toBe("⌃");
+  });
+
+  it("skips standalone modifier keys when disabled", () => {
+    expect(keyDisplayLabel({ keycode: Shift }, { showModifierKeys: false })).toBeNull();
+  });
+
+  it("can show physical key chords instead of typed characters", () => {
+    expect(keyDisplayLabel({ keycode: Digit1, shiftKey: true }, { keyDisplayMode: "physical" })).toBe("⇧1");
+  });
+
+  it("returns null for unmapped keycode even with modifiers", () => {
+    expect(keyDisplayLabel({ keycode: 99999, metaKey: true })).toBeNull();
+  });
+});
 describe("MODIFIER_KEYCODES", () => {
   it("contains Shift / Ctrl / CapsLock", () => {
     expect(MODIFIER_KEYCODES.has(Shift)).toBe(true);

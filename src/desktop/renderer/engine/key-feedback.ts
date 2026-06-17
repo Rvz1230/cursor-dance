@@ -7,7 +7,7 @@
 import type { EngineDeps, KeyFeedbackModule, NativeKeyboardEvent } from "./types";
 import type { KeyFeedbackConfig } from "./key-feedback-types";
 import { defaultKeyFeedbackConfig, normalizeKeyFeedbackConfig } from "./key-feedback-types";
-import { keyLayoutNormalizedX, keyDisplayCharacter } from "./key-layout-map";
+import { keyLayoutNormalizedX, keyDisplayLabel } from "./key-layout-map";
 import { hexToRgba, getAnimationEasing, getTextWeightValue } from "./action-config";
 
 const FONT_WEIGHT_MAP: Record<string, number> = {
@@ -48,9 +48,12 @@ export function createKeyFeedback(deps: EngineDeps): KeyFeedbackModule {
     if (state.activeKeyEffects >= config.maxSimultaneous) return;
 
     // 字符解析
-    const char = keyDisplayCharacter(event.keycode);
-    if (char === null) return;
-    const displayChar = config.uppercase ? char.toUpperCase() : char;
+    const label = keyDisplayLabel(event, {
+      showModifierKeys: config.showModifierKeys,
+      keyDisplayMode: config.keyDisplayMode,
+    });
+    if (label === null) return;
+    const displayChar = config.uppercase ? label.toUpperCase() : label;
 
     // 全局效果预算守卫
     if (state.activeEffects >= configStore.getMaxActiveEffects()) return;
@@ -78,9 +81,13 @@ export function createKeyFeedback(deps: EngineDeps): KeyFeedbackModule {
     //   globalOffsetX / globalOffsetY
     //     vertical 入场时，globalOffsetY 是「最终位置距入场边」距离（屏高比例）
     //     horizontal 入场时，globalOffsetX 是「最终位置距入场边」距离（屏宽比例）
+    //   raindrop 也尊重 originEdge / originMapping：它表示重力贯穿轨迹，
+    //     不等同于固定从顶部居中下落。
     // ────────────────────────────────────────────────────────────
-    const edge = config.originEdge;
     const style = config.animationStyle;
+    const edge = config.originEdge;
+    const mapping = config.originMapping;
+    const offsetX = config.globalOffsetX;
     const isVertical = edge === "bottom" || edge === "top";
     const layoutNormX = keyLayoutNormalizedX(keycode);
 
@@ -92,35 +99,39 @@ export function createKeyFeedback(deps: EngineDeps): KeyFeedbackModule {
     let dx: number;
     let dy: number;
 
+    // 元素中心锚 = top/left。line-height:1 时元素高度 ≈ fontSize；
+    // 要让整字"刚好藏在屏外"——最近边贴屏边——center 须再外推 fontSize/2。
+    // bounce 终点 = 距入场边 (bounceHeight + screenDim * globalOffset⊥)；
+    // dy/dx 必须把 fontSize/2 也补偿掉，否则低 bounceHeight 时字根本进不来。
+    const halfFont = fontSize / 2;
     if (edge === "bottom") {
-      startX = config.originMapping === "center" ? screenW * config.globalOffsetX : screenW * layoutNormX;
-      startY = screenH + fontSize;
+      startX = mapping === "center" ? screenW * offsetX : screenW * layoutNormX;
+      startY = screenH + halfFont;
       dx = 0;
-      // bounce: 飞到距底边 (bounceHeight + offsetMargin)；raindrop: 反向贯穿到顶部外
       dy = style === "bounce"
-        ? -(config.bounceHeight + screenH * config.globalOffsetY)
+        ? -(config.bounceHeight + screenH * config.globalOffsetY + halfFont)
         : -(screenH + fontSize * 2);
     } else if (edge === "top") {
-      startX = config.originMapping === "center" ? screenW * config.globalOffsetX : screenW * layoutNormX;
-      startY = -fontSize;
+      startX = mapping === "center" ? screenW * offsetX : screenW * layoutNormX;
+      startY = -halfFont;
       dx = 0;
       dy = style === "bounce"
-        ? (config.bounceHeight + screenH * config.globalOffsetY)
+        ? (config.bounceHeight + screenH * config.globalOffsetY + halfFont)
         : (screenH + fontSize * 2);
     } else if (edge === "left") {
-      startX = -fontSize;
-      startY = config.originMapping === "center" ? screenH * config.globalOffsetY : screenH * 0.5;
+      startX = -halfFont;
+      startY = mapping === "center" ? screenH * config.globalOffsetY : screenH * 0.5;
       dy = 0;
       dx = style === "bounce"
-        ? (config.bounceHeight + screenW * config.globalOffsetX)
+        ? (config.bounceHeight + screenW * offsetX + halfFont)
         : (screenW + fontSize * 2);
     } else {
       // right
-      startX = screenW + fontSize;
-      startY = config.originMapping === "center" ? screenH * config.globalOffsetY : screenH * 0.5;
+      startX = screenW + halfFont;
+      startY = mapping === "center" ? screenH * config.globalOffsetY : screenH * 0.5;
       dy = 0;
       dx = style === "bounce"
-        ? -(config.bounceHeight + screenW * config.globalOffsetX)
+        ? -(config.bounceHeight + screenW * offsetX + halfFont)
         : -(screenW + fontSize * 2);
     }
 
@@ -164,10 +175,9 @@ export function createKeyFeedback(deps: EngineDeps): KeyFeedbackModule {
     let keyframes: Keyframe[];
 
     if (style === "raindrop") {
-      // raindrop: 贯穿屏幕。重力把末段加速；wind 在 ⊥ 入场轴方向加横向风
-      const gravityBoost = config.gravity * 0.5; // 0~0.5 倍位移再叠加
-      const windPerpFactor = isVertical ? config.wind : 0; // 横向风仅在垂直入场时生效（视觉直觉）
-      const windDist = (isVertical ? screenW : screenH) * 0.3 * windPerpFactor;
+      // raindrop: 沿入场轴贯穿屏幕；gravity 加速入场轴，wind 偏移垂直于入场轴。
+      const gravityBoost = config.gravity * 0.5;
+      const windDist = (isVertical ? screenW : screenH) * 0.3 * config.wind;
       const finalDx = dx * (1 + gravityBoost) + (isVertical ? windDist : 0);
       const finalDy = dy * (1 + gravityBoost) + (isVertical ? 0 : windDist);
       const midDx = dx * 0.5 + (isVertical ? windDist * 0.3 : 0);
@@ -179,10 +189,16 @@ export function createKeyFeedback(deps: EngineDeps): KeyFeedbackModule {
         { opacity: 0, transform: `translate(-50%,-50%) translate(${finalDx}px, ${finalDy}px)` },
       ];
     } else {
-      // bounce: 弹到目标位置 + 缩放回弹
+      // bounce: 物理键帽手感 —— 入场过冲 → 反弹 → 小过冲 → 收敛 → 淡出
+      // 每段 keyframe 用独立 easing，模拟阻尼弹簧
+      const ease = "cubic-bezier(0.4, 0, 0.2, 1)";
       keyframes = [
-        { opacity: 0, transform: `translate(-50%,-50%) translate(0,0) scale(0.3)` },
-        { opacity: targetOpacity, transform: `translate(-50%,-50%) translate(${dx * 0.85}px, ${dy * 0.85}px) scale(1.15)`, offset: 0.7 },
+        { opacity: 0, transform: `translate(-50%,-50%) translate(0,0) scale(0.4)`, easing: ease },
+        { opacity: targetOpacity, transform: `translate(-50%,-50%) translate(${dx * 0.12}px, ${dy * 0.12}px) scale(0.82)`, offset: 0.12, easing: ease },
+        { opacity: targetOpacity, transform: `translate(-50%,-50%) translate(${dx * 1.06}px, ${dy * 1.06}px) scale(1.18)`, offset: 0.42, easing: ease },
+        { transform: `translate(-50%,-50%) translate(${dx * 0.94}px, ${dy * 0.94}px) scale(0.96)`, offset: 0.6, easing: ease },
+        { transform: `translate(-50%,-50%) translate(${dx * 1.02}px, ${dy * 1.02}px) scale(1.04)`, offset: 0.74, easing: ease },
+        { opacity: targetOpacity, transform: `translate(-50%,-50%) translate(${dx}px, ${dy}px) scale(1.0)`, offset: 0.85, easing: ease },
         { opacity: 0, transform: `translate(-50%,-50%) translate(${dx}px, ${dy}px) scale(1.0)` },
       ];
     }

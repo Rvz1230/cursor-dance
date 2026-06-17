@@ -1,7 +1,8 @@
 import { getTimingFieldMeta, TRIGGER_OPTIONS, PANEL_META } from "../../model/workbenchSchema";
 import { ControlSlider, FieldRow, Panel, SmallSelect } from "../WorkbenchControls";
+import { ResetCardButton } from "./ResetCardButton";
 
-export function TriggerBehaviorCard({ actionId, config, updateActionConfig, panelId }) {
+export function TriggerBehaviorCard({ actionId, config, updateActionConfig, panelId, reset }) {
   const triggerMeta = TRIGGER_OPTIONS[actionId];
   const timingMeta = getTimingFieldMeta(actionId);
 
@@ -14,6 +15,7 @@ export function TriggerBehaviorCard({ actionId, config, updateActionConfig, pane
       collapsible
       defaultOpen
       summary={`${config.triggerTiming} · ${config.triggerZone}`}
+      action={reset ? <ResetCardButton dirty={reset.dirty} onReset={reset.onReset} /> : undefined}
     >
       <FieldRow
         label="触发时机"

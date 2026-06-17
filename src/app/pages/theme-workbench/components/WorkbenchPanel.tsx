@@ -1,5 +1,6 @@
 import { AlertTriangle, Sparkles } from "lucide-react";
 import { cn } from "@/components/ui/utils";
+import { CARD_RESET_FIELDS, buildCardResetPatch } from "../lib/cardResetFields";
 import { AnimationFeedbackCard } from "./panels/AnimationFeedbackCard";
 import { CursorFeedbackCard } from "./panels/CursorFeedbackCard";
 import { AudioFeedbackCard } from "./panels/AudioFeedbackCard";
@@ -14,8 +15,19 @@ function hasAnyEffect(config) {
   return config.textEnabled || config.animationEnabled || config.imageEnabled || config.particle || config.ripple || config.sound || (config.cursorOverride && config.cursorOverride !== "跟随当前状态");
 }
 
-export function WorkbenchPanel({ actionId, config, updateActionConfig, conflicts, atmosphere, updateAtmosphere }) {
+export function WorkbenchPanel({ actionId, config, resetConfig, updateActionConfig, conflicts, atmosphere, updateAtmosphere }) {
   const anyEffect = hasAnyEffect(config);
+  const defaultConfig = resetConfig || {};
+
+  const buildResetProps = (cardKey: keyof typeof CARD_RESET_FIELDS) => {
+    const patch = buildCardResetPatch(cardKey, config, defaultConfig);
+    return {
+      dirty: patch !== null,
+      onReset: () => {
+        if (patch) updateActionConfig(patch);
+      },
+    };
+  };
 
   function handleAtmosphereChange(key, value) {
     updateAtmosphere({ [key]: value });
@@ -52,14 +64,14 @@ export function WorkbenchPanel({ actionId, config, updateActionConfig, conflicts
       ) : null}
 
       <div className="space-y-3">
-        <TriggerBehaviorCard actionId={actionId} config={config} updateActionConfig={updateActionConfig} panelId="card-trigger" />
-        <TextFeedbackCard config={config} updateActionConfig={updateActionConfig} panelId="card-text" />
-        <AnimationFeedbackCard config={config} updateActionConfig={updateActionConfig} panelId="card-animation" />
-        <ImageFeedbackCard config={config} updateActionConfig={updateActionConfig} panelId="card-image" />
-        <ParticleFeedbackCard config={config} updateActionConfig={updateActionConfig} panelId="card-particle" />
-        <RippleFeedbackCard config={config} updateActionConfig={updateActionConfig} panelId="card-ripple" />
-        <AudioFeedbackCard config={config} updateActionConfig={updateActionConfig} panelId="card-audio" />
-        <CursorFeedbackCard config={config} updateActionConfig={updateActionConfig} panelId="card-cursor" />
+        <TriggerBehaviorCard actionId={actionId} config={config} updateActionConfig={updateActionConfig} panelId="card-trigger" reset={buildResetProps("trigger")} />
+        <TextFeedbackCard config={config} updateActionConfig={updateActionConfig} panelId="card-text" reset={buildResetProps("text")} />
+        <AnimationFeedbackCard config={config} updateActionConfig={updateActionConfig} panelId="card-animation" reset={buildResetProps("animation")} />
+        <ImageFeedbackCard config={config} updateActionConfig={updateActionConfig} panelId="card-image" reset={buildResetProps("image")} />
+        <ParticleFeedbackCard config={config} updateActionConfig={updateActionConfig} panelId="card-particle" reset={buildResetProps("particle")} />
+        <RippleFeedbackCard config={config} updateActionConfig={updateActionConfig} panelId="card-ripple" reset={buildResetProps("ripple")} />
+        <AudioFeedbackCard config={config} updateActionConfig={updateActionConfig} panelId="card-audio" reset={buildResetProps("audio")} />
+        <CursorFeedbackCard config={config} updateActionConfig={updateActionConfig} panelId="card-cursor" reset={buildResetProps("cursor")} />
       </div>
 
       {atmosphere && (

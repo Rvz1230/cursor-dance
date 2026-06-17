@@ -13,8 +13,9 @@ import {
   SettingSection,
   SmallSelect,
 } from "../WorkbenchControls";
+import { ResetCardButton } from "./ResetCardButton";
 
-export function RippleFeedbackCard({ config, updateActionConfig, panelId }) {
+export function RippleFeedbackCard({ config, updateActionConfig, panelId, reset }) {
   return (
     <Panel
       id={panelId}
@@ -25,7 +26,12 @@ export function RippleFeedbackCard({ config, updateActionConfig, panelId }) {
       defaultOpen={config.ripple}
       enabled={config.ripple}
       summary={config.ripple ? `${config.rippleStyle} · ${config.rippleSize}px · ${config.rippleDuration}ms` : "关闭波纹反馈"}
-      action={<Switch checked={config.ripple} onCheckedChange={(next) => updateActionConfig({ ripple: next })} aria-label="波纹开关" />}
+      action={
+        <div className="flex items-center gap-2">
+          {reset ? <ResetCardButton dirty={reset.dirty} onReset={reset.onReset} /> : null}
+          <Switch checked={config.ripple} onCheckedChange={(next) => updateActionConfig({ ripple: next })} aria-label="波纹开关" />
+        </div>
+      }
     >
       <div className="space-y-4">
         <SettingSection disabled={!config.ripple}>
