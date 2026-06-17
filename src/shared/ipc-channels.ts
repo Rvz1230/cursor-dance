@@ -5,6 +5,9 @@
 /** 主进程 → overlay/workbench：全局鼠标事件投递 */
 export const CURSOR_EVENT = "cursordance:cursor-event";
 
+/** 主进程 → overlay：全局键盘事件投递 */
+export const KEYBOARD_EVENT = "cursordance:keyboard-event";
+
 /** renderer → 主进程：读取 / 写入 electron-store 持久化 config */
 export const STORE_GET = "cursordance:store-get";
 export const STORE_SET = "cursordance:store-set";

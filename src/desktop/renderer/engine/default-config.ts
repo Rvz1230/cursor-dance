@@ -55,6 +55,9 @@ export interface EditorPrefs {
   lastCursorState: string;
 }
 
+import type { KeyFeedbackConfig } from "./key-feedback-types";
+import { defaultKeyFeedbackConfig, normalizeKeyFeedbackConfig } from "./key-feedback-types";
+
 export interface CursorDanceConfig {
   schemaVersion: number;
   enabled: boolean;
@@ -65,6 +68,7 @@ export interface CursorDanceConfig {
   performance: { maxActiveEffects: number };
   siteRules: SiteRule[];
   editor: EditorPrefs;
+  keyFeedbackConfig?: KeyFeedbackConfig;
 }
 
 export function cloneValue<T>(value: T): T {
@@ -251,6 +255,7 @@ export function normalizeConfig(
       ...(v.performance || {}),
     },
     editor: normalizeEditorPrefs(v.editor, fallback.editor),
+    keyFeedbackConfig: normalizeKeyFeedbackConfig(v.keyFeedbackConfig as Partial<KeyFeedbackConfig> | undefined),
   };
 }
 
@@ -283,4 +288,5 @@ export const defaultConfig: CursorDanceConfig = {
     lastActionId: "leftClick",
     lastCursorState: "default",
   },
+  keyFeedbackConfig: { ...defaultKeyFeedbackConfig },
 };

@@ -43,7 +43,7 @@ export function useThemeWorkbenchPersistence({ state, dispatch, configRef }) {
       // without requiring an explicit Save.
       if (editorState) {
         const ws = editorState.workspaceId;
-        if (ws === "workbench" || ws === "states" || ws === "sites" || ws === "diagnostics") {
+        if (ws === "workbench" || ws === "states" || ws === "sites" || ws === "diagnostics" || ws === "keyboard") {
           hydratedState.workspaceId = ws;
         }
         const tid = editorState.themeId;

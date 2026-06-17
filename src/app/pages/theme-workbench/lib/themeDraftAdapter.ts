@@ -131,10 +131,11 @@ export function hydrateWorkbenchState(config, site) {
     states: "states",
     sites: "sites",
     diagnostics: "diagnostics",
+    keyboard: "keyboard",
     assets: "workbench",
   };
   const resolvedWorkspace = workspaceAliasMap[config.editor?.lastWorkspace] || config.editor?.lastWorkspace || "workbench";
-  const PRIMARY_WORKSPACES = ["workbench", "states", "sites"];
+  const PRIMARY_WORKSPACES = ["workbench", "states", "sites", "keyboard"];
   const workspaceId = PRIMARY_WORKSPACES.includes(resolvedWorkspace) ? resolvedWorkspace : "workbench";
   const selectedActionId = PLATFORM_ACTIONS.some((item) => item.id === config.editor?.lastActionId) ? config.editor.lastActionId : "leftClick";
   const selectedCursorStateId = CURSOR_STATES.some((item) => item.id === config.editor?.lastCursorState) ? config.editor.lastCursorState : "default";
@@ -154,6 +155,7 @@ export function hydrateWorkbenchState(config, site) {
     },
     site,
     draftsByTheme,
+    keyFeedbackConfig: config.keyFeedbackConfig,
   };
 }
 
@@ -218,6 +220,7 @@ export function buildStoredConfigFromWorkbench(previousConfig, state) {
     themePacks: nextThemePacks,
     schemes: nextThemePacks,
     siteRules: Array.isArray(state.siteRules) ? state.siteRules : [],
+    keyFeedbackConfig: state.keyFeedbackConfig ?? previousConfig.keyFeedbackConfig,
     editor: {
       ...(previousConfig.editor || {}),
       lastWorkspace: workspaceId,

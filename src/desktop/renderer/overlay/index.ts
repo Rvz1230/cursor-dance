@@ -32,9 +32,21 @@ type CursorEventPayload = {
   timestamp: number;
 };
 
+type KeyboardEventPayload = {
+  type: "keydown" | "keyup";
+  keycode: number;
+  altKey: boolean;
+  ctrlKey: boolean;
+  metaKey: boolean;
+  shiftKey: boolean;
+  timestamp: number;
+};
+
 type CursorDanceAPI = {
   onCursorEvent: (cb: (e: CursorEventPayload) => void) => () => void;
   offCursorEvent: (cb: (e: CursorEventPayload) => void) => void;
+  onKeyboardEvent?: (cb: (e: KeyboardEventPayload) => void) => () => void;
+  offKeyboardEvent?: (cb: (e: KeyboardEventPayload) => void) => void;
 };
 
 const constants: EngineConstants = {
@@ -194,6 +206,10 @@ function isInsideThisOverlay(event: CursorEvent): boolean {
 }
 
 function dispatch(payload: CursorEventPayload): void {
+  // 记录鼠标全局 DIP 坐标（用于键盘事件多显示器路由）
+  state.lastMouseGlobalX = payload.x;
+  state.lastMouseGlobalY = payload.y;
+
   const cursorEvent = toEngineCursorEvent(payload);
   if (!isInsideThisOverlay(cursorEvent)) return;
 
@@ -227,9 +243,36 @@ function dispatch(payload: CursorEventPayload): void {
 
 api?.onCursorEvent(dispatch);
 
+// ============================================================
+// IPC 键盘事件 → 引擎分派
+// ============================================================
+
+function isMouseInThisOverlay(): boolean {
+  const gx = state.lastMouseGlobalX;
+  const gy = state.lastMouseGlobalY;
+  if (gx === undefined || gy === undefined) {
+    // 鼠标未移动过时，fallback 到主显示器（screenX/Y === 0）
+    return window.screenX === 0 && window.screenY === 0;
+  }
+  const localX = gx - window.screenX;
+  const localY = gy - window.screenY;
+  // 半开区间：避免鼠标恰好停在屏幕拼接边界时两个 overlay 都判定 in-bounds 而双触发
+  return localX >= 0 && localY >= 0 && localX < window.innerWidth && localY < window.innerHeight;
+}
+
+function dispatchKeyboard(payload: KeyboardEventPayload): void {
+  if (!isMouseInThisOverlay()) return;
+  const config = configStore.getKeyFeedbackConfig?.();
+  if (!config?.enabled) return;
+  engine.keyFeedback.handleKeyboardEvent(payload);
+}
+
+api?.onKeyboardEvent?.(dispatchKeyboard);
+
 // 退出时清理（renderer 内部 hot reload 也走这里）
 window.addEventListener("beforeunload", () => {
   api?.offCursorEvent(dispatch);
+  api?.offKeyboardEvent?.(dispatchKeyboard);
   engine.cursorOverlay.clearStateCursorOverlay();
 });
 

@@ -89,6 +89,13 @@ export interface EngineState {
   lastWheelEventAt?: number;
   /** trigger-handlers：长按状态机 */
   longPressState?: LongPressState | null;
+  /** key-feedback：per-keycode 冷却计时器 */
+  lastKeydownAtByKeycode?: Map<number, number>;
+  /** key-feedback：活动键盘效果计数 */
+  activeKeyEffects?: number;
+  /** overlay：上次鼠标全局 DIP 坐标（用于键盘事件多显示器路由） */
+  lastMouseGlobalX?: number;
+  lastMouseGlobalY?: number;
 }
 
 /**
@@ -227,9 +234,30 @@ export interface TriggerHandlersModule {
   simulateAction(actionId: string, x: number, y: number, scheme: unknown, options?: { holdMs?: number }): () => void;
 }
 
+/**
+ * 从主进程 IPC 投递的键盘事件（与 native-events.ts NativeKeyboardEvent 同形）。
+ */
+export interface NativeKeyboardEvent {
+  type: "keydown" | "keyup";
+  keycode: number;
+  altKey: boolean;
+  ctrlKey: boolean;
+  metaKey: boolean;
+  shiftKey: boolean;
+  timestamp: number;
+}
+
+/**
+ * key-feedback 子模块对外暴露的 API。
+ */
+export interface KeyFeedbackModule {
+  handleKeyboardEvent(event: NativeKeyboardEvent): void;
+}
+
 export interface EffectEngine {
   visualEffects: VisualEffectsModule;
   cursorOverlay: CursorOverlayModule;
   audioRuntime: AudioRuntimeModule;
   triggerHandlers: TriggerHandlersModule;
+  keyFeedback: KeyFeedbackModule;
 }

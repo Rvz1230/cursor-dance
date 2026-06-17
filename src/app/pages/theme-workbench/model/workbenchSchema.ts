@@ -16,6 +16,7 @@ import {
   Heart,
   HelpCircle,
   ImagePlus,
+  Keyboard,
   Link2,
   Moon,
   MousePointer2,
@@ -94,6 +95,7 @@ export const WORKSPACES = [
   { id: "workbench", label: "主题工作台", icon: Wand2 },
   { id: "states", label: "光标状态", icon: MousePointer2 },
   { id: "sites", label: "站点规则", icon: Link2 },
+  { id: "keyboard", label: "键盘动效", icon: Keyboard },
   { id: "diagnostics", label: "诊断面板", icon: ActivitySquare },
 ];
 
@@ -268,6 +270,7 @@ export const PANEL_META = {
   animation: { icon: Sparkles, tone: "bg-cyan-100 text-cyan-700" },
   image: { icon: ImagePlus, tone: "bg-fuchsia-100 text-fuchsia-700" },
   cursor: { icon: Settings2, tone: "bg-slate-200 text-slate-700" },
+  keyboard: { icon: Keyboard, tone: "bg-violet-100 text-violet-700" },
 };
 
 export const ICON_OPTIONS = [

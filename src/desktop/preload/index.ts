@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from "electron";
 import {
   CURSOR_EVENT,
+  KEYBOARD_EVENT,
   STORE_GET,
   STORE_SET,
   STORE_CHANGED,
@@ -36,7 +37,20 @@ type CursorEventPayload = {
 
 type CursorEventListener = (event: CursorEventPayload) => void;
 
+type KeyboardEventPayload = {
+  type: "keydown" | "keyup";
+  keycode: number;
+  altKey: boolean;
+  ctrlKey: boolean;
+  metaKey: boolean;
+  shiftKey: boolean;
+  timestamp: number;
+};
+
+type KeyboardEventListener = (event: KeyboardEventPayload) => void;
+
 const cursorEventListeners = new WeakMap<CursorEventListener, (_e: unknown, payload: CursorEventPayload) => void>();
+const keyboardEventListeners = new WeakMap<KeyboardEventListener, (_e: unknown, payload: KeyboardEventPayload) => void>();
 
 contextBridge.exposeInMainWorld("electronAPI", {
   platform: process.platform,
@@ -59,6 +73,24 @@ contextBridge.exposeInMainWorld("cursorDanceAPI", {
     if (handler) {
       ipcRenderer.off(CURSOR_EVENT, handler);
       cursorEventListeners.delete(callback);
+    }
+  },
+
+  onKeyboardEvent(callback: KeyboardEventListener): () => void {
+    const handler = (_e: unknown, payload: KeyboardEventPayload) => callback(payload);
+    keyboardEventListeners.set(callback, handler);
+    ipcRenderer.on(KEYBOARD_EVENT, handler);
+    return () => {
+      ipcRenderer.off(KEYBOARD_EVENT, handler);
+      keyboardEventListeners.delete(callback);
+    };
+  },
+
+  offKeyboardEvent(callback: KeyboardEventListener): void {
+    const handler = keyboardEventListeners.get(callback);
+    if (handler) {
+      ipcRenderer.off(KEYBOARD_EVENT, handler);
+      keyboardEventListeners.delete(callback);
     }
   },
 });

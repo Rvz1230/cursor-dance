@@ -5,6 +5,10 @@ import {
 import {
   createWorkbenchThemeState,
 } from "../lib/extensionConfig";
+import {
+  defaultKeyFeedbackConfig,
+  normalizeKeyFeedbackConfig,
+} from "@/desktop/renderer/engine/key-feedback-types";
 
 export const INITIAL_THEME_STATE = createWorkbenchThemeState(THEMES);
 
@@ -33,6 +37,7 @@ export const initialState = {
   recentCursorAssets: [],
   themeLibrary: INITIAL_THEME_STATE.themeLibrary,
   draftsByTheme: INITIAL_THEME_STATE.draftsByTheme,
+  keyFeedbackConfig: { ...defaultKeyFeedbackConfig },
 };
 
 export function reducer(state, action) {
@@ -41,6 +46,9 @@ export function reducer(state, action) {
       return {
         ...state,
         ...action.payload,
+        keyFeedbackConfig: normalizeKeyFeedbackConfig(
+          action.payload.keyFeedbackConfig ?? state.keyFeedbackConfig,
+        ),
         ui: {
           ...state.ui,
           ...action.payload.ui,
@@ -235,6 +243,12 @@ export function reducer(state, action) {
         },
       };
     }
+    case "key-feedback/update":
+      return {
+        ...state,
+        keyFeedbackConfig: { ...state.keyFeedbackConfig, ...action.payload },
+        ui: { ...state.ui, unsaved: true, saveError: "" },
+      };
     default:
       return state;
   }

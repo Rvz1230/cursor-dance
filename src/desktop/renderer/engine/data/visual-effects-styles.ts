@@ -82,5 +82,8 @@ export function buildVisualEffectsCSS(rootId: string, hideCursorClass: string): 
           user-select: none;
           -webkit-user-drag: none;
         }
+        .cd-key-feedback {
+          text-align: center;
+        }
       `;
 }

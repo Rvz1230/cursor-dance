@@ -1,5 +1,5 @@
 import { app, BrowserWindow } from "electron";
-import { startGlobalMouseCapture, type NativeCursorEvent } from "./native-events";
+import { startGlobalMouseCapture, type NativeCursorEvent, type NativeKeyboardEvent } from "./native-events";
 import { broadcastToWindows } from "./broadcast";
 import {
   createOverlayWindow,
@@ -24,7 +24,7 @@ import {
   readConfig,
   writeConfig,
 } from "./electron-store";
-import { CURSOR_EVENT } from "../../shared/ipc-channels";
+import { CURSOR_EVENT, KEYBOARD_EVENT } from "../../shared/ipc-channels";
 
 let workbenchWindow: BrowserWindow | null = null;
 let stopMouseCapture: (() => void) | null = null;
@@ -40,6 +40,10 @@ if (!gotTheLock) {
 
 function broadcastCursorEvent(event: NativeCursorEvent): void {
   broadcastToWindows(() => [...getOverlayWindows().values()], CURSOR_EVENT, event);
+}
+
+function broadcastKeyboardEvent(event: NativeKeyboardEvent): void {
+  broadcastToWindows(() => [...getOverlayWindows().values()], KEYBOARD_EVENT, event);
 }
 
 function ensureOverlayPerDisplay(): void {
@@ -120,7 +124,7 @@ app.whenReady().then(() => {
 
   // 3) uiohook 全局鼠标捕获 → IPC 广播
   try {
-    stopMouseCapture = startGlobalMouseCapture(broadcastCursorEvent);
+    stopMouseCapture = startGlobalMouseCapture(broadcastCursorEvent, broadcastKeyboardEvent);
   } catch (error) {
     console.error("[CursorDance] failed to start global mouse capture:", error);
   }

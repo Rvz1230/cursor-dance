@@ -21,6 +21,8 @@ import type {
   EngineState,
   DiagnosticsModule,
 } from "./types";
+import type { KeyFeedbackConfig } from "./key-feedback-types";
+import { normalizeKeyFeedbackConfig } from "./key-feedback-types";
 import {
   defaultConfig as defaultEngineConfig,
   mergeCursorStates as defaultMergeCursorStates,
@@ -98,6 +100,7 @@ export interface ConfigStoreApi extends ConfigStore {
     opts: { actionId: string; triggerSource: string },
   ): boolean;
   getMaxActiveEffects(): number;
+  getKeyFeedbackConfig(): KeyFeedbackConfig;
   getAtmosphereConfig(scheme: ThemePack | null | undefined): { mode: string };
   getBaseActionConfigs(): Record<string, Record<string, unknown>>;
   getWorkbenchDraft(scheme: ThemePack | null | undefined): {
@@ -217,6 +220,10 @@ export function createConfigStore(deps: ConfigStoreDeps): ConfigStoreApi {
 
   function getMaxActiveEffects(): number {
     return getConfig().performance?.maxActiveEffects || 48;
+  }
+
+  function getKeyFeedbackConfig(): KeyFeedbackConfig {
+    return normalizeKeyFeedbackConfig(getConfig().keyFeedbackConfig as Partial<KeyFeedbackConfig> | undefined);
   }
 
   function getBaseActionConfigs(): Record<string, Record<string, unknown>> {
@@ -505,6 +512,7 @@ export function createConfigStore(deps: ConfigStoreDeps): ConfigStoreApi {
     resolveCursorStateId,
     matchesTriggerZone,
     getMaxActiveEffects,
+    getKeyFeedbackConfig,
     getAtmosphereConfig,
     getBaseActionConfigs,
     getWorkbenchDraft,

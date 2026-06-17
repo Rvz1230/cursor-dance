@@ -8,6 +8,7 @@ import { DiagnosticsPanel } from "./components/DiagnosticsPanel";
 import { SiteRulesPanel } from "./components/SiteRulesPanel";
 import { AppRulesPanel } from "./components/AppRulesPanel";
 import { StatesPanel } from "./components/StatesPanel";
+import { KeyboardPanel } from "./components/KeyboardPanel";
 import { WorkbenchHeader } from "./components/WorkbenchHeader";
 import { AiSchemePanel } from "./components/AiSchemePanel";
 import { getAiProposalNextConfigForAction } from "./lib/aiSchemeAssistant";
@@ -113,6 +114,8 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
     copyDefaultCursorStateAsset,
     resetCurrentCursorState,
     resetAllCursorStates,
+    keyFeedbackConfig,
+    updateKeyFeedbackConfig,
   } = useThemeWorkbenchState();
   const currentWorkspace = workspaceItems.find((item) => item.id === state.workspaceId);
   const previewActionConfig = getAiProposalNextConfigForAction(previewProposal, selected.actionId, currentActionConfig);
@@ -464,6 +467,13 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                     selectedThemeId={selected.themeId}
                   />
                 </div>
+              ) : null}
+
+              {state.workspaceId === "keyboard" ? (
+                <KeyboardPanel
+                  config={keyFeedbackConfig}
+                  onUpdate={(patch) => updateKeyFeedbackConfig(patch)}
+                />
               ) : null}
             </main>
           </div>

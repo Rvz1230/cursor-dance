@@ -57,7 +57,7 @@ describe("startGlobalMouseCapture", () => {
       },
     };
 
-    const stop = startGlobalMouseCapture((e) => events.push(e), fakeSource);
+    const stop = startGlobalMouseCapture((e) => events.push(e), undefined, fakeSource);
     expect(started).toBe(true);
 
     storedCb?.({ type: "mousedown", x: 10, y: 20, buttons: 1, timestamp: 1 });
@@ -74,8 +74,8 @@ describe("startGlobalMouseCapture", () => {
     const first: IInputSource = { start: () => {}, stop: () => { firstStopped = true; } };
     const second: IInputSource = { start: () => {}, stop: () => {} };
 
-    const stop1 = startGlobalMouseCapture(() => {}, first);
-    startGlobalMouseCapture(() => {}, second);
+    const stop1 = startGlobalMouseCapture(() => {}, undefined, first);
+    startGlobalMouseCapture(() => {}, undefined, second);
     expect(firstStopped).toBe(true);
 
     stop1(); // 已经被替换，调用应该是 no-op

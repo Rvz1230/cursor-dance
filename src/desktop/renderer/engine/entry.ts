@@ -10,6 +10,7 @@ import { createVisualEffects } from "./visual-effects";
 import { createCursorOverlay } from "./cursor-overlay";
 import { createAudioRuntime } from "./audio";
 import { createTriggerHandlers } from "./trigger-handlers";
+import { createKeyFeedback } from "./key-feedback";
 
 export function createEffectEngine(deps: EngineDeps): EffectEngine {
   const visualEffects = createVisualEffects(deps);
@@ -36,12 +37,14 @@ export function createEffectEngine(deps: EngineDeps): EffectEngine {
     audioRuntime,
     cursorOverlay,
   });
+  const keyFeedback = createKeyFeedback(deps);
 
   return {
     visualEffects,
     cursorOverlay,
     audioRuntime,
     triggerHandlers,
+    keyFeedback,
   };
 }
 
@@ -54,4 +57,6 @@ export type {
   CursorOverlayModule,
   AudioRuntimeModule,
   TriggerHandlersModule,
+  KeyFeedbackModule,
+  NativeKeyboardEvent,
 } from "./types";

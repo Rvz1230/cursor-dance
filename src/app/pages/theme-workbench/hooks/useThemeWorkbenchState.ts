@@ -191,7 +191,7 @@ export function useThemeWorkbenchState() {
       item.id === "sites" && isDesktop()
         ? { ...item, label: "应用规则" }
         : item,
-    ),
+    ).filter((item) => item.id !== "keyboard" || isDesktop()),
     actionItems: PLATFORM_ACTIONS,
     cursorStates: CURSOR_STATES,
     recentCursorAssets: state.recentCursorAssets,
@@ -346,5 +346,7 @@ export function useThemeWorkbenchState() {
     reorderSiteRules: (from, to) => dispatch({ type: "site-rules/reorder", payload: { from, to } }),
     toggleSiteRule: (id) => dispatch({ type: "site-rules/toggle", payload: id }),
     clearAllSiteRules: () => dispatch({ type: "site-rules/clear-all" }),
+    keyFeedbackConfig: state.keyFeedbackConfig,
+    updateKeyFeedbackConfig: (patch) => dispatch({ type: "key-feedback/update", payload: patch }),
   };
 }

@@ -8,7 +8,7 @@
 // IPC 出口最小化：只传 { type, x, y, buttons?, deltaY?, timestamp }，
 // 与 src/renderer/engine/types.ts 的 CursorEvent 一致。
 
-import { uIOhook, type UiohookMouseEvent, type UiohookWheelEvent } from "uiohook-napi";
+import { uIOhook, type UiohookMouseEvent, type UiohookWheelEvent, type UiohookKeyboardEvent, UiohookKey } from "uiohook-napi";
 
 /** 投递给渲染层的最小事件（与 engine CursorEvent 同形）。 */
 export interface NativeCursorEvent {
@@ -26,8 +26,21 @@ export interface NativeCursorEvent {
   timestamp: number;
 }
 
+/** 投递给渲染层的键盘事件。 */
+export interface NativeKeyboardEvent {
+  type: "keydown" | "keyup";
+  /** uiohook UiohookKey 键码 */
+  keycode: number;
+  altKey: boolean;
+  ctrlKey: boolean;
+  metaKey: boolean;
+  shiftKey: boolean;
+  /** ms */
+  timestamp: number;
+}
+
 export interface IInputSource {
-  start(callback: (event: NativeCursorEvent) => void): void;
+  start(callback: (event: NativeCursorEvent) => void, onKeyboard?: (event: NativeKeyboardEvent) => void): void;
   stop(): void;
 }
 
@@ -80,24 +93,36 @@ class WheelAccumulator {
 // uiohook 实现
 // ============================================================
 
+// 修饰键键码集合：单独按下时不产生视觉效果
+const MODIFIER_KEYCODES = new Set<number>([
+  UiohookKey.Shift, UiohookKey.ShiftRight,
+  UiohookKey.Ctrl, UiohookKey.CtrlRight,
+  UiohookKey.Alt, UiohookKey.AltRight,
+  UiohookKey.Meta, UiohookKey.MetaRight,
+  UiohookKey.CapsLock, UiohookKey.NumLock, UiohookKey.ScrollLock,
+]);
+
 export class UiohookInputSource implements IInputSource {
   private callback: ((event: NativeCursorEvent) => void) | null = null;
+  private keyboardCallback: ((event: NativeKeyboardEvent) => void) | null = null;
   private buttonsState = 0;
   private wheel = new WheelAccumulator();
   private started = false;
 
-  start(callback: (event: NativeCursorEvent) => void): void {
+  start(callback: (event: NativeCursorEvent) => void, onKeyboard?: (event: NativeKeyboardEvent) => void): void {
     if (this.started) return;
     this.callback = callback;
+    this.keyboardCallback = onKeyboard ?? null;
 
     uIOhook.on("mousemove", this.onMouseMove);
     uIOhook.on("mousedown", this.onMouseDown);
     uIOhook.on("mouseup", this.onMouseUp);
     uIOhook.on("wheel", this.onWheel);
+    uIOhook.on("keydown", this.onKeyDown);
 
     uIOhook.start();
     this.started = true;
-    console.log("[uiohook] started — listening for global mouse events");
+    console.log("[uiohook] started — listening for global mouse + keyboard events");
 
     // macOS 辅助功能权限检测：启动 2 秒后如果还没收到任何 mousemove，
     // 大概率是缺少辅助功能权限
@@ -117,6 +142,7 @@ export class UiohookInputSource implements IInputSource {
     uIOhook.off("mousedown", this.onMouseDown);
     uIOhook.off("mouseup", this.onMouseUp);
     uIOhook.off("wheel", this.onWheel);
+    uIOhook.off("keydown", this.onKeyDown);
 
     try {
       uIOhook.stop();
@@ -125,6 +151,7 @@ export class UiohookInputSource implements IInputSource {
     }
 
     this.callback = null;
+    this.keyboardCallback = null;
     this.buttonsState = 0;
     this.started = false;
   }
@@ -179,6 +206,20 @@ export class UiohookInputSource implements IInputSource {
       timestamp: e.time,
     });
   };
+
+  private onKeyDown = (e: UiohookKeyboardEvent): void => {
+    // 修饰键单独按下时不产生视觉效果
+    if (MODIFIER_KEYCODES.has(e.keycode)) return;
+    this.keyboardCallback?.({
+      type: "keydown",
+      keycode: e.keycode,
+      altKey: e.altKey,
+      ctrlKey: e.ctrlKey,
+      metaKey: e.metaKey,
+      shiftKey: e.shiftKey,
+      timestamp: e.time,
+    });
+  };
 }
 
 // ============================================================
@@ -188,13 +229,14 @@ export class UiohookInputSource implements IInputSource {
 let activeSource: IInputSource | null = null;
 
 /**
- * 启动全局鼠标捕获并把事件投递给 callback。
+ * 启动全局鼠标 + 键盘捕获并把事件投递给 callback。
  * 返回 stop 函数；多次调用会先 stop 上一个 source。
  *
  * inputSource 选填——单元测试可注入 FakeInputSource 校验 IPC 链路。
  */
 export function startGlobalMouseCapture(
   onEvent: (event: NativeCursorEvent) => void,
+  onKeyboard?: (event: NativeKeyboardEvent) => void,
   inputSource?: IInputSource,
 ): () => void {
   if (activeSource) {
@@ -202,7 +244,7 @@ export function startGlobalMouseCapture(
     activeSource = null;
   }
   const source = inputSource || new UiohookInputSource();
-  source.start(onEvent);
+  source.start(onEvent, onKeyboard);
   activeSource = source;
 
   return () => {
