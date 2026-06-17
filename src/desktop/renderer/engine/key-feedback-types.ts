@@ -22,6 +22,8 @@ export interface KeyFeedbackConfig {
   uppercase: boolean;
   showModifierKeys: boolean;
   keyDisplayMode: "typed" | "physical";
+  semanticStyles: boolean;
+  typingCombo: boolean;
   // ── 动画参数 ──
   duration: number;
   easing: string;
@@ -57,6 +59,8 @@ export const defaultKeyFeedbackConfig: KeyFeedbackConfig = {
   uppercase: false,
   showModifierKeys: true,
   keyDisplayMode: "typed",
+  semanticStyles: true,
+  typingCombo: true,
   duration: 900,
   easing: "弹跳",
   scale: 1.0,

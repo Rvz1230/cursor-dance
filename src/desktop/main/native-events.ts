@@ -199,6 +199,10 @@ export class UiohookInputSource implements IInputSource {
   };
 
   private onKeyDown = (e: UiohookKeyboardEvent): void => {
+    if ((e.keycode >= 59 && e.keycode <= 68) || (e.keycode >= 87 && e.keycode <= 107)) {
+      console.debug(`[uiohook] function keydown keycode=${e.keycode}`);
+    }
+
     this.keyboardCallback?.({
       type: "keydown",
       keycode: e.keycode,

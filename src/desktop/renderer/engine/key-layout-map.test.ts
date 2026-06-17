@@ -14,6 +14,7 @@ const Enter = 28;
 const Backspace = 14;
 const ArrowLeft = 57419;
 const F1 = 59;
+const F13 = 91;
 const Shift = 42;
 const Meta = 3675;
 const Ctrl = 29;
@@ -58,6 +59,7 @@ describe("keyDisplayCharacter", () => {
 
   it("returns function key labels", () => {
     expect(keyDisplayCharacter(F1)).toBe("F1");
+    expect(keyDisplayCharacter(F13)).toBe("F13");
   });
 
   it("returns null for unmapped keycode (caller should skip)", () => {
@@ -69,6 +71,10 @@ describe("keyDisplayLabel", () => {
   it("prefers typed characters for Shift-modified symbol keys", () => {
     expect(keyDisplayLabel({ keycode: Digit1, shiftKey: true })).toBe("!");
     expect(keyDisplayLabel({ keycode: Slash, shiftKey: true })).toBe("?");
+  });
+
+  it("renders lowercase typed letters without Shift", () => {
+    expect(keyDisplayLabel({ keycode: A })).toBe("a");
   });
 
   it("keeps uppercase letters as typed characters for Shift-modified letters", () => {
@@ -93,6 +99,7 @@ describe("keyDisplayLabel", () => {
 
   it("can show physical key chords instead of typed characters", () => {
     expect(keyDisplayLabel({ keycode: Digit1, shiftKey: true }, { keyDisplayMode: "physical" })).toBe("⇧1");
+    expect(keyDisplayLabel({ keycode: A }, { keyDisplayMode: "physical" })).toBe("A");
   });
 
   it("returns null for unmapped keycode even with modifiers", () => {

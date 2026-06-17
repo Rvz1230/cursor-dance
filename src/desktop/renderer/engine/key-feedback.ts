@@ -7,7 +7,7 @@
 import type { EngineDeps, KeyFeedbackModule, NativeKeyboardEvent } from "./types";
 import type { KeyFeedbackConfig } from "./key-feedback-types";
 import { defaultKeyFeedbackConfig, normalizeKeyFeedbackConfig } from "./key-feedback-types";
-import { keyLayoutNormalizedX, keyDisplayLabel } from "./key-layout-map";
+import { keyLayoutNormalizedX, keyDisplayLabel, isModifierKeycode, isSpecialKeycode } from "./key-layout-map";
 import { hexToRgba, getAnimationEasing, getTextWeightValue } from "./action-config";
 
 const FONT_WEIGHT_MAP: Record<string, number> = {
@@ -21,6 +21,81 @@ const FONT_FAMILY_MAP: Record<string, string> = {
   "SF Pro Rounded": '"SF Pro Rounded", system-ui, sans-serif',
   "Helvetica Neue": '"Helvetica Neue", Helvetica, Arial, sans-serif',
 };
+
+type KeySemanticKind = "character" | "shortcut" | "modifier" | "special";
+
+interface KeyRenderContext {
+  kind: KeySemanticKind;
+  comboLevel: number;
+}
+
+const COMBO_WINDOW_MS = 260;
+
+function getSemanticKind(event: NativeKeyboardEvent): KeySemanticKind {
+  if (isModifierKeycode(event.keycode)) return "modifier";
+  if (event.metaKey || event.ctrlKey || event.altKey) return "shortcut";
+  if (isSpecialKeycode(event.keycode)) return "special";
+  return "character";
+}
+
+function getComboLevel(state: EngineDeps["state"], now: number): number {
+  const previous = state.keyFeedbackCombo;
+  const count = previous && now - previous.lastAt <= COMBO_WINDOW_MS
+    ? Math.min(previous.count + 1, 8)
+    : 1;
+  state.keyFeedbackCombo = { count, lastAt: now };
+  return Math.max(0, count - 1);
+}
+
+function resetCombo(state: EngineDeps["state"]): void {
+  state.keyFeedbackCombo = undefined;
+}
+
+function deriveRenderConfig(config: KeyFeedbackConfig, context: KeyRenderContext): KeyFeedbackConfig {
+  let next = { ...config };
+
+  if (config.semanticStyles) {
+    if (context.kind === "shortcut") {
+      next = {
+        ...next,
+        originMapping: "center",
+        globalOffsetX: 0.5,
+        globalOffsetY: 0.5,
+        fontSize: config.fontSize * 1.18,
+        duration: Math.round(config.duration * 0.72),
+        opacity: Math.min(100, config.opacity + 8),
+      };
+    } else if (context.kind === "modifier") {
+      next = {
+        ...next,
+        fontSize: config.fontSize * 0.72,
+        duration: Math.round(config.duration * 0.55),
+        opacity: Math.max(45, Math.round(config.opacity * 0.72)),
+      };
+    } else if (context.kind === "special") {
+      next = {
+        ...next,
+        fontSize: config.fontSize * 1.08,
+        duration: Math.round(config.duration * 0.82),
+        opacity: Math.min(100, config.opacity + 4),
+      };
+    }
+  }
+
+  if (config.typingCombo && context.kind === "character" && context.comboLevel > 0) {
+    const boost = Math.min(context.comboLevel, 5);
+    next = {
+      ...next,
+      scale: next.scale * (1 + boost * 0.035),
+      opacity: Math.min(100, next.opacity + boost * 2),
+      glow: next.glow || boost >= 3,
+      glowColor: next.glowColor || next.color,
+      glowRadius: Math.max(next.glowRadius, 6 + boost * 2),
+    };
+  }
+
+  return next;
+}
 
 export function createKeyFeedback(deps: EngineDeps): KeyFeedbackModule {
   const { window: win, document: doc, state, configStore } = deps;
@@ -58,7 +133,10 @@ export function createKeyFeedback(deps: EngineDeps): KeyFeedbackModule {
     // 全局效果预算守卫
     if (state.activeEffects >= configStore.getMaxActiveEffects()) return;
 
-    renderKeyFeedback(displayChar, event.keycode, config);
+    const kind = getSemanticKind(event);
+    const comboLevel = config.typingCombo && kind === "character" ? getComboLevel(state, now) : 0;
+    if (kind !== "character") resetCombo(state);
+    renderKeyFeedback(displayChar, event.keycode, deriveRenderConfig(config, { kind, comboLevel }));
   }
 
   function renderKeyFeedback(character: string, keycode: number, config: KeyFeedbackConfig): void {

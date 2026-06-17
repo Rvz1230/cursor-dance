@@ -26,6 +26,8 @@ const K = {
   S: 31, T: 20, U: 22, V: 47, W: 17, X: 45, Y: 21, Z: 44,
   F1: 59, F2: 60, F3: 61, F4: 62, F5: 63, F6: 64,
   F7: 65, F8: 66, F9: 67, F10: 68, F11: 87, F12: 88,
+  F13: 91, F14: 92, F15: 93, F16: 99, F17: 100, F18: 101,
+  F19: 102, F20: 103, F21: 104, F22: 105, F23: 106, F24: 107,
   Semicolon: 39, Equal: 13, Comma: 51, Minus: 12, Period: 52, Slash: 53,
   Backquote: 41, BracketLeft: 26, Backslash: 43, BracketRight: 27, Quote: 40,
   Ctrl: 29, CtrlRight: 3613, Alt: 56, AltRight: 3640,
@@ -113,18 +115,18 @@ const qwertyLayout = new Map<number, number>([
   [K.ArrowUp, 0.80],
 
   // Function keys
-  [K.F1, 0.07],
-  [K.F2, 0.14],
-  [K.F3, 0.21],
-  [K.F4, 0.28],
-  [K.F5, 0.36],
-  [K.F6, 0.43],
-  [K.F7, 0.50],
-  [K.F8, 0.57],
-  [K.F9, 0.64],
-  [K.F10, 0.71],
-  [K.F11, 0.78],
-  [K.F12, 0.85],
+  [K.F1, 0.07], [K.F13, 0.07],
+  [K.F2, 0.14], [K.F14, 0.14],
+  [K.F3, 0.21], [K.F15, 0.21],
+  [K.F4, 0.28], [K.F16, 0.28],
+  [K.F5, 0.36], [K.F17, 0.36],
+  [K.F6, 0.43], [K.F18, 0.43],
+  [K.F7, 0.50], [K.F19, 0.50],
+  [K.F8, 0.57], [K.F20, 0.57],
+  [K.F9, 0.64], [K.F21, 0.64],
+  [K.F10, 0.71], [K.F22, 0.71],
+  [K.F11, 0.78], [K.F23, 0.78],
+  [K.F12, 0.85], [K.F24, 0.85],
 
   // Navigation cluster
   [K.Escape, 0.00],
@@ -167,6 +169,8 @@ const keyDisplayMap = new Map<number, string>([
   [K.Backspace, "⌫"], [K.Enter, "↩"],
   [K.Tab, "⇥"], [K.Space, "␣"],
   [K.Escape, "⎋"],
+  [K.Delete, "Del"], [K.Home, "Home"], [K.End, "End"],
+  [K.PageUp, "PgUp"], [K.PageDown, "PgDn"], [K.Insert, "Ins"],
   [K.ArrowLeft, "←"], [K.ArrowRight, "→"],
   [K.ArrowUp, "↑"], [K.ArrowDown, "↓"],
   // Function keys
@@ -174,6 +178,10 @@ const keyDisplayMap = new Map<number, string>([
   [K.F4, "F4"], [K.F5, "F5"], [K.F6, "F6"],
   [K.F7, "F7"], [K.F8, "F8"], [K.F9, "F9"],
   [K.F10, "F10"], [K.F11, "F11"], [K.F12, "F12"],
+  [K.F13, "F13"], [K.F14, "F14"], [K.F15, "F15"],
+  [K.F16, "F16"], [K.F17, "F17"], [K.F18, "F18"],
+  [K.F19, "F19"], [K.F20, "F20"], [K.F21, "F21"],
+  [K.F22, "F22"], [K.F23, "F23"], [K.F24, "F24"],
 ]);
 
 // ═══════════════════════════════════════════════════════════════
@@ -204,6 +212,16 @@ const shiftedDisplayMap = new Map<number, string>([
   [K.Equal, "+"], [K.BracketLeft, "{"], [K.BracketRight, "}"],
   [K.Backslash, "|"], [K.Semicolon, ":"], [K.Quote, "\""],
   [K.Comma, "<"], [K.Period, ">"], [K.Slash, "?"],
+]);
+
+const specialKeycodes = new Set<number>([
+  K.Backspace, K.Tab, K.Enter, K.Space, K.Escape,
+  K.ArrowLeft, K.ArrowUp, K.ArrowRight, K.ArrowDown,
+  K.Delete, K.Home, K.End, K.PageUp, K.PageDown, K.Insert,
+  K.F1, K.F2, K.F3, K.F4, K.F5, K.F6,
+  K.F7, K.F8, K.F9, K.F10, K.F11, K.F12,
+  K.F13, K.F14, K.F15, K.F16, K.F17, K.F18,
+  K.F19, K.F20, K.F21, K.F22, K.F23, K.F24,
 ]);
 
 // ═══════════════════════════════════════════════════════════════
@@ -240,6 +258,15 @@ function isShiftOnly(event: KeyDisplayEvent): boolean {
   return Boolean(event.shiftKey && !hasShortcutModifier(event));
 }
 
+const letterKeycodes = new Set<number>([
+  K.A, K.B, K.C, K.D, K.E, K.F, K.G, K.H, K.I, K.J, K.K, K.L, K.M,
+  K.N, K.O, K.P, K.Q, K.R, K.S, K.T, K.U, K.V, K.W, K.X, K.Y, K.Z,
+]);
+
+function isLetterKeycode(keycode: number): boolean {
+  return letterKeycodes.has(keycode);
+}
+
 // ═══════════════════════════════════════════════════════════════
 // 导出辅助函数
 // ═══════════════════════════════════════════════════════════════
@@ -257,6 +284,14 @@ export function keyDisplayCharacter(keycode: number): string | null {
 /** 返回单独修饰键对应的显示字符，未映射键返回 null。 */
 export function modifierKeyDisplayCharacter(keycode: number): string | null {
   return modifierDisplayMap.get(keycode) ?? null;
+}
+
+export function isModifierKeycode(keycode: number): boolean {
+  return MODIFIER_KEYCODES.has(keycode);
+}
+
+export function isSpecialKeycode(keycode: number): boolean {
+  return specialKeycodes.has(keycode);
 }
 
 /** 返回带修饰键前缀的显示文本，例如 Shift+1 → !、Meta+K → ⌘K。 */
@@ -277,5 +312,8 @@ export function keyDisplayLabel(event: KeyDisplayEvent, options: KeyDisplayOptio
   if (base === null) return null;
 
   if (keyDisplayMode === "typed" && isShiftOnly(event)) return base;
+  if (keyDisplayMode === "typed" && !hasShortcutModifier(event) && !event.shiftKey && isLetterKeycode(event.keycode)) {
+    return base.toLowerCase();
+  }
   return `${modifierPrefix(event)}${base}`;
 }

@@ -1,6 +1,6 @@
 import { Switch } from "@/components/ui/switch";
 import { PANEL_META } from "../model/workbenchSchema";
-import type { KeyFeedbackConfig } from "@/desktop/renderer/engine/key-feedback-types";
+import { defaultKeyFeedbackConfig, type KeyFeedbackConfig } from "@/desktop/renderer/engine/key-feedback-types";
 import {
   ColorOptions,
   ControlSlider,
@@ -58,7 +58,18 @@ export function KeyboardPanel({ config, onUpdate }: KeyboardPanelProps) {
               </span>
             ) : "已关闭"
           }
-          action={<Switch checked={enabled} onCheckedChange={(v) => onUpdate({ enabled: v })} aria-label="键盘动效开关" />}
+          action={
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => onUpdate({ ...defaultKeyFeedbackConfig })}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50"
+              >
+                恢复默认
+              </button>
+              <Switch checked={enabled} onCheckedChange={(v) => onUpdate({ enabled: v })} aria-label="键盘动效开关" />
+            </div>
+          }
         >
           {enabled && (
             <p className="text-xs text-slate-500">按下任意键查看效果，需辅助功能权限。</p>
@@ -236,6 +247,16 @@ export function KeyboardPanel({ config, onUpdate }: KeyboardPanelProps) {
                 label="显示模式"
                 tooltip="真实输入会把 Shift+1 显示为 !；物理键名会保留按键本身，适合展示快捷键训练"
                 control={<SmallSelect value={config.keyDisplayMode} options={KEY_DISPLAY_MODES} onChange={enabled ? (v) => onUpdate({ keyDisplayMode: v }) : undefined} />}
+              />
+              <FieldRow
+                label="语义分层"
+                tooltip="普通输入、快捷键、特殊键、单独修饰键使用不同强度，让打字和快捷操作更容易区分"
+                control={<Switch checked={config.semanticStyles} disabled={!enabled} onCheckedChange={(v) => onUpdate({ semanticStyles: v })} aria-label="语义分层" />}
+              />
+              <FieldRow
+                label="输入节奏"
+                tooltip="快速连续输入时逐步增强缩放、亮度和轻微发光，停顿后自动归零"
+                control={<Switch checked={config.typingCombo} disabled={!enabled} onCheckedChange={(v) => onUpdate({ typingCombo: v })} aria-label="输入节奏" />}
               />
               <FieldRow
                 label="显示修饰键"

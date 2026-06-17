@@ -10,6 +10,10 @@ import type { EngineDeps, EngineState, NativeKeyboardEvent } from "./types";
 const KEY_A = 30;
 const KEY_K = 37;
 const KEY_SHIFT = 42;
+const KEY_ENTER = 28;
+const KEY_DELETE = 3667;
+const KEY_F1 = 59;
+const KEY_F13 = 91;
 const KEY_DIGIT_1 = 2;
 const KEY_SLASH = 53;
 const KEY_FN_UNMAPPED = 99999;
@@ -114,7 +118,6 @@ function makeFakeDeps(overrides?: Partial<KeyFeedbackConfig>): {
       getActionAudioConfig: () => ({}),
       getActionTriggerConfig: () => ({}),
       getMaxActiveEffects: () => 48,
-      // @ts-expect-error 测试只关心 key-feedback 调用的接口
       getKeyFeedbackConfig: () => config,
     },
     diagnostics: { isEnabled: () => false, log: () => {} },
@@ -248,14 +251,14 @@ describe("key-feedback: rendering", () => {
     expect(root.appended.length).toBe(1);
     const el = root.appended[0];
     expect(el.className).toBe("cd-effect cd-key-feedback");
-    expect(el.textContent).toBe("A");
+    expect(el.textContent).toBe("a");
   });
 
-  it("uppercase=false still renders uppercase letters (key map already uppercase)", () => {
+  it("uppercase=false renders typed lowercase letters", () => {
     const { deps, root } = makeFakeDeps({ uppercase: false });
     const mod = createKeyFeedback(deps);
     mod.handleKeyboardEvent(makeKeyEvent(KEY_A));
-    expect(root.appended[0].textContent).toBe("A");
+    expect(root.appended[0].textContent).toBe("a");
   });
 
   it("makes bounce visible near the screen edge before the overshoot", () => {
@@ -305,8 +308,29 @@ describe("key-feedback: rendering", () => {
     expect(root.appended[1].textContent).toBe("?");
   });
 
-  it("renders shortcut chords when Command / Control / Option are held", () => {
+  it("renders typed lowercase letters by default", () => {
     const { deps, root } = makeFakeDeps();
+    const mod = createKeyFeedback(deps);
+    mod.handleKeyboardEvent(makeKeyEvent(KEY_A));
+    expect(root.appended[0].textContent).toBe("a");
+  });
+
+  it("renders typed uppercase letters when Shift is held", () => {
+    const { deps, root } = makeFakeDeps();
+    const mod = createKeyFeedback(deps);
+    mod.handleKeyboardEvent({ ...makeKeyEvent(KEY_A), shiftKey: true });
+    expect(root.appended[0].textContent).toBe("A");
+  });
+
+  it("renders physical letter labels as uppercase", () => {
+    const { deps, root } = makeFakeDeps({ keyDisplayMode: "physical" });
+    const mod = createKeyFeedback(deps);
+    mod.handleKeyboardEvent(makeKeyEvent(KEY_A));
+    expect(root.appended[0].textContent).toBe("A");
+  });
+
+  it("renders shortcut chords when Command / Control / Option are held", () => {
+    const { deps, root } = makeFakeDeps({ semanticStyles: false });
     const mod = createKeyFeedback(deps);
     mod.handleKeyboardEvent({ ...makeKeyEvent(KEY_K), metaKey: true });
     expect(root.appended[0].textContent).toBe("⌘K");
@@ -324,5 +348,66 @@ describe("key-feedback: rendering", () => {
     const mod = createKeyFeedback(deps);
     mod.handleKeyboardEvent(makeKeyEvent(KEY_SHIFT));
     expect(root.appended.length).toBe(0);
+  });
+
+  it("semantic styles make shortcuts centered and shorter", () => {
+    const { deps, root } = makeFakeDeps({
+      duration: 1000,
+      semanticStyles: true,
+      originEdge: "left",
+      globalOffsetY: 0.08,
+    });
+    const mod = createKeyFeedback(deps);
+    mod.handleKeyboardEvent({ ...makeKeyEvent(KEY_K), metaKey: true });
+    expect(root.appended[0].style.cssText).toContain("top:540px");
+    expect(root.appended[0].animations[0].options.duration).toBe(720);
+  });
+
+  it("semantic styles make standalone modifiers lighter", () => {
+    const { deps, root } = makeFakeDeps({ fontSize: 50, opacity: 90, duration: 1000, semanticStyles: true });
+    const mod = createKeyFeedback(deps);
+    mod.handleKeyboardEvent(makeKeyEvent(KEY_SHIFT));
+    expect(root.appended[0].style.cssText).toContain("font-size:36px");
+    expect(root.appended[0].style.cssText).toContain("rgba(245, 158, 11, 0.65)");
+    expect(root.appended[0].animations[0].options.duration).toBe(550);
+  });
+
+  it("typing combo resets when interrupted by a non-character key", () => {
+    const { deps, root } = makeFakeDeps({ cooldownMs: 0, typingCombo: true, semanticStyles: false });
+    const mod = createKeyFeedback(deps);
+    nowSpy = 1000;
+    mod.handleKeyboardEvent(makeKeyEvent(KEY_A));
+    nowSpy = 1100;
+    mod.handleKeyboardEvent(makeKeyEvent(KEY_ENTER));
+    nowSpy = 1200;
+    mod.handleKeyboardEvent(makeKeyEvent(KEY_K));
+    expect(root.appended[2].style.cssText).toContain("font-size:48px");
+  });
+
+  it("function keys use special-key semantic styling instead of typing combo", () => {
+    const { deps, root } = makeFakeDeps({ duration: 1000, semanticStyles: true, typingCombo: true, cooldownMs: 0 });
+    const mod = createKeyFeedback(deps);
+    nowSpy = 1000;
+    mod.handleKeyboardEvent(makeKeyEvent(KEY_F1));
+    nowSpy = 1100;
+    mod.handleKeyboardEvent(makeKeyEvent(KEY_F1));
+    expect(root.appended[0].textContent).toBe("F1");
+    expect(root.appended[1].style.cssText).toContain("font-size:51.84px");
+    expect(root.appended[1].animations[0].options.duration).toBe(820);
+    expect(root.appended[1].style.textShadow ?? "").toBe("");
+  });
+
+  it("extended function key codes render function key labels", () => {
+    const { deps, root } = makeFakeDeps();
+    const mod = createKeyFeedback(deps);
+    mod.handleKeyboardEvent(makeKeyEvent(KEY_F13));
+    expect(root.appended[0].textContent).toBe("F13");
+  });
+
+  it("renders navigation keys that are classified as special", () => {
+    const { deps, root } = makeFakeDeps();
+    const mod = createKeyFeedback(deps);
+    mod.handleKeyboardEvent(makeKeyEvent(KEY_DELETE));
+    expect(root.appended[0].textContent).toBe("Del");
   });
 });

@@ -1,3 +1,5 @@
+import type { KeyFeedbackConfig } from "./key-feedback-types";
+
 // CursorDance 效果引擎共享类型
 //
 // 引擎在扩展端通过 IIFE + window.CursorDanceContentModules 注册（见 extension/content-runtime/*）。
@@ -93,6 +95,8 @@ export interface EngineState {
   lastKeydownAtByKeycode?: Map<number, number>;
   /** key-feedback：活动键盘效果计数 */
   activeKeyEffects?: number;
+  /** key-feedback：连续输入节奏状态 */
+  keyFeedbackCombo?: { count: number; lastAt: number };
   /** overlay：上次鼠标全局 DIP 坐标（用于键盘事件多显示器路由） */
   lastMouseGlobalX?: number;
   lastMouseGlobalY?: number;
@@ -113,6 +117,7 @@ export interface ConfigStore {
   getActionAudioConfig(actionConfig: Record<string, unknown> | undefined): Record<string, unknown>;
   getActionTriggerConfig(actionConfig: Record<string, unknown> | undefined): Record<string, unknown>;
   getMaxActiveEffects(): number;
+  getKeyFeedbackConfig(): KeyFeedbackConfig;
   /** trigger-handlers：当前 scheme（用户选中的方案） */
   getActiveScheme?(): unknown;
   /** trigger-handlers：完整 config（含 schemes 列表 + activeSchemeId），仅 previewAtViewportCenter 用到 */
