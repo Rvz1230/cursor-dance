@@ -43,7 +43,8 @@ function ThemeComposerModal({
     [themes]
   );
 
-  function handleCreate() {
+  function handleCreate(event) {
+    event.preventDefault();
     try {
       createTheme({
         name: createName,
@@ -111,42 +112,51 @@ function ThemeComposerModal({
     }
   }
 
+  const dialogTitle = mode === "import" ? "导入主题" : "新建主题";
+  const dialogDescription = mode === "import"
+    ? "从本地 JSON 文件导入主题包，导入后会自动进入工作台。"
+    : "创建一个可编辑主题，从空白模板开始，或基于现有主题继续调整。";
+
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => {
       if (!nextOpen) closeComposer();
     }}>
-      <DialogContent titleId="theme-composer-title" title="主题管理">
-        <div className="flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-5 py-4">
-          <div>
-            <div id="theme-composer-title" className="text-base font-semibold text-slate-900">主题管理</div>
-            <DialogDescription className="mt-1 text-sm text-slate-500">新建一个可编辑主题，或导入现有 JSON 主题包。</DialogDescription>
+      <DialogContent titleId="theme-composer-title" title={dialogTitle}>
+        <div className="flex flex-col gap-5 overflow-y-auto px-6 py-7">
+          <div className="flex flex-col gap-1">
+            <div id="theme-composer-title" className="text-base font-semibold text-slate-900 text-balance">{dialogTitle}</div>
+            <DialogDescription className="text-xs leading-relaxed text-slate-500 text-pretty">{dialogDescription}</DialogDescription>
           </div>
-        </div>
 
-        <div className="overflow-y-auto px-5 py-5">
-          <Tabs value={mode} className="mb-4">
-            <TabsList value={mode} className="w-full justify-start" onValueChange={setMode}>
+          <Tabs value={mode} onValueChange={setMode}>
+            <TabsList className="w-full justify-start">
               <TabsTrigger value="create">新建主题</TabsTrigger>
               <TabsTrigger value="import">导入 JSON</TabsTrigger>
             </TabsList>
           </Tabs>
 
           {mode === "create" ? (
-            <div className="space-y-4">
+            <form onSubmit={handleCreate} className="flex flex-col gap-4">
               <div className="space-y-1.5">
                 <label htmlFor="theme-create-name" className="text-xs font-medium text-slate-600">主题名称</label>
                 <Input
                   id="theme-create-name"
                   value={createName}
-                  onChange={(event) => setCreateName(event.target.value)}
+                  onChange={(event) => {
+                    setCreateName(event.target.value);
+                    setCreateError("");
+                  }}
                   placeholder="例如：Warm Click Studio"
                   className="bg-white"
                   autoFocus
                   required
                   aria-required="true"
-                  aria-describedby={createError ? "theme-create-error" : undefined}
+                  aria-describedby={createError ? "theme-create-error" : "theme-create-hint"}
                   aria-invalid={Boolean(createError)}
                 />
+                <p id="theme-create-hint" className="text-xs leading-relaxed text-slate-500 text-pretty">
+                  新主题会先进入工作台，保存后写入当前配置。
+                </p>
               </div>
 
               <div className="space-y-1.5">
@@ -162,35 +172,35 @@ function ThemeComposerModal({
                   onChange={(event) => setCreateDescription(event.target.value)}
                   placeholder="一句话说明这个主题更适合什么场景。"
                   rows={4}
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
                 />
               </div>
 
-              {createError ? <div id="theme-create-error" className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{createError}</div> : null}
+              {createError ? <div id="theme-create-error" className="rounded-xl bg-rose-50 px-3 py-2 text-xs leading-relaxed text-rose-700">{createError}</div> : null}
 
-              <div className="flex items-center justify-between gap-3">
-                <DataPill tone="amber">新主题会先进入工作台，保存后写入扩展配置</DataPill>
-                <Button className="rounded-full px-4" onClick={handleCreate}>
-                  <Plus className="mr-2 h-4 w-4" />
+              <div className="flex justify-end gap-2 pt-1">
+                <Button type="button" variant="ghost" onClick={closeComposer}>取消</Button>
+                <Button type="submit">
+                  <Plus className="mr-2 size-4" />
                   创建主题
                 </Button>
               </div>
-            </div>
+            </form>
           ) : (
             <div className="space-y-4">
               <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-5">
                 <div className="flex items-start gap-4">
                   <div className="flex size-11 items-center justify-center rounded-2xl bg-slate-50 text-slate-700 ring-1 ring-slate-200">
-                    <FileJson className="h-4 w-4" />
+                    <FileJson className="size-4" aria-hidden="true" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium text-slate-900">导入本地 JSON 主题包</div>
-                    <div className="mt-1 text-sm text-pretty text-slate-500">
+                    <div className="text-sm font-medium text-slate-900 text-balance">导入本地 JSON 主题包</div>
+                    <div className="mt-1 text-xs leading-relaxed text-pretty text-slate-500">
                       支持直接导入单个主题对象，也支持带 `themePack` / `theme` 包裹的 JSON 文件。
                     </div>
                     <div className="mt-4 flex items-center gap-3">
-                      <Button variant="outline" className="rounded-full px-4" onClick={handlePickFromNativeDialog}>
-                        <Upload className="mr-2 h-4 w-4" />
+                      <Button variant="outline" onClick={handlePickFromNativeDialog}>
+                        <Upload className="mr-2 size-4" aria-hidden="true" />
                         选择 JSON 文件
                       </Button>
                       <DataPill>导入后会自动选中</DataPill>
@@ -202,15 +212,15 @@ function ThemeComposerModal({
               <input ref={fileInputRef} type="file" accept="application/json,.json" className="hidden" onChange={handleImportChange} />
 
               {importSuccess ? (
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+                <div className="rounded-xl bg-emerald-50 px-3 py-2 text-xs leading-relaxed text-emerald-700">
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4" />
+                    <CheckCircle2 className="size-4" aria-hidden="true" />
                     <span>{importSuccess}</span>
                   </div>
                 </div>
               ) : null}
 
-              {importError ? <div className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{importError}</div> : null}
+              {importError ? <div className="rounded-xl bg-rose-50 px-3 py-2 text-xs leading-relaxed text-rose-700">{importError}</div> : null}
             </div>
           )}
         </div>
