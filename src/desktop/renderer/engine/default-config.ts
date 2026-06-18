@@ -37,6 +37,8 @@ export interface ThemePack {
     cursorModes?: Record<string, string>;
     cursorStateActions?: Record<string, string>;
     cursorStateAssets?: Record<string, unknown>;
+    keyFeedbackConfig?: Partial<KeyFeedbackConfig>;
+    resetKeyFeedbackConfig?: Partial<KeyFeedbackConfig>;
     atmosphere?: { mode?: string };
   };
 }
@@ -136,7 +138,17 @@ export function mergeCursorStates(
 import { getDefaultThemePackDefinitions } from "./data/default-theme-packs";
 
 export function createDefaultThemePacks(): ThemePack[] {
-  return getDefaultThemePackDefinitions(createDefaultCursorStates()).map((pack) => cloneValue(pack));
+  return getDefaultThemePackDefinitions(createDefaultCursorStates()).map((pack) => {
+    const cloned = cloneValue(pack);
+    return {
+      ...cloned,
+      workbenchDraft: {
+        ...(cloned.workbenchDraft || {}),
+        keyFeedbackConfig: normalizeKeyFeedbackConfig(cloned.workbenchDraft?.keyFeedbackConfig),
+        resetKeyFeedbackConfig: normalizeKeyFeedbackConfig(cloned.workbenchDraft?.resetKeyFeedbackConfig || cloned.workbenchDraft?.keyFeedbackConfig),
+      },
+    };
+  });
 }
 
 export function mergeThemePackWithFallback(
@@ -151,6 +163,16 @@ export function mergeThemePackWithFallback(
       ...(fallbackPack.workbenchDraft?.actionConfigs || {}),
       ...(pack?.workbenchDraft?.actionConfigs || {}),
     },
+    keyFeedbackConfig: normalizeKeyFeedbackConfig(
+      pack?.workbenchDraft?.keyFeedbackConfig
+      ?? fallbackPack.workbenchDraft?.keyFeedbackConfig,
+    ),
+    resetKeyFeedbackConfig: normalizeKeyFeedbackConfig(
+      pack?.workbenchDraft?.resetKeyFeedbackConfig
+      ?? pack?.workbenchDraft?.keyFeedbackConfig
+      ?? fallbackPack.workbenchDraft?.resetKeyFeedbackConfig
+      ?? fallbackPack.workbenchDraft?.keyFeedbackConfig,
+    ),
   };
   Object.keys(mergedWorkbenchDraft.actionConfigs).forEach((actionId) => {
     mergedWorkbenchDraft.actionConfigs[actionId] = {
@@ -234,13 +256,30 @@ export function normalizeConfig(
   const fallback = fallbackConfig || defaultConfig;
   const v = (value || {}) as Partial<CursorDanceConfig> & { schemes?: ThemePack[]; activeSchemeId?: string };
   const rawThemePacks = Array.isArray(v.themePacks) ? v.themePacks : v.schemes;
-  const themePacks = normalizeThemePacks(rawThemePacks, fallback);
+  let themePacks = normalizeThemePacks(rawThemePacks, fallback);
   const fallbackThemePackId = fallback.activeThemePackId || fallback.activeSchemeId || themePacks[0]?.id;
   const rawActiveThemePackId = v.activeThemePackId || v.activeSchemeId;
   const activeThemePackId = themePacks.some((pack) => pack.id === rawActiveThemePackId) ? rawActiveThemePackId! : fallbackThemePackId!;
   const siteRules = normalizeSiteRules(v.siteRules, fallback.siteRules);
+  const legacyKeyFeedbackConfig = v.keyFeedbackConfig;
+  const rawThemePackById = new Map(Array.isArray(rawThemePacks) ? rawThemePacks.map((pack) => [pack?.id, pack]) : []);
+  if (v.keyFeedbackConfig) {
+    themePacks = themePacks.map((pack) => {
+      const rawThemePack = rawThemePackById.get(pack.id);
+      if (rawThemePack?.workbenchDraft?.keyFeedbackConfig) return pack;
+      const migratedKeyFeedbackConfig = normalizeKeyFeedbackConfig(v.keyFeedbackConfig);
+      return {
+        ...pack,
+        workbenchDraft: {
+          ...(pack.workbenchDraft || {}),
+          keyFeedbackConfig: migratedKeyFeedbackConfig,
+          resetKeyFeedbackConfig: migratedKeyFeedbackConfig,
+        },
+      };
+    });
+  }
 
-  return {
+  const normalizedConfig: CursorDanceConfig = {
     ...fallback,
     ...v,
     schemaVersion: 3,
@@ -255,8 +294,15 @@ export function normalizeConfig(
       ...(v.performance || {}),
     },
     editor: normalizeEditorPrefs(v.editor, fallback.editor),
-    keyFeedbackConfig: normalizeKeyFeedbackConfig(v.keyFeedbackConfig as Partial<KeyFeedbackConfig> | undefined),
   };
+
+  if (legacyKeyFeedbackConfig) {
+    normalizedConfig.keyFeedbackConfig = normalizeKeyFeedbackConfig(legacyKeyFeedbackConfig as Partial<KeyFeedbackConfig>);
+  } else {
+    delete normalizedConfig.keyFeedbackConfig;
+  }
+
+  return normalizedConfig;
 }
 
 export function needsMigration(value: unknown): boolean {

@@ -41,4 +41,26 @@ describe("normalizeKeyFeedbackConfig", () => {
     expect(partial).toEqual({ fontSize: 99 });
     expect(Object.keys(partial)).toHaveLength(1);
   });
+
+  it("normalizes invalid imported fields to safe defaults", () => {
+    const result = normalizeKeyFeedbackConfig({
+      enabled: "false" as unknown as boolean,
+      animationStyle: "spin" as never,
+      originEdge: "middle" as never,
+      originMapping: "random" as never,
+      keyDisplayMode: "display" as never,
+      fontSize: "large" as unknown as number,
+      color: 123 as unknown as string,
+      maxSimultaneous: "many" as unknown as number,
+    });
+
+    expect(result.enabled).toBe(defaultKeyFeedbackConfig.enabled);
+    expect(result.animationStyle).toBe(defaultKeyFeedbackConfig.animationStyle);
+    expect(result.originEdge).toBe(defaultKeyFeedbackConfig.originEdge);
+    expect(result.originMapping).toBe(defaultKeyFeedbackConfig.originMapping);
+    expect(result.keyDisplayMode).toBe(defaultKeyFeedbackConfig.keyDisplayMode);
+    expect(result.fontSize).toBe(defaultKeyFeedbackConfig.fontSize);
+    expect(result.color).toBe(defaultKeyFeedbackConfig.color);
+    expect(result.maxSimultaneous).toBe(defaultKeyFeedbackConfig.maxSimultaneous);
+  });
 });

@@ -34,10 +34,13 @@ import {
 } from "./themeWorkbenchStateStore";
 import { useThemeWorkbenchPersistence } from "./useThemeWorkbenchPersistence";
 import { isDesktop } from "@/shared/runtime";
+import { normalizeKeyFeedbackConfig } from "@/desktop/renderer/engine/key-feedback-types";
 
 export function useThemeWorkbenchState() {
   const [state, dispatch] = useReducer(reducer, initialState);
   const configRef = useRef(null);
+  const stateRef = useRef(state);
+  stateRef.current = state;
   useThemeWorkbenchPersistence({ state, dispatch, configRef });
 
   const selected = state.selection;
@@ -59,9 +62,13 @@ export function useThemeWorkbenchState() {
     try {
       const nextConfig = buildStoredConfigFromWorkbench(configRef.current ?? (await readExtensionConfig()), state);
       const savedConfig = await writeExtensionConfig(nextConfig);
-      await clearLivePreviewConfig();
       configRef.current = savedConfig;
-      dispatch({ type: "save/success" });
+      const latestState = stateRef.current;
+      const hasStaleSelection = latestState.selection.themeId !== nextConfig.activeThemePackId;
+      if (!latestState.ui.unsaved || !hasStaleSelection) {
+        await clearLivePreviewConfig();
+      }
+      dispatch({ type: "save/success", payload: { preserveUnsaved: hasStaleSelection } });
       return { ok: true };
     } catch (error) {
       const message = error instanceof Error ? error.message : "保存失败，请重试";
@@ -346,7 +353,7 @@ export function useThemeWorkbenchState() {
     reorderSiteRules: (from, to) => dispatch({ type: "site-rules/reorder", payload: { from, to } }),
     toggleSiteRule: (id) => dispatch({ type: "site-rules/toggle", payload: id }),
     clearAllSiteRules: () => dispatch({ type: "site-rules/clear-all" }),
-    keyFeedbackConfig: state.keyFeedbackConfig,
+    keyFeedbackConfig: normalizeKeyFeedbackConfig(draft?.keyFeedbackConfig),
     updateKeyFeedbackConfig: (patch) => dispatch({ type: "key-feedback/update", payload: patch }),
   };
 }

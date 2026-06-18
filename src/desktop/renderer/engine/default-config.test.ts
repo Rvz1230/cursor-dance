@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { defaultConfig, createDefaultThemePacks } from "./default-config";
+import { defaultConfig, createDefaultThemePacks, mergeThemePackWithFallback, normalizeConfig } from "./default-config";
+import { defaultKeyFeedbackConfig } from "./key-feedback-types";
 
 // 任务 2.9：4 套内置主题（mono-geo / drift / molten / sunset）必须为桌面 5 个 action
 // 都提供默认配置，否则 trigger-handlers 会走 missing-source-action-config skip 分支，
@@ -49,5 +50,73 @@ describe("defaultConfig — 桌面端 5 个 action 默认配置完整性", () =>
         expect(hasOutput, `主题 ${themeId} 的 ${actionId} 没有任何启用的反馈`).toBe(true);
       }
     }
+  });
+
+  it("内置主题都包含主题内键盘动效配置", () => {
+    for (const themeId of BUILTIN_THEME_IDS) {
+      const pack = defaultConfig.themePacks.find((p) => p.id === themeId);
+      expect(pack?.workbenchDraft?.keyFeedbackConfig?.enabled, `主题 ${themeId} 缺 keyFeedbackConfig`).toBe(defaultKeyFeedbackConfig.enabled);
+      expect(pack?.workbenchDraft?.keyFeedbackConfig?.animationStyle).toBe(defaultKeyFeedbackConfig.animationStyle);
+    }
+  });
+
+  it("合并主题时优先保留用户主题内键盘动效配置", () => {
+    const fallbackPack = defaultConfig.themePacks[0];
+    const merged = mergeThemePackWithFallback(fallbackPack, {
+      id: fallbackPack.id,
+      cursorStates: fallbackPack.cursorStates,
+      workbenchDraft: {
+        keyFeedbackConfig: {
+          color: "#00FFAA",
+          fontSize: 72,
+        },
+      },
+    });
+
+    expect(merged.workbenchDraft?.keyFeedbackConfig?.color).toBe("#00FFAA");
+    expect(merged.workbenchDraft?.keyFeedbackConfig?.fontSize).toBe(72);
+    expect(merged.workbenchDraft?.keyFeedbackConfig?.animationStyle).toBe(defaultKeyFeedbackConfig.animationStyle);
+  });
+
+  it("normalizeConfig 不为没有 legacy 字段的新配置强制新增顶层 keyFeedbackConfig", () => {
+    const normalized = normalizeConfig({
+      schemaVersion: 3,
+      enabled: true,
+      activeThemePackId: defaultConfig.activeThemePackId,
+      activeSchemeId: defaultConfig.activeSchemeId,
+      themePacks: defaultConfig.themePacks,
+      schemes: defaultConfig.schemes,
+      performance: defaultConfig.performance,
+      siteRules: [],
+      editor: defaultConfig.editor,
+    }, {
+      ...defaultConfig,
+      keyFeedbackConfig: undefined,
+    });
+
+    expect(normalized.keyFeedbackConfig).toBeUndefined();
+  });
+
+  it("normalizeConfig 将 legacy 顶层键盘配置迁移到所有缺失主题", () => {
+    const themePacks = defaultConfig.themePacks.map((pack) => ({
+      ...pack,
+      workbenchDraft: {
+        ...(pack.workbenchDraft || {}),
+        keyFeedbackConfig: undefined,
+        resetKeyFeedbackConfig: undefined,
+      },
+    }));
+    const normalized = normalizeConfig({
+      ...defaultConfig,
+      activeThemePackId: "mono-geo",
+      activeSchemeId: "mono-geo",
+      themePacks,
+      schemes: themePacks,
+      keyFeedbackConfig: { ...defaultKeyFeedbackConfig, color: "#FF00AA", fontSize: 64 },
+    });
+
+    expect(normalized.themePacks.find((pack) => pack.id === "mono-geo")?.workbenchDraft?.keyFeedbackConfig?.color).toBe("#FF00AA");
+    expect(normalized.themePacks.find((pack) => pack.id === "drift")?.workbenchDraft?.keyFeedbackConfig?.color).toBe("#FF00AA");
+    expect(normalized.themePacks.find((pack) => pack.id === "drift")?.workbenchDraft?.resetKeyFeedbackConfig?.fontSize).toBe(64);
   });
 });

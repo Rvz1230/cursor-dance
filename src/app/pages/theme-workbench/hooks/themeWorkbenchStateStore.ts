@@ -6,7 +6,6 @@ import {
   createWorkbenchThemeState,
 } from "../lib/extensionConfig";
 import {
-  defaultKeyFeedbackConfig,
   normalizeKeyFeedbackConfig,
 } from "@/desktop/renderer/engine/key-feedback-types";
 
@@ -37,7 +36,6 @@ export const initialState = {
   recentCursorAssets: [],
   themeLibrary: INITIAL_THEME_STATE.themeLibrary,
   draftsByTheme: INITIAL_THEME_STATE.draftsByTheme,
-  keyFeedbackConfig: { ...defaultKeyFeedbackConfig },
 };
 
 export function reducer(state, action) {
@@ -46,9 +44,6 @@ export function reducer(state, action) {
       return {
         ...state,
         ...action.payload,
-        keyFeedbackConfig: normalizeKeyFeedbackConfig(
-          action.payload.keyFeedbackConfig ?? state.keyFeedbackConfig,
-        ),
         ui: {
           ...state.ui,
           ...action.payload.ui,
@@ -68,7 +63,7 @@ export function reducer(state, action) {
       return {
         ...state,
         selection: { ...state.selection, themeId: action.payload },
-        ui: { ...state.ui, saveError: "" },
+        ui: { ...state.ui, unsaved: true, saveError: "" },
       };
     case "theme/library-add": {
       const { theme, draft, select = true } = action.payload;
@@ -197,6 +192,12 @@ export function reducer(state, action) {
     case "save/start":
       return { ...state, ui: { ...state.ui, isSaving: true, saveError: "" } };
     case "save/success":
+      if (action.payload?.preserveUnsaved) {
+        return {
+          ...state,
+          ui: { ...state.ui, isSaving: false, saveError: "" },
+        };
+      }
       return {
         ...state,
         ui: { ...state.ui, unsaved: false, isSaving: false, saveError: "", dirtyThemes: {} },
@@ -219,7 +220,9 @@ export function reducer(state, action) {
     case "theme/reset-current": {
       const themeId = state.selection.themeId;
       const resetDraft = createThemeDraft(themeId);
-      const resetActionConfigs = state.draftsByTheme[themeId]?.resetActionConfigs || resetDraft.resetActionConfigs;
+      const currentDraft = state.draftsByTheme[themeId];
+      const resetActionConfigs = currentDraft?.resetActionConfigs || resetDraft.resetActionConfigs;
+      const resetKeyFeedbackConfig = normalizeKeyFeedbackConfig(currentDraft?.resetKeyFeedbackConfig || resetDraft.resetKeyFeedbackConfig);
       return {
         ...state,
         ui: { ...state.ui, unsaved: true, saveError: "", dirtyThemes: { ...state.ui.dirtyThemes, [themeId]: true } },
@@ -229,6 +232,8 @@ export function reducer(state, action) {
             ...resetDraft,
             actionConfigs: resetActionConfigs,
             resetActionConfigs,
+            keyFeedbackConfig: resetKeyFeedbackConfig,
+            resetKeyFeedbackConfig,
           },
         },
       };
@@ -247,12 +252,24 @@ export function reducer(state, action) {
         },
       };
     }
-    case "key-feedback/update":
+    case "key-feedback/update": {
+      const themeId = state.selection.themeId;
+      const currentDraft = state.draftsByTheme[themeId] || createThemeDraft(themeId);
       return {
         ...state,
-        keyFeedbackConfig: { ...state.keyFeedbackConfig, ...action.payload },
-        ui: { ...state.ui, unsaved: true, saveError: "" },
+        ui: { ...state.ui, unsaved: true, saveError: "", dirtyThemes: { ...state.ui.dirtyThemes, [themeId]: true } },
+        draftsByTheme: {
+          ...state.draftsByTheme,
+          [themeId]: {
+            ...currentDraft,
+            keyFeedbackConfig: normalizeKeyFeedbackConfig({
+              ...(currentDraft.keyFeedbackConfig || {}),
+              ...action.payload,
+            }),
+          },
+        },
       };
+    }
     default:
       return state;
   }

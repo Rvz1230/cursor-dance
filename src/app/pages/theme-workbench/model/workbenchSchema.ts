@@ -34,6 +34,7 @@ import {
   Waves,
   Zap,
 } from "lucide-react";
+import { defaultKeyFeedbackConfig } from "@/desktop/renderer/engine/key-feedback-types";
 import {
   AUDIO_BLEND_OPTIONS,
   AUDIO_TRIGGER_OPTIONS,
@@ -330,6 +331,8 @@ export function createThemeDraft(themeId) {
     cursorModes: Object.fromEntries(CURSOR_STATES.map((item) => [item.id, item.defaultMode])),
     cursorStateActions: buildDefaultCursorStateActions(),
     cursorStateAssets: buildDefaultCursorStateAssets(),
+    keyFeedbackConfig: { ...defaultKeyFeedbackConfig },
+    resetKeyFeedbackConfig: { ...defaultKeyFeedbackConfig },
     atmosphere: { mode: "none" },
   };
 }

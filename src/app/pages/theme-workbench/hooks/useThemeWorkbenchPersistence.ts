@@ -49,14 +49,17 @@ export function useThemeWorkbenchPersistence({ state, dispatch, configRef }) {
         const tid = editorState.themeId;
         if (tid && hydratedState.themeLibrary.some((t) => t.id === tid)) {
           hydratedState.selection.themeId = tid;
+          if (tid !== config.activeThemePackId) {
+            hydratedState.ui.unsaved = true;
+          }
         }
         const aid = editorState.actionId;
         if (aid && ["leftClick", "rightClick", "doubleClick", "longPress", "wheel", "hover"].includes(aid)) {
           hydratedState.selection.actionId = aid;
         }
         const csid = editorState.cursorStateId;
-        if (csid && ["default", "pointer", "grab", "text", "crosshair", "wait"].includes(csid)) {
-          hydratedState.selection.cursorStateId = csid;
+        if (csid && ["default", "text", "pointer", "grab", "grabbing", "busy", "notAllowed", "crosshair", "move", "resizeHorizontal", "resizeVertical", "resizeDiagonalNWSE", "resizeDiagonalNESW", "wait"].includes(csid)) {
+          hydratedState.selection.cursorStateId = csid === "wait" ? "busy" : csid;
         }
       }
 
@@ -73,7 +76,7 @@ export function useThemeWorkbenchPersistence({ state, dispatch, configRef }) {
           ? nextConfigOrUpdater(configRef.current ?? {})
           : nextConfigOrUpdater;
       configRef.current = nextConfig;
-      if (cancelled) return;
+      if (cancelled || stateRef.current.ui.unsaved) return;
       dispatch({ type: "hydrate", payload: hydrateWorkbenchState(nextConfig, site) });
     });
 
@@ -114,6 +117,10 @@ export function useThemeWorkbenchPersistence({ state, dispatch, configRef }) {
   useEffect(() => {
     if (!state.ui.isHydrated) return;
     const currentLen = state.themeLibrary.length;
+    if (prevThemeLibraryLengthRef.current === 0) {
+      prevThemeLibraryLengthRef.current = currentLen;
+      return;
+    }
     if (currentLen > prevThemeLibraryLengthRef.current) {
       const baseConfig = configRef.current;
       if (!baseConfig) return;

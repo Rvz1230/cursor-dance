@@ -25,10 +25,11 @@ const KEY_DISPLAY_MODES = ["typed", "physical"];
 
 interface KeyboardPanelProps {
   config: KeyFeedbackConfig;
+  themeName?: string;
   onUpdate: (patch: Partial<KeyFeedbackConfig>) => void;
 }
 
-export function KeyboardPanel({ config, onUpdate }: KeyboardPanelProps) {
+export function KeyboardPanel({ config, themeName, onUpdate }: KeyboardPanelProps) {
   const enabled = config.enabled;
   const isVerticalEdge = ["bottom", "top"].includes(config.originEdge);
   const showHorizontalOffset = config.originMapping === "center" && (config.animationStyle === "bounce" || isVerticalEdge);
@@ -71,8 +72,9 @@ export function KeyboardPanel({ config, onUpdate }: KeyboardPanelProps) {
             </div>
           }
         >
+          <p className="text-xs text-slate-500">正在编辑当前主题{themeName ? `：${themeName}` : ""}。</p>
           {enabled && (
-            <p className="text-xs text-slate-500">按下任意键查看效果，需辅助功能权限。</p>
+            <p className="mt-1 text-xs text-slate-500">按下任意键查看效果，需辅助功能权限。</p>
           )}
         </Panel>
 

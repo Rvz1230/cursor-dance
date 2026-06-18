@@ -9,6 +9,7 @@ import {
   pickStoredWorkbenchActionConfigs,
 } from "../model/workbenchSchema";
 import { getDefaultConfig, normalizeStoredConfig } from "./runtimeConfig";
+import { normalizeKeyFeedbackConfig } from "@/desktop/renderer/engine/key-feedback-types";
 
 function toWorkbenchCursorMode(stateId, mode) {
   if (stateId === "default") return "源";
@@ -88,6 +89,8 @@ function buildDraftFromThemePack(themePack) {
   const baseDraft = createThemeDraft(themeId);
   const cursorDraft = buildDraftCursorMaps(baseDraft, themePack);
   const actionConfigs = buildDraftActionConfigs(baseDraft, themePack);
+  const keyFeedbackConfig = normalizeKeyFeedbackConfig(themePack?.workbenchDraft?.keyFeedbackConfig || baseDraft.keyFeedbackConfig);
+  const resetKeyFeedbackConfig = normalizeKeyFeedbackConfig(themePack?.workbenchDraft?.resetKeyFeedbackConfig || keyFeedbackConfig);
 
   return {
     ...baseDraft,
@@ -95,6 +98,8 @@ function buildDraftFromThemePack(themePack) {
     cursorModes: cursorDraft.cursorModes,
     cursorStateActions: cursorDraft.cursorStateActions,
     cursorStateAssets: cursorDraft.cursorStateAssets,
+    keyFeedbackConfig,
+    resetKeyFeedbackConfig,
     actionConfigs,
     resetActionConfigs: buildResetActionConfigs(baseDraft, themePack, actionConfigs),
   };
@@ -137,6 +142,16 @@ export function hydrateWorkbenchState(config, site) {
   });
 
   const selectedThemeId = resolveSelectedThemeId(themeLibrary, draftsByTheme, config.activeThemePackId);
+  if (config.keyFeedbackConfig) {
+    storedThemePacks.forEach((themePack) => {
+      if (themePack?.workbenchDraft?.keyFeedbackConfig) return;
+      draftsByTheme[themePack.id] = {
+        ...(draftsByTheme[themePack.id] || createThemeDraft(themePack.id)),
+        keyFeedbackConfig: normalizeKeyFeedbackConfig(config.keyFeedbackConfig),
+        resetKeyFeedbackConfig: normalizeKeyFeedbackConfig(config.keyFeedbackConfig),
+      };
+    });
+  }
   const workspaceAliasMap = {
     workspace: "workbench",
     states: "states",
@@ -166,7 +181,6 @@ export function hydrateWorkbenchState(config, site) {
     },
     site,
     draftsByTheme,
-    keyFeedbackConfig: config.keyFeedbackConfig,
   };
 }
 
@@ -188,6 +202,8 @@ function buildStoredThemePack(themeId, draft, previousConfig, themeRecord) {
     workbenchDraft: {
       actionConfigs: pickStoredWorkbenchActionConfigs(draft.actionConfigs),
       resetActionConfigs: pickStoredWorkbenchActionConfigs(draft.resetActionConfigs || draft.actionConfigs),
+      keyFeedbackConfig: normalizeKeyFeedbackConfig(draft.keyFeedbackConfig),
+      resetKeyFeedbackConfig: normalizeKeyFeedbackConfig(draft.resetKeyFeedbackConfig || draft.keyFeedbackConfig),
       ...(storedAtmosphere ? { atmosphere: storedAtmosphere } : {}),
     },
     cursorStates: Object.fromEntries(
@@ -232,7 +248,6 @@ export function buildStoredConfigFromWorkbench(previousConfig, state) {
     themePacks: nextThemePacks,
     schemes: nextThemePacks,
     siteRules: Array.isArray(state.siteRules) ? state.siteRules : [],
-    keyFeedbackConfig: state.keyFeedbackConfig ?? previousConfig.keyFeedbackConfig,
     editor: {
       ...(previousConfig.editor || {}),
       lastWorkspace: workspaceId,

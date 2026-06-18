@@ -223,7 +223,9 @@ export function createConfigStore(deps: ConfigStoreDeps): ConfigStoreApi {
   }
 
   function getKeyFeedbackConfig(): KeyFeedbackConfig {
-    return normalizeKeyFeedbackConfig(getConfig().keyFeedbackConfig as Partial<KeyFeedbackConfig> | undefined);
+    const activeScheme = getActiveScheme();
+    const keyFeedbackConfig = activeScheme?.workbenchDraft?.keyFeedbackConfig ?? getConfig().keyFeedbackConfig;
+    return normalizeKeyFeedbackConfig(keyFeedbackConfig as Partial<KeyFeedbackConfig> | undefined);
   }
 
   function getBaseActionConfigs(): Record<string, Record<string, unknown>> {

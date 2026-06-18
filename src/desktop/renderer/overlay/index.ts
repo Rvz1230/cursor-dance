@@ -144,21 +144,24 @@ invalidateCursorStateCache();
 state.ready = true;
 engine.visualEffects.ensureRoot();
 
+let hasLivePreviewConfig = false;
+
 if (bridge) {
   bridge
     .getConfig()
     .then((stored) => {
-      if (stored) { configStore.setConfig(stored); invalidateCursorStateCache(); }
+      if (stored && !hasLivePreviewConfig) { configStore.setConfig(stored); invalidateCursorStateCache(); }
     })
     .catch((error) => {
       console.error("[cursordance] overlay 初始 config 拉取失败:", error);
     });
 
   bridge.onChange((next) => {
-    if (next) { configStore.setConfig(next); invalidateCursorStateCache(); }
+    if (next && !hasLivePreviewConfig) { configStore.setConfig(next); invalidateCursorStateCache(); }
   });
 
   bridge.onLivePreviewChange((next) => {
+    hasLivePreviewConfig = Boolean(next);
     if (next) {
       configStore.setConfig(next);
       invalidateCursorStateCache();
@@ -259,6 +262,7 @@ function isMouseInThisOverlay(): boolean {
 
 function dispatchKeyboard(payload: KeyboardEventPayload): void {
   if (!isMouseInThisOverlay()) return;
+  if (!configStore.isCurrentSiteEnabled()) return;
   const config = configStore.getKeyFeedbackConfig?.();
   if (!config?.enabled) return;
   engine.keyFeedback.handleKeyboardEvent(payload);

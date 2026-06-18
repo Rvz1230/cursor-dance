@@ -13,19 +13,21 @@ import {
 } from "./chrome-api";
 
 export function buildThemeExportPayload(themePack) {
+  const normalizedConfig = normalizeStoredConfig({
+    enabled: true,
+    activeThemePackId: themePack?.id || "",
+    activeSchemeId: themePack?.id || "",
+    themePacks: [themePack],
+    schemes: [themePack],
+    siteRules: [],
+    editor: {},
+  });
+
   return {
     format: "cursordance-theme-pack",
     version: 1,
     exportedAt: new Date().toISOString(),
-    themePack: normalizeStoredConfig({
-      enabled: true,
-      activeThemePackId: themePack?.id || "",
-      activeSchemeId: themePack?.id || "",
-      themePacks: [themePack],
-      schemes: [themePack],
-      siteRules: [],
-      editor: {},
-    }).themePacks[0],
+    themePack: normalizedConfig.themePacks.find((item) => item.id === themePack?.id) || normalizedConfig.themePacks[0],
   };
 }
 

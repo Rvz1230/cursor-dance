@@ -643,6 +643,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
               {state.workspaceId === "keyboard" ? (
                 <KeyboardPanel
                   config={keyFeedbackConfig}
+                  themeName={activeTheme?.name}
                   onUpdate={(patch) => updateKeyFeedbackConfig(patch)}
                 />
               ) : null}
