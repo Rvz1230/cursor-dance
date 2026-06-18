@@ -6,6 +6,8 @@ import remarkGfm from "remark-gfm";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const Markdown = ReactMarkdown as any;
 import { Button } from "@/components/ui/button";
+import { IconButton } from "@/components/ui/icon-button";
+import { InlineStatus } from "@/components/ui/inline-status";
 import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/components/ui/utils";
 import { getAiRequestErrorMessage, requestAiSchemeEditStreaming, requestAiAgentRun } from "../lib/aiSchemeAssistant";
@@ -176,55 +178,51 @@ function MessageBubble({ message, onEdit, actionId, notify }) {
         "flex items-center gap-0 px-1",
         "opacity-0 group-hover:opacity-100 transition-opacity"
       )}>
-        <button
-          type="button"
-          className="inline-flex items-center rounded-md p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+        <IconButton
+          className="rounded-md p-1 text-slate-400 hover:text-slate-600"
           onClick={handleCopy}
-          aria-label="复制"
-          title="复制"
+          label="复制"
+          tooltip="复制"
         >
           {copied ? <Check className="size-3.5 text-emerald-500" /> : <Copy className="size-3.5 shrink-0" />}
-        </button>
+        </IconButton>
         {!isAssistant ? (
-          <button
-            type="button"
-            className="inline-flex items-center rounded-md p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+          <IconButton
+            className="rounded-md p-1 text-slate-400 hover:text-slate-600"
             onClick={() => onEdit?.(message.content)}
-            aria-label="编辑"
-            title="编辑"
+            label="编辑"
+            tooltip="编辑"
           >
             <PenLine className="size-3.5 shrink-0" />
-          </button>
+          </IconButton>
         ) : (
           <>
-            <button
-              type="button"
+            <IconButton
               className={cn(
-                "inline-flex items-center rounded-md p-1 transition-colors",
+                "rounded-md p-1",
                 feedback === "up"
-                  ? "text-emerald-500 hover:text-emerald-600"
-                  : "text-slate-400 hover:text-slate-600 hover:bg-slate-100",
+                  ? "text-emerald-500 hover:bg-transparent hover:text-emerald-600"
+                  : "text-slate-400 hover:text-slate-600",
               )}
               onClick={() => handleFeedback("up")}
-              aria-label="有帮助"
-              title="有帮助"
+              label="有帮助"
+              tooltip="有帮助"
             >
               <ThumbsUp className={cn("size-3.5", feedback === "up" && "fill-current")} />
-            </button>
-            <button
-              type="button"
+            </IconButton>
+            <IconButton
               className={cn(
-                "inline-flex items-center rounded-md p-1 transition-colors",
+                "rounded-md p-1",
                 feedback === "down"
-                  ? "text-rose-500 hover:text-rose-600"
-                  : "text-slate-400 hover:text-slate-600 hover:bg-slate-100",
+                  ? "text-rose-500 hover:bg-transparent hover:text-rose-600"
+                  : "text-slate-400 hover:text-slate-600",
               )}
               onClick={() => handleFeedback("down")}
-              aria-label="没有帮助"
-              title="没有帮助"
+              label="没有帮助"
+              tooltip="没有帮助"
             >
               <ThumbsDown className={cn("size-3.5", feedback === "down" && "fill-current")} />
-            </button>
+            </IconButton>
           </>
         )}
       </div>
@@ -1102,39 +1100,34 @@ export function AiSchemePanel({
           {confirmClear ? (
             <div className="flex items-center gap-1 rounded-xl bg-rose-50 px-2 py-1">
               <span className="text-2xs font-medium text-rose-700">确认清空？</span>
-              <button
-                type="button"
-                className="inline-flex size-6 items-center justify-center rounded-lg bg-white text-rose-600 transition-colors hover:bg-rose-100"
+              <IconButton
+                className="size-6 rounded-lg bg-white text-rose-600 hover:bg-rose-100 hover:text-rose-600"
                 onClick={() => {
                   clearConversation();
                   setConfirmClear(false);
                 }}
-                aria-label="确认清空"
+                label="确认清空"
               >
                 <Check className="size-3.5" />
-              </button>
-              <button
-                type="button"
-                className="inline-flex size-6 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100"
+              </IconButton>
+              <IconButton
+                className="size-6 rounded-lg text-slate-500"
                 onClick={() => setConfirmClear(false)}
-                aria-label="取消清空"
+                label="取消清空"
               >
                 <X className="size-3.5" />
-              </button>
+              </IconButton>
             </div>
           ) : (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
+            <IconButton
               className="size-8 rounded-xl text-slate-400 hover:text-rose-600"
               onClick={() => setConfirmClear(true)}
               disabled={isGenerating}
-              aria-label="清空 AI 对话"
-              title="清空 AI 对话"
+              label="清空 AI 对话"
+              tooltip="清空 AI 对话"
             >
               <Trash2 className="size-4" aria-hidden="true" />
-            </Button>
+            </IconButton>
           )}
         </div>
       )}
@@ -1322,28 +1315,29 @@ export function AiSchemePanel({
               className="max-h-[112px] min-h-[48px] w-full resize-none bg-transparent px-1 py-1.5 text-sm leading-5 text-slate-700 outline-none placeholder:text-slate-400"
             />
             {isGenerating ? (
-              <button
-                type="button"
-                className="absolute bottom-2 right-2 inline-flex size-9 items-center justify-center rounded-xl bg-rose-500 text-white transition-[transform,background-color] hover:bg-rose-600 active:scale-[0.97]"
+              <IconButton
+                className="absolute bottom-2 right-2 size-9 rounded-xl bg-rose-500 text-white hover:bg-rose-600 hover:text-white"
                 onClick={cancelGeneration}
-                aria-label="停止生成"
-                title="停止生成"
+                label="停止生成"
+                tooltip="停止生成"
               >
                 <Square className="size-3.5" aria-hidden="true" />
-              </button>
+              </IconButton>
             ) : (
-              <Button className="absolute bottom-2 right-2 size-9 rounded-xl px-0 disabled:opacity-30 transition-opacity" type="submit" disabled={!canSubmit} aria-label="发送给 AI 方案助手" title={cooldownActive ? "冷却中 (3 秒)" : "发送 (↵)"}>
-                <Send className="size-4" aria-hidden="true" />
-              </Button>
+              <Tooltip content={cooldownActive ? "冷却中 (3 秒)" : "发送 (↵)"} side="top">
+                <Button className="absolute bottom-2 right-2 size-9 rounded-xl px-0 disabled:opacity-30 transition-opacity" type="submit" disabled={!canSubmit} aria-label="发送给 AI 方案助手">
+                  <Send className="size-4" aria-hidden="true" />
+                </Button>
+              </Tooltip>
             )}
           </div>
           {error ? (
-            <div className="flex items-start gap-2 rounded-xl border border-rose-100 bg-rose-50 px-3 py-2 text-xs text-rose-700">
-              <span className="flex-1 text-pretty">{error}</span>
+            <InlineStatus tone="error" role="alert">
+              <span>{error}</span>
               {lastPrompt ? (
                 <button
                   type="button"
-                  className="shrink-0 rounded-lg border border-rose-200 bg-white px-2 py-1 text-xs font-medium text-rose-600 transition-colors hover:bg-rose-100 active:scale-[0.97]"
+                  className="ml-2 shrink-0 rounded-lg border border-rose-200 bg-white px-2 py-1 text-xs font-medium text-rose-600 transition-colors hover:bg-rose-100 active:scale-[0.97]"
                   onClick={() => {
                     setError("");
                     submitPrompt(lastPrompt);
@@ -1352,7 +1346,7 @@ export function AiSchemePanel({
                   重试
                 </button>
               ) : null}
-            </div>
+            </InlineStatus>
           ) : null}
         </form>
       </div>
