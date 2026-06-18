@@ -14,6 +14,7 @@ import {
   TRACK_DEFAULTS,
   buildMinorTicks,
   buildTickMarks,
+  buildTimelineKeyboardPatch,
   buildTimelineModel,
   formatTickMs,
 } from "../lib/timelineModel";
@@ -72,10 +73,11 @@ const INTERVAL_PRESETS = [
   { label: "快速", value: 600 },
 ];
 
-function TrackHandle({ side, track, totalMs, pxPerMs, updateActionConfig }) {
+function TrackHandle({ side, track, totalMs, pxPerMs, editableDuration, updateActionConfig, onGhostChange }) {
   const isLeft = side === "left";
   const delayField = DELAY_FIELD_BY_TRACK[track.id];
   const durationField = DURATION_FIELD_BY_TRACK[track.id];
+  const minEditableDuration = editableDuration <= 0 ? 0 : 40;
 
   const commitRef = useRef(null);
   commitRef.current = useCallback(
@@ -84,26 +86,30 @@ function TrackHandle({ side, track, totalMs, pxPerMs, updateActionConfig }) {
         const newDelay = Math.max(0, track.start + deltaMs);
         const patch = { [delayField]: newDelay };
         if (durationField) {
-          patch[durationField] = Math.max(40, (track.configuredDuration ?? (track.end - track.start)) - deltaMs);
+          patch[durationField] = Math.max(minEditableDuration, editableDuration - deltaMs);
         }
         updateActionConfig(patch);
       } else if (!isLeft && durationField) {
-        const baseDuration = track.configuredDuration ?? (track.end - track.start);
-        updateActionConfig({ [durationField]: Math.max(40, baseDuration + deltaMs) });
+        updateActionConfig({ [durationField]: Math.max(minEditableDuration, editableDuration + deltaMs) });
       }
     },
-    [isLeft, delayField, durationField, track.start, track.end, track.configuredDuration, updateActionConfig]
+    [editableDuration, isLeft, delayField, durationField, minEditableDuration, track.start, updateActionConfig]
   );
+
+  const onGhostChangeRef = useRef(null);
+  onGhostChangeRef.current = onGhostChange;
 
   const { isDragging, tooltipMs, handlers } = useTimelineDrag({
     mode: isLeft ? "resize-left" : "resize-right",
     pxPerMs,
     snapMs: 20,
-    minMs: isLeft ? -track.start : -((track.configuredDuration ?? (track.end - track.start)) - 40),
+    minMs: isLeft ? -track.start : -(editableDuration - minEditableDuration),
+    maxMs: isLeft ? editableDuration - minEditableDuration : Infinity,
+    onChange: (deltaMs) => onGhostChangeRef.current?.(deltaMs),
     onCommit: (deltaMs) => commitRef.current?.(deltaMs),
   });
 
-  const posPct = `${(isLeft ? track.start : track.end) / totalMs * 100}%`;
+  const posPct = `${(isLeft ? track.start : track.start + editableDuration) / totalMs * 100}%`;
 
   return (
     <>
@@ -133,16 +139,30 @@ function TrackHandle({ side, track, totalMs, pxPerMs, updateActionConfig }) {
         >
           {isLeft
             ? `${Math.max(0, track.start + tooltipMs)}ms`
-            : `${track.start + (track.configuredDuration ?? (track.end - track.start)) + tooltipMs}ms`}
+            : `${track.start + editableDuration + tooltipMs}ms`}
         </div>
       ) : null}
     </>
   );
 }
 
-function TimelineTrackRow({ track, totalMs, pxPerMs, updateActionConfig, isEven }) {
-  const leftPct = `${(track.start / totalMs) * 100}%`;
-  const widthPct = `${Math.max(0.5, ((track.end - track.start) / totalMs) * 100)}%`;
+function TimelineTrackRow({ track, totalMs, pxPerMs, updateActionConfig, isEven, disabled }) {
+  const [ghost, setGhost] = useState(null);
+  const visualDuration = track.end - track.start;
+  const editableDuration = track.configuredDuration ?? visualDuration;
+  const tailDuration = Math.max(0, visualDuration - editableDuration);
+  const ghostDelta = ghost?.deltaMs ?? 0;
+  const ghostStart = ghost?.mode === "move" || ghost?.mode === "resize-left"
+    ? Math.max(0, track.start + ghostDelta)
+    : track.start;
+  const ghostEditableDuration = ghost?.mode === "resize-left"
+    ? Math.max(editableDuration <= 0 ? 0 : 40, editableDuration - ghostDelta)
+    : ghost?.mode === "resize-right"
+      ? Math.max(editableDuration <= 0 ? 0 : 40, editableDuration + ghostDelta)
+      : editableDuration;
+  const ghostEnd = ghost?.mode === "move" ? track.end + ghostDelta : ghostStart + ghostEditableDuration + tailDuration;
+  const leftPct = `${(ghostStart / totalMs) * 100}%`;
+  const widthPct = `${Math.max(0.5, ((ghostEnd - ghostStart) / totalMs) * 100)}%`;
   const tone = getTimelineTone(track.tone);
   const delayField = DELAY_FIELD_BY_TRACK[track.id];
   const minorTicks = useMemo(() => buildMinorTicks(totalMs), [totalMs]);
@@ -150,24 +170,41 @@ function TimelineTrackRow({ track, totalMs, pxPerMs, updateActionConfig, isEven 
   const commitRef = useRef(null);
   commitRef.current = useCallback(
     (deltaMs) => {
-      if (delayField) {
-        const newDelay = Math.max(0, track.start + deltaMs);
-        updateActionConfig({ [delayField]: newDelay });
-      }
+      if (disabled || !delayField) return;
+      const newDelay = Math.max(0, track.start + deltaMs);
+      updateActionConfig({ [delayField]: newDelay });
     },
-    [delayField, track.start, updateActionConfig]
+    [delayField, disabled, track.start, updateActionConfig]
   );
 
   const { isDragging: isMoving, tooltipMs, handlers: moveHandlers } = useTimelineDrag({
     mode: "move",
-    pxPerMs,
+    pxPerMs: disabled ? 0 : pxPerMs,
     snapMs: 20,
     minMs: -track.start,
+    onChange: (deltaMs) => setGhost(deltaMs === null ? null : { mode: "move", deltaMs }),
     onCommit: (deltaMs) => commitRef.current?.(deltaMs),
   });
 
   const defaults = TRACK_DEFAULTS[track.id];
   const isDirty = defaults && (track.start !== defaults.delay || (defaults.duration && track.configuredDuration !== defaults.duration));
+  const valueText = `${track.label} 延迟 ${ghostStart}ms${track.configuredDuration ? `，时长 ${Math.round(ghostEnd - ghostStart)}ms` : ""}`;
+
+  const onKeyDown = useCallback(
+    (event) => {
+      if (disabled) return;
+      const patch = buildTimelineKeyboardPatch({
+        track,
+        key: event.key,
+        shiftKey: event.shiftKey,
+        maxDelay: Math.max(0, totalMs - (ghostEnd - ghostStart)),
+      });
+      if (!patch) return;
+      event.preventDefault();
+      updateActionConfig(patch);
+    },
+    [disabled, ghostEnd, ghostStart, totalMs, track, updateActionConfig]
+  );
 
   return (
     <div className={cn(
@@ -184,6 +221,7 @@ function TimelineTrackRow({ track, totalMs, pxPerMs, updateActionConfig, isEven 
             title="重置延迟和时长"
             aria-label={`重置${track.label}延迟和时长`}
             onClick={(e) => {
+              if (disabled) return;
               e.stopPropagation();
               const patch = {};
               if (delayField && defaults) patch[delayField] = defaults.delay;
@@ -216,19 +254,35 @@ function TimelineTrackRow({ track, totalMs, pxPerMs, updateActionConfig, isEven 
 
         {/* left resize handle — only if track has a delay field */}
         {DELAY_FIELD_BY_TRACK[track.id] ? (
-          <TrackHandle side="left" track={track} totalMs={totalMs} pxPerMs={pxPerMs} updateActionConfig={updateActionConfig} />
+          <TrackHandle
+            side="left"
+            track={track}
+            totalMs={totalMs}
+            pxPerMs={disabled ? 0 : pxPerMs}
+            editableDuration={editableDuration}
+            updateActionConfig={updateActionConfig}
+            onGhostChange={(deltaMs) => setGhost(deltaMs === null ? null : { mode: "resize-left", deltaMs })}
+          />
         ) : null}
 
         {/* right resize handle — only if track has a duration field */}
         {DURATION_FIELD_BY_TRACK[track.id] ? (
-          <TrackHandle side="right" track={track} totalMs={totalMs} pxPerMs={pxPerMs} updateActionConfig={updateActionConfig} />
+          <TrackHandle
+            side="right"
+            track={track}
+            totalMs={totalMs}
+            pxPerMs={disabled ? 0 : pxPerMs}
+            editableDuration={editableDuration}
+            updateActionConfig={updateActionConfig}
+            onGhostChange={(deltaMs) => setGhost(deltaMs === null ? null : { mode: "resize-right", deltaMs })}
+          />
         ) : null}
 
         {/* main block (draggable middle) — only if track has a delay field */}
         {DELAY_FIELD_BY_TRACK[track.id] ? (
         <div
           className={cn(
-            "absolute top-1/2 h-5 -translate-y-1/2 rounded-md transition-[filter,box-shadow,transform] duration-150",
+            "absolute top-1/2 h-5 -translate-y-1/2 rounded-md transition-[filter,box-shadow,transform] duration-150 outline-none focus-visible:ring-2 focus-visible:ring-slate-900/60 focus-visible:ring-offset-2",
             "bg-gradient-to-b border shadow-sm",
             tone.gradient, tone.border,
             isMoving
@@ -241,19 +295,29 @@ function TimelineTrackRow({ track, totalMs, pxPerMs, updateActionConfig, isEven 
           aria-label={`${track.label} 时间块`}
           aria-valuemin={0}
           aria-valuemax={totalMs}
-          aria-valuenow={track.start}
+          aria-valuenow={ghostStart}
+          aria-valuetext={valueText}
+          onKeyDown={onKeyDown}
           tabIndex={0}
         >
           {/* duration label inside block */}
-          {track.configuredDuration && (track.end - track.start) / totalMs > 0.18 ? (
+          {track.configuredDuration && (ghostEnd - ghostStart) / totalMs > 0.18 ? (
             <span className={cn(
               "absolute inset-0 flex items-center justify-center text-2xs font-semibold tabular-nums select-none pointer-events-none",
               tone.text
             )}>
-              {track.configuredDuration}ms
+              {Math.round(ghostEnd - ghostStart)}ms
             </span>
           ) : null}
         </div>
+        ) : null}
+        {isMoving && tooltipMs !== null ? (
+          <div
+            className="absolute -top-6 z-30 rounded-lg bg-slate-900 px-2 py-0.5 text-2xs font-semibold tabular-nums text-white shadow-lg pointer-events-none whitespace-nowrap"
+            style={{ left: leftPct }}
+          >
+            {ghostStart}ms
+          </div>
         ) : null}
       </div>
     </div>
@@ -380,6 +444,7 @@ function InteractiveTimeline({ tracks, totalMs, disabled, canEditEmptyState, upd
             pxPerMs={pxPerMs}
             updateActionConfig={updateActionConfig}
             isEven={i % 2 === 0}
+            disabled={disabled}
           />
         )) : (
           <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50/70 px-3 py-4 text-center">

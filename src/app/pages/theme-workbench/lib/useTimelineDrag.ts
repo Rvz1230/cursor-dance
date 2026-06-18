@@ -16,14 +16,14 @@ import { useCallback, useRef, useState } from "react";
  * @param {(ms: number) => void} [opts.onChange] - called during drag (throttled)
  * @param {(ms: number) => void} [opts.onCommit] - called when drag ends
  */
-export function useTimelineDrag({ mode, pxPerMs, snapMs = 20, minMs = 0, onChange, onCommit }) {
+export function useTimelineDrag({ mode, pxPerMs, snapMs = 20, minMs = 0, maxMs = Infinity, onChange, onCommit }) {
   const [isDragging, setIsDragging] = useState(false);
   const [tooltipMs, setTooltipMs] = useState(null);
   const stateRef = useRef(null);
 
   const snap = useCallback(
-    (value) => Math.max(minMs, Math.round(value / snapMs) * snapMs),
-    [minMs, snapMs]
+    (value) => Math.min(maxMs, Math.max(minMs, Math.round(value / snapMs) * snapMs)),
+    [maxMs, minMs, snapMs]
   );
 
   const onPointerDown = useCallback(
@@ -68,8 +68,8 @@ export function useTimelineDrag({ mode, pxPerMs, snapMs = 20, minMs = 0, onChang
     [pxPerMs, snap, mode, onChange]
   );
 
-  const onPointerUp = useCallback(
-    (event) => {
+  const finishDrag = useCallback(
+    (event, commit) => {
       const state = stateRef.current;
       if (!state) return;
 
@@ -84,17 +84,27 @@ export function useTimelineDrag({ mode, pxPerMs, snapMs = 20, minMs = 0, onChang
       setIsDragging(false);
       setTooltipMs(null);
 
-      if (onCommit) onCommit(finalMs);
+      if (commit && onCommit) onCommit(finalMs);
       if (onChange) onChange(null); // signal drag end
     },
     [pxPerMs, snap, onCommit, onChange]
+  );
+
+  const onPointerUp = useCallback(
+    (event) => finishDrag(event, true),
+    [finishDrag]
+  );
+
+  const onPointerCancel = useCallback(
+    (event) => finishDrag(event, false),
+    [finishDrag]
   );
 
   const handlers = {
     onPointerDown,
     onPointerMove,
     onPointerUp,
-    onPointerCancel: onPointerUp,
+    onPointerCancel,
   };
 
   return { isDragging, tooltipMs, handlers };

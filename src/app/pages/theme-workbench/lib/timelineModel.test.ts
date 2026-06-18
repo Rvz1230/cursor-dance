@@ -8,6 +8,7 @@ import {
   TRACK_DEFAULTS,
   buildMinorTicks,
   buildTickMarks,
+  buildTimelineKeyboardPatch,
   buildTimelineModel,
   buildTimelineTracks,
   formatTickMs,
@@ -126,6 +127,39 @@ describe("timelineModel", () => {
 
     expect(buildTimelineModel(config).totalMs).toBe(1900);
     expect(getPreviewCycleMs(config)).toBe(1900 + PREVIEW_CYCLE_IDLE_MS);
+  });
+
+  it("builds keyboard patches for timeline track delay controls", () => {
+    const track = {
+      id: "text" as const,
+      label: "飘字",
+      tone: "rose" as const,
+      start: 120,
+      end: 1120,
+      configuredDuration: 1000,
+      markers: [],
+    };
+
+    expect(buildTimelineKeyboardPatch({ track, key: "ArrowLeft" })).toEqual({ textDelay: 100 });
+    expect(buildTimelineKeyboardPatch({ track, key: "ArrowLeft", shiftKey: true })).toEqual({ textDelay: 20 });
+    expect(buildTimelineKeyboardPatch({ track, key: "ArrowRight", shiftKey: true })).toEqual({ textDelay: 220 });
+    expect(buildTimelineKeyboardPatch({ track, key: "ArrowRight", shiftKey: true, maxDelay: 180 })).toEqual({ textDelay: 180 });
+    expect(buildTimelineKeyboardPatch({ track, key: "Home" })).toEqual({ textDelay: 0, textDuration: 1000 });
+    expect(buildTimelineKeyboardPatch({ track, key: "End" })).toBeNull();
+  });
+
+  it("builds keyboard patches for audio tracks without duration fields", () => {
+    const track = {
+      id: "audio" as const,
+      label: "音效",
+      tone: "slate" as const,
+      start: 60,
+      end: 180,
+      markers: [],
+    };
+
+    expect(buildTimelineKeyboardPatch({ track, key: "ArrowLeft", shiftKey: true })).toEqual({ soundDelay: 0 });
+    expect(buildTimelineKeyboardPatch({ track, key: "Home" })).toEqual({ soundDelay: 0 });
   });
 
   it("formats timeline labels and exposes editable field mappings", () => {

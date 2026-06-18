@@ -64,6 +64,8 @@ export const TRACK_DEFAULTS: Record<TimelineTrackId, { delay: number; duration?:
 
 export const TIMELINE_MIN_TOTAL_MS = 820;
 export const PREVIEW_CYCLE_IDLE_MS = 800;
+export const TIMELINE_KEYBOARD_STEP_MS = 20;
+export const TIMELINE_KEYBOARD_LARGE_STEP_MS = 100;
 
 export function buildTimelineTracks({ textConfig, particleConfig, rippleConfig, audioConfig, animationConfig, imageConfig, config }: TimelineModelInput) {
   const tracks: TimelineTrack[] = [];
@@ -116,6 +118,45 @@ export function buildMinorTicks(totalMs: number): number[] {
 export function formatTickMs(ms: number): string {
   if (ms < 1000) return `${ms}ms`;
   return `${(ms / 1000).toFixed(ms % 1000 === 0 ? 1 : 2)}s`;
+}
+
+export function buildTimelineKeyboardPatch({
+  track,
+  key,
+  shiftKey = false,
+  maxDelay,
+}: {
+  track: TimelineTrack;
+  key: string;
+  shiftKey?: boolean;
+  maxDelay?: number;
+}): Record<string, number> | null {
+  const delayField = DELAY_FIELD_BY_TRACK[track.id];
+  if (!delayField) return null;
+
+  const durationField = DURATION_FIELD_BY_TRACK[track.id];
+  const duration = track.configuredDuration ?? (track.end - track.start);
+  const step = shiftKey ? TIMELINE_KEYBOARD_LARGE_STEP_MS : TIMELINE_KEYBOARD_STEP_MS;
+  const clampDelay = (value: number) => {
+    const clamped = Math.max(0, value);
+    return maxDelay === undefined ? clamped : Math.min(maxDelay, clamped);
+  };
+
+  if (key === "ArrowLeft") {
+    return { [delayField]: clampDelay(track.start - step) };
+  }
+
+  if (key === "ArrowRight") {
+    return { [delayField]: clampDelay(track.start + step) };
+  }
+
+  if (key === "Home") {
+    const patch: Record<string, number> = { [delayField]: 0 };
+    if (durationField) patch[durationField] = duration;
+    return patch;
+  }
+
+  return null;
 }
 
 export function buildTimelineModel(config: Record<string, any>) {
