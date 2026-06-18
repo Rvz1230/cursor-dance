@@ -4,11 +4,14 @@ import { createThemeDraft } from "../model/workbenchSchema";
 import {
   DELAY_FIELD_BY_TRACK,
   DURATION_FIELD_BY_TRACK,
+  PREVIEW_CYCLE_IDLE_MS,
   TRACK_DEFAULTS,
   buildMinorTicks,
   buildTickMarks,
+  buildTimelineModel,
   buildTimelineTracks,
   formatTickMs,
+  getPreviewCycleMs,
 } from "./timelineModel";
 import {
   getActionAnimationConfig,
@@ -93,6 +96,36 @@ describe("timelineModel", () => {
     expect(buildTickMarks(1300)).toEqual([0, 200, 400, 600, 800, 1000, 1200, 1300]);
     expect(buildTickMarks(2600)).toEqual([0, 500, 1000, 1500, 2000, 2500, 2600]);
     expect(buildMinorTicks(100)).toEqual([20, 40, 60, 80]);
+  });
+
+  it("builds action-config timeline models and preview cycles from the same total", () => {
+    const config = {
+      ...createThemeDraft("mono-geo").actionConfigs.leftClick,
+      particleDelay: 80,
+      sound: true,
+      soundDelay: 400,
+    };
+
+    const model = buildTimelineModel(config);
+
+    expect(model.totalMs).toBe(buildTimelineFromActionConfig(config).totalMs);
+    expect(getPreviewCycleMs(config)).toBe(model.totalMs + PREVIEW_CYCLE_IDLE_MS);
+  });
+
+  it("includes delayed audio-only feedback in the shared preview cycle", () => {
+    const config = {
+      ...createThemeDraft("mono-geo").actionConfigs.rightClick,
+      textEnabled: false,
+      ripple: false,
+      particle: false,
+      animationEnabled: false,
+      imageEnabled: false,
+      sound: true,
+      soundDelay: 1700,
+    };
+
+    expect(buildTimelineModel(config).totalMs).toBe(1900);
+    expect(getPreviewCycleMs(config)).toBe(1900 + PREVIEW_CYCLE_IDLE_MS);
   });
 
   it("formats timeline labels and exposes editable field mappings", () => {

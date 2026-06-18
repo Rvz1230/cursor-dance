@@ -13,6 +13,7 @@ import {
   PREVIEW_KEYFRAMES,
   hexToRgba,
 } from "../theme-workbench/lib/preview";
+import { getPreviewCycleMs } from "../theme-workbench/lib/timelineModel";
 
 // ═══════════════════════════════════════════════════════════════════
 // Custom keyframes — hand-written to exactly match visual-effects.js
@@ -362,8 +363,7 @@ export default function AnimatedPreview({ actionConfig, accent }) {
   const particleDuration = Math.min(cfg.particleDuration || 780, 1200);
   const rippleDuration = Math.min(cfg.rippleDuration || 860, 1400);
   const textDuration = Math.min(cfg.textDuration || 1000, 2000);
-  const maxStagger = ((cfg.particleStagger ?? 26) * 11) || 300;
-  const cycleMs = Math.max(particleDuration + maxStagger, rippleDuration, textDuration) + 800;
+  const cycleMs = getPreviewCycleMs(cfg);
 
   const [burstKey, setBurstKey] = useState(0);
 

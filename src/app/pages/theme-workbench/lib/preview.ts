@@ -9,6 +9,8 @@ import {
   getActionTriggerConfig,
 } from "../model/workbenchSchema";
 
+import { getPreviewCycleMs } from "./timelineModel";
+
 // Computation logic shared with runtime content-script
 import {
   hexToRgba as _hexToRgba,
@@ -129,24 +131,7 @@ export function getTextShadowValue(config) {
 }
 
 export function getPreviewLoopDelay(config) {
-  const textConfig = getActionTextConfig(config);
-  const animationConfig = getActionAnimationConfig(config);
-  const imageConfig = getActionImageConfig(config);
-  const particleConfig = getActionParticleConfig(config);
-  const rippleConfig = getActionRippleConfig(config);
-  const audioConfig = getActionAudioConfig(config);
-
-  return (
-    Math.max(
-      textConfig.textEnabled ? (textConfig.textDelay || 0) + textConfig.textDuration : 0,
-      animationConfig.animationEnabled ? (animationConfig.animationDelay || 0) + animationConfig.animationDuration : 0,
-      imageConfig.imageEnabled ? (imageConfig.imageDelay || 0) + imageConfig.imageDuration : 0,
-      particleConfig.particle ? (particleConfig.particleDelay || 0) + particleConfig.particleDuration : 0,
-      rippleConfig.ripple ? (rippleConfig.rippleDelay || 0) + rippleConfig.rippleDuration : 0,
-      audioConfig.sound ? (audioConfig.soundDelay || 0) + 880 : 0,
-      1400
-    ) + 900
-  );
+  return getPreviewCycleMs(config);
 }
 
 export function getPreviewAnimationStyle(config) {

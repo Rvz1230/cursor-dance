@@ -14,7 +14,7 @@ import {
   TRACK_DEFAULTS,
   buildMinorTicks,
   buildTickMarks,
-  buildTimelineTracks,
+  buildTimelineModel,
   formatTickMs,
 } from "../lib/timelineModel";
 import {
@@ -412,10 +412,7 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, act
   const audioConfig = useMemo(() => getActionAudioConfig(config), [config]);
   const animationConfig = useMemo(() => getActionAnimationConfig(config), [config]);
   const imageConfig = useMemo(() => getActionImageConfig(config), [config]);
-  const timeline = useMemo(
-    () => buildTimelineTracks({ textConfig, particleConfig, rippleConfig, audioConfig, animationConfig, imageConfig, config }),
-    [textConfig, particleConfig, rippleConfig, audioConfig, animationConfig, imageConfig, config]
-  );
+  const timeline = useMemo(() => buildTimelineModel(config), [config]);
 
   const soundDelay = audioConfig.soundDelay || 0;
 

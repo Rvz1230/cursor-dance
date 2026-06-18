@@ -1,3 +1,11 @@
+import {
+  getActionAnimationConfig,
+  getActionAudioConfig,
+  getActionImageConfig,
+  getActionParticleConfig,
+  getActionRippleConfig,
+  getActionTextConfig,
+} from "../model/actionConfigSchema";
 import { computeRippleLayers } from "./computeSpecs";
 
 export type TimelineTrackId = "text" | "ripple" | "particle" | "animation" | "image" | "audio";
@@ -54,6 +62,9 @@ export const TRACK_DEFAULTS: Record<TimelineTrackId, { delay: number; duration?:
   audio: { delay: 0 },
 };
 
+export const TIMELINE_MIN_TOTAL_MS = 820;
+export const PREVIEW_CYCLE_IDLE_MS = 800;
+
 export function buildTimelineTracks({ textConfig, particleConfig, rippleConfig, audioConfig, animationConfig, imageConfig, config }: TimelineModelInput) {
   const tracks: TimelineTrack[] = [];
   const textDelay = textConfig.textDelay || 0;
@@ -78,7 +89,7 @@ export function buildTimelineTracks({ textConfig, particleConfig, rippleConfig, 
   if (imageConfig.imageEnabled && imageConfig.imageDataUrl) tracks.push({ id: "image", label: "贴纸", tone: "violet", start: imageDelay, end: imageDelay + imageConfig.imageDuration, configuredDuration: imageConfig.imageDuration, markers: [{ label: "弹出", at: imageDelay }, { label: "离场", at: imageDelay + imageConfig.imageDuration }] });
   if (audioConfig.sound) tracks.push({ id: "audio", label: "音效", tone: "slate", start: soundDelay, end: soundDelay + 120, markers: [{ label: "播放", at: soundDelay }] });
 
-  const totalMs = Math.max(820, ...tracks.map((track) => track.end));
+  const totalMs = Math.max(TIMELINE_MIN_TOTAL_MS, ...tracks.map((track) => track.end));
   return { tracks, totalMs: Math.ceil(totalMs / 100) * 100 };
 }
 
@@ -105,4 +116,20 @@ export function buildMinorTicks(totalMs: number): number[] {
 export function formatTickMs(ms: number): string {
   if (ms < 1000) return `${ms}ms`;
   return `${(ms / 1000).toFixed(ms % 1000 === 0 ? 1 : 2)}s`;
+}
+
+export function buildTimelineModel(config: Record<string, any>) {
+  return buildTimelineTracks({
+    textConfig: getActionTextConfig(config),
+    particleConfig: getActionParticleConfig(config),
+    rippleConfig: getActionRippleConfig(config),
+    audioConfig: getActionAudioConfig(config),
+    animationConfig: getActionAnimationConfig(config),
+    imageConfig: getActionImageConfig(config),
+    config,
+  });
+}
+
+export function getPreviewCycleMs(config: Record<string, any>): number {
+  return buildTimelineModel(config).totalMs + PREVIEW_CYCLE_IDLE_MS;
 }
