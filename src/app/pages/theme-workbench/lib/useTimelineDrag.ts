@@ -28,7 +28,7 @@ export function useTimelineDrag({ mode, pxPerMs, snapMs = 20, minMs = 0, onChang
 
   const onPointerDown = useCallback(
     (event) => {
-      if (event.button !== 0) return;
+      if (event.button !== 0 || pxPerMs <= 0) return;
       event.preventDefault();
       event.stopPropagation();
       const el = event.currentTarget;
@@ -40,7 +40,7 @@ export function useTimelineDrag({ mode, pxPerMs, snapMs = 20, minMs = 0, onChang
 
       if (onChange) onChange(null); // signal drag start
     },
-    [onChange]
+    [onChange, pxPerMs]
   );
 
   const onPointerMove = useCallback(

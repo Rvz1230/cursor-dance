@@ -4,11 +4,19 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/utils";
 import {
   PREVIEW_KEYFRAMES,
-  buildRippleSpecs,
   getPreviewSoundFile,
   getPreviewTriggerSummary,
 } from "../lib/preview";
 import { useTimelineDrag } from "../lib/useTimelineDrag";
+import {
+  DELAY_FIELD_BY_TRACK,
+  DURATION_FIELD_BY_TRACK,
+  TRACK_DEFAULTS,
+  buildMinorTicks,
+  buildTickMarks,
+  buildTimelineTracks,
+  formatTickMs,
+} from "../lib/timelineModel";
 import {
   PANEL_META,
   getActionAnimationConfig,
@@ -49,34 +57,6 @@ function buildOutputTags({ textConfig, particleConfig, rippleConfig, audioConfig
   return tags;
 }
 
-function buildTimelineTracks({ textConfig, particleConfig, rippleConfig, audioConfig, animationConfig, imageConfig, config }) {
-  const tracks = [];
-  const textDelay = textConfig.textDelay || 0;
-  const rippleDelay = rippleConfig.rippleDelay || 0;
-  const particleDelay = particleConfig.particleDelay || 0;
-  const animationDelay = animationConfig.animationDelay || 0;
-  const imageDelay = imageConfig.imageDelay || 0;
-  const soundDelay = audioConfig.soundDelay || 0;
-
-  const ripples = rippleConfig.ripple ? buildRippleSpecs(config) : [];
-  const rippleEnd = rippleDelay + ripples.reduce((max, ripple) => Math.max(max, ripple.delay + rippleConfig.rippleDuration), 0);
-  const particleEnd = particleConfig.particle
-    ? (particleConfig.particleMotionMode === "orbital"
-      ? particleDelay + Math.max(particleConfig.particleDuration || 3000, 1000)
-      : particleDelay + particleConfig.particleDuration + Math.min(520, Math.max(0, particleConfig.particleCount - 1) * (particleConfig.particleStagger ?? 26)))
-    : 0;
-
-  if (textConfig.textEnabled) tracks.push({ id: "text", label: "飘字", tone: "rose", start: textDelay, end: textDelay + textConfig.textDuration, configuredDuration: textConfig.textDuration, markers: [{ label: "出现", at: textDelay }, { label: "峰值", at: textDelay + Math.round(textConfig.textDuration * 0.18) }, { label: "淡出", at: textDelay + textConfig.textDuration }] });
-  if (rippleConfig.ripple) tracks.push({ id: "ripple", label: "波纹", tone: "teal", start: rippleDelay, end: rippleEnd, configuredDuration: rippleConfig.rippleDuration, markers: [{ label: "扩散", at: rippleDelay }, { label: "最大", at: rippleEnd }] });
-  if (particleConfig.particle) tracks.push({ id: "particle", label: "粒子", tone: "amber", start: particleDelay, end: particleEnd, configuredDuration: particleConfig.particleDuration, markers: [{ label: "喷发", at: particleDelay }, { label: "散开", at: Math.round(particleDelay + (particleEnd - particleDelay) * 0.55) }] });
-  if (animationConfig.animationEnabled) tracks.push({ id: "animation", label: "动画", tone: "sky", start: animationDelay, end: animationDelay + animationConfig.animationDuration, configuredDuration: animationConfig.animationDuration, markers: [{ label: "入场", at: animationDelay }, { label: "收束", at: animationDelay + animationConfig.animationDuration }] });
-  if (imageConfig.imageEnabled && imageConfig.imageDataUrl) tracks.push({ id: "image", label: "贴纸", tone: "violet", start: imageDelay, end: imageDelay + imageConfig.imageDuration, configuredDuration: imageConfig.imageDuration, markers: [{ label: "弹出", at: imageDelay }, { label: "离场", at: imageDelay + imageConfig.imageDuration }] });
-  if (audioConfig.sound) tracks.push({ id: "audio", label: "音效", tone: "slate", start: soundDelay, end: soundDelay + 120, markers: [{ label: "播放", at: soundDelay }] });
-
-  const totalMs = Math.max(820, ...tracks.map((track) => track.end));
-  return { tracks, totalMs: Math.ceil(totalMs / 100) * 100 };
-}
-
 function getTimelineTone(tone) {
   if (tone === "rose") return { bg: "bg-rose-200", text: "text-rose-600", dot: "bg-rose-500", border: "border-rose-300/60", gradient: "from-rose-200/90 to-rose-300/80" };
   if (tone === "teal") return { bg: "bg-teal-200", text: "text-teal-600", dot: "bg-teal-500", border: "border-teal-300/60", gradient: "from-teal-200/90 to-teal-300/80" };
@@ -86,56 +66,11 @@ function getTimelineTone(tone) {
   return { bg: "bg-slate-200", text: "text-slate-600", dot: "bg-slate-500", border: "border-slate-300/60", gradient: "from-slate-200/90 to-slate-300/80" };
 }
 
-const DELAY_FIELD_BY_TRACK = {
-  text: "textDelay",
-  ripple: "rippleDelay",
-  particle: "particleDelay",
-  animation: "animationDelay",
-  image: "imageDelay",
-  audio: "soundDelay",
-};
-
-const DURATION_FIELD_BY_TRACK = {
-  text: "textDuration",
-  ripple: "rippleDuration",
-  particle: "particleDuration",
-  animation: "animationDuration",
-  image: "imageDuration",
-};
-
-const TRACK_DEFAULTS = {
-  text: { delay: 0, duration: 1000 },
-  ripple: { delay: 0, duration: 820 },
-  particle: { delay: 0, duration: 760 },
-  animation: { delay: 0, duration: 720 },
-  image: { delay: 0, duration: 780 },
-  audio: { delay: 0 },
-};
-
-function buildTickMarks(totalMs) {
-  const step = totalMs <= 1200 ? 100 : totalMs <= 2400 ? 200 : 500;
-  const ticks = [];
-  for (let t = 0; t <= totalMs; t += step) {
-    ticks.push(t);
-  }
-  if (ticks[ticks.length - 1] !== totalMs) ticks.push(totalMs);
-  return ticks;
-}
-
-function buildMinorTicks(totalMs) {
-  const step = totalMs <= 1200 ? 100 : totalMs <= 2400 ? 200 : 500;
-  const minorStep = step / 5;
-  const ticks = [];
-  for (let t = minorStep; t < totalMs; t += minorStep) {
-    if (t % step !== 0) ticks.push(t);
-  }
-  return ticks;
-}
-
-function formatTickMs(ms) {
-  if (ms < 1000) return `${ms}ms`;
-  return `${(ms / 1000).toFixed(ms % 1000 === 0 ? 1 : 2)}s`;
-}
+const INTERVAL_PRESETS = [
+  { label: "慢速", value: 2400 },
+  { label: "标准", value: 1200 },
+  { label: "快速", value: 600 },
+];
 
 function TrackHandle({ side, track, totalMs, pxPerMs, updateActionConfig }) {
   const isLeft = side === "left";
@@ -236,8 +171,8 @@ function TimelineTrackRow({ track, totalMs, pxPerMs, updateActionConfig, isEven 
 
   return (
     <div className={cn(
-      "group relative grid grid-cols-[42px_minmax(0,1fr)] items-center gap-2.5 py-1 -mx-1 px-1 rounded-lg transition-colors",
-      isEven ? "bg-slate-50/60" : "bg-white"
+      "group relative grid grid-cols-[42px_minmax(0,1fr)] items-center gap-2.5 py-1 -mx-1 px-1 rounded-lg transition-colors duration-150",
+      isMoving ? "bg-slate-100" : isEven ? "bg-slate-50/60 hover:bg-slate-100/80" : "bg-white hover:bg-slate-50"
     )}>
       <div className="flex items-center gap-1.5">
         <span className={cn("size-1.5 rounded-full shrink-0", tone.dot)} />
@@ -247,6 +182,7 @@ function TimelineTrackRow({ track, totalMs, pxPerMs, updateActionConfig, isEven 
             type="button"
             className="hidden group-hover:flex size-4 items-center justify-center rounded-full bg-slate-200 text-slate-500 hover:bg-slate-300 hover:text-slate-700 transition-colors shrink-0"
             title="重置延迟和时长"
+            aria-label={`重置${track.label}延迟和时长`}
             onClick={(e) => {
               e.stopPropagation();
               const patch = {};
@@ -292,12 +228,12 @@ function TimelineTrackRow({ track, totalMs, pxPerMs, updateActionConfig, isEven 
         {DELAY_FIELD_BY_TRACK[track.id] ? (
         <div
           className={cn(
-            "absolute top-1/2 h-5 -translate-y-1/2 rounded-md transition-all duration-150",
+            "absolute top-1/2 h-5 -translate-y-1/2 rounded-md transition-[filter,box-shadow,transform] duration-150",
             "bg-gradient-to-b border shadow-sm",
             tone.gradient, tone.border,
             isMoving
               ? "shadow-md ring-1 ring-slate-400/50 cursor-grabbing z-10 brightness-95 scale-y-110"
-              : "cursor-grab group-hover:shadow-md group-hover:brightness-100"
+              : "cursor-grab group-hover:shadow-md group-hover:brightness-105"
           )}
           style={{ left: leftPct, width: widthPct }}
           {...moveHandlers}
@@ -324,12 +260,21 @@ function TimelineTrackRow({ track, totalMs, pxPerMs, updateActionConfig, isEven 
   );
 }
 
-function InteractiveTimeline({ tracks, totalMs, updateActionConfig }) {
+function InteractiveTimeline({ tracks, totalMs, disabled, canEditEmptyState, updateActionConfig, runId }) {
   const containerRef = useRef(null);
   const [containerWidth, setContainerWidth] = useState(0);
+  const [playheadKey, setPlayheadKey] = useState(0);
+  const [isPlayheadRunning, setIsPlayheadRunning] = useState(false);
   const tickMarks = useMemo(() => buildTickMarks(totalMs), [totalMs]);
   const minorTicks = useMemo(() => buildMinorTicks(totalMs), [totalMs]);
   const pxPerMs = containerWidth > 0 ? containerWidth / totalMs : 0;
+
+  useEffect(() => {
+    setPlayheadKey((value) => value + 1);
+    setIsPlayheadRunning(false);
+    const frame = requestAnimationFrame(() => setIsPlayheadRunning(true));
+    return () => cancelAnimationFrame(frame);
+  }, [runId]);
 
   const hasAnyDirty = tracks.some((t) => {
     const d = TRACK_DEFAULTS[t.id];
@@ -367,7 +312,8 @@ function InteractiveTimeline({ tracks, totalMs, updateActionConfig }) {
       <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-2">
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-slate-700">时间轴编排</span>
-          <span className="text-2xs tabular-nums text-slate-400 bg-slate-100 rounded-md px-1.5 py-0.5">{totalMs}ms</span>
+          <span className="text-2xs tabular-nums text-slate-400 bg-slate-100 rounded-md px-1.5 py-0.5">总长 {formatTickMs(totalMs)}</span>
+          <span className="hidden rounded-md bg-slate-50 px-1.5 py-0.5 text-2xs font-medium text-slate-400 sm:inline">Snap 20ms</span>
         </div>
         <div className="flex items-center gap-1.5">
           {hasAnyDirty ? (
@@ -409,7 +355,23 @@ function InteractiveTimeline({ tracks, totalMs, updateActionConfig }) {
       </div>
 
       {/* tracks */}
-      <div ref={containerRef} className="px-3 pb-3 pt-2 space-y-1">
+      <div ref={containerRef} className="relative px-3 pb-3 pt-2 space-y-1">
+        {tracks.length ? (
+          <div
+            key={playheadKey}
+            className="pointer-events-none absolute bottom-3 top-2 z-20 w-px bg-slate-900/70 motion-reduce:hidden"
+            style={{
+              left: "12px",
+              transform: `translateX(${isPlayheadRunning ? containerWidth : 0}px)`,
+              transition: isPlayheadRunning ? `transform ${totalMs}ms linear` : "none",
+            }}
+            aria-hidden="true"
+          >
+            <span className="absolute -top-5 left-1/2 -translate-x-1/2 rounded-md bg-slate-900 px-1.5 py-0.5 text-2xs font-semibold tabular-nums text-white shadow-sm">
+              {formatTickMs(totalMs)}
+            </span>
+          </div>
+        ) : null}
         {tracks.length ? tracks.map((track, i) => (
           <TimelineTrackRow
             key={track.id}
@@ -420,8 +382,22 @@ function InteractiveTimeline({ tracks, totalMs, updateActionConfig }) {
             isEven={i % 2 === 0}
           />
         )) : (
-          <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50/50 px-3 py-3 text-xs text-slate-500 text-center">
-            当前动作没有开启可播放的视觉效果，在左侧配置面板中开启至少一项效果。
+          <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50/70 px-3 py-4 text-center">
+            <div className="text-xs font-medium text-slate-700 text-balance">当前动作还没有可播放的视觉效果</div>
+            <div className="mt-1 text-2xs text-slate-500 text-pretty">先在左侧开启一个基础反馈，再回到时间轴微调节奏。</div>
+            {canEditEmptyState ? (
+              <div className="mt-3 flex flex-wrap justify-center gap-1.5">
+                <Button variant="outline" size="sm" className="h-7 rounded-lg px-2.5 text-2xs font-semibold" disabled={disabled} onClick={() => updateActionConfig({ ripple: true })}>
+                  开启波纹
+                </Button>
+                <Button variant="outline" size="sm" className="h-7 rounded-lg px-2.5 text-2xs font-semibold" disabled={disabled} onClick={() => updateActionConfig({ particle: true })}>
+                  开启粒子
+                </Button>
+                <Button variant="outline" size="sm" className="h-7 rounded-lg px-2.5 text-2xs font-semibold" disabled={disabled} onClick={() => updateActionConfig({ textEnabled: true })}>
+                  开启飘字
+                </Button>
+              </div>
+            ) : null}
           </div>
         )}
       </div>
@@ -429,7 +405,7 @@ function InteractiveTimeline({ tracks, totalMs, updateActionConfig }) {
   );
 }
 
-function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, actionConfigsMap, outputs, triggerInterval, updateActionConfig, atmosphere }) {
+function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, actionConfigsMap, outputs, triggerInterval, previewMode, updateActionConfig, atmosphere }) {
   const textConfig = useMemo(() => getActionTextConfig(config), [config]);
   const particleConfig = useMemo(() => getActionParticleConfig(config), [config]);
   const rippleConfig = useMemo(() => getActionRippleConfig(config), [config]);
@@ -460,6 +436,7 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, act
   const actionConfigsMapRef = useRef(actionConfigsMap);
   actionConfigsMapRef.current = actionConfigsMap;
   const engineRef = useRef(null);
+  const doubleClickIdleTimeoutRef = useRef<number | null>(null);
 
   // ── 预览模拟状态 ──
   const [simState, setSimState] = useState<
@@ -538,6 +515,10 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, act
       try { engine.visualEffects.clearOrbitalParticles(); } catch {}
       // close 异步返回 Promise，吞错即可（unmount 阶段对 fail-safe 不敏感）
       try { engineState.audioContext?.close().catch(() => {}); } catch {}
+      if (doubleClickIdleTimeoutRef.current !== null) {
+        window.clearTimeout(doubleClickIdleTimeoutRef.current);
+        doubleClickIdleTimeoutRef.current = null;
+      }
       if (root.parentElement) root.parentElement.removeChild(root);
       // STYLE_ID 用唯一前缀挂在 document.head，一并清理
       const style = document.getElementById(constants.STYLE_ID);
@@ -558,6 +539,11 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, act
     const cy = Math.round(rect.height / 2);
     const aid = actionIdRef.current;
 
+    if (doubleClickIdleTimeoutRef.current !== null) {
+      window.clearTimeout(doubleClickIdleTimeoutRef.current);
+      doubleClickIdleTimeoutRef.current = null;
+    }
+
     // 模拟多步动作时更新视觉状态
     if (aid === "longPress") {
       const holdMs = config.holdMs || 420;
@@ -565,7 +551,10 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, act
       setLpProgress(0);
     } else if (aid === "doubleClick") {
       setSimState({ type: "doubleClick-waiting" });
-      setTimeout(() => setSimState({ type: "idle" }), 300);
+      doubleClickIdleTimeoutRef.current = window.setTimeout(() => {
+        setSimState({ type: "idle" });
+        doubleClickIdleTimeoutRef.current = null;
+      }, 300);
     } else {
       setSimState({ type: "idle" });
     }
@@ -602,6 +591,10 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, act
     handle.state.lastLeftPointerUpAt = 0;
     if (handle.state.longPressState?.timeoutId !== undefined) {
       window.clearTimeout(handle.state.longPressState.timeoutId);
+    }
+    if (doubleClickIdleTimeoutRef.current !== null) {
+      window.clearTimeout(doubleClickIdleTimeoutRef.current);
+      doubleClickIdleTimeoutRef.current = null;
     }
     handle.state.longPressState = null;
     setSimState({ type: "idle" });
@@ -685,6 +678,10 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, act
 
         <div className="absolute inset-x-10 bottom-12 h-4 rounded-full bg-slate-200/45" />
         <div className="absolute inset-x-8 bottom-9 h-px bg-slate-300/80" />
+        <div className="pointer-events-none absolute inset-x-8 bottom-9 top-20 z-10 flex items-center justify-center" aria-hidden="true">
+          <span className="absolute size-12 rounded-full border border-slate-300/70 opacity-60 motion-safe:animate-[cursorDancePreviewPulse_1200ms_ease-out_infinite]" />
+          <span className="size-2.5 rounded-full border border-white bg-slate-900 shadow-sm" />
+        </div>
 
         {/* 引擎效果挂载点。translateZ(0) 创造 transform 上下文，
             让引擎里 .cd-effect 的 position:fixed 改以本节点为 containing block，
@@ -744,7 +741,7 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, act
           </div>
         ) : null}
       </div>
-      <InteractiveTimeline tracks={timeline.tracks} totalMs={timeline.totalMs} updateActionConfig={updateActionConfig} />
+      <InteractiveTimeline tracks={timeline.tracks} totalMs={timeline.totalMs} disabled={disabled} canEditEmptyState={!previewMode && !disabled} updateActionConfig={updateActionConfig} runId={runId} />
     </div>
   );
 }
@@ -821,7 +818,7 @@ export function WorkbenchPreviewRail({ actionLabel, actionId = "leftClick", conf
         timerRef.current = null;
       }
     };
-  }, [autoPlay, disabled, triggerInterval, comboWindowMs]);
+  }, [autoPlay, disabled, triggerInterval, comboWindowMs, actionId, config.holdMs]);
 
   return (
     <div className="min-h-0 flex-1">
@@ -849,8 +846,26 @@ export function WorkbenchPreviewRail({ actionLabel, actionId = "leftClick", conf
             >
               {autoPlay ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
             </Button>
-            <div className="ml-1 grid h-8 grid-cols-[auto_72px_auto] items-center gap-2 rounded-lg border border-slate-200 bg-white px-2" aria-label="触发间隔">
-              <span className="text-xs font-medium text-slate-500">频率</span>
+            <div className="ml-1 flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2" aria-label="循环间隔">
+              <span className="text-xs font-medium text-slate-500">循环间隔</span>
+              <div className="hidden items-center gap-1 xl:flex">
+                {INTERVAL_PRESETS.map((preset) => (
+                  <button
+                    key={preset.value}
+                    type="button"
+                    className={cn(
+                      "rounded-md px-1.5 py-0.5 text-2xs font-semibold transition-colors",
+                      triggerInterval === preset.value
+                        ? "bg-slate-900 text-white"
+                        : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                    )}
+                    onClick={() => setTriggerInterval(preset.value)}
+                    disabled={disabled}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
               <input
                 type="range"
                 min={200}
@@ -859,15 +874,15 @@ export function WorkbenchPreviewRail({ actionLabel, actionId = "leftClick", conf
                 value={triggerInterval}
                 disabled={disabled}
                 onChange={(event) => setTriggerInterval(Number(event.target.value))}
-                className="h-1.5 w-full accent-slate-950"
-                aria-label="调整触发间隔"
+                className="h-1.5 w-20 accent-slate-950"
+                aria-label="调整循环间隔"
               />
               <span className="w-8 text-right text-xs font-semibold tabular-nums text-slate-900">{formatTriggerInterval(triggerInterval)}</span>
             </div>
           </div>
         }
       >
-        <SimplePreviewStage config={config} disabled={disabled} runId={runId} comboIndex={displayComboIndex} actionId={actionId} actionConfigsMap={actionConfigsMap} outputs={outputs} triggerInterval={triggerInterval} updateActionConfig={updateActionConfig} atmosphere={atmosphere} />
+        <SimplePreviewStage config={config} disabled={disabled} runId={runId} comboIndex={displayComboIndex} actionId={actionId} actionConfigsMap={actionConfigsMap} outputs={outputs} triggerInterval={triggerInterval} previewMode={previewMode} updateActionConfig={updateActionConfig} atmosphere={atmosphere} />
       </Panel>
     </div>
   );
