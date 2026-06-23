@@ -779,6 +779,7 @@ export function AiSchemePanel({
 
   const canSubmit = useMemo(() => prompt.trim().length > 0 && !isGenerating && !cooldownActive, [prompt, isGenerating, cooldownActive]);
   const previewActive = Boolean(pendingResult && previewProposal === pendingResult);
+  const canOpenProviderSettings = Boolean(onOpenAiSettings && error.includes("API Key"));
   const scrollRef = useRef(null);
   const textareaRef = useRef(null);
 
@@ -1334,6 +1335,15 @@ export function AiSchemePanel({
           {error ? (
             <InlineStatus tone="error" role="alert">
               <span>{error}</span>
+              {canOpenProviderSettings ? (
+                <button
+                  type="button"
+                  className="ml-2 shrink-0 rounded-lg border border-rose-200 bg-white px-2 py-1 text-xs font-medium text-rose-600 transition-colors hover:bg-rose-100 active:scale-[0.97]"
+                  onClick={onOpenAiSettings}
+                >
+                  打开 AI 设置
+                </button>
+              ) : null}
               {lastPrompt ? (
                 <button
                   type="button"

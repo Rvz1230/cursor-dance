@@ -30,6 +30,18 @@ function isRetryableError(error) {
   return status === 502 || status === 503 || status === 504;
 }
 
+function createHttpError(response, payload) {
+  let errorMessage = `AI API responded with ${response.status}`;
+  let errorCode = response.status === 401 || response.status === 403 ? "permission_denied" : "api_failed";
+  if (typeof payload?.error === "string" && payload.error.trim()) errorMessage = payload.error.trim();
+  if (typeof payload?.details === "string" && payload.details.trim()) errorMessage = `${errorMessage}: ${payload.details.trim()}`;
+  if (typeof payload?.code === "string" && payload.code.trim()) errorCode = payload.code.trim();
+  const requestError = new Error(errorMessage);
+  requestError.status = response.status;
+  requestError.code = errorCode;
+  throw requestError;
+}
+
 async function makeAiSchemeRequest({ endpoint, headers, body, timeoutMs }) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -43,26 +55,13 @@ async function makeAiSchemeRequest({ endpoint, headers, body, timeoutMs }) {
     });
 
     if (!response.ok) {
-      let errorMessage = `AI API responded with ${response.status}`;
-      let errorCode = response.status === 401 || response.status === 403 ? "permission_denied" : "api_failed";
+      let errorPayload = null;
       try {
-        const errorPayload = await response.json();
-        if (typeof errorPayload?.error === "string" && errorPayload.error.trim()) {
-          errorMessage = errorPayload.error.trim();
-        }
-        if (typeof errorPayload?.details === "string" && errorPayload.details.trim()) {
-          errorMessage = `${errorMessage}: ${errorPayload.details.trim()}`;
-        }
-        if (typeof errorPayload?.code === "string" && errorPayload.code.trim()) {
-          errorCode = errorPayload.code.trim();
-        }
+        errorPayload = await response.json();
       } catch {
         // Keep the original status-based error when the backend does not return JSON.
       }
-      const requestError = new Error(errorMessage);
-      requestError.status = response.status;
-      requestError.code = errorCode;
-      throw requestError;
+      createHttpError(response, errorPayload);
     }
 
     return await response.json();
@@ -213,12 +212,11 @@ export async function requestAiSchemeEditStreaming({ prompt, currentConfig, acti
     });
 
     if (!response.ok) {
-      let errorMessage = `AI API responded with ${response.status}`;
+      let errorPayload = null;
       try {
-        const errorPayload = await response.json();
-        errorMessage = errorPayload?.error || errorMessage;
+        errorPayload = await response.json();
       } catch { /* keep status-based message */ }
-      throw new Error(errorMessage);
+      createHttpError(response, errorPayload);
     }
 
     const result = await parseSseStream(response, onProgress, signal);
@@ -272,12 +270,11 @@ export async function requestAiAgentRun({ prompt, currentConfig, actionConfigs, 
     });
 
     if (!response.ok) {
-      let errorMessage = `AI API responded with ${response.status}`;
+      let errorPayload = null;
       try {
-        const errorPayload = await response.json();
-        errorMessage = errorPayload?.error || errorMessage;
+        errorPayload = await response.json();
       } catch { /* keep status-based message */ }
-      throw new Error(errorMessage);
+      createHttpError(response, errorPayload);
     }
 
     const result = await parseAgentSseStream(response, onEvent, signal);

@@ -1,6 +1,6 @@
 import { formatActionLabel } from "./model/workbenchSchema";
 import type { ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useThemeWorkbenchState } from "./hooks/useThemeWorkbenchState";
 import { BindingsPanel } from "./components/BindingsPanel";
@@ -11,7 +11,7 @@ import { StatesPanel } from "./components/StatesPanel";
 import { KeyboardPanel } from "./components/KeyboardPanel";
 import { WorkbenchHeader } from "./components/WorkbenchHeader";
 import { AiSchemePanel } from "./components/AiSchemePanel";
-import { getAiProposalNextConfigForAction } from "./lib/aiSchemeAssistant";
+import { mergeActionConfig } from "./lib/aiSchemeAssistant";
 import { ActionTab, ColumnResizeHandle, WorkspaceItem } from "./components/WorkbenchControls";
 import { WorkbenchPanel } from "./components/WorkbenchPanel";
 import { WorkbenchPreviewRail } from "./components/WorkbenchPreviewRail";
@@ -280,12 +280,29 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
     updateKeyFeedbackConfig,
   } = useThemeWorkbenchState();
   const currentWorkspace = workspaceItems.find((item) => item.id === state.workspaceId);
-  const previewActionConfig = getAiProposalNextConfigForAction(previewProposal, selected.actionId, currentActionConfig);
+  const previewActionConfigsMap = useMemo(() => {
+    if (!previewProposal || !draft?.actionConfigs) return draft?.actionConfigs;
+    return (previewProposal.targets || []).reduce((configs, target) => {
+      if (target?.type !== "action" || !target.actionId || !target.patch || !Object.keys(target.patch).length) {
+        return configs;
+      }
+      return {
+        ...configs,
+        [target.actionId]: mergeActionConfig(configs[target.actionId], target.patch),
+      };
+    }, draft.actionConfigs);
+  }, [draft?.actionConfigs, previewProposal]);
+  const previewActionConfig = previewActionConfigsMap?.[selected.actionId] || currentActionConfig;
+  const isPreviewingAiProposal = Boolean(
+    previewProposal?.targets?.some(
+      (target) => target?.type === "action" && target.actionId === selected.actionId && Object.keys(target.patch || {}).length,
+    ),
+  );
   const siteAction = getRuntimeConfig().resolveSiteRule(state.siteRules, state.site.host);
 
   useEffect(() => {
     setPreviewProposal(null);
-  }, [selected.actionId, selected.themeId]);
+  }, [selected.themeId]);
 
   // 任务 4.3：检测首次启动 + 探测辅助功能授权状态。
   // 两个 IPC 都是只读查询，挂载时跑一次即可；用户翻 enable/disable 不影响这里。
@@ -509,10 +526,10 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                     <WorkbenchPreviewRail
                       actionLabel={formatActionLabel(selected.actionId)}
                       actionId={selected.actionId}
-                      config={previewActionConfig || currentActionConfig}
-                      actionConfigsMap={draft?.actionConfigs}
+                      config={previewActionConfig}
+                      actionConfigsMap={previewActionConfigsMap}
                       disabled={siteAction === "disable"}
-                      previewMode={Boolean(previewActionConfig)}
+                      previewMode={isPreviewingAiProposal}
                       updateActionConfig={updateActionConfig}
                       atmosphere={draft?.atmosphere}
                     />

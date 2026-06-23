@@ -25,6 +25,7 @@ import {
   getEmbeddedAiAgentEndpoint,
   getEmbeddedAiServerEndpoint,
   getEmbeddedAiServerStreamEndpoint,
+  startEmbeddedAiServer,
 } from "./api-server";
 
 export type AiRuntimeConfig = {
@@ -35,7 +36,8 @@ export type AiRuntimeConfig = {
   accessToken: string;
 };
 
-function getRuntimeConfig(): AiRuntimeConfig {
+async function getRuntimeConfig(): Promise<AiRuntimeConfig> {
+  await startEmbeddedAiServer();
   return {
     endpoint: getEmbeddedAiServerEndpoint(),
     streamEndpoint: getEmbeddedAiServerStreamEndpoint(),
@@ -45,7 +47,7 @@ function getRuntimeConfig(): AiRuntimeConfig {
 }
 
 export function registerAiIpc(): void {
-  ipcMain.handle(AI_GET_RUNTIME_CONFIG, (): AiRuntimeConfig => getRuntimeConfig());
+  ipcMain.handle(AI_GET_RUNTIME_CONFIG, (): Promise<AiRuntimeConfig> => getRuntimeConfig());
 
   ipcMain.handle(AI_GET_USER_SETTINGS, (): AiUserSettingsView => readSettingsView());
 
