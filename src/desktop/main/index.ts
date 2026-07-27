@@ -17,6 +17,7 @@ import { registerActiveWindowIpc, unregisterActiveWindowIpc } from "./active-win
 import { registerWindowControlsIpc, unregisterWindowControlsIpc } from "./window-controls";
 import { registerFirstRunIpc, unregisterFirstRunIpc } from "./first-run";
 import { registerAiIpc, unregisterAiIpc } from "./ai-ipc";
+import { registerCursorVisibilityIpc, restoreNativeCursor, unregisterCursorVisibilityIpc } from "./cursor-visibility";
 import { startEmbeddedAiServer, stopEmbeddedAiServer } from "./api-server";
 import { registerAutoUpdater } from "./auto-updater";
 import { createTray, destroyTray } from "./tray";
@@ -81,6 +82,7 @@ function setOverlayVisibility(visible: boolean): void {
       win.hide();
     }
   }
+  if (!visible) restoreNativeCursor();
 }
 
 function toggleEnabled(): void {
@@ -119,6 +121,7 @@ app.whenReady().then(() => {
   registerWindowControlsIpc();
   registerFirstRunIpc();
   registerAiIpc();
+  registerCursorVisibilityIpc();
 
   // 1) workbench 配置窗口（系统标题栏，任务 4.0 再改自绘）
   workbenchWindow = createWorkbenchWindow();
@@ -196,6 +199,8 @@ app.on("before-quit", () => {
   unregisterWindowControlsIpc();
   unregisterFirstRunIpc();
   unregisterAiIpc();
+  unregisterCursorVisibilityIpc();
+  restoreNativeCursor();
   stopEmbeddedAiServer().catch(() => undefined);
   destroyAllOverlays();
 });

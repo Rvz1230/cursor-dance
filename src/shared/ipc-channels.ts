@@ -46,6 +46,9 @@ export const APP_MARK_FIRST_RUN_COMPLETE = "cursordance:app-mark-first-run-compl
  *  WelcomeDialog 与应用规则面板的「打开辅助功能设置」按钮使用。 */
 export const APP_OPEN_EXTERNAL = "cursordance:app-open-external";
 
+/** renderer → 主进程：macOS overlay 自绘光标时隐藏 / 恢复系统原生 cursor。 */
+export const CURSOR_VISIBILITY_SET_HIDDEN = "cursordance:cursor-visibility-set-hidden";
+
 /** renderer → 主进程：自绘标题栏的窗口控制（最小化 / 切换最大化 / 关闭）。
  *  通过 BrowserWindow.fromWebContents(event.sender) 定位调用方窗口，无需带 windowId。 */
 export const WINDOW_MINIMIZE = "cursordance:window-minimize";

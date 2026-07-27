@@ -45,8 +45,45 @@ type KeyboardEventPayload = {
 type CursorDanceAPI = {
   onCursorEvent: (cb: (e: CursorEventPayload) => void) => () => void;
   offCursorEvent: (cb: (e: CursorEventPayload) => void) => void;
+  setNativeCursorHidden?: (hidden: boolean) => Promise<void>;
   onKeyboardEvent?: (cb: (e: KeyboardEventPayload) => void) => () => void;
   offKeyboardEvent?: (cb: (e: KeyboardEventPayload) => void) => void;
+};
+
+type CursorSkinStateId =
+  | "default"
+  | "text"
+  | "pointer"
+  | "grab"
+  | "grabbing"
+  | "busy"
+  | "notAllowed"
+  | "crosshair"
+  | "move"
+  | "resizeHorizontal"
+  | "resizeVertical"
+  | "resizeDiagonalNWSE"
+  | "resizeDiagonalNESW";
+
+type CursorSkinState = {
+  image?: {
+    dataUrl?: string;
+    width?: number;
+    height?: number;
+  };
+  hotspot?: {
+    x?: number;
+    y?: number;
+  };
+  size?: {
+    mode?: "source" | "fixedBox";
+    boxSize?: number;
+  };
+};
+
+type CursorSkin = {
+  enabled?: boolean;
+  states?: Partial<Record<CursorSkinStateId, CursorSkinState>>;
 };
 
 const constants: EngineConstants = {
@@ -100,13 +137,52 @@ const configStore = createConfigStore({
   // 暂时不传，configStore 会回退到 config.enabled 全局开关。
 });
 
-// 缓存 cursor state 解析结果——桌面端永远 resolveCursorStateId(null) → "default"，
-// 且 imageDataUrl/size/hotspot 只在 config 变更时才变，不需要每帧重算。
+// 缓存 cursor skin 解析结果——第一版 overlay 先支持 default 与 dragging/grabbing，
+// 后续 detector 会把浏览器桥接、Accessibility 和应用规则接入 activeStateId。
 let cachedCursorState: { imageDataUrl: string; size: number; hotspotX: number; hotspotY: number } | undefined;
 let cursorStateCacheDirty = true;
+let activeCursorSkinStateId: CursorSkinStateId = "default";
+let leftButtonDown = false;
+let dragStarted = false;
+let dragStartX = 0;
+let dragStartY = 0;
+let nativeCursorHidden = false;
+
+const api = (globalThis as unknown as { cursorDanceAPI?: CursorDanceAPI }).cursorDanceAPI;
 
 function invalidateCursorStateCache(): void {
   cursorStateCacheDirty = true;
+}
+
+function setActiveCursorSkinState(nextStateId: CursorSkinStateId): void {
+  if (activeCursorSkinStateId === nextStateId) return;
+  activeCursorSkinStateId = nextStateId;
+  invalidateCursorStateCache();
+}
+
+function resolveCursorSkinState(cursorSkin: CursorSkin | undefined | null, stateId: CursorSkinStateId): CursorSkinState | null {
+  if (!cursorSkin || cursorSkin.enabled === false) return null;
+  return cursorSkin.states?.[stateId] || (stateId !== "default" ? cursorSkin.states?.default : null) || null;
+}
+
+function cursorSkinStateToOverlayState(skinState: CursorSkinState | null | undefined): typeof cachedCursorState {
+  if (!skinState?.image?.dataUrl) return undefined;
+  const sourceSize = Math.max(skinState.image.width || 48, skinState.image.height || 48);
+  const size = skinState.size?.mode === "fixedBox" ? (skinState.size.boxSize || 48) : sourceSize;
+  return {
+    imageDataUrl: skinState.image.dataUrl,
+    size,
+    hotspotX: skinState.hotspot?.x ?? 0,
+    hotspotY: skinState.hotspot?.y ?? 0,
+  };
+}
+
+function setNativeCursorHidden(hidden: boolean): void {
+  if (nativeCursorHidden === hidden) return;
+  nativeCursorHidden = hidden;
+  api?.setNativeCursorHidden?.(hidden).catch((error) => {
+    console.error("[cursordance] macOS 原生 cursor 显隐切换失败:", error);
+  });
 }
 
 function resolveCachedCursorState(): typeof cachedCursorState {
@@ -114,16 +190,11 @@ function resolveCachedCursorState(): typeof cachedCursorState {
   cursorStateCacheDirty = false;
   cachedCursorState = undefined;
   if (configStore.isCurrentSiteEnabled?.() !== false) {
-    const scheme = configStore.getActiveScheme?.();
-    const stateId = configStore.resolveCursorStateId?.(null) ?? "default";
-    const raw = configStore.getEffectiveCursorStateConfig?.(scheme, stateId) as
-      | { imageDataUrl?: string; size?: number; hotspotX?: number; hotspotY?: number }
-      | undefined
-      | null;
-    if (raw?.imageDataUrl) {
-      cachedCursorState = { imageDataUrl: raw.imageDataUrl, size: raw.size, hotspotX: raw.hotspotX, hotspotY: raw.hotspotY };
-    }
+    const scheme = configStore.getActiveScheme?.() as { cursorSkin?: CursorSkin; workbenchDraft?: { cursorSkin?: CursorSkin } } | undefined;
+    const cursorSkin = scheme?.cursorSkin || scheme?.workbenchDraft?.cursorSkin;
+    cachedCursorState = cursorSkinStateToOverlayState(resolveCursorSkinState(cursorSkin, activeCursorSkinStateId));
   }
+  setNativeCursorHidden(Boolean(cachedCursorState));
   return cachedCursorState;
 }
 
@@ -137,10 +208,49 @@ const engine = createEffectEngine({
   reportRuntimeError: (scope, message) => diagnostics.log("runtime-error", { scope, message }),
 });
 
+function syncCursorSkinAtLastPosition(): void {
+  const gx = state.lastMouseGlobalX;
+  const gy = state.lastMouseGlobalY;
+  if (gx === undefined || gy === undefined) {
+    resolveCachedCursorState();
+    return;
+  }
+
+  const cursorEvent = toEngineCursorEvent({
+    type: "mousemove",
+    x: gx,
+    y: gy,
+    timestamp: performance.now(),
+  });
+
+  if (isInsideThisOverlay(cursorEvent)) {
+    engine.cursorOverlay.syncStateCursorOverlay(cursorEvent.x, cursorEvent.y, resolveCachedCursorState());
+  } else {
+    resolveCachedCursorState();
+  }
+}
+
+function applyOverlayConfig(next: unknown, source: "stored" | "live-preview" | "default"): void {
+  configStore.setConfig(next || defaultConfig);
+  invalidateCursorStateCache();
+  syncCursorSkinAtLastPosition();
+  const scheme = configStore.getActiveScheme?.() as { id?: string; cursorSkin?: CursorSkin; workbenchDraft?: { cursorSkin?: CursorSkin } } | undefined;
+  const cursorSkin = scheme?.cursorSkin || scheme?.workbenchDraft?.cursorSkin;
+  const resolvedCursorState = resolveCachedCursorState();
+  console.info("[cursordance] overlay cursorSkin config applied", {
+    source,
+    schemeId: scheme?.id,
+    stateCount: cursorSkin?.states ? Object.keys(cursorSkin.states).length : 0,
+    hasDefault: Boolean(cursorSkin?.states?.default?.image?.dataUrl),
+    activeCursorSkinStateId,
+    hasResolvedCursor: Boolean(resolvedCursorState?.imageDataUrl),
+    hidden: nativeCursorHidden,
+  });
+}
+
 // 启动时同步走一次：先用默认 config 让 trigger-handlers 立刻可用，
 // 随后异步从 bridge 拉真实 config 并 setConfig 刷新。
-configStore.setConfig(defaultConfig);
-invalidateCursorStateCache();
+applyOverlayConfig(defaultConfig, "default");
 state.ready = true;
 engine.visualEffects.ensureRoot();
 
@@ -150,29 +260,27 @@ if (bridge) {
   bridge
     .getConfig()
     .then((stored) => {
-      if (stored && !hasLivePreviewConfig) { configStore.setConfig(stored); invalidateCursorStateCache(); }
+      if (stored && !hasLivePreviewConfig) applyOverlayConfig(stored, "stored");
     })
     .catch((error) => {
       console.error("[cursordance] overlay 初始 config 拉取失败:", error);
     });
 
   bridge.onChange((next) => {
-    if (next && !hasLivePreviewConfig) { configStore.setConfig(next); invalidateCursorStateCache(); }
+    if (next && !hasLivePreviewConfig) applyOverlayConfig(next, "stored");
   });
 
   bridge.onLivePreviewChange((next) => {
     hasLivePreviewConfig = Boolean(next);
     if (next) {
-      configStore.setConfig(next);
-      invalidateCursorStateCache();
+      applyOverlayConfig(next, "live-preview");
     } else {
       bridge
         .getConfig()
         .then((stored) => {
-          if (stored) { configStore.setConfig(stored); invalidateCursorStateCache(); }
-          else { configStore.setConfig(defaultConfig); invalidateCursorStateCache(); }
+          applyOverlayConfig(stored || defaultConfig, stored ? "stored" : "default");
         })
-        .catch(() => { configStore.setConfig(defaultConfig); invalidateCursorStateCache(); });
+        .catch(() => { applyOverlayConfig(defaultConfig, "default"); });
     }
   });
 } else {
@@ -183,7 +291,6 @@ if (bridge) {
 // IPC 鼠标事件 → 引擎分派
 // ============================================================
 
-const api = (globalThis as unknown as { cursorDanceAPI?: CursorDanceAPI }).cursorDanceAPI;
 if (!api) {
   console.error("[cursordance] preload cursorDanceAPI 未注入；overlay 不会收到鼠标事件");
 }
@@ -217,12 +324,24 @@ function dispatch(payload: CursorEventPayload): void {
   if (!isInsideThisOverlay(cursorEvent)) return;
 
   if (payload.type === "mousemove") {
+    if (leftButtonDown && !dragStarted) {
+      const dx = cursorEvent.x - dragStartX;
+      const dy = cursorEvent.y - dragStartY;
+      dragStarted = (dx * dx + dy * dy) >= 16;
+    }
+    setActiveCursorSkinState(dragStarted ? "grabbing" : "default");
     engine.cursorOverlay.syncStateCursorOverlay(cursorEvent.x, cursorEvent.y, resolveCachedCursorState());
     return;
   }
 
   if (payload.type === "mousedown") {
-    if (payload.button === 0) engine.triggerHandlers.handleLeftPointerDown(cursorEvent);
+    if (payload.button === 0) {
+      leftButtonDown = true;
+      dragStarted = false;
+      dragStartX = cursorEvent.x;
+      dragStartY = cursorEvent.y;
+      engine.triggerHandlers.handleLeftPointerDown(cursorEvent);
+    }
     else if (payload.button === 2) {
       engine.triggerHandlers.handleRightPointerDown(cursorEvent);
       engine.triggerHandlers.handleContextMenu(cursorEvent);
@@ -231,6 +350,11 @@ function dispatch(payload: CursorEventPayload): void {
   }
 
   if (payload.type === "mouseup") {
+    if (payload.button === 0) {
+      leftButtonDown = false;
+      dragStarted = false;
+      setActiveCursorSkinState("default");
+    }
     engine.triggerHandlers.handlePointerUp(cursorEvent);
     return;
   }
@@ -275,6 +399,7 @@ window.addEventListener("beforeunload", () => {
   api?.offCursorEvent(dispatch);
   api?.offKeyboardEvent?.(dispatchKeyboard);
   engine.cursorOverlay.clearStateCursorOverlay();
+  setNativeCursorHidden(false);
 });
 
 console.info("[cursordance] overlay engine wired");

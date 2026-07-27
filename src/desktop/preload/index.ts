@@ -23,6 +23,7 @@ import {
   AI_GET_RUNTIME_CONFIG,
   AI_GET_USER_SETTINGS,
   AI_SET_USER_SETTINGS,
+  CURSOR_VISIBILITY_SET_HIDDEN,
 } from "../../shared/ipc-channels";
 
 type CursorEventPayload = {
@@ -74,6 +75,10 @@ contextBridge.exposeInMainWorld("cursorDanceAPI", {
       ipcRenderer.off(CURSOR_EVENT, handler);
       cursorEventListeners.delete(callback);
     }
+  },
+
+  async setNativeCursorHidden(hidden: boolean): Promise<void> {
+    await ipcRenderer.invoke(CURSOR_VISIBILITY_SET_HIDDEN, hidden);
   },
 
   onKeyboardEvent(callback: KeyboardEventListener): () => void {
