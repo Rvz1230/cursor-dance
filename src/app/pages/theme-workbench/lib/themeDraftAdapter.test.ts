@@ -88,10 +88,73 @@ describe("themeDraftAdapter", () => {
     expect(state.selection).toEqual({
       themeId: "mono-geo",
       actionId: "doubleClick",
-      cursorStateId: "wait",
+      cursorStateId: "busy",
     });
     expect(state.draftsByTheme["mono-geo"].actionConfigs.leftClick.textContent).toBe("已保存");
     expect(state.draftsByTheme["mono-geo"].resetActionConfigs.leftClick.textContent).toBe("+1");
+  });
+
+  it("hydrates key feedback config from theme workbench draft", () => {
+    const state = hydrateWorkbenchState(
+      {
+        enabled: true,
+        activeThemePackId: "mono-geo",
+        themePacks: [
+          {
+            id: "mono-geo",
+            name: "几何",
+            kind: "custom",
+            workbenchDraft: {
+              keyFeedbackConfig: {
+                color: "#00FFAA",
+                fontSize: 72,
+              },
+            },
+          },
+        ],
+        siteRules: [],
+        editor: {},
+      },
+      { host: "example.com" }
+    );
+
+    expect(state.draftsByTheme["mono-geo"].keyFeedbackConfig.color).toBe("#00FFAA");
+    expect(state.draftsByTheme["mono-geo"].keyFeedbackConfig.fontSize).toBe(72);
+    expect(state.draftsByTheme["mono-geo"].keyFeedbackConfig.animationStyle).toBe("bounce");
+  });
+
+  it("migrates legacy root key feedback config into every theme without a theme draft config", () => {
+    const state = hydrateWorkbenchState(
+      {
+        enabled: true,
+        activeThemePackId: "mono-geo",
+        keyFeedbackConfig: {
+          color: "#FF00AA",
+          fontSize: 64,
+        },
+        themePacks: [
+          {
+            id: "mono-geo",
+            name: "几何",
+            kind: "custom",
+            workbenchDraft: {},
+          },
+          {
+            id: "drift",
+            name: "流光",
+            kind: "custom",
+            workbenchDraft: {},
+          },
+        ],
+        siteRules: [],
+        editor: {},
+      },
+      { host: "example.com" }
+    );
+
+    expect(state.draftsByTheme["mono-geo"].keyFeedbackConfig.color).toBe("#FF00AA");
+    expect(state.draftsByTheme["drift"].keyFeedbackConfig.color).toBe("#FF00AA");
+    expect(state.draftsByTheme["drift"].resetKeyFeedbackConfig.fontSize).toBe(64);
   });
 
   it("uses imported custom theme action configs as the reset baseline when no explicit baseline exists", () => {
@@ -133,11 +196,16 @@ describe("themeDraftAdapter", () => {
     draft.actionConfigs.leftClick.textTags = ["备选文案", "主文案", "第三条"];
     draft.cursorModes.wait = "覆盖";
     draft.cursorStateActions.wait = "doubleClick";
-    draft.cursorStateAssets.wait = {
-      imageDataUrl: "data:image/png;base64,abc",
-      hotspotX: 8,
-      hotspotY: 12,
-      size: 64,
+    draft.cursorSkin.states.busy = {
+      image: {
+        kind: "dataUrl",
+        mimeType: "image/png",
+        dataUrl: "data:image/png;base64,skin",
+        width: 96,
+        height: 96,
+      },
+      hotspot: { x: 10, y: 14 },
+      size: { mode: "fixedBox", boxSize: 72 },
     };
 
     const previewPack = buildPreviewThemePackFromWorkbench(
@@ -151,13 +219,15 @@ describe("themeDraftAdapter", () => {
 
     expect(previewPack.workbenchDraft.actionConfigs.leftClick.textTags).toEqual(["备选文案", "主文案", "第三条"]);
     expect(previewPack.workbenchDraft.actionConfigs.leftClick.textContent).toBe("主文案");
+    expect(previewPack.cursorSkin.states.busy.image.dataUrl).toBe("data:image/png;base64,skin");
+    expect(previewPack.workbenchDraft.cursorSkin.states.busy.image.dataUrl).toBe("data:image/png;base64,skin");
     expect(previewPack.cursorStates.wait).toEqual({
       mode: "override",
       actionId: "doubleClick",
-      imageDataUrl: "data:image/png;base64,abc",
-      hotspotX: 8,
-      hotspotY: 12,
-      size: 64,
+      imageDataUrl: "data:image/png;base64,skin",
+      hotspotX: 10,
+      hotspotY: 14,
+      size: 72,
     });
   });
 
@@ -176,6 +246,17 @@ describe("themeDraftAdapter", () => {
     const draft = createThemeDraft("mono-geo");
     draft.cursorModes.wait = "覆盖";
     draft.cursorStateActions.wait = "doubleClick";
+    draft.cursorSkin.states.default = {
+      image: {
+        kind: "dataUrl",
+        mimeType: "image/png",
+        dataUrl: "data:image/png;base64,default-skin",
+        width: 64,
+        height: 64,
+      },
+      hotspot: { x: 8, y: 9 },
+      size: { mode: "fixedBox", boxSize: 56 },
+    };
 
     const siteRules = [
       { id: "r1", pattern: { type: "exact", value: "example.com" }, action: "disable" },
@@ -212,6 +293,14 @@ describe("themeDraftAdapter", () => {
     expect(storedConfig.activeThemePackId).toBe("mono-geo");
     expect(storedConfig.schemes).toEqual(storedConfig.themePacks);
     expect(storedConfig.siteRules).toEqual(siteRules);
+    expect(storedConfig.themePacks[0].cursorSkin.states.default.image.dataUrl).toBe("data:image/png;base64,default-skin");
+    expect(storedConfig.themePacks[0].workbenchDraft.cursorSkin.states.default.image.dataUrl).toBe("data:image/png;base64,default-skin");
+    expect(storedConfig.themePacks[0].cursorStates.default).toMatchObject({
+      imageDataUrl: "data:image/png;base64,default-skin",
+      hotspotX: 8,
+      hotspotY: 9,
+      size: 56,
+    });
     expect(storedConfig.themePacks[0].cursorStates.wait.mode).toBe("override");
   });
 
@@ -353,6 +442,37 @@ describe("themeDraftAdapter", () => {
     expect(payload.themePack.workbenchDraft.actionConfigs.leftClick).toHaveProperty("textKind", "文本飘字");
   });
 
+  it("exports custom theme packs instead of the first normalized fallback theme", () => {
+    const { defaultConfig } = installPublicConfigRuntime();
+    const state = hydrateWorkbenchState(defaultConfig, { host: "example.com" });
+    const customDraft = createThemeDraft("custom-keyboard");
+    customDraft.keyFeedbackConfig.color = "#00FFAA";
+    const customState = {
+      ...state,
+      themeLibrary: [
+        ...state.themeLibrary,
+        {
+          id: "custom-keyboard",
+          name: "自定义键盘",
+          kind: "自定义",
+          summary: "自定义",
+          description: "",
+          tone: "amber",
+        },
+      ],
+      draftsByTheme: {
+        ...state.draftsByTheme,
+        "custom-keyboard": customDraft,
+      },
+    };
+
+    const themePack = buildStoredThemePackFromWorkbench(defaultConfig, customState, "custom-keyboard");
+    const payload = buildThemeExportPayload(themePack);
+
+    expect(payload.themePack.id).toBe("custom-keyboard");
+    expect(payload.themePack.workbenchDraft.keyFeedbackConfig.color).toBe("#00FFAA");
+  });
+
   it("stores and rehydrates image effect fields through workbench drafts", () => {
     const { defaultConfig } = installPublicConfigRuntime();
     const state = hydrateWorkbenchState(defaultConfig, { host: "example.com" });
@@ -455,5 +575,46 @@ describe("themeDraftAdapter", () => {
       animationDuration: 880,
       animationScale: 136,
     });
+  });
+
+  it("stores key feedback config inside theme workbench draft", () => {
+    const { defaultConfig } = installPublicConfigRuntime();
+    const state = hydrateWorkbenchState(defaultConfig, { host: "example.com" });
+    state.draftsByTheme["mono-geo"].keyFeedbackConfig.color = "#00FFAA";
+    state.draftsByTheme["mono-geo"].keyFeedbackConfig.fontSize = 72;
+
+    const storedConfig = buildStoredConfigFromWorkbench(defaultConfig, state);
+    const storedThemePack = storedConfig.themePacks.find((item) => item.id === "mono-geo");
+
+    expect(storedThemePack.workbenchDraft.keyFeedbackConfig).toMatchObject({
+      color: "#00FFAA",
+      fontSize: 72,
+      animationStyle: "bounce",
+    });
+    expect(storedThemePack.workbenchDraft.resetKeyFeedbackConfig).toMatchObject({
+      color: state.draftsByTheme["mono-geo"].resetKeyFeedbackConfig.color,
+      fontSize: state.draftsByTheme["mono-geo"].resetKeyFeedbackConfig.fontSize,
+    });
+  });
+
+  it("preserves legacy root key feedback config instead of overwriting it from the current draft", () => {
+    const { defaultConfig } = installPublicConfigRuntime();
+    const previousConfig = {
+      ...defaultConfig,
+      keyFeedbackConfig: {
+        ...defaultConfig.keyFeedbackConfig,
+        color: "#111111",
+        fontSize: 30,
+      },
+    };
+    const state = hydrateWorkbenchState(previousConfig, { host: "example.com" });
+    state.draftsByTheme["mono-geo"].keyFeedbackConfig.color = "#00FFAA";
+    state.draftsByTheme["mono-geo"].keyFeedbackConfig.fontSize = 72;
+
+    const storedConfig = buildStoredConfigFromWorkbench(previousConfig, state);
+
+    expect(storedConfig.keyFeedbackConfig.color).toBe("#111111");
+    expect(storedConfig.keyFeedbackConfig.fontSize).toBe(30);
+    expect(storedConfig.themePacks.find((item) => item.id === "mono-geo").workbenchDraft.keyFeedbackConfig.color).toBe("#00FFAA");
   });
 });

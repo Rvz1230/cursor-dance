@@ -267,15 +267,14 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
     updateActionConfig,
     updateActionConfigs,
     updateAtmosphere,
-    updateCursorMode,
-    updateCursorStateAction,
     updateCursorStateAsset,
     updateCursorStateAssetForState,
     recentCursorAssets,
     rememberRecentCursorAsset,
-    copyDefaultCursorStateAsset,
-    resetCurrentCursorState,
-    resetAllCursorStates,
+    updateCursorSkinState,
+    clearCursorSkinState,
+    copyDefaultCursorSkinState,
+    resetCursorSkin,
     keyFeedbackConfig,
     updateKeyFeedbackConfig,
   } = useThemeWorkbenchState();
@@ -591,19 +590,15 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                   <StatesPanel
                     stateId={selected.cursorStateId}
                     setStateId={setCursorStateId}
-                    cursorModes={draft.cursorModes}
-                    cursorStateActions={draft.cursorStateActions}
-                    cursorStateAssets={draft.cursorStateAssets}
+                    cursorSkin={draft.cursorSkin}
                     recentCursorAssets={recentCursorAssets}
-                    actionItems={actionItems}
-                    updateCursorMode={updateCursorMode}
-                    updateCursorStateAction={updateCursorStateAction}
+                    updateCursorSkinState={updateCursorSkinState}
+                    clearCursorSkinState={clearCursorSkinState}
+                    copyDefaultCursorSkinState={copyDefaultCursorSkinState}
+                    resetCursorSkin={resetCursorSkin}
                     updateCursorStateAsset={updateCursorStateAsset}
                     updateCursorStateAssetForState={updateCursorStateAssetForState}
                     rememberRecentCursorAsset={rememberRecentCursorAsset}
-                    copyDefaultCursorStateAsset={copyDefaultCursorStateAsset}
-                    resetCurrentCursorState={resetCurrentCursorState}
-                    resetAllCursorStates={resetAllCursorStates}
                   />
                 </div>
               ) : null}

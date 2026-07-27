@@ -6,11 +6,11 @@ describe("assetCenter", () => {
     const entries = getConfiguredCursorAssetEntries({
       default: { imageDataUrl: "data:image/png;base64,AAA", size: 48, hotspotX: 16, hotspotY: 32 },
       pointer: { imageDataUrl: "", size: 48, hotspotX: 16, hotspotY: 32 },
-      wait: { imageDataUrl: "data:image/png;base64,BBB", size: 64, hotspotX: 24, hotspotY: 36 },
+      busy: { imageDataUrl: "data:image/png;base64,BBB", size: 64, hotspotX: 24, hotspotY: 36 },
     });
 
     expect(entries).toHaveLength(2);
-    expect(entries.map((item) => item.id)).toEqual(["default", "wait"]);
+    expect(entries.map((item) => item.id)).toEqual(["default", "busy"]);
   });
 
   it("summarizes action, cursor, and recent assets without leaking empty entries", () => {

@@ -6,6 +6,7 @@ import {
   Cloud,
   Coffee,
   Cookie,
+  Crosshair,
   Crown,
   Feather,
   Flame,
@@ -20,6 +21,7 @@ import {
   Link2,
   Moon,
   MousePointer2,
+  Move,
   Music,
   Palette,
   Rainbow,
@@ -94,7 +96,7 @@ import { isDesktop } from "@/shared/runtime";
 
 export const WORKSPACES = [
   { id: "workbench", label: "主题工作台", icon: Wand2 },
-  { id: "states", label: "光标状态", icon: MousePointer2 },
+  { id: "states", label: "光标皮肤", icon: MousePointer2 },
   { id: "sites", label: "站点规则", icon: Link2 },
   { id: "keyboard", label: "键盘动效", icon: Keyboard },
   { id: "diagnostics", label: "诊断面板", icon: ActivitySquare },
@@ -154,13 +156,19 @@ export const PLATFORM_ACTIONS = isDesktop()
   : ACTIONS;
 
 export const CURSOR_STATES = [
-  { id: "default", label: "默认", detail: "Normal · 48 × 48", icon: MousePointer2, defaultMode: "源" },
-  { id: "pointer", label: "手型", detail: "Pointer · 48 × 48", icon: Hand, defaultMode: "继承" },
-  { id: "text", label: "文本", detail: "Text · 48 × 48", icon: TextCursorInput, defaultMode: "继承" },
-  { id: "help", label: "帮助", detail: "Help · 48 × 48", icon: HelpCircle, defaultMode: "继承" },
-  // wait 默认覆盖：等待/加载状态下通常需要独立的视觉反馈（如转圈动画），不适合继承默认光标。
-  { id: "wait", label: "等待", detail: "Wait · 48 × 48", icon: Clock3, defaultMode: "覆盖" },
-  { id: "notAllowed", label: "禁用", detail: "Not allowed · 48 × 48", icon: Ban, defaultMode: "继承" },
+  { id: "default", label: "普通", detail: "默认指针，无法识别状态时使用", icon: MousePointer2, group: "基础", support: "已支持", defaultHotspot: "topLeft" },
+  { id: "text", label: "文本选择", detail: "输入框、编辑器、文本区域", icon: TextCursorInput, group: "基础", support: "部分应用支持", defaultHotspot: "center" },
+  { id: "pointer", label: "可点击", detail: "按钮、链接、菜单项", icon: Hand, group: "基础", support: "部分应用支持", defaultHotspot: "topLeft" },
+  { id: "grab", label: "可拖拽", detail: "可抓取的画布或对象", icon: Hand, group: "操作", support: "依赖规则", defaultHotspot: "center" },
+  { id: "grabbing", label: "拖拽中", detail: "按住并移动对象或内容", icon: Hand, group: "操作", support: "已支持", defaultHotspot: "center" },
+  { id: "busy", label: "忙碌", detail: "应用加载、等待响应", icon: Clock3, group: "系统", support: "依赖规则", defaultHotspot: "center" },
+  { id: "notAllowed", label: "不可用", detail: "禁用按钮、无效拖放区域", icon: Ban, group: "操作", support: "部分应用支持", defaultHotspot: "center" },
+  { id: "crosshair", label: "精确选择", detail: "截图、绘图、选区", icon: Crosshair, group: "操作", support: "部分应用支持", defaultHotspot: "center" },
+  { id: "move", label: "移动", detail: "移动对象、分层或画布元素", icon: Move, group: "操作", support: "依赖规则", defaultHotspot: "center" },
+  { id: "resizeHorizontal", label: "横向调整", detail: "左右调整窗口、分栏或对象", icon: Move, group: "调整大小", support: "部分应用支持", defaultHotspot: "center" },
+  { id: "resizeVertical", label: "纵向调整", detail: "上下调整窗口、分栏或对象", icon: Move, group: "调整大小", support: "部分应用支持", defaultHotspot: "center" },
+  { id: "resizeDiagonalNWSE", label: "对角调整 ↘", detail: "左上到右下方向调整大小", icon: Move, group: "调整大小", support: "部分应用支持", defaultHotspot: "center" },
+  { id: "resizeDiagonalNESW", label: "对角调整 ↙", detail: "右上到左下方向调整大小", icon: Move, group: "调整大小", support: "部分应用支持", defaultHotspot: "center" },
 ];
 
 const toneMap = {
@@ -315,12 +323,21 @@ export function buildDefaultCursorStateAssets() {
       item.id,
       {
         imageDataUrl: "",
-        hotspotX: 16,
-        hotspotY: 32,
+        hotspotX: item.defaultHotspot === "center" ? 24 : 10,
+        hotspotY: item.defaultHotspot === "center" ? 24 : 8,
         size: 48,
       },
     ])
   );
+}
+
+export function buildDefaultCursorSkin() {
+  return {
+    version: 1,
+    enabled: true,
+    transitionMs: 80,
+    states: {},
+  };
 }
 
 export function createThemeDraft(themeId) {
@@ -328,9 +345,10 @@ export function createThemeDraft(themeId) {
   return {
     actionConfigs,
     resetActionConfigs: getDefaultActionConfigs(themeId),
-    cursorModes: Object.fromEntries(CURSOR_STATES.map((item) => [item.id, item.defaultMode])),
+    cursorModes: Object.fromEntries(CURSOR_STATES.map((item) => [item.id, item.id === "default" ? "源" : "继承"])),
     cursorStateActions: buildDefaultCursorStateActions(),
     cursorStateAssets: buildDefaultCursorStateAssets(),
+    cursorSkin: buildDefaultCursorSkin(),
     keyFeedbackConfig: { ...defaultKeyFeedbackConfig },
     resetKeyFeedbackConfig: { ...defaultKeyFeedbackConfig },
     atmosphere: { mode: "none" },

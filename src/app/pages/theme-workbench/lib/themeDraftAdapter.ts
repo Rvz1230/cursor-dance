@@ -11,6 +11,100 @@ import {
 import { getDefaultConfig, normalizeStoredConfig } from "./runtimeConfig";
 import { normalizeKeyFeedbackConfig } from "@/desktop/renderer/engine/key-feedback-types";
 
+const LEGACY_CURSOR_STATE_TO_SKIN_STATE = {
+  default: "default",
+  pointer: "pointer",
+  text: "text",
+  wait: "busy",
+  notAllowed: "notAllowed",
+};
+
+const SKIN_STATE_TO_LEGACY_CURSOR_STATE = {
+  default: "default",
+  pointer: "pointer",
+  text: "text",
+  busy: "wait",
+  notAllowed: "notAllowed",
+};
+
+const LEGACY_CURSOR_STATE_IDS = ["default", "pointer", "text", "help", "wait", "notAllowed"];
+
+function inferCursorSkinMimeType(dataUrl) {
+  if (typeof dataUrl !== "string") return "image/unknown";
+  if (dataUrl.startsWith("data:image/png")) return "image/png";
+  if (dataUrl.startsWith("data:image/svg+xml")) return "image/svg+xml";
+  if (dataUrl.startsWith("data:image/webp")) return "image/webp";
+  return "image/unknown";
+}
+
+function cursorSkinStateFromAsset(asset) {
+  if (!asset?.imageDataUrl) return null;
+  const size = Number.isFinite(asset.size) ? asset.size : 48;
+  return {
+    image: {
+      kind: "dataUrl",
+      mimeType: asset.mimeType || inferCursorSkinMimeType(asset.imageDataUrl),
+      dataUrl: asset.imageDataUrl,
+      width: asset.sourceWidth || size,
+      height: asset.sourceHeight || size,
+    },
+    hotspot: {
+      x: Number.isFinite(asset.hotspotX) ? asset.hotspotX : 0,
+      y: Number.isFinite(asset.hotspotY) ? asset.hotspotY : 0,
+    },
+    size: { mode: "fixedBox", boxSize: size },
+  };
+}
+
+function cursorSkinStateFromLegacyCursorState(cursorState) {
+  if (!cursorState?.imageDataUrl) return null;
+  return cursorSkinStateFromAsset({
+    imageDataUrl: cursorState.imageDataUrl,
+    hotspotX: cursorState.hotspotX,
+    hotspotY: cursorState.hotspotY,
+    size: cursorState.size,
+  });
+}
+
+function assetFromCursorSkinState(skinState) {
+  if (!skinState?.image?.dataUrl) return null;
+  const size = skinState.size?.mode === "fixedBox" ? (skinState.size.boxSize || 48) : Math.max(skinState.image.width || 48, skinState.image.height || 48);
+  return {
+    imageDataUrl: skinState.image.dataUrl,
+    hotspotX: skinState.hotspot?.x ?? 0,
+    hotspotY: skinState.hotspot?.y ?? 0,
+    size,
+    sourceWidth: skinState.image.width || size,
+    sourceHeight: skinState.image.height || size,
+    mimeType: skinState.image.mimeType,
+  };
+}
+
+function normalizeDraftCursorSkin(baseDraft, themePack, cursorDraft) {
+  const storedSkin = themePack?.cursorSkin || themePack?.workbenchDraft?.cursorSkin || baseDraft.cursorSkin;
+  const states = { ...(storedSkin?.states || {}) };
+
+  Object.entries(themePack?.cursorStates || {}).forEach(([legacyStateId, cursorState]) => {
+    const skinStateId = LEGACY_CURSOR_STATE_TO_SKIN_STATE[legacyStateId];
+    if (!skinStateId || states[skinStateId]) return;
+    const skinState = cursorSkinStateFromLegacyCursorState(cursorState);
+    if (skinState) states[skinStateId] = skinState;
+  });
+
+  Object.entries(cursorDraft.cursorStateAssets || {}).forEach(([stateId, asset]) => {
+    if (states[stateId]) return;
+    const skinState = cursorSkinStateFromAsset(asset);
+    if (skinState) states[stateId] = skinState;
+  });
+
+  return {
+    version: 1,
+    enabled: storedSkin?.enabled !== false,
+    transitionMs: Number.isFinite(storedSkin?.transitionMs) ? storedSkin.transitionMs : 80,
+    states,
+  };
+}
+
 function toWorkbenchCursorMode(stateId, mode) {
   if (stateId === "default") return "源";
   return mode === "override" ? "覆盖" : "继承";
@@ -88,6 +182,7 @@ function buildDraftFromThemePack(themePack) {
   const themeId = themePack?.id;
   const baseDraft = createThemeDraft(themeId);
   const cursorDraft = buildDraftCursorMaps(baseDraft, themePack);
+  const cursorSkin = normalizeDraftCursorSkin(baseDraft, themePack, cursorDraft);
   const actionConfigs = buildDraftActionConfigs(baseDraft, themePack);
   const keyFeedbackConfig = normalizeKeyFeedbackConfig(themePack?.workbenchDraft?.keyFeedbackConfig || baseDraft.keyFeedbackConfig);
   const resetKeyFeedbackConfig = normalizeKeyFeedbackConfig(themePack?.workbenchDraft?.resetKeyFeedbackConfig || keyFeedbackConfig);
@@ -98,6 +193,7 @@ function buildDraftFromThemePack(themePack) {
     cursorModes: cursorDraft.cursorModes,
     cursorStateActions: cursorDraft.cursorStateActions,
     cursorStateAssets: cursorDraft.cursorStateAssets,
+    cursorSkin,
     keyFeedbackConfig,
     resetKeyFeedbackConfig,
     actionConfigs,
@@ -164,7 +260,8 @@ export function hydrateWorkbenchState(config, site) {
   const PRIMARY_WORKSPACES = ["workbench", "states", "sites", "keyboard"];
   const workspaceId = PRIMARY_WORKSPACES.includes(resolvedWorkspace) ? resolvedWorkspace : "workbench";
   const selectedActionId = PLATFORM_ACTIONS.some((item) => item.id === config.editor?.lastActionId) ? config.editor.lastActionId : "leftClick";
-  const selectedCursorStateId = CURSOR_STATES.some((item) => item.id === config.editor?.lastCursorState) ? config.editor.lastCursorState : "default";
+  const lastCursorState = config.editor?.lastCursorState === "wait" ? "busy" : config.editor?.lastCursorState;
+  const selectedCursorStateId = CURSOR_STATES.some((item) => item.id === lastCursorState) ? lastCursorState : "default";
 
   return {
     workspaceId,
@@ -188,6 +285,28 @@ function getStoredThemePack(config, themeId) {
   return config.themePacks.find((item) => item.id === themeId) ?? getDefaultConfig().themePacks?.find((item) => item.id === themeId) ?? null;
 }
 
+function buildStoredCursorStates(draft) {
+  return Object.fromEntries(
+    LEGACY_CURSOR_STATE_IDS.map((stateId) => {
+      const skinStateId = LEGACY_CURSOR_STATE_TO_SKIN_STATE[stateId];
+      const skinAsset = skinStateId ? assetFromCursorSkinState(draft.cursorSkin?.states?.[skinStateId]) : null;
+      const draftAsset = draft.cursorStateAssets?.[stateId] || {};
+      const asset = skinAsset || draftAsset;
+
+      return [
+        stateId,
+        {
+          ...toExtensionCursorState(draft.cursorModes?.[stateId], draft.cursorStateActions?.[stateId]),
+          imageDataUrl: asset?.imageDataUrl || "",
+          hotspotX: asset?.hotspotX ?? 16,
+          hotspotY: asset?.hotspotY ?? 32,
+          size: asset?.size ?? 48,
+        },
+      ];
+    })
+  );
+}
+
 function buildStoredThemePack(themeId, draft, previousConfig, themeRecord) {
   const previousThemePack = getStoredThemePack(previousConfig, themeId) ?? {};
   const storedAtmosphere = draft.atmosphere ?? previousThemePack?.workbenchDraft?.atmosphere;
@@ -202,22 +321,13 @@ function buildStoredThemePack(themeId, draft, previousConfig, themeRecord) {
     workbenchDraft: {
       actionConfigs: pickStoredWorkbenchActionConfigs(draft.actionConfigs),
       resetActionConfigs: pickStoredWorkbenchActionConfigs(draft.resetActionConfigs || draft.actionConfigs),
+      cursorSkin: draft.cursorSkin,
       keyFeedbackConfig: normalizeKeyFeedbackConfig(draft.keyFeedbackConfig),
       resetKeyFeedbackConfig: normalizeKeyFeedbackConfig(draft.resetKeyFeedbackConfig || draft.keyFeedbackConfig),
       ...(storedAtmosphere ? { atmosphere: storedAtmosphere } : {}),
     },
-    cursorStates: Object.fromEntries(
-      CURSOR_STATES.map((state) => [
-        state.id,
-        {
-          ...toExtensionCursorState(draft.cursorModes[state.id], draft.cursorStateActions?.[state.id]),
-          imageDataUrl: draft.cursorStateAssets?.[state.id]?.imageDataUrl || "",
-          hotspotX: draft.cursorStateAssets?.[state.id]?.hotspotX ?? 16,
-          hotspotY: draft.cursorStateAssets?.[state.id]?.hotspotY ?? 32,
-          size: draft.cursorStateAssets?.[state.id]?.size ?? 48,
-        },
-      ])
-    ),
+    cursorSkin: draft.cursorSkin,
+    cursorStates: buildStoredCursorStates(draft),
   };
 }
 

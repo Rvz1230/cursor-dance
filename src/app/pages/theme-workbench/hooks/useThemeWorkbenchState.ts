@@ -185,6 +185,49 @@ export function useThemeWorkbenchState() {
     dispatch({ type: "theme/library-update-icon", payload: { themeId, icon } });
   }
 
+  function updateCursorSkinState(stateId, patch) {
+    updateCurrentTheme((current) => ({
+      ...current,
+      cursorSkin: {
+        ...(current.cursorSkin || { version: 1, enabled: true, transitionMs: 80, states: {} }),
+        states: {
+          ...(current.cursorSkin?.states || {}),
+          [stateId]: {
+            ...(current.cursorSkin?.states?.[stateId] || {}),
+            ...patch,
+          },
+        },
+      },
+    }));
+  }
+
+  function clearCursorSkinState(stateId) {
+    updateCurrentTheme((current) => {
+      const states = { ...(current.cursorSkin?.states || {}) };
+      delete states[stateId];
+      return {
+        ...current,
+        cursorSkin: {
+          ...(current.cursorSkin || { version: 1, enabled: true, transitionMs: 80, states: {} }),
+          states,
+        },
+      };
+    });
+  }
+
+  function copyDefaultCursorSkinState(stateId = selected.cursorStateId) {
+    const defaultState = draft?.cursorSkin?.states?.default;
+    if (!defaultState) return;
+    updateCursorSkinState(stateId, JSON.parse(JSON.stringify(defaultState)));
+  }
+
+  function resetCursorSkin() {
+    updateCurrentTheme((current) => ({
+      ...current,
+      cursorSkin: { version: 1, enabled: true, transitionMs: 80, states: {} },
+    }));
+  }
+
   return {
     state,
     selected,
@@ -304,6 +347,10 @@ export function useThemeWorkbenchState() {
         },
       })),
     rememberRecentCursorAsset,
+    updateCursorSkinState,
+    clearCursorSkinState,
+    copyDefaultCursorSkinState,
+    resetCursorSkin,
     copyDefaultCursorStateAsset: () =>
       updateCurrentTheme((current) => ({
         ...current,
