@@ -1,12 +1,12 @@
 import { cn } from "@/components/ui/utils";
 
-export function DataPill({ children, tone = "slate", className }: { children: React.ReactNode; tone?: "slate" | "teal" | "amber" | "rose"; className?: string }) {
+export function DataPill({ children, tone = "slate", className }: { children: React.ReactNode; tone?: "slate" | "teal" | "amber" | "rose" | "red"; className?: string }) {
   const toneClass =
     tone === "teal"
       ? "bg-teal-50 text-teal-700 ring-teal-200"
       : tone === "amber"
         ? "bg-amber-50 text-amber-700 ring-amber-200"
-        : tone === "rose"
+        : tone === "rose" || tone === "red"
           ? "bg-rose-50 text-rose-700 ring-rose-200"
           : "bg-slate-100 text-slate-600 ring-slate-200";
   return (

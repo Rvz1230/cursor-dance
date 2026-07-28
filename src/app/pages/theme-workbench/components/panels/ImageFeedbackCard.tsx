@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import { ImagePlus, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -17,7 +18,7 @@ import { ResetCardButton } from "./ResetCardButton";
 
 const MAX_IMAGE_EFFECT_UPLOAD_BYTES = 300 * 1024;
 
-function buildImagePreviewStyle(config) {
+function buildImagePreviewStyle(config): CSSProperties {
   return {
     width: `${Math.min(config.imageSize || 56, 72)}px`,
     height: `${Math.min(config.imageSize || 56, 72)}px`,

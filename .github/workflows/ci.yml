@@ -16,9 +16,12 @@ jobs:
           node-version: 22.12.0
           cache: npm
       - run: npm ci
+      - run: npm run typecheck
       - run: npm run test
       - run: npx playwright install --with-deps chromium
       - run: npm run test:smoke
+      - run: npm run build:electron
+      - run: xvfb-run -a npm run test:desktop
 
   test-api:
     runs-on: ubuntu-latest

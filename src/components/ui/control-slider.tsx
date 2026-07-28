@@ -11,6 +11,7 @@ export function ControlSlider({
   value,
   min,
   max,
+  step = 1,
   onValueChange,
   suffix = "",
   disabled = false,
@@ -19,6 +20,7 @@ export function ControlSlider({
   value: number;
   min: number;
   max: number;
+  step?: number;
   onValueChange?: (values: [number]) => void;
   suffix?: string;
   disabled?: boolean;
@@ -54,7 +56,7 @@ export function ControlSlider({
         }}
         onBlurCapture={() => setIsInteracting(false)}
       >
-        <Slider className="flex-1" value={[value]} min={min} max={max} onValueChange={(next) => commitValue(next[0])} disabled={disabled} aria-label={label} />
+        <Slider className="flex-1" value={[value]} min={min} max={max} step={step} onValueChange={(next) => commitValue(next[0])} disabled={disabled} aria-label={label} />
         <div
           className={cn(
             "pointer-events-none absolute -top-7 z-10 -translate-x-1/2 rounded-lg bg-slate-950 px-2 py-1 text-xs font-semibold tabular-nums text-white shadow-lg transition-opacity",

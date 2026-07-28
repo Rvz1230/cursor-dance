@@ -59,4 +59,6 @@ export type {
   TriggerHandlersModule,
   KeyFeedbackModule,
   NativeKeyboardEvent,
+  EngineConstants,
+  EngineState,
 } from "./types";

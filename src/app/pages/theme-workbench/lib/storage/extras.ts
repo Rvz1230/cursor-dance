@@ -55,7 +55,7 @@ export async function downloadThemePackExport(themePack) {
   if (bridge?.saveThemeFile) {
     const result = await bridge.saveThemeFile({ defaultFileName: fileName, contents });
     if (!result.ok) {
-      throw new Error(result.error || "导出主题失败。");
+      throw new Error("error" in result ? result.error : "导出主题失败。");
     }
     if (result.canceled) return null;
     return fileName;
@@ -85,9 +85,10 @@ export async function pickThemeFile() {
   if (!bridge?.openThemeFile) return null;
   const result = await bridge.openThemeFile();
   if (!result.ok) {
-    throw new Error(result.error || "读取主题文件失败。");
+    throw new Error("error" in result ? result.error : "读取主题文件失败。");
   }
   if (result.canceled) return null;
+  if (!("filePath" in result) || !("contents" in result)) return null;
   const fileName = result.filePath.split(/[\\/]/).pop() || "theme.json";
   return { fileName, contents: result.contents };
 }

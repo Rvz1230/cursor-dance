@@ -7,7 +7,7 @@ function installWindowStub(overrides = {}) {
     CursorDanceDefaultConfig: {},
     CursorDanceConfigRuntime: {},
     ...overrides,
-  };
+  } as unknown as Window & typeof globalThis;
 }
 
 describe("runtimeConfig", () => {

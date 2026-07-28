@@ -94,8 +94,9 @@ interface RuleRowProps {
 }
 
 function RuleRow({ rule, themes, onToggle, onEdit, onDelete, onDragStart, onDragOver, onDrop }: RuleRowProps) {
-  const themeName = rule.action && typeof rule.action === "object" && rule.action.theme
-    ? (themes.find((t) => t.id === rule.action.theme)?.name || rule.action.theme)
+  const action = rule.action;
+  const themeName = action && typeof action === "object" && action.theme
+    ? (themes.find((t) => t.id === action.theme)?.name || action.theme)
     : null;
   const targetLabel = PATTERN_TARGET_LABELS[rule.pattern?.target || "process"];
   const typeLabel = PATTERN_TYPE_LABELS[rule.pattern?.type || "exact"];

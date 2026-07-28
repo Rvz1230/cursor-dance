@@ -235,7 +235,7 @@ function MessageBubble({ message, onEdit, actionId, notify }) {
             placeholder="哪里不对？(选填)"
             className="w-full min-w-0 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none placeholder:text-slate-400 focus:border-slate-300"
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.isComposing && e.keyCode !== 229) handleSubmitComment();
+              if (e.key === "Enter" && !e.nativeEvent.isComposing && e.keyCode !== 229) handleSubmitComment();
             }}
           />
           <button

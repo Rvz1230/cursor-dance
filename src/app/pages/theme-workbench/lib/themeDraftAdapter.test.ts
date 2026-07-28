@@ -20,7 +20,7 @@ function installWindowStub(overrides = {}) {
     CursorDanceConfigRuntime: {},
     CursorDanceConfigHelpers: {},
     ...overrides,
-  };
+  } as unknown as Window & typeof globalThis;
 }
 
 function installPublicConfigRuntime() {
@@ -221,7 +221,7 @@ describe("themeDraftAdapter", () => {
     draft.actionConfigs.leftClick.textTags = ["备选文案", "主文案", "第三条"];
     draft.cursorModes.wait = "覆盖";
     draft.cursorStateActions.wait = "doubleClick";
-    draft.cursorSkin.states.busy = {
+    (draft.cursorSkin.states as Record<string, any>).busy = {
       image: {
         kind: "dataUrl",
         mimeType: "image/png",
@@ -376,7 +376,7 @@ describe("themeDraftAdapter", () => {
     const draft = createThemeDraft("mono-geo");
     draft.cursorModes.wait = "覆盖";
     draft.cursorStateActions.wait = "doubleClick";
-    draft.cursorSkin.states.default = {
+    (draft.cursorSkin.states as Record<string, any>).default = {
       image: {
         kind: "dataUrl",
         mimeType: "image/png",

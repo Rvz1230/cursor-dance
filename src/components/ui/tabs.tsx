@@ -1,11 +1,31 @@
 import React from 'react'
 import { cn } from './utils'
 
-export function Tabs({ value, onValueChange, className, children }) {
+interface TabsProps {
+  value: string
+  onValueChange: (value: string) => void
+  className?: string
+  children: React.ReactNode
+}
+
+interface TabsListProps {
+  className?: string
+  value?: string
+  onValueChange?: (value: string) => void
+  children: React.ReactNode
+}
+
+interface TabsTriggerProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  value: string
+  selected?: boolean
+  onSelect?: () => void
+}
+
+export function Tabs({ value, onValueChange, className, children }: TabsProps) {
   return (
     <div className={cn('inline-flex', className)}>
       {React.Children.map(children, (child) => {
-        if (!child) return null
+        if (!React.isValidElement<TabsListProps>(child)) return null
         return React.cloneElement(child, {
           value,
           onValueChange,
@@ -15,11 +35,11 @@ export function Tabs({ value, onValueChange, className, children }) {
   )
 }
 
-export function TabsList({ className, value, onValueChange, children }) {
+export function TabsList({ className, value, onValueChange, children }: TabsListProps) {
   return (
     <div className={cn('inline-flex h-10 items-center justify-center rounded-full bg-white/80 p-1 ring-1 ring-black/5', className)}>
       {React.Children.map(children, (child) => {
-        if (!child) return null
+        if (!React.isValidElement<TabsTriggerProps>(child)) return null
         return React.cloneElement(child, {
           selected: child.props.value === value,
           onSelect: () => onValueChange?.(child.props.value),
@@ -29,7 +49,7 @@ export function TabsList({ className, value, onValueChange, children }) {
   )
 }
 
-export function TabsTrigger({ className, value, selected, onSelect, ...props }) {
+export function TabsTrigger({ className, value: _value, selected, onSelect, ...props }: TabsTriggerProps) {
   return (
     <button
       type="button"
@@ -44,7 +64,7 @@ export function TabsTrigger({ className, value, selected, onSelect, ...props }) 
   )
 }
 
-function TabsContent({ className, value, selected, children }) {
+function TabsContent({ className, value: _value, selected, children }: TabsTriggerProps) {
   if (!selected) return null
   return <div className={cn('mt-2', className)}>{children}</div>
 }

@@ -2,7 +2,19 @@ import * as SelectPrimitive from '@radix-ui/react-select'
 import { Check, ChevronDown } from 'lucide-react'
 import { cn } from './utils'
 
-export function Select({ value, options, onValueChange, disabled = false, placeholder = '请选择', className, 'aria-label': ariaLabel }) {
+type SelectOption = string | { value: string; label: string }
+
+interface SelectProps {
+  value: string
+  options?: readonly SelectOption[]
+  onValueChange?: (value: string) => void
+  disabled?: boolean
+  placeholder?: string
+  className?: string
+  'aria-label'?: string
+}
+
+export function Select({ value, options, onValueChange, disabled = false, placeholder = '请选择', className, 'aria-label': ariaLabel }: SelectProps) {
   const selectOptions = options?.length ? options : [value]
 
   return (

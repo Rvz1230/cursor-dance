@@ -43,9 +43,9 @@ describe("getActiveWindowSnapshot", () => {
       // 在 macOS 上跑（项目主开发机），message 应包含「辅助功能权限」。
       // 在 linux/CI 上跑，归一化分支不命中，message 是 raw 英文 —— 此时只断言 false。
       if (process.platform === "darwin") {
-        expect(snap.message).toContain("辅助功能权限");
+        expect("message" in snap ? snap.message : "").toContain("辅助功能权限");
       } else {
-        expect(typeof snap.message).toBe("string");
+        expect(typeof ("message" in snap ? snap.message : "")).toBe("string");
       }
     }
   });

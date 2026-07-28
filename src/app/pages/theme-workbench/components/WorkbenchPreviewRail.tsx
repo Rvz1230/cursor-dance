@@ -30,6 +30,7 @@ import {
 import { Panel } from "./WorkbenchControls";
 import { AtmosphereStagePreview } from "./AtmosphereStagePreview";
 import { createEffectEngine, type EngineConstants, type EngineState } from "@/desktop/renderer/engine/entry";
+import { defaultKeyFeedbackConfig } from "@/desktop/renderer/engine/key-feedback-types";
 import {
   getActionAnimationConfig as engineGetActionAnimationConfig,
   getActionAudioConfig as engineGetActionAudioConfig,
@@ -540,6 +541,7 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, act
         return feedback;
       },
       getMaxActiveEffects: () => 200,
+      getKeyFeedbackConfig: () => defaultKeyFeedbackConfig,
       getConfig: () => ({ schemes: [previewScheme], activeSchemeId: previewScheme.id }),
       getActiveScheme: () => previewScheme,
       isCurrentSiteEnabled: () => true,

@@ -47,7 +47,7 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
-function readFileAsDataUrl(file) {
+function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => (typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("文件读取失败")));
@@ -56,7 +56,7 @@ function readFileAsDataUrl(file) {
   });
 }
 
-function getAssetDimensions(dataUrl) {
+function getAssetDimensions(dataUrl: string): Promise<{ width: number; height: number }> {
   return new Promise((resolve) => {
     const image = new Image();
     image.onload = () => resolve({ width: image.naturalWidth || DEFAULT_BOX_SIZE, height: image.naturalHeight || DEFAULT_BOX_SIZE });
@@ -306,7 +306,7 @@ function NumberInput({ label, value, max, onChange, disabled }) {
   );
 }
 
-function ChipButton({ children, disabled, active, onClick }) {
+function ChipButton({ children, disabled, active = false, onClick }: { children: React.ReactNode; disabled?: boolean; active?: boolean; onClick: () => void }) {
   return (
     <button
       type="button"
@@ -452,7 +452,7 @@ export function StatesPanel({
     }
   }
 
-  async function applyBatchFiles(fileList) {
+  async function applyBatchFiles(fileList: FileList | File[]) {
     const files = Array.from(fileList || []);
     if (!files.length) return;
     let applied = 0;

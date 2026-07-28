@@ -280,7 +280,7 @@ export function useThemeWorkbenchState() {
             ...nextActionConfigs,
             [actionId]: {
               ...nextActionConfigs[actionId],
-              ...patch,
+              ...(patch as Record<string, unknown>),
             },
           }),
           current.actionConfigs
@@ -375,7 +375,7 @@ export function useThemeWorkbenchState() {
         ...current,
         cursorModes: {
           ...current.cursorModes,
-          [selected.cursorStateId]: stateMeta.defaultMode,
+          [selected.cursorStateId]: stateMeta.id === "default" ? "源" : "继承",
         },
         cursorStateActions: {
           ...current.cursorStateActions,
@@ -390,7 +390,7 @@ export function useThemeWorkbenchState() {
     resetAllCursorStates: () =>
       updateCurrentTheme((current) => ({
         ...current,
-        cursorModes: Object.fromEntries(CURSOR_STATES.map((item) => [item.id, item.defaultMode])),
+        cursorModes: Object.fromEntries(CURSOR_STATES.map((item) => [item.id, item.id === "default" ? "源" : "继承"])),
         cursorStateActions: buildDefaultCursorStateActions(),
         cursorStateAssets: buildDefaultCursorStateAssets(),
       })),

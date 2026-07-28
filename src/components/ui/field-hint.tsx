@@ -2,7 +2,7 @@ import { HelpCircle } from "lucide-react";
 import { cn } from "./utils";
 import { Tooltip } from "./tooltip";
 
-export function FieldHint({ content, className }) {
+export function FieldHint({ content, className }: { content?: React.ReactNode; className?: string }) {
   if (!content) return null;
   return (
     <Tooltip content={content}>

@@ -9,7 +9,7 @@ function installWindowStub() {
     CursorDanceDefaultConfig: {},
     CursorDanceConfigRuntime: {},
     CursorDanceConfigHelpers: {},
-  };
+  } as unknown as Window & typeof globalThis;
 }
 
 describe("themeWorkbenchStateStore", () => {

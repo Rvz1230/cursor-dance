@@ -1,11 +1,18 @@
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import * as VisuallyHidden from '@radix-ui/react-visually-hidden'
 import { X } from 'lucide-react'
+import type { ComponentPropsWithoutRef } from 'react'
 import { cn } from './utils'
 
 export const Dialog = DialogPrimitive.Root
 
-export function DialogContent({ className, children, titleId, title, showClose = true, ...props }) {
+interface DialogContentProps extends ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {
+  titleId: string
+  title?: string
+  showClose?: boolean
+}
+
+export function DialogContent({ className, children, titleId, title, showClose = true, ...props }: DialogContentProps) {
   const fallbackTitle = title || '对话框'
 
   return (

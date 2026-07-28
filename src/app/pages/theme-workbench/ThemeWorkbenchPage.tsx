@@ -618,7 +618,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                             title: snap.title,
                           };
                         }
-                        return { authorized: false, message: snap.message };
+                        return { authorized: false, message: "message" in snap ? snap.message : "无法读取当前应用。" };
                       }}
                       openAccessibilitySettings={handleOpenAccessibilitySettings}
                       addAppRule={addSiteRule}

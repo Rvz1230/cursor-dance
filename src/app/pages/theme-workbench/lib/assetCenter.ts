@@ -4,7 +4,7 @@ function toSafeNumber(value, fallback) {
   return Number.isFinite(value) ? value : fallback;
 }
 
-export function getConfiguredCursorAssetEntries(cursorStateAssets = {}) {
+export function getConfiguredCursorAssetEntries(cursorStateAssets: Record<string, any> = {}) {
   return CURSOR_STATES.map((state) => {
     const asset = cursorStateAssets?.[state.id];
     if (!asset?.imageDataUrl) return null;
@@ -22,9 +22,14 @@ export function getConfiguredCursorAssetEntries(cursorStateAssets = {}) {
 
 export function buildAssetCenterSummary({
   actionId = "leftClick",
-  actionConfig = {},
-  cursorStateAssets = {},
-  recentCursorAssets = [],
+  actionConfig = {} as Record<string, any>,
+  cursorStateAssets = {} as Record<string, any>,
+  recentCursorAssets = [] as any[],
+}: {
+  actionId?: string;
+  actionConfig?: Record<string, any>;
+  cursorStateAssets?: Record<string, any>;
+  recentCursorAssets?: any[];
 } = {}) {
   const actionImageAsset = actionConfig?.imageDataUrl
     ? {

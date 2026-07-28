@@ -1,6 +1,6 @@
 import { app, BrowserWindow, nativeImage } from "electron";
 import { join } from "path";
-import { startGlobalMouseCapture, type NativeCursorEvent, type NativeKeyboardEvent } from "./native-events";
+import type { NativeCursorEvent, NativeKeyboardEvent } from "./native-events";
 import { broadcastToWindows } from "./broadcast";
 import {
   createOverlayWindow,
@@ -10,6 +10,7 @@ import {
   syncOverlayBounds,
 } from "./overlay-window";
 import { createWorkbenchWindow } from "./workbench-window";
+import { createWorkbenchWindowController } from "./workbench-window-controller";
 import { getAllDisplays, onDisplayChanges } from "./screen-utils";
 import { registerStoreIpc, unregisterStoreIpc } from "./ipc-handlers";
 import { registerDialogIpc, unregisterDialogIpc } from "./dialog-handlers";
@@ -28,11 +29,22 @@ import {
 } from "./electron-store";
 import { CURSOR_EVENT, KEYBOARD_EVENT } from "../../shared/ipc-channels";
 
-let workbenchWindow: BrowserWindow | null = null;
 let stopMouseCapture: (() => void) | null = null;
 let stopDisplayWatcher: (() => void) | null = null;
 let stopEnableWatcher: (() => void) | null = null;
 let stopAutoUpdater: (() => void) | null = null;
+
+const isDesktopSmokeTest = process.env.CURSORDANCE_DESKTOP_SMOKE === "1";
+const smokeUserDataPath = process.env.CURSORDANCE_DESKTOP_SMOKE_USER_DATA;
+
+// Electron smoke uses an isolated profile and avoids touching global input,
+// tray and network services. Window creation, IPC, persistence and overlay
+// visibility still run through the production code paths.
+if (isDesktopSmokeTest && smokeUserDataPath) {
+  app.setPath("userData", smokeUserDataPath);
+}
+
+const workbenchWindowController = createWorkbenchWindowController(createWorkbenchWindow);
 
 const gotTheLock = app.requestSingleInstanceLock();
 
@@ -95,16 +107,10 @@ function toggleEnabled(): void {
 }
 
 function openWorkbench(): void {
-  if (workbenchWindow && !workbenchWindow.isDestroyed()) {
-    if (workbenchWindow.isMinimized()) workbenchWindow.restore();
-    workbenchWindow.show();
-    workbenchWindow.focus();
-    return;
-  }
-  workbenchWindow = createWorkbenchWindow();
+  workbenchWindowController.open();
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   if (process.platform === "darwin" && !app.isPackaged && app.dock) {
     const iconPath = join(app.getAppPath(), "build/icon.png");
     const icon = nativeImage.createFromPath(iconPath);
@@ -124,7 +130,7 @@ app.whenReady().then(() => {
   registerCursorVisibilityIpc();
 
   // 1) workbench 配置窗口（系统标题栏，任务 4.0 再改自绘）
-  workbenchWindow = createWorkbenchWindow();
+  openWorkbench();
 
   // 2) 每个 display 一个 overlay
   ensureOverlayPerDisplay();
@@ -135,10 +141,13 @@ app.whenReady().then(() => {
   });
 
   // 3) uiohook 全局鼠标捕获 → IPC 广播
-  try {
-    stopMouseCapture = startGlobalMouseCapture(broadcastCursorEvent, broadcastKeyboardEvent);
-  } catch (error) {
-    console.error("[CursorDance] failed to start global mouse capture:", error);
+  if (!isDesktopSmokeTest) {
+    try {
+      const { startGlobalMouseCapture } = await import("./native-events");
+      stopMouseCapture = startGlobalMouseCapture(broadcastCursorEvent, broadcastKeyboardEvent);
+    } catch (error) {
+      console.error("[CursorDance] failed to start global mouse capture:", error);
+    }
   }
 
   // 4) 系统托盘 + 全局 enabled 同步
@@ -149,29 +158,33 @@ app.whenReady().then(() => {
   stopEnableWatcher = onConfigChange(() => {
     setOverlayVisibility(getEnabledFromStore());
   });
-  createTray({
-    openWorkbench,
-    quitApp: () => app.quit(),
-    isEnabled: getEnabledFromStore,
-    toggleEnabled,
-    onEnabledChange: (cb) => onConfigChange(() => cb(getEnabledFromStore())),
-  });
+  if (!isDesktopSmokeTest) {
+    createTray({
+      openWorkbench,
+      quitApp: () => app.quit(),
+      isEnabled: getEnabledFromStore,
+      toggleEnabled,
+      onEnabledChange: (cb) => onConfigChange(() => cb(getEnabledFromStore())),
+    });
+  }
 
   // 5) 嵌入式 AI 服务：在 IPC + 托盘都就位后启动。失败不阻塞主流程——
   //    AiSchemePanel 在请求失败时会显示错误信息，用户去设置面板填 API key 再重试。
-  startEmbeddedAiServer().catch((error) => {
-    console.error("[cursordance] failed to start embedded AI server:", error);
-  });
+  if (!isDesktopSmokeTest) {
+    startEmbeddedAiServer().catch((error) => {
+      console.error("[cursordance] failed to start embedded AI server:", error);
+    });
+  }
 
   // 6) 自动更新（任务 6.1）：仅在 packaged 模式下启用，dev 跳过。
   //    立即检查一次，之后 4h 轮询；下载完成等到下次正常退出再安装。
-  stopAutoUpdater = registerAutoUpdater();
+  if (!isDesktopSmokeTest) {
+    stopAutoUpdater = registerAutoUpdater();
+  }
 
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      workbenchWindow = createWorkbenchWindow();
-      ensureOverlayPerDisplay();
-    }
+    openWorkbench();
+    ensureOverlayPerDisplay();
   });
 });
 
@@ -206,9 +219,10 @@ app.on("before-quit", () => {
 });
 
 app.on("second-instance", () => {
-  if (workbenchWindow && !workbenchWindow.isDestroyed()) {
-    if (workbenchWindow.isMinimized()) workbenchWindow.restore();
-    workbenchWindow.focus();
+  if (app.isReady()) {
+    openWorkbench();
+  } else {
+    void app.whenReady().then(openWorkbench);
   }
 });
 

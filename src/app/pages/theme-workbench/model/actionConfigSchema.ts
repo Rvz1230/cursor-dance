@@ -70,7 +70,7 @@ import {
   pickStoredWorkbenchActionConfigs,
 } from "./actionConfigOptions";
 
-export function mergeActionConfig(baseConfig = {}, ...overlays) {
+export function mergeActionConfig(baseConfig: Record<string, any> = {}, ...overlays: Array<Record<string, any> | null | undefined>) {
   return overlays.reduce(
     (mergedConfig, overlay) => ({
       ...mergedConfig,

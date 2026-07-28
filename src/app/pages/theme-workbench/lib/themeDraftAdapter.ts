@@ -175,7 +175,7 @@ function buildDraftCursorState(baseDraft, themePack, stateId) {
 }
 
 function buildDraftCursorMaps(baseDraft, themePack) {
-  const draftStates = CURSOR_STATES.map((state) => [state.id, buildDraftCursorState(baseDraft, themePack, state.id)]);
+  const draftStates = CURSOR_STATES.map((state) => [state.id, buildDraftCursorState(baseDraft, themePack, state.id)] as const);
   return {
     cursorModes: Object.fromEntries(draftStates.map(([stateId, stateDraft]) => [stateId, stateDraft.mode])),
     cursorStateActions: Object.fromEntries(draftStates.map(([stateId, stateDraft]) => [stateId, stateDraft.actionId])),

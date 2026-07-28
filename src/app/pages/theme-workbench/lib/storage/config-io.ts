@@ -109,7 +109,7 @@ function stripInlineCursorAssets(config) {
     cursorStates: Object.fromEntries(
       Object.entries(themePack.cursorStates || {}).map(([stateId, stateConfig]) => [
         stateId,
-        { ...stateConfig, imageDataUrl: "" },
+        { ...(stateConfig as Record<string, any>), imageDataUrl: "" },
       ])
     ),
   }));
@@ -184,8 +184,10 @@ export async function writeExtensionConfig(config) {
   }
   const assetWrites = {};
   const assetRemovals = [];
-  Object.values(normalized.themePacks || []).forEach((themePack) => {
-    Object.entries(themePack?.cursorStates || {}).forEach(([stateId, stateConfig]) => {
+  Object.values(normalized.themePacks || {}).forEach((themePackValue) => {
+    const themePack = themePackValue as Record<string, any>;
+    Object.entries(themePack.cursorStates || {}).forEach(([stateId, stateConfigValue]) => {
+      const stateConfig = stateConfigValue as Record<string, any>;
       if ((stateConfig?.imageDataUrl || "").length > MAX_CURSOR_ASSET_DATA_URL_LENGTH) {
         throw new Error(`光标图片过大，当前 ${stateId} 状态请换成更小的 PNG / WebP 后再保存。`);
       }

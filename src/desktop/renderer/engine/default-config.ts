@@ -214,8 +214,8 @@ export function normalizeCursorSkinState(state: Partial<CursorSkinState> | null 
   if (!state || typeof state !== "object" || Array.isArray(state)) return null;
   const image = normalizeCursorSkinImage(state.image);
   if (!image) return null;
-  const hotspot = state.hotspot && typeof state.hotspot === "object" && !Array.isArray(state.hotspot) ? state.hotspot : {};
-  const size = state.size && typeof state.size === "object" && !Array.isArray(state.size) ? state.size : {};
+  const hotspot: Partial<CursorSkinState["hotspot"]> = state.hotspot && typeof state.hotspot === "object" && !Array.isArray(state.hotspot) ? state.hotspot : {};
+  const size: Partial<CursorSkinState["size"]> = state.size && typeof state.size === "object" && !Array.isArray(state.size) ? state.size : {};
   const boxSize = Number.isFinite(size.boxSize) ? size.boxSize as number : undefined;
 
   return {

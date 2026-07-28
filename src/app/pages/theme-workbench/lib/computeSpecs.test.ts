@@ -92,7 +92,7 @@ function installRuntimeHelpers() {
   const actionConfigSource = fs.readFileSync(ACTION_CONFIG_PATH, "utf-8");
 
   globalThis.CursorDanceConfigHelpers = {};
-  globalThis.window = globalThis;
+  globalThis.window = globalThis as unknown as Window & typeof globalThis;
 
   // First eval action-config.js to set up its helpers (hexToRgba, formatNumber, etc.)
   new Function(actionConfigSource)();
@@ -130,12 +130,12 @@ function getRuntimeHelpers() {
 // ── Test cases ────────────────────────────────────────────────────────
 
 const DEFAULT_CONFIGS = {
-  leftClick: getDefaultActionConfigs().leftClick,
-  rightClick: getDefaultActionConfigs().rightClick,
-  doubleClick: getDefaultActionConfigs().doubleClick,
-  longPress: getDefaultActionConfigs().longPress,
-  wheel: getDefaultActionConfigs().wheel,
-  hover: getDefaultActionConfigs().hover,
+  leftClick: getDefaultActionConfigs("mono-geo").leftClick,
+  rightClick: getDefaultActionConfigs("mono-geo").rightClick,
+  doubleClick: getDefaultActionConfigs("mono-geo").doubleClick,
+  longPress: getDefaultActionConfigs("mono-geo").longPress,
+  wheel: getDefaultActionConfigs("mono-geo").wheel,
+  hover: getDefaultActionConfigs("mono-geo").hover,
 };
 
 const EDGE_CONFIGS = {
@@ -172,7 +172,7 @@ describe("computeSpecs parity: runtime IIFE vs TypeScript module", () => {
   describe("hexToRgba", () => {
     const rt = () => getRuntimeHelpers().hexToRgba;
     it("produces identical output for common inputs", () => {
-      const cases = [
+      const cases: Array<[string, number]> = [
         ["#F59E0B", 0.5],
         ["#34D399", 1],
         ["#fff", 0.25],
@@ -198,7 +198,7 @@ describe("computeSpecs parity: runtime IIFE vs TypeScript module", () => {
   describe("formatNumber", () => {
     const rt = () => getRuntimeHelpers().formatNumber;
     it("produces identical output for all styles", () => {
-      const cases = [
+      const cases: Array<[string, number]> = [
         ["阿拉伯数字 (1, 2, 3)", 1],
         ["中文数字 (一, 二, 三)", 3],
         ["英文单词 (one, two, three)", 5],

@@ -12,11 +12,11 @@ export function WorkbenchHeader({
   setEnabled,
   unsaved,
   isSaving,
-  saveError,
+  saveError = "",
   saveChanges,
   resetCurrentTheme,
-  aiPanelOpen,
-  setAiPanelOpen,
+  aiPanelOpen = false,
+  setAiPanelOpen = (_value: boolean) => {},
 }) {
   return (
     <header className="border-b border-slate-200 bg-white px-3 py-2.5">

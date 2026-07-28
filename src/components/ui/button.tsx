@@ -2,18 +2,20 @@ import React from 'react'
 import { cn } from './utils'
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'default' | 'outline' | 'ghost'
-  size?: 'default' | 'icon'
+  variant?: 'default' | 'secondary' | 'outline' | 'ghost'
+  size?: 'default' | 'sm' | 'icon'
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({ className, variant = 'default', size = 'default', ...props }, ref) => {
   const variants: Record<string, string> = {
     default: 'border border-slate-950 bg-slate-950 text-white shadow-sm hover:bg-slate-800',
+    secondary: 'border border-slate-200 bg-slate-100 text-slate-700 shadow-sm hover:bg-slate-200',
     outline: 'border border-slate-200 bg-white text-slate-700 shadow-sm hover:border-slate-300 hover:bg-slate-50',
     ghost: 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
   }
   const sizes: Record<string, string> = {
     default: 'h-9 px-3.5 py-2',
+    sm: 'h-8 rounded-lg px-3 text-xs',
     icon: 'size-9',
   }
   return (

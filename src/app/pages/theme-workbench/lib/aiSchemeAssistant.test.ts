@@ -77,11 +77,11 @@ describe("aiSchemeAssistant", () => {
 
   it("requires the remote AI API instead of falling back to local rules", async () => {
     const originalFetch = globalThis.fetch;
-    globalThis.fetch = async () => ({
+    globalThis.fetch = (async () => ({
       ok: false,
       status: 503,
       json: async () => ({ error: "AI model provider is not configured" }),
-    });
+    })) as unknown as typeof fetch;
 
     await expect(requestAiSchemeEdit({
       prompt: "低调蓝色，不要声音",
@@ -97,7 +97,7 @@ describe("aiSchemeAssistant", () => {
   it("sends only slim request context to the remote AI API", async () => {
     const originalFetch = globalThis.fetch;
     let requestBody = null;
-    globalThis.fetch = async (_url, options) => {
+    globalThis.fetch = (async (_url, options) => {
       requestBody = JSON.parse(options.body);
       return {
         ok: true,
@@ -107,8 +107,8 @@ describe("aiSchemeAssistant", () => {
           targets: [{ type: "action", actionId: "leftClick", label: "左键单击", patch: { sound: false } }],
           reply: "已微调。",
         }),
-      };
-    };
+      } as Response;
+    }) as typeof fetch;
 
     await requestAiSchemeEdit({
       prompt: "再低调一点",

@@ -8,14 +8,20 @@ declare module '*.css' {
 interface Chrome {
   storage: {
     local: {
-      get: (keys: string | string[] | Record<string, unknown> | null) => Promise<Record<string, unknown>>
+      get: (keys: string | string[] | Record<string, unknown> | null) => Promise<Record<string, any>>
       set: (items: Record<string, unknown>) => Promise<void>
       remove: (keys: string | string[]) => Promise<void>
       clear: () => Promise<void>
     }
     sync: {
-      get: (keys: string | string[] | Record<string, unknown> | null) => Promise<Record<string, unknown>>
+      get: (keys: string | string[] | Record<string, unknown> | null) => Promise<Record<string, any>>
       set: (items: Record<string, unknown>) => Promise<void>
+    }
+    session: {
+      get: (keys: string | string[] | Record<string, unknown> | null) => Promise<Record<string, any>>
+      set: (items: Record<string, unknown>) => Promise<void>
+      remove: (keys: string | string[]) => Promise<void>
+      setAccessLevel?: (options: { accessLevel: string }) => Promise<void>
     }
     onChanged: {
       addListener: (callback: (changes: Record<string, { oldValue?: unknown; newValue?: unknown }>, areaName: string) => void) => void
@@ -34,8 +40,16 @@ interface Chrome {
   tabs: {
     query: (queryInfo: Record<string, unknown>) => Promise<chrome.tabs.Tab[]>
     create: (createProperties: Record<string, unknown>) => void
+    sendMessage: (tabId: number, message: unknown) => Promise<unknown>
   }
 }
+
+type CursorDanceConfigRecord = Record<string, any>
+type CursorDanceConfigRuntime = Record<string, any>
+
+declare var CursorDanceConfigHelpers: CursorDanceConfigRuntime
+declare var CursorDanceDefaultConfig: CursorDanceConfigRecord
+declare var CursorDanceConfigRuntime: CursorDanceConfigRuntime
 
 interface Window {
   chrome?: Chrome
@@ -44,6 +58,9 @@ interface Window {
   cursorDanceWindow?: CursorDanceWindowBridge
   cursorDanceApp?: CursorDanceAppBridge
   cursorDanceAi?: CursorDanceAiBridge
+  CursorDanceConfigHelpers?: CursorDanceConfigRuntime
+  CursorDanceDefaultConfig?: CursorDanceConfigRecord
+  CursorDanceConfigRuntime?: CursorDanceConfigRuntime
   electronAPI?: {
     platform: NodeJS.Platform
   }

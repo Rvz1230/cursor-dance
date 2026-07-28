@@ -1,14 +1,14 @@
 import { Select } from "@/components/ui/select";
 
-export function SmallSelect({
+export function SmallSelect<T extends string>({
   value,
   options,
   onChange,
   label,
 }: {
   value: string;
-  options: Array<{ value: string; label: string }>;
-  onChange?: (value: string) => void;
+  options: ReadonlyArray<T | { value: T; label: string }>;
+  onChange?: (value: T) => void;
   label?: string;
 }) {
   const disabled = !onChange;

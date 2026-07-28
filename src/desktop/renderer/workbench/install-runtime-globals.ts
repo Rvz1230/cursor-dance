@@ -45,13 +45,6 @@ import {
   resolveTextModeFromEffect,
 } from "../engine/text-semantics";
 
-declare global {
-  interface Window {
-    CursorDanceDefaultConfig?: unknown;
-    CursorDanceConfigRuntime?: unknown;
-  }
-}
-
 if (typeof window !== "undefined") {
   // 只在第一次 import 时注入；HMR 重新执行时跳过避免反复覆盖（runtime 内部
   // 全是纯函数引用，覆盖也无副作用，但跳过更直观）。

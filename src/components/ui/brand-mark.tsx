@@ -1,6 +1,6 @@
 import { cn } from "./utils";
 
-export function BrandMark({ className, size = "default" }) {
+export function BrandMark({ className, size = "default" }: { className?: string; size?: "default" | "sm" }) {
   const dimensions = size === "sm" ? "size-8" : "size-10";
 
   return (

@@ -20,7 +20,7 @@ import {
 } from "../WorkbenchControls";
 import { ResetCardButton } from "./ResetCardButton";
 
-function PaletteSwatches({ presets, value, onChange }) {
+function PaletteSwatches({ presets, value, onChange }: { presets: Record<string, string[]>; value: string[]; onChange: (colors: string[]) => void }) {
   const currentKey = Object.entries(presets).find(
     ([, colors]) => JSON.stringify(colors) === JSON.stringify(value)
   )?.[0] || null;

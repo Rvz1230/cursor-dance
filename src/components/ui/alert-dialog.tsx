@@ -1,4 +1,5 @@
 import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog'
+import type { ComponentPropsWithoutRef } from 'react'
 import { cn } from './utils'
 
 export const AlertDialog = AlertDialogPrimitive.Root
@@ -8,7 +9,7 @@ export const AlertDialogAction = AlertDialogPrimitive.Action
 export const AlertDialogTitle = AlertDialogPrimitive.Title
 export const AlertDialogDescription = AlertDialogPrimitive.Description
 
-export function AlertDialogContent({ className, children, ...props }) {
+export function AlertDialogContent({ className, children, ...props }: ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content>) {
   return (
     <AlertDialogPrimitive.Portal>
       <AlertDialogPrimitive.Overlay className="fixed inset-0 z-40 bg-slate-950/55" />

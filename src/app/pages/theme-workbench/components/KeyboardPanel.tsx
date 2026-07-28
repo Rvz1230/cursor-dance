@@ -16,12 +16,12 @@ const ANIMATION_STYLES = [
   { value: "raindrop", label: "雨滴", description: "从顶部落下带重力感" },
 ] as const;
 
-const ORIGIN_EDGES = ["bottom", "top", "left", "right"];
-const ORIGIN_MAPPINGS = ["keyboardLayout", "center"];
+const ORIGIN_EDGES = ["bottom", "top", "left", "right"] as const;
+const ORIGIN_MAPPINGS = ["keyboardLayout", "center"] as const;
 const EASING_OPTIONS = ["弹跳", "缓出", "缓入", "缓入缓出", "弹性", "线性"];
 const FONT_WEIGHTS = ["标准", "中等", "半粗", "加粗"];
 const FONT_FAMILIES = ["系统默认", "SF Mono", "SF Pro Rounded", "Helvetica Neue"];
-const KEY_DISPLAY_MODES = ["typed", "physical"];
+const KEY_DISPLAY_MODES = ["typed", "physical"] as const;
 
 interface KeyboardPanelProps {
   config: KeyFeedbackConfig;

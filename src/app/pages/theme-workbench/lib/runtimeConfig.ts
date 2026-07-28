@@ -79,21 +79,22 @@ const NOOP_RUNTIME = {
   },
 };
 
-export function getDefaultConfig() {
+export function getDefaultConfig(): CursorDanceConfigRecord {
   return window.CursorDanceDefaultConfig ?? {};
 }
 
-export function getRuntimeConfig() {
+export function getRuntimeConfig(): CursorDanceConfigRuntime {
   const rt = window.CursorDanceConfigRuntime ?? {};
   return new Proxy(rt, {
     get(target, prop) {
+      if (typeof prop !== "string") return undefined;
       if (prop in target) return target[prop];
       return NOOP_RUNTIME[prop];
     },
   });
 }
 
-export function normalizeStoredConfig(value) {
+export function normalizeStoredConfig(value): CursorDanceConfigRecord {
   const runtime = getRuntimeConfig();
   const defaultConfig = getDefaultConfig();
   return runtime.normalizeConfig(value, defaultConfig);
