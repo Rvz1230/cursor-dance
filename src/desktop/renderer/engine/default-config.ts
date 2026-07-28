@@ -275,7 +275,10 @@ export function normalizeCursorSkin(
   cursorSkin: Partial<CursorSkin> | null | undefined,
   legacyCursorStates?: Record<string, Partial<CursorStateConfig>> | null,
 ): CursorSkin {
-  const fallback = createDefaultCursorSkin(legacyCursorStates);
+  const hasExplicitCursorSkin = Boolean(cursorSkin && typeof cursorSkin === "object" && !Array.isArray(cursorSkin));
+  // 显式 cursorSkin（包括空 states）是权威配置。legacy 只用于迁移尚无 cursorSkin 的旧数据，
+  // 否则用户清除状态后会被 cursorStates 再次补回。
+  const fallback = createDefaultCursorSkin(hasExplicitCursorSkin ? undefined : legacyCursorStates);
   const rawStates = cursorSkin?.states && typeof cursorSkin.states === "object" && !Array.isArray(cursorSkin.states)
     ? cursorSkin.states
     : {};
@@ -341,13 +344,16 @@ export function mergeThemePackWithFallback(
       ...(pack?.workbenchDraft?.actionConfigs?.[actionId] || {}),
     };
   });
+  const storedCursorSkin = pack?.cursorSkin ?? pack?.workbenchDraft?.cursorSkin;
   return {
     ...fallbackPack,
     ...pack,
     id: normalizedId,
     kind: pack?.kind || fallbackPack.kind || "custom",
     cursorStates: mergeCursorStates(fallbackPack.cursorStates, pack?.cursorStates as Record<string, Partial<CursorStateConfig>>),
-    cursorSkin: normalizeCursorSkin(pack?.cursorSkin || pack?.workbenchDraft?.cursorSkin || fallbackPack.cursorSkin, pack?.cursorStates || fallbackPack.cursorStates),
+    cursorSkin: pack
+      ? normalizeCursorSkin(storedCursorSkin, pack.cursorStates || fallbackPack.cursorStates)
+      : normalizeCursorSkin(fallbackPack.cursorSkin, fallbackPack.cursorStates),
     workbenchDraft: mergedWorkbenchDraft,
   };
 }

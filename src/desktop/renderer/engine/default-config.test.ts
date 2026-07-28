@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { defaultConfig, createDefaultThemePacks, mergeThemePackWithFallback, normalizeConfig } from "./default-config";
+import { defaultConfig, createDefaultThemePacks, mergeThemePackWithFallback, normalizeConfig, normalizeCursorSkin } from "./default-config";
 import { defaultKeyFeedbackConfig } from "./key-feedback-types";
 
 // 任务 2.9：4 套内置主题（mono-geo / drift / molten / sunset）必须为桌面 5 个 action
@@ -76,6 +76,24 @@ describe("defaultConfig — 桌面端 5 个 action 默认配置完整性", () =>
     expect(merged.workbenchDraft?.keyFeedbackConfig?.color).toBe("#00FFAA");
     expect(merged.workbenchDraft?.keyFeedbackConfig?.fontSize).toBe(72);
     expect(merged.workbenchDraft?.keyFeedbackConfig?.animationStyle).toBe(defaultKeyFeedbackConfig.animationStyle);
+  });
+
+  it("显式空 cursorSkin 不会被 legacy cursorStates 重新填充", () => {
+    const legacyCursorStates = {
+      default: {
+        mode: "override" as const,
+        actionId: "leftClick",
+        imageDataUrl: "data:image/png;base64,legacy",
+        hotspotX: 8,
+        hotspotY: 9,
+        size: 56,
+      },
+    };
+
+    expect(normalizeCursorSkin(undefined, legacyCursorStates).states.default?.image.dataUrl)
+      .toBe("data:image/png;base64,legacy");
+    expect(normalizeCursorSkin({ version: 1, enabled: true, transitionMs: 80, states: {} }, legacyCursorStates).states)
+      .toEqual({});
   });
 
   it("normalizeConfig 不为没有 legacy 字段的新配置强制新增顶层 keyFeedbackConfig", () => {

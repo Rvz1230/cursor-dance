@@ -46,6 +46,31 @@ function createThemeLibraryEntry(overrides = {}) {
   };
 }
 
+function createCursorSkinState(dataUrl) {
+  return {
+    image: {
+      kind: "dataUrl",
+      mimeType: "image/png",
+      dataUrl,
+      width: 64,
+      height: 64,
+    },
+    hotspot: { x: 8, y: 9 },
+    size: { mode: "fixedBox", boxSize: 56 },
+  };
+}
+
+function createLegacyCursorState(dataUrl) {
+  return {
+    mode: "override",
+    actionId: "leftClick",
+    imageDataUrl: dataUrl,
+    hotspotX: 8,
+    hotspotY: 9,
+    size: 56,
+  };
+}
+
 describe("themeDraftAdapter", () => {
   beforeEach(() => {
     installWindowStub();
@@ -229,6 +254,111 @@ describe("themeDraftAdapter", () => {
       hotspotY: 14,
       size: 72,
     });
+  });
+
+  it("migrates legacy cursor states only when cursorSkin is absent", () => {
+    const state = hydrateWorkbenchState(
+      {
+        enabled: true,
+        activeThemePackId: "legacy-cursor",
+        themePacks: [
+          {
+            id: "legacy-cursor",
+            name: "旧光标主题",
+            kind: "custom",
+            cursorStates: {
+              default: createLegacyCursorState("data:image/png;base64,legacy-default"),
+            },
+          },
+        ],
+        siteRules: [],
+        editor: {},
+      },
+      { host: "example.com" }
+    );
+
+    expect(state.draftsByTheme["legacy-cursor"].cursorSkin.states.default.image.dataUrl)
+      .toBe("data:image/png;base64,legacy-default");
+  });
+
+  it("keeps a cleared cursor skin state absent after save and rehydrate", () => {
+    const config = {
+      enabled: true,
+      activeThemePackId: "cursor-clear",
+      themePacks: [
+        {
+          id: "cursor-clear",
+          name: "清除测试",
+          kind: "custom",
+          cursorSkin: {
+            version: 1,
+            enabled: true,
+            transitionMs: 80,
+            states: {
+              default: createCursorSkinState("data:image/png;base64,skin-default"),
+              pointer: createCursorSkinState("data:image/png;base64,skin-pointer"),
+            },
+          },
+          cursorStates: {
+            default: createLegacyCursorState("data:image/png;base64,legacy-default"),
+            pointer: createLegacyCursorState("data:image/png;base64,legacy-pointer"),
+          },
+        },
+      ],
+      siteRules: [],
+      editor: {},
+    };
+    const state = hydrateWorkbenchState(config, { host: "example.com" });
+    delete state.draftsByTheme["cursor-clear"].cursorSkin.states.default;
+
+    const storedConfig = buildStoredConfigFromWorkbench(config, state);
+    const storedTheme = storedConfig.themePacks.find((item) => item.id === "cursor-clear");
+    expect(storedTheme.cursorStates.default.imageDataUrl).toBe("");
+    expect(storedTheme.cursorStates.pointer.imageDataUrl).toBe("data:image/png;base64,skin-pointer");
+
+    const rehydrated = hydrateWorkbenchState(storedConfig, { host: "example.com" });
+    expect(rehydrated.draftsByTheme["cursor-clear"].cursorSkin.states.default).toBeUndefined();
+    expect(rehydrated.draftsByTheme["cursor-clear"].cursorSkin.states.pointer.image.dataUrl)
+      .toBe("data:image/png;base64,skin-pointer");
+  });
+
+  it("keeps cursor skin reset empty after save and rehydrate", () => {
+    const config = {
+      enabled: true,
+      activeThemePackId: "cursor-reset",
+      themePacks: [
+        {
+          id: "cursor-reset",
+          name: "重置测试",
+          kind: "custom",
+          cursorSkin: {
+            version: 1,
+            enabled: true,
+            transitionMs: 80,
+            states: {
+              default: createCursorSkinState("data:image/png;base64,skin-default"),
+              text: createCursorSkinState("data:image/png;base64,skin-text"),
+            },
+          },
+          cursorStates: {
+            default: createLegacyCursorState("data:image/png;base64,legacy-default"),
+            text: createLegacyCursorState("data:image/png;base64,legacy-text"),
+          },
+        },
+      ],
+      siteRules: [],
+      editor: {},
+    };
+    const state = hydrateWorkbenchState(config, { host: "example.com" });
+    state.draftsByTheme["cursor-reset"].cursorSkin.states = {};
+
+    const storedConfig = buildStoredConfigFromWorkbench(config, state);
+    const storedTheme = storedConfig.themePacks.find((item) => item.id === "cursor-reset");
+    expect(storedTheme.cursorStates.default.imageDataUrl).toBe("");
+    expect(storedTheme.cursorStates.text.imageDataUrl).toBe("");
+
+    const rehydrated = hydrateWorkbenchState(storedConfig, { host: "example.com" });
+    expect(rehydrated.draftsByTheme["cursor-reset"].cursorSkin.states).toEqual({});
   });
 
   it("writes stored config with siteRules array", () => {

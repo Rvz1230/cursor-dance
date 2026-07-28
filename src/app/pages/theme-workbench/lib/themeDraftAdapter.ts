@@ -81,21 +81,26 @@ function assetFromCursorSkinState(skinState) {
 }
 
 function normalizeDraftCursorSkin(baseDraft, themePack, cursorDraft) {
-  const storedSkin = themePack?.cursorSkin || themePack?.workbenchDraft?.cursorSkin || baseDraft.cursorSkin;
+  const persistedSkin = themePack?.cursorSkin ?? themePack?.workbenchDraft?.cursorSkin;
+  const storedSkin = persistedSkin ?? baseDraft.cursorSkin;
   const states = { ...(storedSkin?.states || {}) };
 
-  Object.entries(themePack?.cursorStates || {}).forEach(([legacyStateId, cursorState]) => {
-    const skinStateId = LEGACY_CURSOR_STATE_TO_SKIN_STATE[legacyStateId];
-    if (!skinStateId || states[skinStateId]) return;
-    const skinState = cursorSkinStateFromLegacyCursorState(cursorState);
-    if (skinState) states[skinStateId] = skinState;
-  });
+  // cursorSkin 一旦持久化，就以它为唯一真相源；空 states 可能是用户主动清除的结果。
+  // 只有旧配置完全没有 cursorSkin 时，才从兼容字段执行一次迁移。
+  if (!persistedSkin) {
+    Object.entries(themePack?.cursorStates || {}).forEach(([legacyStateId, cursorState]) => {
+      const skinStateId = LEGACY_CURSOR_STATE_TO_SKIN_STATE[legacyStateId];
+      if (!skinStateId || states[skinStateId]) return;
+      const skinState = cursorSkinStateFromLegacyCursorState(cursorState);
+      if (skinState) states[skinStateId] = skinState;
+    });
 
-  Object.entries(cursorDraft.cursorStateAssets || {}).forEach(([stateId, asset]) => {
-    if (states[stateId]) return;
-    const skinState = cursorSkinStateFromAsset(asset);
-    if (skinState) states[stateId] = skinState;
-  });
+    Object.entries(cursorDraft.cursorStateAssets || {}).forEach(([stateId, asset]) => {
+      if (states[stateId]) return;
+      const skinState = cursorSkinStateFromAsset(asset);
+      if (skinState) states[stateId] = skinState;
+    });
+  }
 
   return {
     version: 1,
@@ -286,12 +291,14 @@ function getStoredThemePack(config, themeId) {
 }
 
 function buildStoredCursorStates(draft) {
+  const hasCursorSkin = draft.cursorSkin && typeof draft.cursorSkin === "object";
   return Object.fromEntries(
     LEGACY_CURSOR_STATE_IDS.map((stateId) => {
       const skinStateId = LEGACY_CURSOR_STATE_TO_SKIN_STATE[stateId];
       const skinAsset = skinStateId ? assetFromCursorSkinState(draft.cursorSkin?.states?.[skinStateId]) : null;
       const draftAsset = draft.cursorStateAssets?.[stateId] || {};
-      const asset = skinAsset || draftAsset;
+      // 新模型存在时，缺失状态表示用户主动清除；不能再从旧草稿素材回填。
+      const asset = hasCursorSkin ? skinAsset : (skinAsset || draftAsset);
 
       return [
         stateId,
