@@ -27,6 +27,7 @@
     "textGradientStart",
     "textGradientEnd",
     "comboWindowMs",
+    "textDelay",
   ];
   const ACTION_PARTICLE_FIELDS = [
     "particle",
@@ -59,6 +60,7 @@
     "rippleLineWidth",
     "rippleOpacity",
     "rippleColor",
+    "rippleDelay",
   ];
   const ACTION_AUDIO_FIELDS = [
     "sound",
@@ -81,6 +83,7 @@
     "animationOffsetY",
     "animationColor",
     "animationGlow",
+    "animationDelay",
   ];
   const ACTION_IMAGE_FIELDS = [
     "imageEnabled",
@@ -90,6 +93,7 @@
     "imageOpacity",
     "imageOffsetX",
     "imageOffsetY",
+    "imageDelay",
   ];
   const ACTION_CURSOR_FEEDBACK_FIELDS = ["shake", "cursorOverride", "cursorSize", "cursorTrailEnabled", "cursorTrailCount", "cursorTrailOpacity", "cursorGlowColor"];
 

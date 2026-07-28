@@ -54,19 +54,29 @@ function ensureQuartzHelper(): ChildProcessWithoutNullStreams | null {
     return null;
   }
 
-  quartzHelper.stderr.on("data", (chunk) => {
-    console.error("[cursordance] macOS cursor helper 错误:", String(chunk).trim());
-  });
+  const helper = quartzHelper;
 
-  quartzHelper.on("exit", (code, signal) => {
-    if (hidden) {
-      console.error("[cursordance] macOS cursor helper 意外退出:", { code, signal });
-    }
-    quartzHelper = null;
+  helper.once("error", (error) => {
+    console.error("[cursordance] macOS cursor helper 启动失败:", error);
+    if (quartzHelper === helper) quartzHelper = null;
     hidden = false;
   });
 
-  return quartzHelper;
+  helper.stderr.on("data", (chunk) => {
+    console.error("[cursordance] macOS cursor helper 错误:", String(chunk).trim());
+  });
+
+  helper.on("exit", (code, signal) => {
+    if (hidden) {
+      console.error("[cursordance] macOS cursor helper 意外退出:", { code, signal });
+    }
+    if (quartzHelper === helper) {
+      quartzHelper = null;
+      hidden = false;
+    }
+  });
+
+  return helper;
 }
 
 function sendQuartzCommand(command: "hide" | "show" | "quit"): boolean {
