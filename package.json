@@ -18,6 +18,9 @@
   "homepage": "https://github.com/Rvz1230/cursor-dance#readme",
   "type": "module",
   "main": "out/main/index.js",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "workspaces": [
     "cursor-dance-api",
     "landing"
@@ -59,6 +62,8 @@
     "lucide-react": "^0.294.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "tailwind-merge": "^2.0.0",
     "uiohook-napi": "^1.5.5"
   },

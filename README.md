@@ -8,10 +8,14 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0-blue.svg" alt="License: AGPL-3.0"></a>
   <a href="https://github.com/Rvz1230/cursor-dance"><img src="https://img.shields.io/badge/GitHub-Rvz1230%2Fcursor--dance-181717.svg?logo=github" alt="GitHub"></a>
   <img src="https://img.shields.io/badge/version-0.6.0-orange.svg" alt="Version 0.6.0">
-  <img src="https://img.shields.io/badge/platform-Chrome%20114%2B-lightgrey.svg" alt="Chrome 114+">
+  <img src="https://img.shields.io/badge/platform-Chrome%20114%2B%20%7C%20Desktop-lightgrey.svg" alt="Chrome 114+ and Desktop">
 </p>
 
-Chrome 扩展（Manifest V3）。为网页添加可定制的鼠标交互效果——点击粒子、波纹、飘字、音效、光标状态切换等。用户在 React 工作台中编辑主题，通过 Popup 切换主题，效果由内容脚本在目标网页上实时渲染。
+CursorDance 为网页和桌面系统添加可定制的鼠标交互效果——点击粒子、波纹、飘字、音效、光标状态切换等。
+
+- Chrome 扩展（Manifest V3）已上架，内容脚本在目标网页中渲染效果。
+- Electron 桌面版正在开发，通过透明 overlay 和全局输入监听在操作系统桌面渲染效果。
+- 两端复用 React 工作台、Popup、设计系统和 schema v3 配置模型。
 
 ## 截图
 
@@ -35,10 +39,20 @@ Chrome 扩展（Manifest V3）。为网页添加可定制的鼠标交互效果�
 
 ### 手动安装（开发模式）
 
-1. `npm install && npm run build`
+1. 使用 Node.js 22.12+，执行 `npm ci && npm run build`
 2. 打开 `chrome://extensions`，开启「开发者模式」
 3. 点击「加载已解压的扩展程序」，选择 `dist/` 目录
 4. 打开任意网页即可看到效果；点击工具栏上的 CursorDance 图标打开 Popup
+
+### 桌面版开发
+
+```bash
+nvm use
+npm ci
+npm run dev:electron
+```
+
+桌面安装包仍处于 dogfood 阶段；正式分发前需要完成 macOS 签名与公证。
 
 ## 功能
 
@@ -56,18 +70,19 @@ Chrome 扩展（Manifest V3）。为网页添加可定制的鼠标交互效果�
 
 | 层 | 技术 |
 |---|------|
-| 工作台 + Popup | React 18 + Vite + Tailwind CSS + Framer Motion |
-| 内容脚本运行时 | 原生 IIFE 模块（无打包器），Web Animations API + Web Audio API |
-| 状态管理 | useReducer + chrome.storage.local / chrome.storage.session |
-| 数据格式 | schema v2，单 key `cursordance.config` |
-| 测试 | Vitest (98+ 用例) + Playwright (E2E smoke) |
+| 共享工作台 + Popup | React 18 + Vite + Tailwind CSS + Framer Motion |
+| Chrome 扩展 | Manifest V3 + 原生 IIFE 内容脚本 |
+| Electron 桌面端 | electron-vite + 透明 overlay + uiohook-napi |
+| 状态管理 | useReducer + Chrome Storage / electron-store |
+| 数据格式 | schema v3，主 key `cursordance.config` |
+| 测试 | Vitest + Node test runner + Playwright smoke |
 | AI API | Node.js + OpenAI Responses API 格式 → DeepSeek 模型 |
 
 ## 快速开始
 
 ```bash
-# 安装依赖
-npm install
+# 安装锁定依赖（Node.js 22.12+）
+npm ci
 
 # 开发模式（Vite dev server，含 HMR）
 npm run dev
@@ -77,6 +92,10 @@ npm run test
 
 # 生产构建 → dist/
 npm run build
+
+# 桌面端开发 / 构建
+npm run dev:electron
+npm run build:electron
 ```
 
 ### 在 Chrome 中加载
@@ -99,30 +118,31 @@ npm run ai:dev
 ## 架构
 
 ```
-┌─────────────────────────────────────────────────┐
-│  Popup (360×540px)         Workbench (选项页)    │
-│  popup-main.jsx            main.jsx              │
-│  usePopupState.js          useThemeWorkbenchState│
-│       │                          │               │
-│       └────────┬─────────────────┘               │
-│                │ chrome.storage                   │
-│         cursordance.config                       │
-│         cursordance.livePreviewConfig            │
-│                │                                  │
-│                ▼                                  │
-│  ┌─────────────────────────────┐                 │
-│  │   Content Script Runtime    │                 │
-│  │   content.js (DI 容器)      │                 │
-│  │   ├─ config-store.js        │                 │
-│  │   ├─ trigger-handlers.js    │                 │
-│  │   ├─ visual-effects.js      │                 │
-│  │   ├─ audio.js               │                 │
-│  │   └─ cursor-overlay.js      │                 │
-│  └─────────────────────────────┘                 │
-└─────────────────────────────────────────────────┘
+                     ┌──────────────────────┐
+                     │  Shared React UI     │
+                     │ Workbench + Popup    │
+                     └──────────┬───────────┘
+                                │ schema v3
+                 ┌──────────────┴──────────────┐
+                 │                             │
+       ┌─────────▼─────────┐         ┌─────────▼─────────┐
+       │ Chrome Extension  │         │ Electron Desktop  │
+       │ chrome.storage    │         │ electron-store     │
+       │ Content Scripts   │         │ Main / Preload     │
+       │ DOM Events        │         │ Global Input IPC   │
+       └─────────┬─────────┘         └─────────┬─────────┘
+                 │                             │
+       ┌─────────▼─────────┐         ┌─────────▼─────────┐
+       │ IIFE Effect Engine│         │ TS Effect Engine  │
+       │ inside web pages  │         │ transparent overlay│
+       └───────────────────┘         └───────────────────┘
 ```
 
+平台边界及同步约束详见 [`ARCHITECTURE.md`](./ARCHITECTURE.md)。扩展与桌面端目前各有一套效果引擎；修改一端时必须同步另一端，并通过 parity 测试锁定共享行为。
+
 ### 数据流
+
+扩展端：
 
 1. 用户在工作台编辑主题 → 保存到 `chrome.storage.local`（key: `cursordance.config`）
 2. Live Preview → 写入 `chrome.storage.session`（key: `cursordance.livePreviewConfig`）
@@ -130,57 +150,40 @@ npm run ai:dev
 4. DOM 事件（pointerdown/up/move, wheel, contextmenu）→ `trigger-handlers.js` 解析动作配置 → `visual-effects.js` 渲染效果
 5. Popup 读取配置并解析站点规则，显示实际生效的主题
 
+桌面端：工作台通过 preload IPC 读写 `electron-store`；主进程捕获全局鼠标/键盘事件并广播给透明 overlay，overlay 使用 TypeScript 效果引擎渲染。应用规则根据当前前台应用决定是否启用及使用哪个主题。
+
 ## 项目结构
 
 ```
 cursor-dance/
-├── public/                     # 内容脚本（无打包，IIFE 注册到 window）
-│   ├── config.js               # 默认配置 & normalizeConfig
-│   ├── content.js              # DI 容器，组装运行时模块
-│   ├── manifest.json           # Chrome 扩展清单
-│   ├── config-runtime/         # 配置辅助（字段定义、pick 函数）
-│   └── content-runtime/        # 运行时模块
-│       ├── site-matcher.js     # 站点规则匹配（glob 模式）
-│       ├── config-store.js     # 配置读取/合并/站点规则解析
-│       ├── diagnostics.js      # 运行时诊断事件
-│       ├── trigger-handlers.js # 事件处理 & 动作调度
-│       ├── visual-effects.js   # 粒子/波纹/飘字/光标渲染
-│       ├── audio.js            # Web Audio 音效播放
-│       ├── audio-duck-profile.js # 音频闪避配置
-│       ├── cursor-overlay.js   # 自定义光标覆盖层
-│       └── atmosphere.js       # 氛围粒子/光标拖尾效果
+├── extension/                  # Chrome MV3 清单、配置与 IIFE 内容脚本
 ├── src/
-│   ├── app/pages/
-│   │   ├── popup/              # Popup 页面
-│   │   │   ├── PopupPage.jsx
-│   │   │   └── usePopupState.js
-│   │   └── theme-workbench/    # 工作台页面
-│   │       ├── ThemeWorkbenchPage.jsx
-│   │       ├── components/     # UI 组件（Header, Sidebar, Panels）
-│   │       ├── hooks/          # 状态管理（useReducer + persistence）
-│   │       ├── model/          # Schema, ActionConfig 预设值
-│   │       ├── lib/storage/    # Chrome Storage 适配（config-io, subscriptions, extras）
-│   │       └── lib/            # 主题适配、AI 助手、工具函数
-│   └── components/ui/          # 通用 UI 组件（Button, Switch, Slider...）
+│   ├── app/                    # 两端复用的 Workbench / Popup
+│   ├── components/             # Radix + Tailwind 共享组件
+│   ├── shared/                 # 运行环境、IPC、存储抽象
+│   └── desktop/
+│       ├── main/               # 生命周期、窗口、托盘、全局输入
+│       ├── preload/            # contextBridge API
+│       └── renderer/           # TS 引擎、overlay、Popup、工作台
 ├── cursor-dance-api/           # AI API 服务
 ├── landing/                    # 独立 Vite 落地页
-├── scripts/                    # 构建 & 开发辅助脚本
-├── index.html                  # 工作台入口
-├── popup.html                  # Popup 入口
-├── CLAUDE.md                   # 开发指南
-└── LICENSE                     # AGPL-3.0
+├── electron.vite.config.mjs    # Electron 三进程构建配置
+├── electron-builder.yml        # 桌面安装包与更新配置
+├── vite.config.js              # 扩展 MPA 构建配置
+├── ARCHITECTURE.md             # 平台边界
+└── PROGRESS.md                 # 桌面版进度
 ```
 
 ## 配置数据格式
 
 ```js
 {
-  schemaVersion: 2,
+  schemaVersion: 3,
   enabled: true,
-  activeThemePackId: "woodfish",
+  activeThemePackId: "mono-geo",
   themePacks: [{
-    id: "woodfish",
-    name: "木鱼方案",
+    id: "mono-geo",
+    name: "几何",
     cursorStates: { default: { mode: "inherit", size: 48 }, ... },
     workbenchDraft: {
       actionConfigs: {
@@ -209,6 +212,9 @@ npm run test                    # Vitest 单元测试
 npm run test:smoke              # Playwright E2E 冒烟测试
 npm run extension:prepare-manifest  # 更新 manifest host_permissions
 npm run ai:dev                  # AI API 服务
+npm run dev:electron            # Electron 桌面端开发
+npm run build:electron          # 构建 main / preload / renderer
+npm run package:mac             # 生成 macOS 安装包（发布前需签名公证）
 ```
 
 ## 贡献

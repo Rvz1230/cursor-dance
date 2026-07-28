@@ -21,11 +21,14 @@ The repo uses **npm workspaces** for monorepo management:
 See `ARCHITECTURE.md` for the directory layout and platform boundaries.
 
 ## Commands
+
+Use Node.js 22.12 or newer (`.nvmrc` is the repository baseline).
+
 ```
 # Extension
 npm run dev           # Vite dev server (workbench + popup)
 npm run build         # Production build → dist/
-npm run test          # Vitest unit tests (98 tests across 15 files)
+npm run test          # Vitest unit tests (extension + shared UI + desktop)
 npm run test:smoke    # Playwright E2E smoke tests
 npm run ai:dev        # AI API server (scripts/ai-api-server.mjs)
 
@@ -174,6 +177,7 @@ Independent Vite + React build for the public website. Not part of the Electron 
 - Do NOT add `hover` trigger action on desktop (no DOM context)
 - Do NOT add audio ducking on desktop (no page media)
 - Do NOT let engine logic diverge between extension and desktop — changes to `src/desktop/renderer/engine/` must be reflected in `extension/content-runtime/` equivalents
+- Keep the action-config, text-semantics, and compute-specs parity tests green whenever shared engine semantics change
 
 ### General
 - Read `docs/project-stabilization-todo.md` and `docs/engineering-backlog.md` before large architecture changes
