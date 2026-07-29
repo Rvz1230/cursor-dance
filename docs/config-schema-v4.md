@@ -83,7 +83,7 @@ type CursorImageV4 =
   | { kind: "asset"; assetId: string; mimeType: string; width: number; height: number };
 ```
 
-`dataUrl` 用于旧配置迁移、主题导入导出和尚未进入资产仓库的临时数据。R3-3 完成后，平台持久化层必须先将大素材转换成 `assetId`，再保存配置；业务 domain 不需要因此升级到 schema v5。
+`dataUrl` 只用于主题导入导出和尚未进入资产仓库的临时数据。R3-3 完成后，平台持久化层必须先将大素材转换成 `assetId`，再保存配置；业务 domain 不需要因此升级到 schema v5。
 
 ## 4. 上下文规则
 
@@ -125,41 +125,30 @@ interface DesktopContextRuleV4 {
 
 `context` 是必需判别字段。Web 规则不能携带 `process/title`，桌面规则也不能携带 `host/path`。
 
-## 5. legacy / v3 → v4 字段归属
+## 5. v4-only 读取策略
 
-Git 历史中第一个正式带 `schemaVersion` 的实现已经是 v3；仓库没有稳定定义过 schema v1 或 v2。更早的 PRD 和兼容读取路径使用未标版本的 `schemes/activeSchemeId`。因此迁移器只识别可验证的 `legacy-unversioned`、`v3` 和 `v4`，不会根据版本号猜测不存在的中间格式。
+生产代码只识别 `schemaVersion: 4`，不解析未标版本、v1/v2/v3，也不根据旧字段猜测用户意图。旧字段名仅作为严格验证器的拒绝用例存在，不进入生产转换逻辑。
 
-| v3 字段 | v4 位置 | R3-2 处理 |
-| --- | --- | --- |
-| `activeThemePackId` / `activeSchemeId` | `activeThemeId` | 按优先级读取一次 |
-| `themePacks` / `schemes` | `themes` | 合并后只输出一份 |
-| `workbenchDraft.actionConfigs` | `theme.actionConfigs` | 过滤派生字段后提升 |
-| `workbenchDraft.cursorModes` + `cursorStateActions` | `theme.cursorBindings` | 合并成结构化 binding |
-| `cursorSkin` / `workbenchDraft.cursorSkin` | `theme.cursorSkin` | 顶层主题值优先，只输出一份 |
-| `cursorStates` / `cursorStateAssets` | `theme.cursorSkin` | 仅在没有规范 skin 时迁移图像 |
-| 主题级/全局 `keyFeedbackConfig` | `theme.keyFeedbackConfig` | 主题值优先，全局值只作旧数据 fallback |
-| `siteRules` | `contextRules[context=web]` | 转成 Web 判别类型 |
-| `appRules` 或旧桌面 `siteRules` | `contextRules[context=desktop]` | 转成 Desktop 判别类型 |
-| `editor` | 独立 editor repository | 不进入 v4 runtime config |
-| `reset*`、主题摘要等派生值 | 不持久化 | 从默认值或主题内容重建 |
-
-## 6. 验证与迁移边界
-
-`validateCursorDanceConfigV4(unknown)` 只验证已经迁移完成的规范数据，不承担兼容迁移，也不会补默认值。
-
-R3-2 的固定处理顺序为：
+固定读取流程：
 
 ```text
 unknown persisted input
-  → 验证输入 envelope 和大小
-  → 识别 legacy-unversioned / v3 / v4
-  → 单向迁移到 v4
-  → 补全默认值并规范化
   → validateCursorDanceConfigV4
-  → 冻结或按不可变对象使用
+  → 有效：冻结或按不可变对象使用
+  → 无效：直接使用已验证的最新默认 v4 配置
 ```
 
-禁止在 v4 normalize 中重新生成 `themePacks/schemes` 等兼容别名。旧格式只允许出现在迁移输入类型、迁移 fixture 和导入兼容测试中。
+这项策略接受升级后丢弃旧配置的行为，以换取更小的生产代码、更清晰的单一数据模型和更低的长期维护成本。R3-2 切换生产链路后，将删除 v3 模型、旧别名写入与旧版本识别分支。
+
+## 6. 验证与恢复边界
+
+`validateCursorDanceConfigV4(unknown)` 只验证规范 v4 数据，不承担兼容迁移，也不会补默认值。
+
+- `schemaVersion !== 4`、缺失版本号或存在未知字段时，整份配置判为无效。
+- 无效持久化数据直接恢复最新默认配置，不保留 legacy/v3 迁移器、fixture 或备份格式。
+- 默认配置自身必须通过同一个严格验证器；默认值不合法属于构建或测试失败，不能在运行时静默修补。
+- normalize 只能处理 v4 内部允许的等价表示，禁止重新生成 `themePacks/schemes` 等兼容别名。
+- Chrome Storage、Electron Store 和静态预览 adapter 使用同一读取策略，平台层只负责存取，不解释 schema。
 
 ## 7. R3-1 验收结果
 
@@ -167,4 +156,4 @@ unknown persisted input
 - 建立严格运行时验证器和断言函数。
 - 根字段、主题字段、规则判别、ID 引用、JSON 数据和素材引用均有拒绝路径测试。
 - 键盘反馈类型已改为复用共享 v4 定义，开始消除两端模型重复。
-- 当前生产持久化仍写 v3；切换写入版本属于 R3-2，避免在迁移器完成前破坏现有用户数据。
+- 当前生产持久化仍写 v3；R3-2 将直接切换到 v4，并在遇到既有非 v4 数据时恢复最新默认配置。

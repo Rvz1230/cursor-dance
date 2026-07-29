@@ -549,7 +549,7 @@ Workbench renderer
 
 ## Phase 3：配置模型收敛与存储优化
 
-目标：建立一份规范配置，兼容逻辑集中在迁移层。
+目标：建立一份规范配置，不在生产代码中保留旧版本兼容逻辑。
 
 ### R3-1：设计 schema v4
 
@@ -582,26 +582,25 @@ interface CursorDanceConfigV4 {
 - 根配置严格收敛为 `schemaVersion/enabled/activeThemeId/themes/contextRules/performance`；验证器明确拒绝旧主题别名、`siteRules/appRules`、全局键盘配置和 editor 状态。
 - 主题规范位置只保留 `actionConfigs/cursorBindings/cursorSkin/keyFeedbackConfig`；拒绝 `workbenchDraft`、旧 cursor 多份表示与 reset 派生快照。
 - Web/desktop 规则通过 `context` 判别；主题与规则 ID、主题引用、JSON 数据、光标素材两种引用形态均有运行时契约校验。
-- R3-1 不切换生产持久化版本；现有 v3 数据继续运行，待 R3-2 单向迁移器及损坏数据恢复策略完成后统一切换。
+- R3-1 不切换生产持久化版本；R3-2 直接切换到 v4-only，既有非 v4 数据恢复为最新默认配置。
 
-### R3-2：建立单向迁移器
+### R3-2：生产链路切换为 v4-only
 
 ```text
 unknown input
-  -> validate envelope
-  -> migrate unversioned legacy / v3 to v4
-  -> normalize v4
-  -> immutable domain object
+  -> validate v4
+  -> valid: immutable v4 domain object
+  -> invalid: latest default v4 config
 ```
 
 要求：
 
-- normalize 不再隐式补写旧别名。
-- migration 和 runtime normalize 分开。
-- Git 历史中没有正式发布的 schema v1/v2；迁移器只支持可由历史代码和文档证明的未标版本 `schemes/activeSchemeId` 结构与 schema v3，不虚构中间版本。
-- 导入旧主题有 fixture 测试。
-- 配置损坏时保留原始备份并恢复到安全默认值。
-- 至少保留一个正式版本的 v3 读取能力，再决定何时删除。
+- 新建默认配置必须直接符合 v4，并通过严格验证器。
+- Chrome、Electron 和静态预览只读取 v4；缺失、损坏或非 v4 数据直接恢复默认配置。
+- 删除 v3 类型、旧字段双写、版本识别、legacy fixture 和兼容迁移分支。
+- normalize 不得隐式补写旧别名。
+- 运行时消费链路只接收 v4 domain model。
+- 主题导入导出只保证当前 v4 格式，不承担旧主题升级。
 
 ### R3-3：拆分配置与素材存储
 

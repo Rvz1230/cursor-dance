@@ -67,6 +67,7 @@
 - **R1-2 验证**：38 个测试文件共 295 项通过；Electron smoke 覆盖规则禁用和清空规则后即时恢复
 - [x] R1-3：多屏事件路由与坐标转换——目标 display 单播、mousemove 按帧合并、Windows DIP 转换和跨屏/拔屏清理已完成
 - **R1-3 验证**：39 个测试文件共 301 项通过；Electron build、Web smoke 5/5、桌面 smoke 1/1 通过；双屏 1,000 个源 mousemove 的 IPC 从 2,000 条降至 62 条（约 96.9%）
+- **R1-3 后续修复**：macOS overlay 改为 NSPanel 并集中 Space policy，双屏原生全屏时主屏窗口已从仅绑定普通 Space 修复为加入全部主屏 Space；隐藏 overlay 不再接收鼠标/键盘 IPC，延迟加载和热插拔会遵守当前显隐状态
 - [ ] R1-4：自定义光标平台能力——macOS helper/watchdog 已完成；Windows Win32 helper、MSVC 构建、安装包资源和 CI 协议验证已接线，并由实验开关保护
 - **R1-4 当前验证**：41 个测试文件共 310 项通过；macOS helper 协议已真机实跑，Windows helper 等待新增 CI 与 Windows 真机验证，能力状态仍为 `planned`
 - [x] R1-5：桌面氛围运行时取舍——桌面 Workbench 隐藏配置与预览，桌面导出省略氛围字段，删除无调用方 runtime；Chrome 扩展能力不变
@@ -82,7 +83,8 @@
 - **R2-4 验证**：47 个根测试文件共 344 项、API 包 178 项通过；typecheck、lint（0 error，保留原有 29 warning）、Electron build 和桌面 smoke 通过；main bundle 由 148.85 KiB 降至 137.98 KiB
 - [x] R3-1：配置 schema v4——冻结共享只读 domain contract、严格验证器、Web/desktop 判别规则、主题单一真值与素材引用边界；生产持久化仍保持 v3
 - **R3-1 验证**：48 个根测试文件共 350 项通过；typecheck、lint（0 error，保留既有 29 warning）、Web/Electron build、Web smoke 5/5 和桌面 smoke 1/1 通过
-- **下一步**：进入 R3-2，建立未标版本 legacy / v3 → v4 单向迁移器、旧主题 fixture 与损坏配置备份恢复；Windows 同步执行 R1-4 真机验收。
+- [ ] R3-2：生产配置切换为 v4-only——只读取通过 v4 严格验证的数据；缺失、损坏或非 v4 数据直接恢复最新默认配置，不实现 legacy/v3 迁移，也不保留旧字段识别逻辑
+- **下一步**：完成 v4 默认配置、平台存储与运行时消费链路切换，删除 v3 模型和兼容别名；随后进入 R3-3，以 asset id 消除图片 data URL 的全配置重复传输。Windows 同步执行 R1-4 真机验收。
 
 ### 分支状态
 
