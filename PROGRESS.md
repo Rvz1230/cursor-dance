@@ -65,7 +65,9 @@
 - **当前重点结论**：Workbench 直接引用约 1.97 MiB 资源；默认配置约 43.9 KiB，加入 256 KiB 图片 data 后因 `themePacks` / `schemes` 双字段序列化放大到约 556.2 KiB。
 - [x] R1-2：桌面应用规则运行时闭环——独立 `appRules`、前台应用缓存/广播、overlay 即时决策、旧规则迁移和未授权降级已完成
 - **R1-2 验证**：38 个测试文件共 295 项通过；Electron smoke 覆盖规则禁用和清空规则后即时恢复
-- **下一步**：进入 Phase 1 的 R1-3，修复多屏事件路由、高频 mousemove 合并和跨屏残留清理。
+- [x] R1-3：多屏事件路由与坐标转换——目标 display 单播、mousemove 按帧合并、Windows DIP 转换和跨屏/拔屏清理已完成
+- **R1-3 验证**：39 个测试文件共 301 项通过；Electron build、Web smoke 5/5、桌面 smoke 1/1 通过；双屏 1,000 个源 mousemove 的 IPC 从 2,000 条降至 62 条（约 96.9%）
+- **下一步**：进入 Phase 1 的 R1-4，明确自定义光标的平台支持范围，并收敛原生 helper、故障恢复和 UI 能力声明。
 
 ### 分支状态
 

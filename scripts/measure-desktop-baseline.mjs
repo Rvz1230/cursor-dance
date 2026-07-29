@@ -235,9 +235,14 @@ async function measureRuntime() {
       const overlays = BrowserWindow.getAllWindows().filter((win) =>
         !win.isDestroyed() && win.webContents.getURL().includes("/renderer/overlay/index.html"),
       );
+      const testing = globalThis.__cursorDanceMainTesting;
+      if (!testing) throw new Error("Desktop routing measurement bridge is unavailable");
+      const targetBounds = overlays[0]?.getBounds();
+      if (!targetBounds) throw new Error("No overlay is available for cursor routing measurement");
       const eventCount = 1_000;
       const targetSourceHz = 1_000;
       const targetIntervalMs = 1_000 / targetSourceHz;
+      testing.resetCursorIpcCount();
       const before = process.getCPUUsage();
       const startedAt = performance.now();
       let sent = 0;
@@ -245,19 +250,26 @@ async function measureRuntime() {
         const elapsedMs = performance.now() - startedAt;
         const expectedCount = Math.min(eventCount, Math.floor(elapsedMs / targetIntervalMs));
         while (sent < expectedCount) {
-          const payload = { type: "mousemove", x: 100, y: 100, buttons: 0, timestamp: performance.now() };
-          for (const overlay of overlays) overlay.webContents.send("cursordance:cursor-event", payload);
+          testing.routeCursorEvent({
+            type: "mousemove",
+            x: targetBounds.x + 100,
+            y: targetBounds.y + 100,
+            buttons: 0,
+            timestamp: performance.now(),
+          });
           sent += 1;
         }
         if (sent < eventCount) await new Promise((resolveWait) => setTimeout(resolveWait, 0));
       }
+      testing.flushPendingMove();
       const durationMs = performance.now() - startedAt;
       const usage = process.getCPUUsage(before);
       return {
         sourceEvents: eventCount,
         targetSourceHz,
         overlayCount: overlays.length,
-        ipcMessages: eventCount * overlays.length,
+        activeDisplayId: testing.getActiveDisplayId(),
+        ipcMessages: testing.getCursorIpcCount(),
         durationMs,
         achievedSourceHz: eventCount / (durationMs / 1_000),
         mainCpuPercent: usage.percentCPUUsage,

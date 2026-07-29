@@ -15,12 +15,16 @@ export function broadcastToWindows(
   payload: unknown,
 ): void {
   for (const win of getAllWindows()) {
-    if (win.isDestroyed()) continue;
-    try {
-      win.webContents.send(channel, payload);
-    } catch {
-      // renderer 可能正在关闭/导航，IPC 管道已断，忽略即可。
-    }
+    sendToWindow(win, channel, payload);
+  }
+}
+
+export function sendToWindow(win: BrowserWindow, channel: string, payload: unknown): void {
+  if (win.isDestroyed()) return;
+  try {
+    win.webContents.send(channel, payload);
+  } catch {
+    // renderer 可能正在关闭/导航，IPC 管道已断，忽略即可。
   }
 }
 

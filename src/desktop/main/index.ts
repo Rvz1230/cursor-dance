@@ -1,7 +1,7 @@
 import { app, BrowserWindow, nativeImage } from "electron";
 import { join } from "path";
-import type { NativeCursorEvent, NativeKeyboardEvent } from "./native-events";
-import { broadcastToWindows } from "./broadcast";
+import type { NativeKeyboardEvent } from "./native-events";
+import { broadcastToWindows, sendToWindow } from "./broadcast";
 import {
   createOverlayWindow,
   destroyAllOverlays,
@@ -11,7 +11,8 @@ import {
 } from "./overlay-window";
 import { createWorkbenchWindow } from "./workbench-window";
 import { createWorkbenchWindowController } from "./workbench-window-controller";
-import { getAllDisplays, onDisplayChanges } from "./screen-utils";
+import { getAllDisplays, nativePointToDip, onDisplayChanges } from "./screen-utils";
+import { createCursorEventRouter, type CursorEventRouter, type RoutedCursorEvent } from "./cursor-event-router";
 import { registerStoreIpc, unregisterStoreIpc } from "./ipc-handlers";
 import { registerDialogIpc, unregisterDialogIpc } from "./dialog-handlers";
 import { createActiveWindowMonitor, registerActiveWindowIpc, unregisterActiveWindowIpc } from "./active-window";
@@ -37,6 +38,8 @@ let stopDisplayWatcher: (() => void) | null = null;
 let stopVisibilityWatchers: (() => void) | null = null;
 let stopAutoUpdater: (() => void) | null = null;
 let stopActiveWindowMonitor: (() => void) | null = null;
+let cursorEventRouter: CursorEventRouter | null = null;
+let cursorIpcMessageCount = 0;
 
 const isDesktopSmokeTest = process.env.CURSORDANCE_DESKTOP_SMOKE === "1";
 const smokeUserDataPath = process.env.CURSORDANCE_DESKTOP_SMOKE_USER_DATA;
@@ -56,12 +59,19 @@ if (!gotTheLock) {
   app.quit();
 }
 
-function broadcastCursorEvent(event: NativeCursorEvent): void {
-  broadcastToWindows(() => [...getOverlayWindows().values()], CURSOR_EVENT, event);
+function sendCursorEventToDisplay(displayId: number, event: RoutedCursorEvent): void {
+  const target = getOverlayWindows().get(displayId);
+  if (target) {
+    sendToWindow(target, CURSOR_EVENT, event);
+    if (isDesktopSmokeTest) cursorIpcMessageCount += 1;
+  }
 }
 
-function broadcastKeyboardEvent(event: NativeKeyboardEvent): void {
-  broadcastToWindows(() => [...getOverlayWindows().values()], KEYBOARD_EVENT, event);
+function routeKeyboardEvent(event: NativeKeyboardEvent): void {
+  const displayId = cursorEventRouter?.getActiveDisplayId();
+  if (displayId === null || displayId === undefined) return;
+  const target = getOverlayWindows().get(displayId);
+  if (target) sendToWindow(target, KEYBOARD_EVENT, event);
 }
 
 function ensureOverlayPerDisplay(): void {
@@ -152,9 +162,37 @@ void app.whenReady().then(async () => {
 
   // 2) 每个 display 一个 overlay
   ensureOverlayPerDisplay();
+  cursorEventRouter = createCursorEventRouter({
+    getDisplays: getAllDisplays,
+    toDipPoint: nativePointToDip,
+    sendToDisplay: sendCursorEventToDisplay,
+  });
+  if (isDesktopSmokeTest) {
+    const testingGlobal = globalThis as typeof globalThis & {
+      __cursorDanceMainTesting?: {
+        routeCursorEvent: (event: RoutedCursorEvent) => void;
+        flushPendingMove: () => void;
+        getActiveDisplayId: () => number | null;
+        resetCursorIpcCount: () => void;
+        getCursorIpcCount: () => number;
+      };
+    };
+    testingGlobal.__cursorDanceMainTesting = {
+      routeCursorEvent: (event) => {
+        if (event.type !== "leave") cursorEventRouter?.route(event);
+      },
+      flushPendingMove: () => cursorEventRouter?.flushPendingMove(),
+      getActiveDisplayId: () => cursorEventRouter?.getActiveDisplayId() ?? null,
+      resetCursorIpcCount: () => { cursorIpcMessageCount = 0; },
+      getCursorIpcCount: () => cursorIpcMessageCount,
+    };
+  }
   stopDisplayWatcher = onDisplayChanges(({ added, removed, changed }) => {
     for (const d of added) createOverlayWindow(d);
-    for (const d of removed) destroyOverlayWindow(d.id);
+    for (const d of removed) {
+      cursorEventRouter?.removeDisplay(d.id);
+      destroyOverlayWindow(d.id);
+    }
     for (const d of changed) syncOverlayBounds(d);
   });
 
@@ -162,7 +200,10 @@ void app.whenReady().then(async () => {
   if (!isDesktopSmokeTest) {
     try {
       const { startGlobalMouseCapture } = await import("./native-events");
-      stopMouseCapture = startGlobalMouseCapture(broadcastCursorEvent, broadcastKeyboardEvent);
+      stopMouseCapture = startGlobalMouseCapture(
+        (event) => cursorEventRouter?.route(event),
+        routeKeyboardEvent,
+      );
     } catch (error) {
       console.error("[CursorDance] failed to start global mouse capture:", error);
     }
@@ -224,6 +265,9 @@ app.on("window-all-closed", () => {
 app.on("before-quit", () => {
   stopMouseCapture?.();
   stopMouseCapture = null;
+  cursorEventRouter?.stop();
+  cursorEventRouter = null;
+  delete (globalThis as typeof globalThis & { __cursorDanceMainTesting?: unknown }).__cursorDanceMainTesting;
   stopDisplayWatcher?.();
   stopDisplayWatcher = null;
   stopVisibilityWatchers?.();

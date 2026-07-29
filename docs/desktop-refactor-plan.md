@@ -2,7 +2,8 @@
 
 > 状态：In Progress  
 > 创建日期：2026-07-28  
-> 最近更新：2026-07-28  
+> 最近更新：2026-07-29
+>
 > 适用范围：`src/desktop/`、桌面端使用的 `src/app/` 共享 UI、配置模型、效果引擎、桌面构建与发布链路  
 > 关联文档：[`ARCHITECTURE.md`](../ARCHITECTURE.md)、[`PROGRESS.md`](../PROGRESS.md)、[`docs/bug-fix-plan.md`](./bug-fix-plan.md)
 
@@ -13,6 +14,7 @@
 | R0-1 类型与版本基线 | 已完成 | TypeScript 5.9.3、Vite 7.3.6 已统一；类型检查与基础 lint 已接入 CI，桌面端显式 `any` 和 IPC 字符串通道作为阻断规则 |
 | R1-1 Workbench 生命周期 | 已完成 | Dock 激活、托盘点击、二次启动统一复用窗口控制器，并有单元测试覆盖 |
 | R1-2 桌面应用规则 | 已完成 | 独立 `appRules` schema、前台应用缓存与变更广播、overlay 即时匹配、旧规则迁移和未授权降级均已接通 |
+| R1-3 多屏事件路由 | 已完成 | 全局输入按目标显示器投递，mousemove 按帧合并，跨屏/拔屏清理残留，并在 Windows 统一转换为 DIP 坐标 |
 | R0-2 Electron smoke | 已完成 | Playwright Electron 已覆盖启动、首次引导、窗口数量、二次启动重开和配置驱动 overlay 显隐，并已在 macOS 实跑通过 |
 | R0-3 性能与代码量基线 | 已完成 | 已记录代码量、bundle、配置载荷、启动、CPU、内存和 1,000 Hz IPC 压力基线 |
 
@@ -20,11 +22,11 @@
 
 - `npm run typecheck` 通过。
 - `npm run lint` 通过（0 error；共享旧代码的 29 条显式 `any` 暂作为 warning 逐步收紧）。
-- Vitest 38 个测试文件、295 个测试通过。
+- Vitest 39 个测试文件、301 个测试通过。
 - API 177 个测试通过。
 - 根 Web、landing、Electron main/preload/renderer 构建通过。
 - 根项目、landing、Electron Vite、Vitest 均复用 Vite 7.3.6。
-- Electron smoke 已在 macOS 实跑通过并接入 Linux CI；除生命周期外，已覆盖应用规则禁用与清空后即时恢复的真实 overlay 消费路径。测试使用隔离 userData，并禁用全局输入、托盘、AI 服务和更新器等真机副作用。
+- Electron smoke 已在 macOS 实跑通过并接入 Linux CI；除生命周期外，已覆盖应用规则禁用与清空后即时恢复，以及点击只进入目标显示器 overlay 的真实消费路径。测试使用隔离 userData，并禁用全局输入、托盘、AI 服务和更新器等真机副作用。
 - 静态重构基线已记录在 [`docs/desktop-refactor-baseline.md`](./desktop-refactor-baseline.md)：生产代码 25,237 有效行，renderer 输出约 2.01 MiB，默认配置 JSON 约 43.9 KiB。
 - 动态基线已在双显示器 Mac 上实测：Workbench ready 1,127.2 ms，空闲主进程 CPU 0.198%，总工作集约 832.9 MiB，1,000 Hz 目标实际达到 998.997 Hz。
 - npm audit 当前报告 27 个依赖漏洞，需单独分类生产依赖与开发/打包依赖；不得直接运行 `npm audit fix --force`。
@@ -321,6 +323,15 @@ Phase 0 已于 2026-07-28 完成；后续工作进入 Phase 1，优先完成 R1-
 - 从 A 屏移动到 B 屏后 A 屏不残留软件光标。
 - 125%/150% 缩放显示器上的点击效果与实际光标重合。
 - 高频移动时 IPC 数量不超过显示刷新率的合理倍数。
+
+实现结果：
+
+- 新增主进程 cursor event router，以半开区间命中目标 display，移动事件只保留每帧最后一个，点击、抬起和滚轮先刷新待处理移动再即时投递。
+- 跨屏时向旧 overlay 发送 `leave`，统一清理长按、拖拽、软件光标和原生光标隐藏请求；显示器移除和应用退出时取消待处理任务。
+- Windows 将原生监听器给出的物理坐标通过 Electron `screenToDipPoint` 转为 DIP，再执行 display 命中与 renderer 投递。
+- 双显示器 1,000 个源 mousemove 的动态测量从原基线 2,000 条 IPC 降至 62 条，减少约 96.9%；实际输入频率约 999.13 Hz。
+- 路由器 6 项单元测试、Electron build 与桌面 smoke 均通过；桌面 smoke 断言非目标 overlay 不产生点击效果。
+- Windows 坐标转换已有单元测试覆盖，125%/150% 混合 DPI 的最终像素对齐仍需在 Windows 真机发布验收中确认。
 
 ### R1-4：重新定义自定义光标支持范围
 

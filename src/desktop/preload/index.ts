@@ -29,7 +29,7 @@ import {
 import type { ActiveWindowSnapshot } from "../../shared/app-rules";
 
 type CursorEventPayload = {
-  type: "mousemove" | "mousedown" | "mouseup" | "wheel";
+  type: "mousemove" | "mousedown" | "mouseup" | "wheel" | "leave";
   x: number;
   y: number;
   buttons?: number;

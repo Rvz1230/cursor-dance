@@ -164,23 +164,17 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
     }, activeCodeSnapshot);
 
     const overlayOrigin = await overlayPage.evaluate(() => ({ x: window.screenX, y: window.screenY }));
-    const sendClick = () => electronApp.evaluate(({ BrowserWindow }, point) => {
-      const overlay = BrowserWindow.getAllWindows().find((win) =>
-        win.webContents.getURL().includes("/renderer/overlay/index.html")
-        && win.getBounds().x === point.originX
-        && win.getBounds().y === point.originY,
-      );
-      if (!overlay) throw new Error("Target overlay window was not found");
+    const sendClick = () => electronApp.evaluate((_electron, point) => {
+      const testing = globalThis.__cursorDanceMainTesting;
+      if (!testing) throw new Error("Desktop smoke routing bridge is unavailable");
       const timestamp = Date.now();
-      overlay.webContents.send("cursordance:cursor-event", {
+      testing.routeCursorEvent({
         type: "mousedown", x: point.x, y: point.y, button: 0, buttons: 1, timestamp,
       });
-      overlay.webContents.send("cursordance:cursor-event", {
+      testing.routeCursorEvent({
         type: "mouseup", x: point.x, y: point.y, button: 0, buttons: 0, timestamp: timestamp + 1,
       });
     }, {
-      originX: overlayOrigin.x,
-      originY: overlayOrigin.y,
       x: overlayOrigin.x + 120,
       y: overlayOrigin.y + 120,
     });
@@ -196,6 +190,11 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
     });
     await sendClick();
     await expect(overlayPage.locator(".cd-effect").first()).toBeAttached();
+    for (const otherOverlay of electronApp.windows().filter(
+      (page) => isWindowType(page.url(), "overlay") && page !== overlayPage,
+    )) {
+      await expect(otherOverlay.locator(".cd-effect")).toHaveCount(0);
+    }
   } finally {
     await electronApp?.close();
     await rm(userDataPath, { recursive: true, force: true });

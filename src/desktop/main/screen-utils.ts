@@ -21,6 +21,15 @@ export function getAllDisplays(): Display[] {
 }
 
 /**
+ * uiohook reports physical screen coordinates on Windows while Electron
+ * BrowserWindow bounds use DIP. Other platforms already share Electron's DIP
+ * coordinate space, so conversion is intentionally Windows-only.
+ */
+export function nativePointToDip(point: { x: number; y: number }): { x: number; y: number } {
+  return process.platform === "win32" ? screen.screenToDipPoint(point) : point;
+}
+
+/**
  * 监听显示器变化，组合 display-added / display-removed / display-metrics-changed
  * 三个事件，每次回调给出最小 delta（added/removed/changed）。返回退订函数。
  */

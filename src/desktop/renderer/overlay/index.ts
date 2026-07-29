@@ -27,7 +27,7 @@ import {
 } from "../../../shared/app-rules";
 
 type CursorEventPayload = {
-  type: "mousemove" | "mousedown" | "mouseup" | "wheel";
+  type: "mousemove" | "mousedown" | "mouseup" | "wheel" | "leave";
   x: number;
   y: number;
   buttons?: number;
@@ -152,6 +152,7 @@ let dragStarted = false;
 let dragStartX = 0;
 let dragStartY = 0;
 let nativeCursorHidden = false;
+let pointerInside = false;
 
 const api = (globalThis as unknown as { cursorDanceAPI?: CursorDanceAPI }).cursorDanceAPI;
 
@@ -199,7 +200,7 @@ function resolveCachedCursorState(): typeof cachedCursorState {
     const cursorSkin = scheme?.cursorSkin || scheme?.workbenchDraft?.cursorSkin;
     cachedCursorState = cursorSkinStateToOverlayState(resolveCursorSkinState(cursorSkin, activeCursorSkinStateId));
   }
-  setNativeCursorHidden(Boolean(cachedCursorState));
+  setNativeCursorHidden(Boolean(cachedCursorState) && pointerInside);
   return cachedCursorState;
 }
 
@@ -350,16 +351,30 @@ function toEngineCursorEvent(payload: CursorEventPayload): CursorEvent {
 }
 
 function isInsideThisOverlay(event: CursorEvent): boolean {
-  return event.x >= 0 && event.y >= 0 && event.x <= window.innerWidth && event.y <= window.innerHeight;
+  return event.x >= 0 && event.y >= 0 && event.x < window.innerWidth && event.y < window.innerHeight;
 }
 
 function dispatch(payload: CursorEventPayload): void {
+  if (payload.type === "leave") {
+    pointerInside = false;
+    state.lastMouseGlobalX = undefined;
+    state.lastMouseGlobalY = undefined;
+    leftButtonDown = false;
+    dragStarted = false;
+    setActiveCursorSkinState("default");
+    engine.triggerHandlers.handlePointerCancel();
+    engine.cursorOverlay.clearStateCursorOverlay();
+    setNativeCursorHidden(false);
+    return;
+  }
+
   // 记录鼠标全局 DIP 坐标（用于键盘事件多显示器路由）
   state.lastMouseGlobalX = payload.x;
   state.lastMouseGlobalY = payload.y;
 
   const cursorEvent = toEngineCursorEvent(payload);
   if (!isInsideThisOverlay(cursorEvent)) return;
+  pointerInside = true;
 
   if (payload.type === "mousemove") {
     if (leftButtonDown && !dragStarted) {
@@ -410,16 +425,7 @@ api?.onCursorEvent(dispatch);
 // ============================================================
 
 function isMouseInThisOverlay(): boolean {
-  const gx = state.lastMouseGlobalX;
-  const gy = state.lastMouseGlobalY;
-  if (gx === undefined || gy === undefined) {
-    // 鼠标未移动过时，fallback 到主显示器（screenX/Y === 0）
-    return window.screenX === 0 && window.screenY === 0;
-  }
-  const localX = gx - window.screenX;
-  const localY = gy - window.screenY;
-  // 半开区间：避免鼠标恰好停在屏幕拼接边界时两个 overlay 都判定 in-bounds 而双触发
-  return localX >= 0 && localY >= 0 && localX < window.innerWidth && localY < window.innerHeight;
+  return pointerInside;
 }
 
 function dispatchKeyboard(payload: KeyboardEventPayload): void {
