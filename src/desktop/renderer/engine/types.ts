@@ -122,7 +122,7 @@ export interface ConfigStore {
   getActiveScheme?(): unknown;
   /** trigger-handlers：完整 config（含 schemes 列表 + activeSchemeId），仅 previewAtViewportCenter 用到 */
   getConfig?(): { schemes: { id: string }[]; activeSchemeId: string };
-  /** trigger-handlers：站点/应用是否启用。桌面端由 app-matcher 实现 */
+  /** trigger-handlers：站点/应用是否启用。桌面端由共享 app-rules 匹配器实现 */
   isCurrentSiteEnabled?(): boolean;
   /** trigger-handlers：根据 scheme + actionId 取动作配置 */
   getActionConfig?(scheme: unknown, actionId: string): Record<string, unknown> | undefined;

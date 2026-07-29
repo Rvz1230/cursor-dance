@@ -680,6 +680,27 @@ describe("themeDraftAdapter", () => {
     expect(state6.siteRules).toEqual([]);
   });
 
+  it("round-trips desktop app rules without mixing them into site rules", () => {
+    const { defaultConfig } = installPublicConfigRuntime();
+    const state = hydrateWorkbenchState(defaultConfig, { host: "example.com" });
+    const appRules = [{
+      id: "disable-code",
+      pattern: { type: "exact", value: "Code", target: "process" },
+      action: "disable",
+      enabled: true,
+    }];
+
+    const stored = buildStoredConfigFromWorkbench(defaultConfig, {
+      ...state,
+      appRules,
+    });
+    const rehydrated = hydrateWorkbenchState(stored, { host: "example.com" });
+
+    expect(stored.appRules).toEqual(appRules);
+    expect(stored.siteRules).toEqual([]);
+    expect(rehydrated.appRules).toEqual(appRules);
+  });
+
   it("stores and rehydrates animation effect fields through workbench drafts", () => {
     const { defaultConfig } = installPublicConfigRuntime();
     const state = hydrateWorkbenchState(defaultConfig, { host: "example.com" });

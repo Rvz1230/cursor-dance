@@ -6,7 +6,7 @@
 //     默认配置 **字节级保留**，与扩展端 cursor 颜色 / 粒子 / 涟漪一一对应。
 //   - normalizeSiteRules 保留——桌面端虽然把 site → app，但 schema v3
 //     仍承载 siteRules 字段做向后兼容；新的 appRules 走独立路径
-//     （另见 app-matcher.ts 与任务 3.x 的存储适配）。
+//     （另见 shared/app-rules.ts 与任务 3.x 的存储适配）。
 //   - 不引用 chrome.*、不挂 window.*。
 //
 // 任务 2.9：补全桌面端 5 个 action 的内置默认配置。
@@ -88,6 +88,10 @@ export interface SiteRule {
   enabled: boolean;
 }
 
+import { normalizeAppRules, type AppRule } from "../../../shared/app-rules";
+export { normalizeAppRules } from "../../../shared/app-rules";
+export type { AppRule } from "../../../shared/app-rules";
+
 export interface EditorPrefs {
   mode: "simple" | "advanced";
   lastWorkspace: string;
@@ -107,6 +111,7 @@ export interface CursorDanceConfig {
   schemes: ThemePack[];
   performance: { maxActiveEffects: number };
   siteRules: SiteRule[];
+  appRules: AppRule[];
   editor: EditorPrefs;
   keyFeedbackConfig?: KeyFeedbackConfig;
 }
@@ -428,7 +433,20 @@ export function normalizeConfig(
   const fallbackThemePackId = fallback.activeThemePackId || fallback.activeSchemeId || themePacks[0]?.id;
   const rawActiveThemePackId = v.activeThemePackId || v.activeSchemeId;
   const activeThemePackId = themePacks.some((pack) => pack.id === rawActiveThemePackId) ? rawActiveThemePackId! : fallbackThemePackId!;
-  const siteRules = normalizeSiteRules(v.siteRules, fallback.siteRules);
+  const legacyAppRules = Array.isArray(v.siteRules)
+    ? v.siteRules.filter((rule) => {
+        const target = (rule as { pattern?: { target?: unknown } })?.pattern?.target;
+        return target === "process" || target === "title";
+      })
+    : [];
+  const siteRuleInput = Array.isArray(v.siteRules)
+    ? v.siteRules.filter((rule) => {
+        const target = (rule as { pattern?: { target?: unknown } })?.pattern?.target;
+        return target !== "process" && target !== "title";
+      })
+    : v.siteRules;
+  const siteRules = normalizeSiteRules(siteRuleInput, fallback.siteRules);
+  const appRules = normalizeAppRules(v.appRules ?? legacyAppRules, fallback.appRules);
   const legacyKeyFeedbackConfig = v.keyFeedbackConfig;
   const rawThemePackById = new Map(Array.isArray(rawThemePacks) ? rawThemePacks.map((pack) => [pack?.id, pack]) : []);
   if (v.keyFeedbackConfig) {
@@ -456,6 +474,7 @@ export function normalizeConfig(
     themePacks,
     schemes: themePacks,
     siteRules,
+    appRules,
     performance: {
       ...(fallback.performance || { maxActiveEffects: 48 }),
       ...(v.performance || {}),
@@ -479,6 +498,7 @@ export function needsMigration(value: unknown): boolean {
   if (!Array.isArray(v.themePacks)) return true;
   if (!v.activeThemePackId) return true;
   if (v.siteRules && !Array.isArray(v.siteRules)) return true;
+  if (v.appRules && !Array.isArray(v.appRules)) return true;
   return false;
 }
 
@@ -495,6 +515,7 @@ export const defaultConfig: CursorDanceConfig = {
     maxActiveEffects: 48,
   },
   siteRules: [],
+  appRules: [],
   editor: {
     mode: "simple",
     lastWorkspace: "workspace",

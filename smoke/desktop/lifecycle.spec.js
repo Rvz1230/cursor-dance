@@ -133,6 +133,69 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
       const state = await readWindowState(electronApp);
       return state.overlay.visibleCount === state.displayCount;
     }).toBe(true);
+
+    const overlayPage = electronApp.windows().find((page) => isWindowType(page.url(), "overlay"));
+    if (!overlayPage) throw new Error("Overlay page did not open");
+    const activeCodeSnapshot = {
+      authorized: true,
+      owner: { name: "Code", bundleId: "com.microsoft.VSCode" },
+      processName: "Code",
+      title: "README — CursorDance smoke",
+    };
+
+    await workbenchPage.evaluate(async () => {
+      if (!window.cursorDanceStorage) throw new Error("cursorDanceStorage bridge is unavailable");
+      const current = await window.cursorDanceStorage.getConfig();
+      await window.cursorDanceStorage.setConfig({
+        ...(current || {}),
+        enabled: true,
+        appRules: [{
+          id: "smoke-disable-code",
+          pattern: { type: "exact", value: "Code", target: "process" },
+          action: "disable",
+          enabled: true,
+        }],
+      });
+    });
+    await electronApp.evaluate(({ BrowserWindow }, snapshot) => {
+      for (const win of BrowserWindow.getAllWindows()) {
+        win.webContents.send("cursordance:app-active-window-changed", snapshot);
+      }
+    }, activeCodeSnapshot);
+
+    const overlayOrigin = await overlayPage.evaluate(() => ({ x: window.screenX, y: window.screenY }));
+    const sendClick = () => electronApp.evaluate(({ BrowserWindow }, point) => {
+      const overlay = BrowserWindow.getAllWindows().find((win) =>
+        win.webContents.getURL().includes("/renderer/overlay/index.html")
+        && win.getBounds().x === point.originX
+        && win.getBounds().y === point.originY,
+      );
+      if (!overlay) throw new Error("Target overlay window was not found");
+      const timestamp = Date.now();
+      overlay.webContents.send("cursordance:cursor-event", {
+        type: "mousedown", x: point.x, y: point.y, button: 0, buttons: 1, timestamp,
+      });
+      overlay.webContents.send("cursordance:cursor-event", {
+        type: "mouseup", x: point.x, y: point.y, button: 0, buttons: 0, timestamp: timestamp + 1,
+      });
+    }, {
+      originX: overlayOrigin.x,
+      originY: overlayOrigin.y,
+      x: overlayOrigin.x + 120,
+      y: overlayOrigin.y + 120,
+    });
+
+    await sendClick();
+    await overlayPage.waitForTimeout(150);
+    await expect(overlayPage.locator(".cd-effect")).toHaveCount(0);
+
+    await workbenchPage.evaluate(async () => {
+      if (!window.cursorDanceStorage) throw new Error("cursorDanceStorage bridge is unavailable");
+      const current = await window.cursorDanceStorage.getConfig();
+      await window.cursorDanceStorage.setConfig({ ...(current || {}), appRules: [] });
+    });
+    await sendClick();
+    await expect(overlayPage.locator(".cd-effect").first()).toBeAttached();
   } finally {
     await electronApp?.close();
     await rm(userDataPath, { recursive: true, force: true });

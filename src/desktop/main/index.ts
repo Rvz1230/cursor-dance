@@ -14,25 +14,29 @@ import { createWorkbenchWindowController } from "./workbench-window-controller";
 import { getAllDisplays, onDisplayChanges } from "./screen-utils";
 import { registerStoreIpc, unregisterStoreIpc } from "./ipc-handlers";
 import { registerDialogIpc, unregisterDialogIpc } from "./dialog-handlers";
-import { registerActiveWindowIpc, unregisterActiveWindowIpc } from "./active-window";
+import { createActiveWindowMonitor, registerActiveWindowIpc, unregisterActiveWindowIpc } from "./active-window";
 import { registerWindowControlsIpc, unregisterWindowControlsIpc } from "./window-controls";
 import { registerFirstRunIpc, unregisterFirstRunIpc } from "./first-run";
 import { registerAiIpc, unregisterAiIpc } from "./ai-ipc";
 import { registerCursorVisibilityIpc, restoreNativeCursor, unregisterCursorVisibilityIpc } from "./cursor-visibility";
+import { shouldKeepOverlaysVisible } from "./overlay-visibility";
 import { startEmbeddedAiServer, stopEmbeddedAiServer } from "./api-server";
 import { registerAutoUpdater } from "./auto-updater";
 import { createTray, destroyTray } from "./tray";
 import {
   onConfigChange,
+  onLivePreviewChange,
   readConfig,
+  readLivePreview,
   writeConfig,
 } from "./electron-store";
-import { CURSOR_EVENT, KEYBOARD_EVENT } from "../../shared/ipc-channels";
+import { APP_ACTIVE_WINDOW_CHANGED, CURSOR_EVENT, KEYBOARD_EVENT } from "../../shared/ipc-channels";
 
 let stopMouseCapture: (() => void) | null = null;
 let stopDisplayWatcher: (() => void) | null = null;
-let stopEnableWatcher: (() => void) | null = null;
+let stopVisibilityWatchers: (() => void) | null = null;
 let stopAutoUpdater: (() => void) | null = null;
+let stopActiveWindowMonitor: (() => void) | null = null;
 
 const isDesktopSmokeTest = process.env.CURSORDANCE_DESKTOP_SMOKE === "1";
 const smokeUserDataPath = process.env.CURSORDANCE_DESKTOP_SMOKE_USER_DATA;
@@ -84,6 +88,10 @@ function getEnabledFromStore(): boolean {
   return config?.enabled !== false;
 }
 
+function shouldShowOverlays(): boolean {
+  return shouldKeepOverlaysVisible(readLivePreview() ?? readConfig());
+}
+
 function setOverlayVisibility(visible: boolean): void {
   for (const win of getOverlayWindows().values()) {
     if (win.isDestroyed()) continue;
@@ -103,7 +111,7 @@ function toggleEnabled(): void {
   writeConfig(next);
   // 写盘后 STORE_CHANGED 会被 ipc-handlers 广播给所有 renderer；
   // 我们只关心副作用：同步 overlay 显隐 + 重建 tray 菜单（onConfigChange 兜底）。
-  setOverlayVisibility(next.enabled as boolean);
+  setOverlayVisibility(shouldShowOverlays());
 }
 
 function openWorkbench(): void {
@@ -123,7 +131,17 @@ void app.whenReady().then(async () => {
   //    否则 renderer 启动时第一波 invoke 会拿不到 handler 直接挂。
   registerStoreIpc(() => BrowserWindow.getAllWindows());
   registerDialogIpc();
-  registerActiveWindowIpc();
+  const activeWindowMonitor = createActiveWindowMonitor({
+    publish: (snapshot) => {
+      broadcastToWindows(() => BrowserWindow.getAllWindows(), APP_ACTIVE_WINDOW_CHANGED, snapshot);
+    },
+  });
+  registerActiveWindowIpc(() => activeWindowMonitor.getCurrent());
+  if (isDesktopSmokeTest) {
+    activeWindowMonitor.poll();
+  } else {
+    stopActiveWindowMonitor = activeWindowMonitor.start();
+  }
   registerWindowControlsIpc();
   registerFirstRunIpc();
   registerAiIpc();
@@ -154,10 +172,17 @@ void app.whenReady().then(async () => {
   //    onConfigChange 是 store 变更的回调，tray 借此重建菜单；
   //    同时这里订阅一份用来同步 overlay 显隐——无论是 tray 触发还是 workbench
   //    触发的 enabled 翻转都会走到这里。
-  setOverlayVisibility(getEnabledFromStore());
-  stopEnableWatcher = onConfigChange(() => {
-    setOverlayVisibility(getEnabledFromStore());
+  setOverlayVisibility(shouldShowOverlays());
+  const stopConfigVisibilityWatcher = onConfigChange(() => {
+    setOverlayVisibility(shouldShowOverlays());
   });
+  const stopPreviewVisibilityWatcher = onLivePreviewChange(() => {
+    setOverlayVisibility(shouldShowOverlays());
+  });
+  stopVisibilityWatchers = () => {
+    stopConfigVisibilityWatcher();
+    stopPreviewVisibilityWatcher();
+  };
   if (!isDesktopSmokeTest) {
     createTray({
       openWorkbench,
@@ -201,10 +226,12 @@ app.on("before-quit", () => {
   stopMouseCapture = null;
   stopDisplayWatcher?.();
   stopDisplayWatcher = null;
-  stopEnableWatcher?.();
-  stopEnableWatcher = null;
+  stopVisibilityWatchers?.();
+  stopVisibilityWatchers = null;
   stopAutoUpdater?.();
   stopAutoUpdater = null;
+  stopActiveWindowMonitor?.();
+  stopActiveWindowMonitor = null;
   destroyTray();
   unregisterStoreIpc();
   unregisterDialogIpc();

@@ -25,6 +25,7 @@ import {
   mergeThemePackWithFallback,
   needsMigration,
   normalizeConfig,
+  normalizeAppRules,
   normalizeSiteRules,
 } from "../engine/default-config";
 import {
@@ -72,6 +73,7 @@ if (typeof window !== "undefined") {
       mergeThemePackWithFallback,
       mergeCursorStates,
       normalizeSiteRules,
+      normalizeAppRules,
       normalizeConfig,
       needsMigration,
     };

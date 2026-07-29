@@ -268,6 +268,7 @@ export function hydrateWorkbenchState(config, site) {
       cursorStateId: selectedCursorStateId,
     },
     siteRules: Array.isArray(config.siteRules) ? config.siteRules : [],
+    appRules: Array.isArray(config.appRules) ? config.appRules : [],
     themeLibrary,
     ui: {
       enabled: config.enabled !== false,
@@ -357,6 +358,7 @@ export function buildStoredConfigFromWorkbench(previousConfig, state) {
     themePacks: nextThemePacks,
     schemes: nextThemePacks,
     siteRules: Array.isArray(state.siteRules) ? state.siteRules : [],
+    appRules: Array.isArray(state.appRules) ? state.appRules : [],
     editor: {
       ...(previousConfig.editor || {}),
       lastWorkspace: workspaceId,

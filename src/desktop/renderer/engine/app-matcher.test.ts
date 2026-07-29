@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { matchPattern, resolveAppRule } from "./app-matcher";
+import { matchAppPattern as matchPattern, resolveAppRule } from "../../../shared/app-rules";
 
 describe("matchPattern", () => {
   describe("exact type", () => {

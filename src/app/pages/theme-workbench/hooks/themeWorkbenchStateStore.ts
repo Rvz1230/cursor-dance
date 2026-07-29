@@ -19,7 +19,7 @@ export const initialState = {
     cursorStateId: "default",
   },
   siteRules: [],
-  siteRulesEditor: { editingRuleId: null, draftRule: null },
+  appRules: [],
   ui: {
     enabled: true,
     unsaved: true,
@@ -129,8 +129,9 @@ export function reducer(state, action) {
       };
     case "global-enabled/set":
       return { ...state, ui: { ...state.ui, enabled: action.payload, unsaved: true, saveError: "" } };
-    case "site-rules/add": {
-      const rule = action.payload;
+    case "rules/add": {
+      const collection = action.payload?.collection === "appRules" ? "appRules" : "siteRules";
+      const rule = action.payload?.rule;
       if (!rule || !rule.pattern || !rule.action) return state;
       const newRule = {
         id: rule.id || ("r" + (Date.now().toString(36) + Math.random().toString(36).slice(2, 6))),
@@ -140,55 +141,61 @@ export function reducer(state, action) {
       };
       return {
         ...state,
-        siteRules: [...state.siteRules, newRule],
+        [collection]: [...state[collection], newRule],
         ui: { ...state.ui, unsaved: true, saveError: "" },
       };
     }
-    case "site-rules/update": {
+    case "rules/update": {
+      const collection = action.payload?.collection === "appRules" ? "appRules" : "siteRules";
       const { id, updates } = action.payload;
       return {
         ...state,
-        siteRules: state.siteRules.map((rule) =>
+        [collection]: state[collection].map((rule) =>
           rule.id === id ? { ...rule, ...updates } : rule
         ),
         ui: { ...state.ui, unsaved: true, saveError: "" },
       };
     }
-    case "site-rules/delete": {
-      const ruleId = action.payload;
+    case "rules/delete": {
+      const collection = action.payload?.collection === "appRules" ? "appRules" : "siteRules";
+      const ruleId = action.payload?.id;
       return {
         ...state,
-        siteRules: state.siteRules.filter((rule) => rule.id !== ruleId),
+        [collection]: state[collection].filter((rule) => rule.id !== ruleId),
         ui: { ...state.ui, unsaved: true, saveError: "" },
       };
     }
-    case "site-rules/reorder": {
+    case "rules/reorder": {
+      const collection = action.payload?.collection === "appRules" ? "appRules" : "siteRules";
       const { from, to } = action.payload;
-      const nextRules = [...state.siteRules];
+      const nextRules = [...state[collection]];
       const [moved] = nextRules.splice(from, 1);
       nextRules.splice(to, 0, moved);
       return {
         ...state,
-        siteRules: nextRules,
+        [collection]: nextRules,
         ui: { ...state.ui, unsaved: true, saveError: "" },
       };
     }
-    case "site-rules/toggle": {
-      const ruleId = action.payload;
+    case "rules/toggle": {
+      const collection = action.payload?.collection === "appRules" ? "appRules" : "siteRules";
+      const ruleId = action.payload?.id;
       return {
         ...state,
-        siteRules: state.siteRules.map((rule) =>
+        [collection]: state[collection].map((rule) =>
           rule.id === ruleId ? { ...rule, enabled: !rule.enabled } : rule
         ),
         ui: { ...state.ui, unsaved: true, saveError: "" },
       };
     }
-    case "site-rules/clear-all":
+    case "rules/clear-all": {
+      const collection = action.payload?.collection === "appRules" ? "appRules" : "siteRules";
       return {
         ...state,
-        siteRules: [],
+        [collection]: [],
         ui: { ...state.ui, unsaved: true, saveError: "" },
       };
+    }
     case "save/start":
       return { ...state, ui: { ...state.ui, isSaving: true, saveError: "" } };
     case "save/success":

@@ -33,8 +33,11 @@ export const DIALOG_SAVE_THEME_FILE = "cursordance:dialog-save-theme-file";
 export const DIALOG_OPEN_THEME_FILE = "cursordance:dialog-open-theme-file";
 
 /** renderer → 主进程：拉取当前前台应用元数据（进程名 / Bundle ID / 窗口标题），
- *  供 app-matcher 应用规则匹配使用。macOS 无辅助功能权限时返回 unauthorized 状态。 */
+ *  供应用规则匹配使用。macOS 无辅助功能权限时返回 unauthorized 状态。 */
 export const APP_GET_ACTIVE_WINDOW = "cursordance:app-get-active-window";
+
+/** 主进程 → renderer：前台应用或授权状态发生变化。 */
+export const APP_ACTIVE_WINDOW_CHANGED = "cursordance:app-active-window-changed";
 
 /** renderer → 主进程：读取 / 翻转 firstRun flag。
  *  flag 单独存盘（key: cursordance:firstRun），不污染 cursordance.config。

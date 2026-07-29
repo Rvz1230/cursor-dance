@@ -23,7 +23,8 @@ vi.mock("electron", () => ({
   ipcMain: { handle: vi.fn(), removeHandler: vi.fn() },
 }));
 
-import { getActiveWindowSnapshot } from "./active-window";
+import { createActiveWindowMonitor, getActiveWindowSnapshot } from "./active-window";
+import type { ActiveWindowSnapshot } from "../../shared/app-rules";
 
 describe("getActiveWindowSnapshot", () => {
   beforeEach(() => {
@@ -113,5 +114,65 @@ describe("getActiveWindowSnapshot", () => {
     const snap = getActiveWindowSnapshot();
     expect(snap.authorized).toBe(true);
     if (snap.authorized) expect(snap.title).toBe("");
+  });
+});
+
+describe("createActiveWindowMonitor", () => {
+  const codeSnapshot: ActiveWindowSnapshot = {
+    authorized: true,
+    owner: { name: "Code", bundleId: "com.microsoft.VSCode" },
+    processName: "Code",
+    title: "app.ts — cursor-dance",
+  };
+  const workbenchSnapshot: ActiveWindowSnapshot = {
+    authorized: true,
+    owner: { name: "CursorDance", bundleId: "com.cursordance.app" },
+    processName: "CursorDance",
+    title: "CursorDance 工作台",
+  };
+
+  it("只在有效快照变化时广播", () => {
+    let next = codeSnapshot;
+    const published: ActiveWindowSnapshot[] = [];
+    const monitor = createActiveWindowMonitor({
+      readSnapshot: () => next,
+      publish: (snapshot) => published.push(snapshot),
+    });
+
+    monitor.poll();
+    monitor.poll();
+    next = { ...codeSnapshot, title: "README.md — cursor-dance" };
+    monitor.poll();
+
+    expect(published).toHaveLength(2);
+    expect(published[1]).toMatchObject({ title: "README.md — cursor-dance" });
+  });
+
+  it("Workbench 成为前台时保留最近的非 CursorDance 应用", () => {
+    let next = codeSnapshot;
+    const published: ActiveWindowSnapshot[] = [];
+    const monitor = createActiveWindowMonitor({
+      readSnapshot: () => next,
+      publish: (snapshot) => published.push(snapshot),
+    });
+
+    expect(monitor.poll()).toEqual(codeSnapshot);
+    next = workbenchSnapshot;
+    expect(monitor.poll()).toEqual(codeSnapshot);
+    expect(published).toEqual([codeSnapshot]);
+  });
+
+  it("未授权状态会覆盖缓存并向 renderer 广播", () => {
+    let next: ActiveWindowSnapshot = codeSnapshot;
+    const published: ActiveWindowSnapshot[] = [];
+    const monitor = createActiveWindowMonitor({
+      readSnapshot: () => next,
+      publish: (snapshot) => published.push(snapshot),
+    });
+
+    monitor.poll();
+    next = { authorized: false, message: "需要辅助功能权限" };
+    expect(monitor.poll()).toEqual(next);
+    expect(published).toHaveLength(2);
   });
 });

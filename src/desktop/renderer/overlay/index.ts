@@ -21,6 +21,10 @@ import {
 import { createConfigStore, type ConfigStoreAdapter } from "../engine/config-store";
 import { createDiagnostics } from "../engine/diagnostics";
 import { defaultConfig } from "../engine/default-config";
+import {
+  activeAppInfoFromSnapshot,
+  type ActiveWindowSnapshot,
+} from "../../../shared/app-rules";
 
 type CursorEventPayload = {
   type: "mousemove" | "mousedown" | "mouseup" | "wheel";
@@ -113,6 +117,8 @@ const diagnostics = createDiagnostics({ window });
 // 因为 overlay 与 workbench 是不同 BrowserWindow,localStorage 不共享,只有 IPC 通。
 // bridge 缺失时降级为 defaultConfig 兜底,保证引擎能跑起来.
 const bridge = (typeof window !== "undefined" ? window.cursorDanceStorage : undefined) ?? null;
+const appBridge = (typeof window !== "undefined" ? window.cursorDanceApp : undefined) ?? null;
+let activeWindowSnapshot: ActiveWindowSnapshot | null = null;
 
 const electronBridgeAdapter: ConfigStoreAdapter = {
   async get() {
@@ -133,8 +139,7 @@ const configStore = createConfigStore({
   constants: CONFIG_STORE_CONSTANTS,
   diagnostics,
   storeAdapter: electronBridgeAdapter,
-  // 桌面 active-app-info / app-rules：阶段二还没接 get-windows（任务 3.2），
-  // 暂时不传，configStore 会回退到 config.enabled 全局开关。
+  getActiveAppInfo: () => activeAppInfoFromSnapshot(activeWindowSnapshot),
 });
 
 // 缓存 cursor skin 解析结果——第一版 overlay 先支持 default 与 dragging/grabbing，
@@ -246,6 +251,27 @@ function applyOverlayConfig(next: unknown, source: "stored" | "live-preview" | "
     hasResolvedCursor: Boolean(resolvedCursorState?.imageDataUrl),
     hidden: nativeCursorHidden,
   });
+  diagnostics.log("app-rule.context", {
+    source: `config:${source}`,
+    authorized: activeWindowSnapshot?.authorized ?? null,
+    processName: activeWindowSnapshot?.authorized ? activeWindowSnapshot.processName : null,
+    title: activeWindowSnapshot?.authorized ? activeWindowSnapshot.title : null,
+    action: configStore.getResolvedAppRule(),
+  });
+}
+
+function applyActiveWindowSnapshot(next: ActiveWindowSnapshot): void {
+  activeWindowSnapshot = next;
+  invalidateCursorStateCache();
+  syncCursorSkinAtLastPosition();
+  diagnostics.log("app-rule.context", {
+    source: "active-window",
+    authorized: next.authorized,
+    processName: next.authorized ? next.processName : null,
+    title: next.authorized ? next.title : null,
+    message: "message" in next ? next.message : null,
+    action: configStore.getResolvedAppRule(),
+  });
 }
 
 // 启动时同步走一次：先用默认 config 让 trigger-handlers 立刻可用，
@@ -285,6 +311,18 @@ if (bridge) {
   });
 } else {
   console.warn("[cursordance] cursorDanceStorage bridge 未注入，overlay 只能用 defaultConfig");
+}
+
+let unsubscribeActiveWindow: (() => void) | null = null;
+if (appBridge) {
+  void appBridge.getActiveWindow()
+    .then(applyActiveWindowSnapshot)
+    .catch((error) => {
+      console.error("[cursordance] overlay 初始前台应用读取失败:", error);
+    });
+  unsubscribeActiveWindow = appBridge.onActiveWindowChanged(applyActiveWindowSnapshot);
+} else {
+  console.warn("[cursordance] cursorDanceApp bridge 未注入，应用规则退化为全局配置");
 }
 
 // ============================================================
@@ -396,6 +434,7 @@ api?.onKeyboardEvent?.(dispatchKeyboard);
 
 // 退出时清理（renderer 内部 hot reload 也走这里）
 window.addEventListener("beforeunload", () => {
+  unsubscribeActiveWindow?.();
   api?.offCursorEvent(dispatch);
   api?.offKeyboardEvent?.(dispatchKeyboard);
   engine.cursorOverlay.clearStateCursorOverlay();

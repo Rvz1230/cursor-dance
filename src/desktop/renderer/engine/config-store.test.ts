@@ -4,8 +4,9 @@ import { createConfigStore } from "./config-store";
 import { defaultConfig } from "./default-config";
 import { defaultKeyFeedbackConfig } from "./key-feedback-types";
 import type { EngineState } from "./types";
+import type { ActiveAppInfo } from "../../../shared/app-rules";
 
-function createStore(config: unknown) {
+function createStore(config: unknown, getActiveAppInfo?: () => ActiveAppInfo | null) {
   const state: EngineState = { activeEffects: 0 };
   const store = createConfigStore({
     window: { location: { hostname: "localhost" } } as Window,
@@ -18,6 +19,7 @@ function createStore(config: unknown) {
       INTERACTIVE_SELECTOR: "",
       TEXT_EDITABLE_SELECTOR: "",
     },
+    getActiveAppInfo,
   });
   store.setConfig(config);
   return store;
@@ -112,5 +114,47 @@ describe("config-store keyFeedbackConfig", () => {
     });
 
     expect(store.getKeyFeedbackConfig().color).toBe("#22CCDD");
+  });
+});
+
+describe("config-store appRules", () => {
+  it("按进程名禁用效果，并在没有授权快照时退化到全局配置", () => {
+    let activeApp: ActiveAppInfo | null = { processName: "Code", title: "README" };
+    const store = createStore({
+      ...defaultConfig,
+      enabled: true,
+      appRules: [{
+        id: "disable-code",
+        pattern: { type: "exact", value: "Code", target: "process" },
+        action: "disable",
+        enabled: true,
+      }],
+    }, () => activeApp);
+
+    expect(store.isCurrentSiteEnabled()).toBe(false);
+    activeApp = null;
+    expect(store.isCurrentSiteEnabled()).toBe(true);
+  });
+
+  it("按窗口标题切换主题，并在规则重排后立即使用首个匹配项", () => {
+    const activeApp = { processName: "Code", title: "README — Project Alpha" };
+    const themeRule = {
+      id: "project-theme",
+      pattern: { type: "glob" as const, value: "*Project Alpha*", target: "title" as const },
+      action: { enable: true as const, theme: "drift" },
+      enabled: true,
+    };
+    const store = createStore({
+      ...defaultConfig,
+      appRules: [themeRule],
+    }, () => activeApp);
+
+    expect(store.getActiveScheme().id).toBe("drift");
+
+    store.setConfig({
+      ...defaultConfig,
+      appRules: [{ ...themeRule, id: "disabled-first", action: "disable" }, themeRule],
+    });
+    expect(store.getResolvedAppRule()).toBe("disable");
   });
 });

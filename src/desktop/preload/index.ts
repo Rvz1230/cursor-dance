@@ -12,6 +12,7 @@ import {
   DIALOG_SAVE_THEME_FILE,
   DIALOG_OPEN_THEME_FILE,
   APP_GET_ACTIVE_WINDOW,
+  APP_ACTIVE_WINDOW_CHANGED,
   APP_GET_FIRST_RUN,
   APP_MARK_FIRST_RUN_COMPLETE,
   APP_OPEN_EXTERNAL,
@@ -25,6 +26,7 @@ import {
   AI_SET_USER_SETTINGS,
   CURSOR_VISIBILITY_SET_HIDDEN,
 } from "../../shared/ipc-channels";
+import type { ActiveWindowSnapshot } from "../../shared/app-rules";
 
 type CursorEventPayload = {
   type: "mousemove" | "mousedown" | "mouseup" | "wheel";
@@ -213,24 +215,31 @@ contextBridge.exposeInMainWorld("cursorDanceDialog", {
 // 任务 3.2：cursorDanceApp —— 前台应用元数据桥
 //
 // renderer 通过 window.cursorDanceApp.getActiveWindow() 拉当前前台窗口快照，
-// 给 app-matcher（应用规则匹配）和未来的应用规则面板使用。
+// 给共享应用规则匹配器和应用规则面板使用。
 //
 // 返回 { authorized: true, owner: { name, bundleId? }, title, processName } 或
 // { authorized: false, message }，调用方按 authorized 分支处理。
 // ============================================================
 
-type ActiveWindowSnapshot =
-  | {
-      authorized: true;
-      owner: { name: string; bundleId?: string };
-      title: string;
-      processName: string;
-    }
-  | { authorized: false; message: string };
+type ActiveWindowChangeListener = (snapshot: ActiveWindowSnapshot) => void;
+const activeWindowChangeListeners = new WeakMap<
+  ActiveWindowChangeListener,
+  (_e: unknown, payload: ActiveWindowSnapshot) => void
+>();
 
 contextBridge.exposeInMainWorld("cursorDanceApp", {
   async getActiveWindow(): Promise<ActiveWindowSnapshot> {
     return ipcRenderer.invoke(APP_GET_ACTIVE_WINDOW);
+  },
+
+  onActiveWindowChanged(callback: ActiveWindowChangeListener): () => void {
+    const handler = (_e: unknown, payload: ActiveWindowSnapshot) => callback(payload);
+    activeWindowChangeListeners.set(callback, handler);
+    ipcRenderer.on(APP_ACTIVE_WINDOW_CHANGED, handler);
+    return () => {
+      ipcRenderer.off(APP_ACTIVE_WINDOW_CHANGED, handler);
+      activeWindowChangeListeners.delete(callback);
+    };
   },
 
   async getFirstRun(): Promise<boolean> {

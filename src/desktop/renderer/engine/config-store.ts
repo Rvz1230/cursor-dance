@@ -42,7 +42,7 @@ import {
   getActionImageConfig,
   getActionCursorFeedbackConfig,
 } from "./action-config";
-import { resolveAppRule, type AppRule, type ActiveAppInfo } from "./app-matcher";
+import { resolveAppRule, type ActiveAppInfo } from "../../../shared/app-rules";
 
 export interface ConfigStoreConstants {
   CONFIG_STORAGE_KEY: string;
@@ -72,8 +72,6 @@ export interface ConfigStoreDeps {
   storeAdapter?: ConfigStoreAdapter;
   /** 桌面端注入：当前前台应用（进程名 / 窗口标题）。扩展端不传，回退到「无规则匹配」。 */
   getActiveAppInfo?: () => ActiveAppInfo | null;
-  /** 桌面端不需要：扩展端 / 静态预览传入应用规则数组（替代了原来的 siteRules）。 */
-  getAppRules?: () => AppRule[] | null | undefined;
   /** 上层 reportRuntimeError 回调。 */
   reportRuntimeError?: (scope: string, message: string) => void;
 }
@@ -84,6 +82,7 @@ export interface ConfigStoreApi extends ConfigStore {
   normalizeConfig(value: unknown): CursorDanceConfig;
   isLocalPreviewHost(): boolean;
   getActiveScheme(): ThemePack;
+  getResolvedAppRule(): ReturnType<typeof resolveAppRule>;
   isCurrentSiteEnabled(): boolean;
   getActionConfig(scheme: ThemePack | null | undefined, actionId: string): Record<string, unknown> | null;
   getCursorStateBinding(scheme: ThemePack | null | undefined, stateId: string, sourceActionId: string): {
@@ -124,7 +123,6 @@ export function createConfigStore(deps: ConfigStoreDeps): ConfigStoreApi {
     diagnostics,
     storeAdapter,
     getActiveAppInfo,
-    getAppRules,
     reportRuntimeError,
   } = deps;
 
@@ -168,25 +166,21 @@ export function createConfigStore(deps: ConfigStoreDeps): ConfigStoreApi {
     return cfg.schemes.find((scheme) => scheme.id === schemeId) || cfg.schemes[0] || ({} as ThemePack);
   }
 
-  function getActiveScheme(): ThemePack {
-    const rules = getAppRules?.();
+  function getResolvedAppRule(): ReturnType<typeof resolveAppRule> {
     const info = getActiveAppInfo?.();
-    let appAction: ReturnType<typeof resolveAppRule> = null;
-    if (rules && info) {
-      appAction = resolveAppRule(rules, info);
-    }
+    return info ? resolveAppRule(getConfig().appRules, info) : null;
+  }
+
+  function getActiveScheme(): ThemePack {
+    const appAction = getResolvedAppRule();
     const themeFromRule = appAction && typeof appAction === "object" && appAction.theme ? appAction.theme : "";
     return getSchemeById(themeFromRule || getConfig().activeSchemeId);
   }
 
   function isCurrentSiteEnabled(): boolean {
-    const rules = getAppRules?.();
-    const info = getActiveAppInfo?.();
-    if (rules && info) {
-      const appAction = resolveAppRule(rules, info);
-      if (appAction === "disable") return false;
-      if (appAction && typeof appAction === "object" && appAction.enable) return true;
-    }
+    const appAction = getResolvedAppRule();
+    if (appAction === "disable") return false;
+    if (appAction && typeof appAction === "object" && appAction.enable) return true;
     return getConfig().enabled;
   }
 
@@ -507,6 +501,7 @@ export function createConfigStore(deps: ConfigStoreDeps): ConfigStoreApi {
     getActionImageConfig,
     getActionCursorFeedbackConfig,
     getActiveScheme,
+    getResolvedAppRule,
     isCurrentSiteEnabled,
     getActionConfig,
     getCursorStateBinding,

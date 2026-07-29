@@ -1,7 +1,7 @@
 // 任务 3.2：前台应用元数据 IPC
 //
 // 用 get-windows 取当前 active window 的进程名 / Bundle ID / 窗口标题，
-// 投递给 renderer 的 app-matcher（src/renderer/engine/app-matcher.ts）做应用规则匹配。
+// 投递给 renderer 的共享 app-rules 匹配器做应用规则匹配。
 //
 // 设计要点：
 //   1. **同步路径优先**：activeWindowSync 在 macOS / Windows / Linux 上都比异步 PoC 便宜
@@ -14,33 +14,16 @@
 //      但桌面端首次启动时我们不希望立刻弹——把 screenRecordingPermission 关掉，
 //      只保留 accessibilityPermission（标题字段才是规则匹配的核心）。
 //
-// 输出形态与 app-matcher 的 ActiveAppInfo 一致 + 额外字段：
+// 输出形态与 shared/app-rules 的 ActiveAppInfo 一致 + 额外字段：
 //   { authorized: true, owner: { name, bundleId? }, title: string, processName }
 //   { authorized: false, message: string }
 
 import { ipcMain } from "electron";
 import { activeWindowSync, type Result as ActiveWindowResult } from "get-windows";
 import { APP_GET_ACTIVE_WINDOW } from "../../shared/ipc-channels";
+import type { ActiveWindowSnapshot } from "../../shared/app-rules";
 
-export interface ActiveWindowOwner {
-  /** 进程显示名（macOS: app 名，Windows: 进程名 + 扩展，Linux: WM_CLASS） */
-  name: string;
-  /** macOS Bundle Identifier，其它平台为 undefined */
-  bundleId?: string;
-}
-
-export type ActiveWindowSnapshot =
-  | {
-      authorized: true;
-      owner: ActiveWindowOwner;
-      title: string;
-      /** 与 app-matcher.ActiveAppInfo.processName 对齐：用 owner.name 做规则匹配主键 */
-      processName: string;
-    }
-  | {
-      authorized: false;
-      message: string;
-    };
+export type { ActiveWindowSnapshot } from "../../shared/app-rules";
 
 /**
  * 取当前前台窗口元数据。permission 失败 / 没有窗口 / 调用抛错 都收敛为
@@ -91,8 +74,85 @@ export function getActiveWindowSnapshot(): ActiveWindowSnapshot {
   }
 }
 
-export function registerActiveWindowIpc(): void {
-  ipcMain.handle(APP_GET_ACTIVE_WINDOW, () => getActiveWindowSnapshot());
+function snapshotsEqual(left: ActiveWindowSnapshot | null, right: ActiveWindowSnapshot): boolean {
+  if (!left || left.authorized !== right.authorized) return false;
+  if (!left.authorized || !right.authorized) {
+    return "message" in left && "message" in right && left.message === right.message;
+  }
+  return left.processName === right.processName
+    && left.title === right.title
+    && left.owner.bundleId === right.owner.bundleId;
+}
+
+export function isCursorDanceWindow(snapshot: ActiveWindowSnapshot): boolean {
+  if (!snapshot.authorized) return false;
+  const bundleId = snapshot.owner.bundleId?.toLowerCase();
+  const processName = snapshot.processName.trim().toLowerCase();
+  return bundleId === "com.cursordance.app"
+    || processName === "cursordance"
+    || processName === "cursor-dance"
+    || /cursordance 工作台/i.test(snapshot.title);
+}
+
+export interface ActiveWindowMonitor {
+  poll(): ActiveWindowSnapshot;
+  getCurrent(): ActiveWindowSnapshot;
+  start(): () => void;
+}
+
+export function createActiveWindowMonitor({
+  readSnapshot = getActiveWindowSnapshot,
+  publish,
+  intervalMs = 250,
+}: {
+  readSnapshot?: () => ActiveWindowSnapshot;
+  publish: (snapshot: ActiveWindowSnapshot) => void;
+  intervalMs?: number;
+}): ActiveWindowMonitor {
+  let current: ActiveWindowSnapshot | null = null;
+  let lastNonCursorDance: ActiveWindowSnapshot | null = null;
+  let timer: ReturnType<typeof setInterval> | null = null;
+
+  function poll(): ActiveWindowSnapshot {
+    const observed = readSnapshot();
+    let effective = observed;
+    if (observed.authorized) {
+      if (isCursorDanceWindow(observed) && lastNonCursorDance?.authorized) {
+        effective = lastNonCursorDance;
+      } else if (!isCursorDanceWindow(observed)) {
+        lastNonCursorDance = observed;
+      }
+    }
+
+    if (!snapshotsEqual(current, effective)) {
+      current = effective;
+      publish(effective);
+    }
+    return effective;
+  }
+
+  function getCurrent(): ActiveWindowSnapshot {
+    return current || poll();
+  }
+
+  function start(): () => void {
+    if (timer) return () => {
+      if (timer) clearInterval(timer);
+      timer = null;
+    };
+    poll();
+    timer = setInterval(poll, intervalMs);
+    return () => {
+      if (timer) clearInterval(timer);
+      timer = null;
+    };
+  }
+
+  return { poll, getCurrent, start };
+}
+
+export function registerActiveWindowIpc(getSnapshot: () => ActiveWindowSnapshot = getActiveWindowSnapshot): void {
+  ipcMain.handle(APP_GET_ACTIVE_WINDOW, getSnapshot);
 }
 
 export function unregisterActiveWindowIpc(): void {

@@ -26,6 +26,11 @@ import { Switch } from "@/components/ui/switch";
 import { ToastProvider, useToast } from "@/components/ui/toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { isDesktop } from "@/shared/runtime";
+import {
+  activeAppInfoFromSnapshot,
+  resolveAppRule,
+  type ActiveWindowSnapshot,
+} from "@/shared/app-rules";
 
 export default function ThemeWorkbenchPage({ renderHeader }: ThemeWorkbenchPageProps = {}) {
   return (
@@ -232,6 +237,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
   // 非桌面环境（cursorDanceApp 不存在）跳过整个流程。
   const [welcomeState, setWelcomeState] = useState<"loading" | "open" | "closed">("loading");
   const [accessibilityAuthorized, setAccessibilityAuthorized] = useState<boolean | null>(null);
+  const [activeWindowSnapshot, setActiveWindowSnapshot] = useState<ActiveWindowSnapshot | null>(null);
   const {
     state,
     selected,
@@ -264,6 +270,12 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
     reorderSiteRules,
     toggleSiteRule,
     clearAllSiteRules,
+    addAppRule,
+    updateAppRule,
+    deleteAppRule,
+    reorderAppRules,
+    toggleAppRule,
+    clearAllAppRules,
     updateActionConfig,
     updateActionConfigs,
     updateAtmosphere,
@@ -296,7 +308,10 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
       (target) => target?.type === "action" && target.actionId === selected.actionId && Object.keys(target.patch || {}).length,
     ),
   );
-  const siteAction = getRuntimeConfig().resolveSiteRule(state.siteRules, state.site.host);
+  const activeAppInfo = activeAppInfoFromSnapshot(activeWindowSnapshot);
+  const contextAction = isDesktop()
+    ? (activeAppInfo ? resolveAppRule(state.appRules, activeAppInfo) : null)
+    : getRuntimeConfig().resolveSiteRule(state.siteRules, state.site.host);
 
   useEffect(() => {
     setPreviewProposal(null);
@@ -316,6 +331,11 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
       return;
     }
     let cancelled = false;
+    const unsubscribeActiveWindow = bridge.onActiveWindowChanged((snapshot) => {
+      if (cancelled) return;
+      setActiveWindowSnapshot(snapshot);
+      setAccessibilityAuthorized(snapshot.authorized);
+    });
     void Promise.allSettled([
       bridge.getFirstRun(),
       bridge.getActiveWindow(),
@@ -325,10 +345,16 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
       const authorized = activeWindowResult.status === "fulfilled"
         ? activeWindowResult.value.authorized === true
         : false;
+      if (activeWindowResult.status === "fulfilled") {
+        setActiveWindowSnapshot(activeWindowResult.value);
+      }
       setAccessibilityAuthorized(authorized);
       setWelcomeState(isFirstRun ? "open" : "closed");
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      unsubscribeActiveWindow();
+    };
   }, []);
 
   function handleCloseWelcome() {
@@ -526,7 +552,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                       actionId={selected.actionId}
                       config={previewActionConfig}
                       actionConfigsMap={previewActionConfigsMap}
-                      disabled={siteAction === "disable"}
+                      disabled={contextAction === "disable"}
                       previewMode={isPreviewingAiProposal}
                       updateActionConfig={updateActionConfig}
                       atmosphere={draft?.atmosphere}
@@ -606,26 +632,16 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                 <div className="h-full overflow-y-auto pr-1">
                   {isDesktop() ? (
                     <AppRulesPanel
-                      appRules={state.siteRules}
+                      appRules={state.appRules}
                       themes={themes}
-                      fetchActiveApp={async () => {
-                        const snap = await window.cursorDanceApp!.getActiveWindow();
-                        if (snap.authorized) {
-                          return {
-                            authorized: true,
-                            processName: snap.processName,
-                            title: snap.title,
-                          };
-                        }
-                        return { authorized: false, message: "message" in snap ? snap.message : "无法读取当前应用。" };
-                      }}
+                      activeApp={activeWindowSnapshot}
                       openAccessibilitySettings={handleOpenAccessibilitySettings}
-                      addAppRule={addSiteRule}
-                      updateAppRule={updateSiteRule}
-                      deleteAppRule={deleteSiteRule}
-                      reorderAppRules={reorderSiteRules}
-                      toggleAppRule={toggleSiteRule}
-                      clearAllAppRules={clearAllSiteRules}
+                      addAppRule={addAppRule}
+                      updateAppRule={updateAppRule}
+                      deleteAppRule={deleteAppRule}
+                      reorderAppRules={reorderAppRules}
+                      toggleAppRule={toggleAppRule}
+                      clearAllAppRules={clearAllAppRules}
                     />
                   ) : (
                     <SiteRulesPanel

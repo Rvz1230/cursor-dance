@@ -128,6 +128,9 @@ interface CursorDanceAppBridge {
   getActiveWindow: () => Promise<
     CursorDanceAppActiveWindowAuthorized | CursorDanceAppActiveWindowUnauthorized
   >
+  onActiveWindowChanged: (
+    callback: (snapshot: CursorDanceAppActiveWindowAuthorized | CursorDanceAppActiveWindowUnauthorized) => void
+  ) => () => void
   getFirstRun: () => Promise<boolean>
   markFirstRunComplete: () => Promise<void>
   openExternal: (target: string) => Promise<{ ok: boolean; error?: string }>

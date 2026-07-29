@@ -137,4 +137,25 @@ describe("defaultConfig — 桌面端 5 个 action 默认配置完整性", () =>
     expect(normalized.themePacks.find((pack) => pack.id === "drift")?.workbenchDraft?.keyFeedbackConfig?.color).toBe("#FF00AA");
     expect(normalized.themePacks.find((pack) => pack.id === "drift")?.workbenchDraft?.resetKeyFeedbackConfig?.fontSize).toBe(64);
   });
+
+  it("将旧 siteRules 中的桌面规则迁移到 appRules 并保留 target", () => {
+    const normalized = normalizeConfig({
+      ...defaultConfig,
+      appRules: undefined,
+      siteRules: [{
+        id: "legacy-app-rule",
+        pattern: { type: "glob", value: "*Code*", target: "title" },
+        action: { enable: true, theme: "drift" },
+        enabled: true,
+      } as never],
+    });
+
+    expect(normalized.appRules).toEqual([{
+      id: "legacy-app-rule",
+      pattern: { type: "glob", value: "*Code*", target: "title" },
+      action: { enable: true, theme: "drift" },
+      enabled: true,
+    }]);
+    expect(normalized.siteRules).toEqual([]);
+  });
 });

@@ -1,52 +1,29 @@
 // 任务 4.2：桌面端应用规则面板
 //
-// 复用 SiteRulesPanel 的数据流（state.siteRules / addSiteRule / updateSiteRule 等）
-// 和拖拽 / 增删 / 启停语义；UI 维度从「URL host/path」切到「进程名 / 窗口标题」+
+// 使用独立的 appRules 数据流；UI 维度为「进程名 / 窗口标题」+
 // exact / glob 两种 pattern.type，新增 pattern.target 选择匹配维度。
 //
-// 与 src/desktop/renderer/engine/app-matcher.ts 的 AppRule 数据形态保持一致：
+// 与 src/shared/app-rules.ts 的 AppRule 数据形态保持一致：
 //   { id, pattern: { type, value, target }, action: "disable" | { enable, theme? }, enabled }
-// store 上 key 名仍叫 siteRules（不破坏扩展端数据契约和现有测试）。
+// appRules 与扩展端 siteRules 分开持久化，避免两种 pattern 语义互相污染。
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { GripVertical, Plus, Trash2, ToggleLeft, ToggleRight, Crosshair, AppWindow, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/utils";
 import { SectionTitle, DataPill } from "./WorkbenchControls";
-
-type PatternType = "exact" | "glob";
-type PatternTarget = "process" | "title";
-
-interface AppRulePattern {
-  type: PatternType;
-  value: string;
-  target?: PatternTarget;
-}
-
-interface AppRuleEnableAction {
-  enable: true;
-  theme?: string;
-}
-
-type AppRuleAction = "disable" | AppRuleEnableAction;
-
-interface AppRule {
-  id: string;
-  pattern: AppRulePattern;
-  action: AppRuleAction;
-  enabled?: boolean;
-}
+import type {
+  ActiveWindowSnapshot,
+  AppRule,
+  AppRuleAction,
+  AppRulePattern,
+  AppRulePatternType as PatternType,
+  AppRuleTarget as PatternTarget,
+} from "@/shared/app-rules";
 
 interface ThemeOption {
   id: string;
   name: string;
-}
-
-interface ActiveAppSnapshot {
-  authorized: boolean;
-  processName?: string;
-  title?: string;
-  message?: string;
 }
 
 const PATTERN_TYPE_LABELS: Record<PatternType, string> = {
@@ -165,7 +142,7 @@ function RuleRow({ rule, themes, onToggle, onEdit, onDelete, onDragStart, onDrag
 interface RuleEditorProps {
   draft: AppRule;
   themes: ThemeOption[];
-  activeApp: ActiveAppSnapshot | null;
+  activeApp: ActiveWindowSnapshot | null;
   onChange: (draft: AppRule) => void;
   onSave: () => void;
   onCancel: () => void;
@@ -270,7 +247,7 @@ function RuleEditor({ draft, themes, activeApp, onChange, onSave, onCancel }: Ru
         <div className="space-y-2">
           <label className="block text-2xs font-medium text-slate-500">主题 (可选)</label>
           <select
-            value={(draft.action as AppRuleEnableAction)?.theme || ""}
+            value={draft.action === "disable" ? "" : (draft.action.theme || "")}
             onChange={(e) => {
               const theme = e.target.value || undefined;
               onChange({
@@ -307,12 +284,7 @@ function emptyRuleDraft(target: PatternTarget = "process"): AppRule {
 export interface AppRulesPanelProps {
   appRules: AppRule[];
   themes: ThemeOption[];
-  /**
-   * 桌面 IPC 探针：每次面板打开 / 焦点变化时拉取当前前台窗口快照。
-   * 实现见 src/desktop/preload/index.ts 的 cursorDanceApp.getActiveWindow。
-   * 传 null 退化为「无活跃应用」。
-   */
-  fetchActiveApp?: () => Promise<ActiveAppSnapshot | null>;
+  activeApp: ActiveWindowSnapshot | null;
   /**
    * macOS 未授权时点击「打开系统设置」时使用。在 ThemeWorkbenchPage 注入。
    * 传 undefined 时面板隐藏该 CTA（仍显示提示文案）。
@@ -329,7 +301,7 @@ export interface AppRulesPanelProps {
 export function AppRulesPanel({
   appRules = [],
   themes = [],
-  fetchActiveApp,
+  activeApp,
   openAccessibilitySettings,
   addAppRule,
   updateAppRule,
@@ -341,22 +313,6 @@ export function AppRulesPanel({
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   const [draftRule, setDraftRule] = useState<AppRule | null>(null);
   const [isAdding, setIsAdding] = useState(false);
-  const [activeApp, setActiveApp] = useState<ActiveAppSnapshot | null>(null);
-
-  // 拉一次当前前台应用，给「取当前」按钮和快速添加用。get-windows 同步路径很便宜
-  // （任务 3.2 注释），这里不做轮询；用户切应用后重新打开面板即可刷新。
-  useEffect(() => {
-    if (!fetchActiveApp) return;
-    let cancelled = false;
-    fetchActiveApp().then((snap) => {
-      if (cancelled) return;
-      setActiveApp(snap);
-    }).catch(() => {
-      if (cancelled) return;
-      setActiveApp({ authorized: false, message: "无法获取当前前台应用。" });
-    });
-    return () => { cancelled = true; };
-  }, [fetchActiveApp]);
 
   function handleStartAdd() {
     setDraftRule(emptyRuleDraft());
@@ -470,7 +426,7 @@ export function AppRulesPanel({
 
       {activeApp && !activeApp.authorized && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-2xs text-amber-800">
-          <div className="font-medium">{activeApp.message || "无法获取当前前台应用。"}</div>
+          <div className="font-medium">{"message" in activeApp ? activeApp.message : "无法获取当前前台应用。"}</div>
           {openAccessibilitySettings ? (
             <button
               type="button"

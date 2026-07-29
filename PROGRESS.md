@@ -63,7 +63,9 @@
 - [x] R0-3：性能与代码量基线——已记录代码量、bundle、配置载荷、启动、CPU、内存和 1,000 Hz IPC 压力数据
 - **基线文档**：[`docs/desktop-refactor-baseline.md`](./docs/desktop-refactor-baseline.md)
 - **当前重点结论**：Workbench 直接引用约 1.97 MiB 资源；默认配置约 43.9 KiB，加入 256 KiB 图片 data 后因 `themePacks` / `schemes` 双字段序列化放大到约 556.2 KiB。
-- **下一步**：进入 Phase 1 的 R1-2，打通应用规则从 Workbench 配置到主进程窗口匹配、overlay 决策与诊断反馈的运行时闭环。
+- [x] R1-2：桌面应用规则运行时闭环——独立 `appRules`、前台应用缓存/广播、overlay 即时决策、旧规则迁移和未授权降级已完成
+- **R1-2 验证**：38 个测试文件共 295 项通过；Electron smoke 覆盖规则禁用和清空规则后即时恢复
+- **下一步**：进入 Phase 1 的 R1-3，修复多屏事件路由、高频 mousemove 合并和跨屏残留清理。
 
 ### 分支状态
 

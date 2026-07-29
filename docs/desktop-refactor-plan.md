@@ -12,6 +12,7 @@
 |---|---|---|
 | R0-1 类型与版本基线 | 已完成 | TypeScript 5.9.3、Vite 7.3.6 已统一；类型检查与基础 lint 已接入 CI，桌面端显式 `any` 和 IPC 字符串通道作为阻断规则 |
 | R1-1 Workbench 生命周期 | 已完成 | Dock 激活、托盘点击、二次启动统一复用窗口控制器，并有单元测试覆盖 |
+| R1-2 桌面应用规则 | 已完成 | 独立 `appRules` schema、前台应用缓存与变更广播、overlay 即时匹配、旧规则迁移和未授权降级均已接通 |
 | R0-2 Electron smoke | 已完成 | Playwright Electron 已覆盖启动、首次引导、窗口数量、二次启动重开和配置驱动 overlay 显隐，并已在 macOS 实跑通过 |
 | R0-3 性能与代码量基线 | 已完成 | 已记录代码量、bundle、配置载荷、启动、CPU、内存和 1,000 Hz IPC 压力基线 |
 
@@ -19,11 +20,11 @@
 
 - `npm run typecheck` 通过。
 - `npm run lint` 通过（0 error；共享旧代码的 29 条显式 `any` 暂作为 warning 逐步收紧）。
-- Vitest 37 个测试文件、285 个测试通过。
+- Vitest 38 个测试文件、295 个测试通过。
 - API 177 个测试通过。
 - 根 Web、landing、Electron main/preload/renderer 构建通过。
 - 根项目、landing、Electron Vite、Vitest 均复用 Vite 7.3.6。
-- Electron smoke 已在 macOS 实跑通过并接入 Linux CI；测试使用隔离 userData，并禁用全局输入、托盘、AI 服务和更新器等真机副作用。
+- Electron smoke 已在 macOS 实跑通过并接入 Linux CI；除生命周期外，已覆盖应用规则禁用与清空后即时恢复的真实 overlay 消费路径。测试使用隔离 userData，并禁用全局输入、托盘、AI 服务和更新器等真机副作用。
 - 静态重构基线已记录在 [`docs/desktop-refactor-baseline.md`](./desktop-refactor-baseline.md)：生产代码 25,237 有效行，renderer 输出约 2.01 MiB，默认配置 JSON 约 43.9 KiB。
 - 动态基线已在双显示器 Mac 上实测：Workbench ready 1,127.2 ms，空闲主进程 CPU 0.198%，总工作集约 832.9 MiB，1,000 Hz 目标实际达到 998.997 Hz。
 - npm audit 当前报告 27 个依赖漏洞，需单独分类生产依赖与开发/打包依赖；不得直接运行 `npm audit fix --force`。
@@ -278,6 +279,8 @@ Phase 0 已于 2026-07-28 完成；后续工作进入 Phase 1，优先完成 R1-
 
 ### R1-2：接通桌面应用规则
 
+状态：已完成（2026-07-29）。
+
 改动：
 
 - 不再用 web `SiteRule` 类型描述桌面规则。
@@ -286,6 +289,14 @@ Phase 0 已于 2026-07-28 完成；后续工作进入 Phase 1，优先完成 R1-
 - overlay 订阅 active-app change，将规则和快照注入配置解析器。
 - 规则顺序、禁用、指定主题和未授权状态均添加测试。
 - Workbench 自身成为前台应用时，保留最近一个非 CursorDance 应用快照，方便“取当前应用”。
+
+实现结果：
+
+- 新增共享 `appRules` schema 与匹配器，Workbench、配置归一化和 overlay 复用同一实现。
+- 主进程以 250 ms 周期更新前台窗口缓存，仅在进程、标题或授权状态变化时广播。
+- 旧版本误存在 `siteRules` 且带 `process/title` target 的桌面规则会迁移到 `appRules`，不再污染扩展站点规则。
+- overlay 在前台应用、持久配置或 live preview 任一变化时即时重算启用状态与主题，并记录 `app-rule.context` 诊断事件。
+- Electron smoke 已验证进程规则禁用效果、清空规则后无需重启即可恢复。
 
 验收：
 
