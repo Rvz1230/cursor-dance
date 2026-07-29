@@ -52,7 +52,7 @@ export function createOverlayWindow(display: Display): BrowserWindow {
     backgroundColor: "#00000000",
     type: process.platform === "linux" ? undefined : "normal",
     webPreferences: {
-      preload: join(__dirname, "../preload/index.mjs"),
+      preload: join(__dirname, "../preload/overlay.mjs"),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,

@@ -16,7 +16,10 @@ src/
     runtime.ts             PLATFORM / isDesktop() / isExtension()
   desktop/               Desktop app (Electron) — all desktop-only code
     main/                  Electron main process
-    preload/               Context bridge
+    preload/               Per-window context bridges
+      bridges/             Cohesive IPC bridge factories
+      workbench.ts         Config writes, dialogs, AI, window controls
+      overlay.ts           Input events and read-only runtime state
     renderer/              Electron renderer
       engine/              Effect engine (parity with extension/content-runtime/*)
       overlay/             Overlay window entry

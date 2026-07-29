@@ -31,7 +31,7 @@ export function createWorkbenchWindow(): BrowserWindow {
     trafficLightPosition: isMac ? { x: 11, y: 7 } : undefined,
     backgroundColor: "#f1f5f9",
     webPreferences: {
-      preload: join(__dirname, "../preload/index.mjs"),
+      preload: join(__dirname, "../preload/workbench.mjs"),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,

@@ -72,7 +72,9 @@
 - [x] R1-5：桌面氛围运行时取舍——桌面 Workbench 隐藏配置与预览，桌面导出省略氛围字段，删除无调用方 runtime；Chrome 扩展能力不变
 - [x] R1-6：取消桌面 Popup——删除孤立 renderer、HTML 和构建入口，托盘继续提供快速开关和打开工作台
 - **R1-5/R1-6 验证**：41 个测试文件共 311 项、Web smoke 5/5、桌面 smoke 1/1、typecheck、lint 和 Electron build 均通过；renderer 输出减少 65,126 bytes（约 3.1%）
-- **下一步**：进入 Phase 2，按 Workbench/Overlay 拆分 preload 并收紧 IPC 能力；Windows 同步执行隐藏/恢复、helper 强杀和应用强杀验收，通过后完成 R1-4。
+- [x] R2-1：按窗口拆分 preload——Workbench 保留编辑能力，Overlay 只暴露输入、配置/前台应用只读订阅和光标显隐
+- **R2-1 验证**：typecheck、lint、Electron build 和桌面 smoke 通过；smoke 已对白名单能力面做真实窗口断言
+- **下一步**：进入 R2-2，建立 typed IPC contract、主进程 sender/window kind 限制和 payload 大小/结构校验；Windows 同步执行 R1-4 真机验收。
 
 ### 分支状态
 

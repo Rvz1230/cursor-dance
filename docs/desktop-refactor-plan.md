@@ -18,6 +18,7 @@
 | R1-4 自定义光标平台能力 | 进行中 | macOS helper 与 watchdog 已完成；Windows Win32 helper、构建和 CI 验证已接线，等待 Windows 真机验收后正式启用 |
 | R1-5 氛围运行时 | 已完成 | 桌面端明确暂不支持，Workbench 隐藏配置和预览，桌面导出不再写入该字段，并删除无调用方 runtime |
 | R1-6 桌面 Popup | 已完成 | 采用取消方案，删除孤立 renderer 与构建入口，托盘继续承担快速开关和打开 Workbench |
+| R2-1 拆分 preload | 已完成 | Workbench 与 Overlay 使用独立 preload；Overlay 仅保留输入、配置只读订阅、前台应用只读订阅和光标显隐 |
 | R0-2 Electron smoke | 已完成 | Playwright Electron 已覆盖启动、首次引导、窗口数量、二次启动重开和配置驱动 overlay 显隐，并已在 macOS 实跑通过 |
 | R0-3 性能与代码量基线 | 已完成 | 已记录代码量、bundle、配置载荷、启动、CPU、内存和 1,000 Hz IPC 压力基线 |
 
@@ -454,6 +455,13 @@ overlay preload:
 
 删除 overlay 不需要的文件对话框、AI 设置、外链和窗口控制能力。
 
+实现结果：
+
+- Electron Vite 生成独立 `workbench.mjs` 与 `overlay.mjs` preload 入口，窗口不再复用全量 bridge。
+- Workbench 不再暴露全局输入事件；Overlay 不再暴露配置写入、live preview 写入、文件对话框、首次启动、外链、窗口控制、AI 或平台能力桥。
+- 按存储、前台应用、输入、对话框、窗口、AI 和平台信息拆分 bridge factory，共享统一的 IPC 订阅生命周期实现。
+- Electron smoke 对两个窗口的实际 `window` 能力面做白名单断言，避免后续误把高权限 bridge 加回 Overlay。
+
 ### R2-2：建立 typed IPC contract
 
 为每个通道定义：
@@ -822,16 +830,17 @@ AiSchemePanel              # 组合层
 5. `refactor: route input events to active display overlay`
 6. `fix: finalize desktop cursor support policy and implementation`
 7. `refactor: remove unsupported desktop atmosphere and popup entries`
-8. `refactor: split preload capabilities and validate ipc payloads`
-9. `refactor: move desktop ai transport from http to ipc`
-10. `feat: introduce config schema v4 and migrations`
-11. `refactor: separate binary assets from config storage`
-12. `refactor: extract shared action and effect runtime`
-13. `refactor: bundle extension runtime from shared core`
-14. `refactor: split ai and preview workbench hotspots`
-15. `chore: remove legacy engines, shims and dead entries`
-16. `ci: package and smoke test desktop artifacts`
-17. `release: enable signing notarization and verified updates`
+8. `refactor: split workbench and overlay preload capabilities`
+9. `refactor: validate ipc payloads and restrict senders`
+10. `refactor: move desktop ai transport from http to ipc`
+11. `feat: introduce config schema v4 and migrations`
+12. `refactor: separate binary assets from config storage`
+13. `refactor: extract shared action and effect runtime`
+14. `refactor: bundle extension runtime from shared core`
+15. `refactor: split ai and preview workbench hotspots`
+16. `chore: remove legacy engines, shims and dead entries`
+17. `ci: package and smoke test desktop artifacts`
+18. `release: enable signing notarization and verified updates`
 
 其中 3–7 可以根据产品优先级调整，但 schema v4 和共享引擎不应早于行为基线与桌面断链修复。
 

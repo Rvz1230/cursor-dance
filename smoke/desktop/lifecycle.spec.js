@@ -98,6 +98,23 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
     await expect(workbenchPage).toHaveTitle("CursorDance 工作台");
     await waitForWorkbenchReady(workbenchPage);
     await expect(workbenchPage.getByText("氛围动效", { exact: true })).toHaveCount(0);
+    await expect.poll(() => workbenchPage.evaluate(() => ({
+      cursorEvents: "cursorDanceAPI" in window,
+      storage: "cursorDanceStorage" in window,
+      dialog: "cursorDanceDialog" in window,
+      app: "cursorDanceApp" in window,
+      windowControls: "cursorDanceWindow" in window,
+      ai: "cursorDanceAi" in window,
+      platform: "electronAPI" in window,
+    }))).toEqual({
+      cursorEvents: false,
+      storage: true,
+      dialog: true,
+      app: true,
+      windowControls: true,
+      ai: true,
+      platform: true,
+    });
 
     await expect.poll(() => readWindowState(electronApp)).toMatchObject({
       workbench: { count: 1, visibleCount: 1 },
@@ -137,6 +154,23 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
 
     const overlayPage = electronApp.windows().find((page) => isWindowType(page.url(), "overlay"));
     if (!overlayPage) throw new Error("Overlay page did not open");
+    await expect.poll(() => overlayPage.evaluate(() => ({
+      cursorEvents: "cursorDanceAPI" in window,
+      storageMethods: Object.keys(window.cursorDanceStorage || {}).sort(),
+      appMethods: Object.keys(window.cursorDanceApp || {}).sort(),
+      dialog: "cursorDanceDialog" in window,
+      windowControls: "cursorDanceWindow" in window,
+      ai: "cursorDanceAi" in window,
+      platform: "electronAPI" in window,
+    }))).toEqual({
+      cursorEvents: true,
+      storageMethods: ["getConfig", "onChange", "onLivePreviewChange"],
+      appMethods: ["getActiveWindow", "onActiveWindowChanged"],
+      dialog: false,
+      windowControls: false,
+      ai: false,
+      platform: false,
+    });
     const activeCodeSnapshot = {
       authorized: true,
       owner: { name: "Code", bundleId: "com.microsoft.VSCode" },

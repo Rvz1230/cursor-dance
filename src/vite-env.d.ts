@@ -74,9 +74,7 @@ interface CursorDanceStorageBridge {
   setLivePreview: (config: unknown) => Promise<void>
   clearLivePreview: () => Promise<void>
   onChange: (callback: (config: unknown) => void) => () => void
-  offChange: (callback: (config: unknown) => void) => void
   onLivePreviewChange: (callback: (config: unknown | null) => void) => () => void
-  offLivePreviewChange: (callback: (config: unknown | null) => void) => void
 }
 
 interface CursorDanceDialogSaveRequest {

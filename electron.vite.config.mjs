@@ -22,7 +22,8 @@ export default defineConfig({
     build: {
       rollupOptions: {
         input: {
-          index: resolve(__dirname, "src/desktop/preload/index.ts"),
+          workbench: resolve(__dirname, "src/desktop/preload/workbench.ts"),
+          overlay: resolve(__dirname, "src/desktop/preload/overlay.ts"),
         },
       },
     },
