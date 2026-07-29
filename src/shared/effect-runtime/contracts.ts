@@ -80,6 +80,8 @@ export interface AudioSpec {
   actionConfig: Readonly<Record<string, unknown>>;
   actionId: string;
   comboIndex?: number;
+  runIndex?: number;
+  comboWindowMs?: number;
 }
 
 export interface AudioOutput {

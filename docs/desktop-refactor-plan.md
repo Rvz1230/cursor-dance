@@ -27,13 +27,13 @@
 | R3-3 配置与素材拆分 | 已完成 | Electron 图片按 SHA-256 写入 userData 素材仓库，配置和预览只传 asset id，renderer 通过受限协议按需加载，导出恢复可移植 data URL |
 | R3-4 Workbench persistence | 已完成 | 统一 repository contract；Electron、Chrome 与静态预览使用独立 adapter，业务 facade 不再判断运行平台 |
 | R4-1 共享效果核心边界 | 已完成 | `text-semantics`、action config 与 compute specs 迁入共享 core；桌面仅保留素材 URL adapter，Workbench 删除重复算法 |
-| R4-2 EffectRuntime adapters | 进行中 | 桌面输入、上下文、效果 surface 与音频输出均已通过共享 contract；待提取共享 action state machine |
+| R4-2 EffectRuntime adapters | 已完成 | 桌面四类 adapter 已接入；共享 state machine 统一 timing、throttle、run/combo 状态推进与 output plan |
 
 当前验证基线：
 
 - `npm run typecheck` 通过。
 - `npm run lint` 通过（0 error；共享旧代码的 24 条显式 `any` 暂作为 warning 逐步收紧）。
-- Vitest 54 个测试文件、320 个测试通过；删除的数量来自 legacy 迁移与旧站点规则用例，不再作为兼容能力保留。
+- Vitest 61 个测试文件、336 个测试通过；删除的数量来自 legacy 迁移与旧站点规则用例，不再作为兼容能力保留。
 - API 177 个测试通过。
 - 根 Web、landing、Electron main/preload/renderer 构建通过。
 - 根项目、landing、Electron Vite、Vitest 均复用 Vite 7.3.6。
@@ -723,7 +723,7 @@ interface AudioOutput {
 }
 ```
 
-先让扩展和桌面都调用共享 action/state machine，再逐步合并渲染实现。
+先冻结平台无关 contract 与 action/state machine，并由桌面生产链路验证；扩展端在 R4-3 通过正式构建入口接入，避免继续扩展手工 IIFE 加载链。
 
 当前进度：
 
@@ -732,7 +732,9 @@ interface AudioOutput {
 - 桌面 `ContextResolver` 统一前台应用初始读取、变更订阅和生命周期，并通过 revision 防止较慢的初始读取覆盖较新的 push 更新。
 - 桌面 visual effects 和 Web Audio runtime 已分别包装为 `EffectSurface` / `AudioOutput`；trigger pipeline 只发出平台无关的 effect/audio spec，不再直接调用六个 renderer 方法。
 - `EffectHandle.dispose()` 具有真实取消语义；surface 清理会停止活动动画、删除轨道粒子并恢复临时 pointer 样式。
-- 下一段提取 timing、throttle、combo 与 output plan，形成共享 action state machine。
+- timing、throttle、run/combo 状态推进与 output plan 已进入共享 action state machine；桌面 trigger handler 只保留能力过滤、配置寻址、诊断与输出执行。
+- output plan 只生成已启用的 effect/audio spec，避免为关闭的效果重复进入 adapter 和 renderer 空路径。
+- R4-2 已完成；下一段进入 R4-3，让扩展运行时通过正式构建直接消费共享 core/runtime。
 
 ### R4-3：让扩展运行时进入正式构建
 

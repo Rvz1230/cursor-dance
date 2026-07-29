@@ -6,6 +6,7 @@ import type {
   KeyboardEventPayload,
   RuntimeCursorEvent,
 } from "@/shared/effect-runtime/contracts";
+import type { ActionRuntimeState } from "@/shared/effect-runtime/action-state";
 
 // CursorDance 效果引擎共享类型
 //
@@ -57,7 +58,7 @@ export interface LongPressState {
  * 引擎共享的可变状态切片。
  * 各子模块按需读写自己的字段；非自己的字段保持只读心态，避免互相踩。
  */
-export interface EngineState {
+export interface EngineState extends ActionRuntimeState {
   /** visual-effects.animateNode 的并发计数 */
   activeEffects: number;
   /** 轨道粒子分组缓存，按 actionId 隔离，供 clearOrbitalParticles 清理 */
@@ -71,12 +72,6 @@ export interface EngineState {
   audioContext?: AudioContext | null;
   /** trigger-handlers：是否已就绪，未就绪则吞掉所有触发 */
   ready?: boolean;
-  /** trigger-handlers：sourceActionId → 上次触发时间戳（节流） */
-  lastTriggerAtByAction?: Record<string, number>;
-  /** trigger-handlers：resolvedActionId → 累计触发次数 */
-  actionRunCounts?: Record<string, number>;
-  /** trigger-handlers：resolvedActionId → 连击窗口状态 */
-  actionComboStates?: Record<string, { count: number; lastAt: number }>;
   /** trigger-handlers：双击检测的「上次按下/抬起时间」 */
   lastLeftPointerDownAt?: number;
   lastLeftPointerUpAt?: number;

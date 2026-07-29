@@ -11,8 +11,8 @@
 //     getActionTimingMs 与 throttleMs 默认值里的 "hover" 分支同步删除。
 //     这与 CLAUDE.md「desktop 触发器 5 个：leftClick / rightClick /
 //     doubleClick / longPress / wheel」一致。
-//   - 渲染管线（visualEffects.* + audioRuntime.playSound）调用顺序、参数、
-//     节流 / 连击 / runIndex 计算逻辑全部原样保留。
+//   - 时序、节流、连击、runIndex 和输出计划由共享 action state machine 负责；
+//     本层只处理桌面能力过滤、配置解析、诊断与输出执行。
 //
 // 调用方在桌面端是 src/renderer/overlay；扩展端继续由 trigger-handlers.js 注册。
 //
@@ -30,7 +30,10 @@ import type {
   TriggerHandlersModule,
 } from "./types";
 import type { AudioOutput, EffectSurface } from "@/shared/effect-runtime/contracts";
-import { hasCursorOverride } from "@/shared/effect-core/action-config";
+import {
+  decideActionExecution,
+  getActionTimingMs,
+} from "@/shared/effect-runtime/action-state";
 
 import { createLongPressTracker, type LongPressTracker } from "./long-press-state";
 import { createDoubleClickDetector, type DoubleClickDetector } from "./double-click-detector";
@@ -80,32 +83,6 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
 
   // ── helpers ──────────────────────────────────────────────────────
 
-  function getActionTimingMs(actionId: string, actionConfig: Record<string, unknown> | undefined): number {
-    const rawValue = Number(actionConfig?.holdMs);
-    const value = Number.isFinite(rawValue) ? rawValue : 0;
-
-    if (actionId === "leftClick" || actionId === "rightClick") {
-      return value === 420 ? 0 : Math.max(0, Math.min(320, value));
-    }
-    if (actionId === "doubleClick") {
-      return value === 420 ? 320 : Math.max(180, Math.min(520, value || 320));
-    }
-    if (actionId === "wheel") {
-      return value === 420 ? 180 : Math.max(80, Math.min(520, value || 180));
-    }
-    if (actionId === "longPress") {
-      return Math.max(120, Math.min(900, value || 420));
-    }
-    return Math.max(0, value);
-  }
-
-  function getComboWindowMs(actionConfig: Record<string, unknown> | undefined): number {
-    const rawValue = Number(actionConfig?.comboWindowMs);
-    return Number.isFinite(rawValue)
-      ? Math.max(120, Math.min(3000, rawValue))
-      : 900;
-  }
-
   function makeCoordsFromEvent(event: CursorEvent): TriggerCoords {
     return {
       x: event.x,
@@ -118,12 +95,6 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
 
   function getTriggerSource(options: TriggerOptions): string {
     return options.triggerSource || "unknown";
-  }
-
-  function ensureMaps(): void {
-    state.lastTriggerAtByAction = state.lastTriggerAtByAction || {};
-    state.actionRunCounts = state.actionRunCounts || {};
-    state.actionComboStates = state.actionComboStates || {};
   }
 
   // ── triggerAction (核心触发管线) ─────────────────────────────────
@@ -207,93 +178,47 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
       });
       return;
     }
-    const textConfig = configStore.getActionTextConfig(actionConfig);
-    const particleConfig = configStore.getActionParticleConfig(actionConfig);
-    const rippleConfig = configStore.getActionRippleConfig(actionConfig);
-    const audioConfig = configStore.getActionAudioConfig(actionConfig);
-    const animationConfig = configStore.getActionAnimationConfig(actionConfig);
-    const imageConfig = configStore.getActionImageConfig(actionConfig);
-    const cursorFeedbackConfig = configStore.getActionCursorFeedbackConfig(actionConfig);
-    const outputSummary = {
-      textEnabled: Boolean(textConfig.textEnabled),
-      particleEnabled: Boolean(particleConfig.particle),
-      rippleEnabled: Boolean(rippleConfig.ripple),
-      soundEnabled: Boolean(audioConfig.sound),
-      animationEnabled: Boolean(animationConfig.animationEnabled),
-      imageEnabled: Boolean(imageConfig.imageEnabled && imageConfig.imageDataUrl),
-      cursorOverrideEnabled: hasCursorOverride(cursorFeedbackConfig),
-    };
-    if (!outputSummary.textEnabled && !outputSummary.particleEnabled && !outputSummary.rippleEnabled && !outputSummary.soundEnabled && !outputSummary.animationEnabled && !outputSummary.imageEnabled && !outputSummary.cursorOverrideEnabled) {
+    const decision = decideActionExecution(state, {
+      sourceActionId,
+      resolvedActionId,
+      x: coords.x,
+      y: coords.y,
+      actionConfig,
+      sourceTriggerConfig,
+      now: Date.now(),
+      throttleMs: options.throttleMs,
+      force: options.force,
+    });
+    if (decision.status === "skip") {
       diagnostics?.log("action.skip", {
-        reason: "no-enabled-effects",
+        reason: decision.reason,
         sourceActionId,
         resolvedActionId,
         triggerSource,
-        outputs: outputSummary,
+        outputs: decision.outputs,
+        ...(decision.reason === "throttled"
+          ? { elapsedMs: decision.elapsedMs, throttleMs: decision.throttleMs }
+          : {}),
       });
       return;
     }
-
-    ensureMaps();
-    const now = Date.now();
-    const holdMs = (sourceTriggerConfig.holdMs as number) || 0;
-    const throttleMs = options.throttleMs ?? (sourceActionId === "wheel" ? Math.max(80, holdMs || 80) : 40);
-    const elapsedMs = now - ((state.lastTriggerAtByAction as Record<string, number>)[sourceActionId] || 0);
-    if (!options.force && elapsedMs < throttleMs) {
-      diagnostics?.log("action.skip", {
-        reason: "throttled",
-        sourceActionId,
-        resolvedActionId,
-        triggerSource,
-        elapsedMs,
-        throttleMs,
-      });
-      return;
-    }
-    (state.lastTriggerAtByAction as Record<string, number>)[sourceActionId] = now;
-
-    const runCounts = state.actionRunCounts as Record<string, number>;
-    const runIndex = (runCounts[resolvedActionId] || 0) + 1;
-    runCounts[resolvedActionId] = runIndex;
-    const comboWindowMs = getComboWindowMs(actionConfig);
-    const comboStates = state.actionComboStates as Record<string, { count: number; lastAt: number }>;
-    const previousComboState = comboStates[resolvedActionId] || { count: 0, lastAt: 0 };
-    const comboIndex = now - previousComboState.lastAt <= comboWindowMs
-      ? previousComboState.count + 1
-      : 1;
-    comboStates[resolvedActionId] = {
-      count: comboIndex,
-      lastAt: now,
-    };
     diagnostics?.log("action.fire", {
       sourceActionId,
       resolvedActionId,
       triggerSource,
-      runIndex,
-      comboIndex,
-      comboWindowMs,
+      runIndex: decision.runIndex,
+      comboIndex: decision.comboIndex,
+      comboWindowMs: decision.comboWindowMs,
       force: Boolean(options.force),
-      outputs: outputSummary,
+      outputs: decision.outputs,
       target: diagnostics?.describeTarget?.(coords.target),
     });
-    effectSurface.createNode({ kind: "ripple", x: coords.x, y: coords.y, actionConfig });
-    const particleCfg = configStore.getActionParticleConfig(actionConfig);
-    effectSurface.createNode({
-      kind: "particle",
-      x: coords.x,
-      y: coords.y,
-      actionConfig,
-      actionId: resolvedActionId,
-      runIndex,
-      particleMode: particleCfg.particleMotionMode === "orbital" ? "orbital" : "burst",
-    });
-    effectSurface.createNode({ kind: "text", x: coords.x, y: coords.y, actionConfig, actionId: resolvedActionId, runIndex: comboIndex });
-    effectSurface.createNode({ kind: "animation", x: coords.x, y: coords.y, actionConfig });
-    effectSurface.createNode({ kind: "image", x: coords.x, y: coords.y, actionConfig });
-    effectSurface.createNode({ kind: "cursor", x: coords.x, y: coords.y, actionConfig });
-    void audioOutput.play({ actionConfig, actionId: resolvedActionId, comboIndex }).catch(() => {
-      diagnostics?.log("audio.skip", { actionId: resolvedActionId, reason: "output-adapter-error" });
-    });
+    for (const effect of decision.outputPlan.effects) effectSurface.createNode(effect);
+    if (decision.outputPlan.audio) {
+      void audioOutput.play(decision.outputPlan.audio).catch(() => {
+        diagnostics?.log("audio.skip", { actionId: resolvedActionId, reason: "output-adapter-error" });
+      });
+    }
   }
 
   function scheduleActionTrigger(
