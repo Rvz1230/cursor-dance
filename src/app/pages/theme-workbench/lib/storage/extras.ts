@@ -1,15 +1,10 @@
 import {
-  DIAGNOSTIC_DEBUG_KEY,
-  LOCAL_PREVIEW_CHANNEL_NAME,
-  MAX_RECENT_CURSOR_ASSETS,
   PREVIEW_MESSAGE_TYPE,
-  RECENT_CURSOR_ASSETS_STORAGE_KEY,
-  RUNTIME_ERRORS_STORAGE_KEY,
   getChromeApi,
-  parseBooleanFlag,
   postLocalPreviewMessage,
   slugifyFileSegment,
 } from "./chrome-api";
+import { getWorkbenchRepository } from "./repository";
 
 export function buildThemeExportPayload(themePack) {
   return {
@@ -83,30 +78,11 @@ export async function pickThemeFile() {
 }
 
 export async function readRecentCursorAssets() {
-  const chromeApi = getChromeApi();
-  if (!chromeApi?.storage?.local) return [];
-  const result = await chromeApi.storage.local.get([RECENT_CURSOR_ASSETS_STORAGE_KEY]);
-  return Array.isArray(result[RECENT_CURSOR_ASSETS_STORAGE_KEY]) ? result[RECENT_CURSOR_ASSETS_STORAGE_KEY] : [];
+  return getWorkbenchRepository().readRecentCursorAssets();
 }
 
 export async function writeRecentCursorAsset(assetRecord) {
-  const chromeApi = getChromeApi();
-  if (!chromeApi?.storage?.local || !assetRecord?.imageDataUrl) return [];
-  const current = await readRecentCursorAssets();
-  const nextRecord = {
-    id: assetRecord.id || `recent-${Date.now()}`,
-    imageDataUrl: assetRecord.imageDataUrl,
-    name: assetRecord.name || "未命名素材",
-    mimeType: assetRecord.mimeType || "image/png",
-    hotspotX: assetRecord.hotspotX ?? 16,
-    hotspotY: assetRecord.hotspotY ?? 32,
-    size: assetRecord.size ?? 48,
-    updatedAt: assetRecord.updatedAt || Date.now(),
-  };
-  const deduped = [nextRecord, ...current.filter((item) => item.imageDataUrl !== nextRecord.imageDataUrl)]
-    .slice(0, MAX_RECENT_CURSOR_ASSETS);
-  await chromeApi.storage.local.set({ [RECENT_CURSOR_ASSETS_STORAGE_KEY]: deduped });
-  return deduped;
+  return getWorkbenchRepository().writeRecentCursorAsset(assetRecord);
 }
 
 export async function readActiveSiteContext() {
@@ -168,77 +144,21 @@ export async function previewThemePack(themeId, themePack, actionId = "leftClick
 }
 
 export async function readRuntimeErrors() {
-  const chromeApi = getChromeApi();
-  if (!chromeApi?.storage?.local) return [];
-  try {
-    const result = await chromeApi.storage.local.get([RUNTIME_ERRORS_STORAGE_KEY]);
-    return Array.isArray(result[RUNTIME_ERRORS_STORAGE_KEY]) ? result[RUNTIME_ERRORS_STORAGE_KEY] : [];
-  } catch {
-    return [];
-  }
+  return getWorkbenchRepository().readRuntimeErrors();
 }
 
 export async function clearRuntimeErrors() {
-  const chromeApi = getChromeApi();
-  if (!chromeApi?.storage?.local) return;
-  try {
-    await chromeApi.storage.local.remove([RUNTIME_ERRORS_STORAGE_KEY]);
-  } catch {}
+  return getWorkbenchRepository().clearRuntimeErrors();
 }
 
 export async function readDiagnosticDebugFlag() {
-  const chromeApi = getChromeApi();
-  if (!chromeApi?.storage?.local) {
-    try {
-      const raw = window.localStorage?.getItem(DIAGNOSTIC_DEBUG_KEY) || "";
-      return ["1", "true", "on", "yes", "debug"].includes(raw.trim().toLowerCase());
-    } catch {
-      return false;
-    }
-  }
-  try {
-    const result = await chromeApi.storage.local.get([DIAGNOSTIC_DEBUG_KEY]);
-    return parseBooleanFlag(result[DIAGNOSTIC_DEBUG_KEY]);
-  } catch {
-    return false;
-  }
+  return getWorkbenchRepository().readDiagnosticDebugFlag();
 }
 
 export async function readRuntimeDiagnostics() {
-  const chromeApi = getChromeApi();
-  if (!chromeApi?.storage?.local) return [];
-  try {
-    const result = await chromeApi.storage.local.get(["cursordance.diagnosticEvents"]);
-    return Array.isArray(result["cursordance.diagnosticEvents"]) ? result["cursordance.diagnosticEvents"] : [];
-  } catch {
-    return [];
-  }
+  return getWorkbenchRepository().readRuntimeDiagnostics();
 }
 
 export async function writeDiagnosticDebugFlag(enabled) {
-  const chromeApi = getChromeApi();
-  try {
-    if (enabled) {
-      window.localStorage?.setItem(DIAGNOSTIC_DEBUG_KEY, "1");
-    } else {
-      window.localStorage?.removeItem(DIAGNOSTIC_DEBUG_KEY);
-    }
-  } catch {}
-  if (!chromeApi?.storage?.local) {
-    try {
-      if (typeof window !== "undefined" && typeof window.BroadcastChannel === "function") {
-        const channel = new window.BroadcastChannel(LOCAL_PREVIEW_CHANNEL_NAME);
-        channel.postMessage({ type: "toggle-debug", enabled });
-        channel.close();
-      }
-    } catch {}
-    return;
-  }
-  try {
-    if (enabled) {
-      await chromeApi.storage.local.set({ [DIAGNOSTIC_DEBUG_KEY]: "1" });
-    } else {
-      await chromeApi.storage.local.remove([DIAGNOSTIC_DEBUG_KEY]);
-    }
-  } catch {}
+  return getWorkbenchRepository().writeDiagnosticDebugFlag(enabled);
 }

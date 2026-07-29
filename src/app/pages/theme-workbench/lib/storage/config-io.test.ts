@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { defaultConfig } from "@/desktop/renderer/engine/default-config";
 import { writeLivePreviewConfig } from "./config-io";
+import { __testing__ as repositoryTesting } from "./repository";
 
 const ASSET_ID = `sha256:${"b".repeat(64)}`;
 const DATA_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB";
@@ -34,6 +35,7 @@ function materializedResult(payload) {
 }
 
 afterEach(() => {
+  repositoryTesting.reset();
   Reflect.deleteProperty(globalThis, "window");
 });
 

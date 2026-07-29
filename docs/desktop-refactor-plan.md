@@ -25,12 +25,13 @@
 | R3-1 配置 schema v4 | 已完成 | 共享只读 domain contract、严格验证器、Web/desktop 判别规则和素材引用边界已冻结 |
 | R3-2 生产链路 v4-only | 已完成 | Electron、Chrome、静态预览、Workbench、Popup、IPC 与主题文件均只读写 v4；非 v4 整份恢复默认 |
 | R3-3 配置与素材拆分 | 已完成 | Electron 图片按 SHA-256 写入 userData 素材仓库，配置和预览只传 asset id，renderer 通过受限协议按需加载，导出恢复可移植 data URL |
+| R3-4 Workbench persistence | 已完成 | 统一 repository contract；Electron、Chrome 与静态预览使用独立 adapter，业务 facade 不再判断运行平台 |
 
 当前验证基线：
 
 - `npm run typecheck` 通过。
-- `npm run lint` 通过（0 error；共享旧代码的 29 条显式 `any` 暂作为 warning 逐步收紧）。
-- Vitest 53 个测试文件、316 个测试通过；删除的数量来自 legacy 迁移与旧站点规则用例，不再作为兼容能力保留。
+- `npm run lint` 通过（0 error；共享旧代码的 24 条显式 `any` 暂作为 warning 逐步收紧）。
+- Vitest 54 个测试文件、320 个测试通过；删除的数量来自 legacy 迁移与旧站点规则用例，不再作为兼容能力保留。
 - API 177 个测试通过。
 - 根 Web、landing、Electron main/preload/renderer 构建通过。
 - 根项目、landing、Electron Vite、Vitest 均复用 Vite 7.3.6。
@@ -650,10 +651,19 @@ unknown input
 - 删除业务层中反复出现的 `if chrome / if electron / fallback localStorage` 分支。
 - Recent assets、editor state、diagnostics 分别定义明确存储策略。
 
+实现结果：
+
+- 建立 `WorkbenchRepository` contract，统一配置、Live Preview、editor state、recent assets、运行时错误和 diagnostics 的读写与订阅。
+- Electron adapter 使用 typed preload bridge，并保留 R3-3 的素材引用缓存；Chrome adapter 使用 local/session storage 和独立光标素材记录；静态预览 adapter 使用 localStorage 与 BroadcastChannel。
+- editor state 在 Chrome 使用 local storage，在桌面和静态预览使用页面 localStorage；recent assets 在 Chrome/静态预览持久化，桌面采用 renderer 会话缓存，避免把大 data URL 再复制进磁盘存储。
+- diagnostics 在 Chrome 使用 storage 事件，在桌面/静态预览使用 BroadcastChannel；异步 listener 由 repository 统一捕获错误。
+- `config-io.ts` 从约 400 行降到 30 行，`subscriptions.ts` 从约 185 行降到 17 行，业务 hook、Popup 和面板不再出现 Electron/Chrome/localStorage 分支。
+- 新增三 adapter contract 测试；Vitest 54 个文件共 320 项、Web smoke 5/5、desktop smoke 1/1、typecheck、lint 和 Web/Electron build 均通过，lint warning 从 29 降至 24。
+
 ### Phase 3 完成条件
 
 - 业务代码只读取 v4 domain model。
-- 旧字段只存在于 migration fixture 和迁移器中。
+- 旧字段只存在于严格拒绝用例中，不存在生产迁移器。
 - 平台存储选择不再散落于 UI 和业务模块。
 - 大图片不会随每次 Live Preview 全量广播。
 
