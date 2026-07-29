@@ -86,6 +86,21 @@ describe("cursor visibility controller", () => {
     controller.stop();
   });
 
+  it("restarts when the native backend reports a protocol error", () => {
+    const helper = createHelper();
+    const controller = createCursorVisibilityController({
+      spawnHelper: () => helper as never,
+      log: { info: vi.fn(), error: vi.fn() },
+      platformLabel: "Windows",
+    });
+
+    controller.setHidden(true);
+    helper.stdout.emit("data", "ready\nerror\n");
+
+    expect(helper.kill).toHaveBeenCalledWith("SIGTERM");
+    controller.stop();
+  });
+
   it("stops retrying and degrades safely after repeated launch failures", async () => {
     const onUnavailable = vi.fn();
     const controller = createCursorVisibilityController({

@@ -24,7 +24,7 @@ export function resolveDesktopCapabilities(platform: NodeJS.Platform): DesktopCa
       systemCursorReplacement: {
         status: "planned",
         backend: null,
-        message: "Windows 原生系统光标替换仍在开发；当前会保留系统光标，同时显示软件光标预览与跟随效果。",
+        message: "Windows 原生 helper 已进入实验验证；正式启用前仍会保留系统光标，同时显示软件光标预览与跟随效果。",
       },
     };
   }

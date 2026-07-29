@@ -15,11 +15,14 @@ export function createCursorVisibilityController({
   spawnHelper,
   log = console,
   onUnavailable = () => undefined,
+  platformLabel = "macOS",
 }: {
   spawnHelper: () => ChildProcessWithoutNullStreams;
   log?: Log;
   onUnavailable?: () => void;
+  platformLabel?: string;
 }): CursorVisibilityController {
+  const logPrefix = `[cursordance] ${platformLabel} cursor helper`;
   let helper: ChildProcessWithoutNullStreams | null = null;
   let helperReady = false;
   let desiredHidden = false;
@@ -42,7 +45,7 @@ export function createCursorVisibilityController({
     const target = helper;
     if (!target || target.killed) return false;
     target.stdin.write(`${command}\n`, (error) => {
-      if (error) log.error("[cursordance] macOS cursor helper 写入失败:", error);
+      if (error) log.error(`${logPrefix} 写入失败:`, error);
     });
     return true;
   }
@@ -53,7 +56,7 @@ export function createCursorVisibilityController({
     pendingRecovery = false;
     restartTimestamps = [];
     onUnavailable();
-    log.error("[cursordance] macOS cursor helper 连续失败，已停止隐藏系统光标");
+    log.error(`${logPrefix} 连续失败，已停止隐藏系统光标`);
   }
 
   function scheduleRestart(recoverFirst: boolean): void {
@@ -90,7 +93,7 @@ export function createCursorVisibilityController({
         watchdogTimer = setInterval(() => {
           if (!helperReady || !helper) return;
           if (awaitingPong) {
-            log.error("[cursordance] macOS cursor helper watchdog 超时，正在重启");
+            log.error(`${logPrefix} watchdog 超时，正在重启`);
             const unresponsiveHelper = helper;
             helperReady = false;
             clearWatchdog();
@@ -106,17 +109,25 @@ export function createCursorVisibilityController({
     }
     if (line === "hidden") {
       acknowledgedHidden = true;
-      log.info("[cursordance] macOS native cursor hidden: true");
+      log.info(`[cursordance] ${platformLabel} native cursor hidden: true`);
       return;
     }
     if (line === "shown") {
       acknowledgedHidden = false;
-      log.info("[cursordance] macOS native cursor hidden: false");
+      log.info(`[cursordance] ${platformLabel} native cursor hidden: false`);
       return;
     }
     if (line === "pong") {
       awaitingPong = false;
       restartTimestamps = [];
+      return;
+    }
+    if (line === "error") {
+      log.error(`${logPrefix} 返回错误，正在重启`);
+      const failedHelper = helper;
+      helperReady = false;
+      clearWatchdog();
+      failedHelper?.kill("SIGTERM");
     }
   }
 
@@ -129,7 +140,7 @@ export function createCursorVisibilityController({
     stdoutBuffer = "";
     clearWatchdog();
     if (stopping) return;
-    log.error("[cursordance] macOS cursor helper 意外退出:", { code, signal });
+    log.error(`${logPrefix} 意外退出:`, { code, signal });
     scheduleRestart(recoverFirst);
   }
 
@@ -139,7 +150,7 @@ export function createCursorVisibilityController({
     try {
       nextHelper = spawnHelper();
     } catch (error) {
-      log.error("[cursordance] macOS cursor helper 启动失败:", error);
+      log.error(`${logPrefix} 启动失败:`, error);
       scheduleRestart(false);
       return;
     }
@@ -148,10 +159,10 @@ export function createCursorVisibilityController({
     stdoutBuffer = "";
 
     nextHelper.once("error", (error) => {
-      log.error("[cursordance] macOS cursor helper 启动失败:", error);
+      log.error(`${logPrefix} 启动失败:`, error);
     });
     nextHelper.stderr.on("data", (chunk) => {
-      log.error("[cursordance] macOS cursor helper 错误:", String(chunk).trim());
+      log.error(`${logPrefix} 错误:`, String(chunk).trim());
     });
     nextHelper.stdout.on("data", (chunk) => {
       stdoutBuffer += String(chunk);
@@ -187,7 +198,7 @@ export function createCursorVisibilityController({
     helper = null;
     if (!target || target.killed) return;
     target.stdin.write("show\nquit\n", (error) => {
-      if (error) log.error("[cursordance] macOS cursor helper 退出写入失败:", error);
+      if (error) log.error(`${logPrefix} 退出写入失败:`, error);
     });
     const killTimer = setTimeout(() => {
       if (!target.killed) target.kill("SIGTERM");

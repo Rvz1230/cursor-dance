@@ -8,7 +8,9 @@ let cursorVisibilityController: CursorVisibilityController | null = null;
 const hiddenRequesters = new Set<number>();
 const trackedRequesters = new Set<number>();
 
-const CURSOR_HELPER_NAME = "cursordance-cursor-helper";
+const CURSOR_HELPER_NAME = process.platform === "win32"
+  ? "cursordance-cursor-helper.exe"
+  : "cursordance-cursor-helper";
 
 function resolveCursorHelperPath(): string {
   if (app.isPackaged) {
@@ -18,7 +20,9 @@ function resolveCursorHelperPath(): string {
 }
 
 function getCursorVisibilityController(): CursorVisibilityController | null {
-  if (process.platform !== "darwin") return null;
+  const enabled = process.platform === "darwin"
+    || (process.platform === "win32" && process.env.CURSORDANCE_ENABLE_WINDOWS_CURSOR_HELPER === "1");
+  if (!enabled) return null;
   cursorVisibilityController ??= createCursorVisibilityController({
     spawnHelper: () => spawn(resolveCursorHelperPath(), [], {
       stdio: ["pipe", "pipe", "pipe"],
@@ -26,6 +30,7 @@ function getCursorVisibilityController(): CursorVisibilityController | null {
     onUnavailable: () => {
       hiddenRequesters.clear();
     },
+    platformLabel: process.platform === "win32" ? "Windows" : "macOS",
   });
   return cursorVisibilityController;
 }
@@ -36,7 +41,6 @@ export function setNativeCursorHidden(nextHidden: boolean): void {
 }
 
 export function restoreNativeCursor(): void {
-  if (process.platform !== "darwin") return;
   hiddenRequesters.clear();
   cursorVisibilityController?.stop();
   cursorVisibilityController = null;

@@ -76,6 +76,9 @@ dmg:
 
 win:
   # icon 留空 —— electron-builder 自动从 build/icon.png（512×512）派生 .ico
+  extraResources:
+    - from: build/native/${arch}/cursordance-cursor-helper.exe
+      to: native/cursordance-cursor-helper.exe
   target:
     - target: nsis
       arch:

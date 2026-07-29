@@ -42,6 +42,7 @@
     "measure:desktop-baseline": "npm run build:electron && node scripts/measure-desktop-baseline.mjs",
     "measure:desktop-baseline:static": "npm run build:electron && node scripts/measure-desktop-baseline.mjs --static-only",
     "build:native:cursor-helper": "node scripts/build-cursor-helper.mjs",
+    "test:native:cursor-helper": "node scripts/verify-cursor-helper.mjs",
     "dev:electron": "npm run build:native:cursor-helper && electron-vite dev",
     "build:electron": "npm run build:native:cursor-helper && electron-vite build",
     "start:electron": "electron-vite preview",
