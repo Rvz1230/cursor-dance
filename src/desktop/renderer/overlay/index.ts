@@ -5,8 +5,8 @@
 //   2. 装配 configStore —— 任务 3.0 起从 cursorDanceStorage（IPC + electron-store）拉初始 config，
 //      并订阅 STORE_CHANGED / LIVE_PREVIEW_CHANGED 实时刷新
 //   3. 装配 diagnostics
-//   4. 监听主进程通过 cursorDanceAPI.onCursorEvent 转发的 NativeCursorEvent，
-//      做坐标系转换（全局 DIP → overlay 窗口本地坐标），分派到 trigger-handlers。
+//   4. 通过 InputSource 接收主进程输入并完成坐标归一化，再分派到 trigger-handlers。
+//   5. 通过 ContextResolver 维护前台应用快照，供桌面应用规则实时匹配。
 //
 // overlay 窗口是全屏覆盖某个 display，其 (window.screenX, window.screenY) 就是
 // display.bounds 在 DIP 坐标系下的左上角。uiohook（CGEventGetLocation /
@@ -14,10 +14,17 @@
 
 import {
   createEffectEngine,
-  type CursorEvent,
   type EngineConstants,
   type EngineState,
 } from "../engine/entry";
+import {
+  createDesktopInputSource,
+  type DesktopInputBridge,
+} from "../adapters/input-source";
+import {
+  createDesktopContextResolver,
+  type DesktopContextBridge,
+} from "../adapters/context-resolver";
 import { createConfigStore, type ConfigStoreAdapter } from "../engine/config-store";
 import { createDiagnostics } from "../engine/diagnostics";
 import { defaultConfig } from "../engine/default-config";
@@ -27,34 +34,11 @@ import {
 } from "../../../shared/app-rules";
 import type { CursorSkinStateV4, CursorSkinV4 } from "../../../shared/config-schema-v4";
 import { resolveDesktopImageSource } from "../../../shared/asset-reference";
-
-type CursorEventPayload = {
-  type: "mousemove" | "mousedown" | "mouseup" | "wheel" | "leave";
-  x: number;
-  y: number;
-  buttons?: number;
-  button?: number;
-  deltaY?: number;
-  timestamp: number;
-};
-
-type KeyboardEventPayload = {
-  type: "keydown" | "keyup";
-  keycode: number;
-  altKey: boolean;
-  ctrlKey: boolean;
-  metaKey: boolean;
-  shiftKey: boolean;
-  timestamp: number;
-};
-
-type CursorDanceAPI = {
-  onCursorEvent: (cb: (e: CursorEventPayload) => void) => () => void;
-  offCursorEvent: (cb: (e: CursorEventPayload) => void) => void;
-  setNativeCursorHidden?: (hidden: boolean) => Promise<void>;
-  onKeyboardEvent?: (cb: (e: KeyboardEventPayload) => void) => () => void;
-  offKeyboardEvent?: (cb: (e: KeyboardEventPayload) => void) => void;
-};
+import type {
+  KeyboardInputEvent,
+  PointerInputEvent,
+  RuntimeInputEvent,
+} from "../../../shared/effect-runtime/contracts";
 
 type CursorSkinStateId =
   | "default"
@@ -95,7 +79,9 @@ const diagnostics = createDiagnostics({ window });
 // 因为 overlay 与 workbench 是不同 BrowserWindow,localStorage 不共享,只有 IPC 通。
 // bridge 缺失时降级为 defaultConfig 兜底,保证引擎能跑起来.
 const bridge = (typeof window !== "undefined" ? window.cursorDanceStorage : undefined) ?? null;
-const appBridge = (typeof window !== "undefined" ? window.cursorDanceApp : undefined) ?? null;
+const appBridge = (
+  (typeof window !== "undefined" ? window.cursorDanceApp : undefined) ?? null
+) as DesktopContextBridge<ActiveWindowSnapshot> | null;
 let activeWindowSnapshot: ActiveWindowSnapshot | null = null;
 
 const electronBridgeAdapter: ConfigStoreAdapter = {
@@ -131,7 +117,7 @@ let dragStartY = 0;
 let nativeCursorHidden = false;
 let pointerInside = false;
 
-const api = (globalThis as unknown as { cursorDanceAPI?: CursorDanceAPI }).cursorDanceAPI;
+const api = (globalThis as unknown as { cursorDanceAPI?: DesktopInputBridge }).cursorDanceAPI;
 
 function invalidateCursorStateCache(): void {
   cursorStateCacheDirty = true;
@@ -201,15 +187,10 @@ function syncCursorSkinAtLastPosition(): void {
     return;
   }
 
-  const cursorEvent = toEngineCursorEvent({
-    type: "mousemove",
-    x: gx,
-    y: gy,
-    timestamp: performance.now(),
-  });
-
-  if (isInsideThisOverlay(cursorEvent)) {
-    engine.cursorOverlay.syncStateCursorOverlay(cursorEvent.x, cursorEvent.y, resolveCachedCursorState());
+  const x = gx - window.screenX;
+  const y = gy - window.screenY;
+  if (isInsideThisOverlay(x, y)) {
+    engine.cursorOverlay.syncStateCursorOverlay(x, y, resolveCachedCursorState());
   } else {
     resolveCachedCursorState();
   }
@@ -295,46 +276,83 @@ if (bridge) {
 
 let unsubscribeActiveWindow: (() => void) | null = null;
 if (appBridge) {
-  void appBridge.getActiveWindow()
-    .then(applyActiveWindowSnapshot)
-    .catch((error) => {
-      console.error("[cursordance] overlay 初始前台应用读取失败:", error);
-    });
-  unsubscribeActiveWindow = appBridge.onActiveWindowChanged(applyActiveWindowSnapshot);
+  const contextResolver = createDesktopContextResolver(appBridge, (error) => {
+    console.error("[cursordance] overlay 前台应用上下文读取失败:", error);
+  });
+  unsubscribeActiveWindow = contextResolver.subscribe((snapshot) => {
+    if (snapshot) applyActiveWindowSnapshot(snapshot);
+  });
 } else {
   console.warn("[cursordance] cursorDanceApp bridge 未注入，应用规则退化为全局配置");
 }
 
 // ============================================================
-// IPC 鼠标事件 → 引擎分派
+// InputSource → 引擎分派
 // ============================================================
 
 if (!api) {
   console.error("[cursordance] preload cursorDanceAPI 未注入；overlay 不会收到鼠标事件");
 }
 
-function toEngineCursorEvent(payload: CursorEventPayload): CursorEvent {
-  // uiohook（CGEventGetLocation / MSLLHOOKSTRUCT.pt）返回 DIP 逻辑坐标，
-  // 与 window.screenX/Y 同一坐标系，直接相减得到 overlay 窗口本地坐标。
-  const localX = payload.x - window.screenX;
-  const localY = payload.y - window.screenY;
-  return {
-    type: payload.type,
-    x: localX,
-    y: localY,
-    buttons: payload.buttons,
-    button: payload.button,
-    deltaY: payload.deltaY,
-    timestamp: payload.timestamp,
-  };
+function isInsideThisOverlay(x: number, y: number): boolean {
+  return x >= 0 && y >= 0 && x < window.innerWidth && y < window.innerHeight;
 }
 
-function isInsideThisOverlay(event: CursorEvent): boolean {
-  return event.x >= 0 && event.y >= 0 && event.x < window.innerWidth && event.y < window.innerHeight;
+function dispatchPointer(cursorEvent: PointerInputEvent): void {
+  state.lastMouseGlobalX = cursorEvent.screenX;
+  state.lastMouseGlobalY = cursorEvent.screenY;
+  if (!cursorEvent.inside) return;
+  pointerInside = true;
+
+  if (cursorEvent.type === "mousemove") {
+    if (leftButtonDown && !dragStarted) {
+      const dx = cursorEvent.x - dragStartX;
+      const dy = cursorEvent.y - dragStartY;
+      dragStarted = (dx * dx + dy * dy) >= 16;
+    }
+    setActiveCursorSkinState(dragStarted ? "grabbing" : "default");
+    engine.cursorOverlay.syncStateCursorOverlay(cursorEvent.x, cursorEvent.y, resolveCachedCursorState());
+    return;
+  }
+
+  if (cursorEvent.type === "mousedown") {
+    if (cursorEvent.button === 0) {
+      leftButtonDown = true;
+      dragStarted = false;
+      dragStartX = cursorEvent.x;
+      dragStartY = cursorEvent.y;
+      engine.triggerHandlers.handleLeftPointerDown(cursorEvent);
+    }
+    else if (cursorEvent.button === 2) {
+      engine.triggerHandlers.handleRightPointerDown(cursorEvent);
+      engine.triggerHandlers.handleContextMenu(cursorEvent);
+    }
+    return;
+  }
+
+  if (cursorEvent.type === "mouseup") {
+    if (cursorEvent.button === 0) {
+      leftButtonDown = false;
+      dragStarted = false;
+      setActiveCursorSkinState("default");
+    }
+    engine.triggerHandlers.handlePointerUp(cursorEvent);
+    return;
+  }
+
+  if (cursorEvent.type === "wheel") engine.triggerHandlers.handleWheel(cursorEvent);
 }
 
-function dispatch(payload: CursorEventPayload): void {
-  if (payload.type === "leave") {
+function dispatchKeyboard(payload: KeyboardInputEvent): void {
+  if (!pointerInside) return;
+  if (!configStore.isCurrentSiteEnabled()) return;
+  const config = configStore.getKeyFeedbackConfig?.();
+  if (!config?.enabled) return;
+  engine.keyFeedback.handleKeyboardEvent(payload);
+}
+
+function dispatchInput(event: RuntimeInputEvent): void {
+  if (event.kind === "pointer-leave") {
     pointerInside = false;
     state.lastMouseGlobalX = undefined;
     state.lastMouseGlobalY = undefined;
@@ -346,82 +364,23 @@ function dispatch(payload: CursorEventPayload): void {
     setNativeCursorHidden(false);
     return;
   }
-
-  // 记录鼠标全局 DIP 坐标（用于键盘事件多显示器路由）
-  state.lastMouseGlobalX = payload.x;
-  state.lastMouseGlobalY = payload.y;
-
-  const cursorEvent = toEngineCursorEvent(payload);
-  if (!isInsideThisOverlay(cursorEvent)) return;
-  pointerInside = true;
-
-  if (payload.type === "mousemove") {
-    if (leftButtonDown && !dragStarted) {
-      const dx = cursorEvent.x - dragStartX;
-      const dy = cursorEvent.y - dragStartY;
-      dragStarted = (dx * dx + dy * dy) >= 16;
-    }
-    setActiveCursorSkinState(dragStarted ? "grabbing" : "default");
-    engine.cursorOverlay.syncStateCursorOverlay(cursorEvent.x, cursorEvent.y, resolveCachedCursorState());
-    return;
-  }
-
-  if (payload.type === "mousedown") {
-    if (payload.button === 0) {
-      leftButtonDown = true;
-      dragStarted = false;
-      dragStartX = cursorEvent.x;
-      dragStartY = cursorEvent.y;
-      engine.triggerHandlers.handleLeftPointerDown(cursorEvent);
-    }
-    else if (payload.button === 2) {
-      engine.triggerHandlers.handleRightPointerDown(cursorEvent);
-      engine.triggerHandlers.handleContextMenu(cursorEvent);
-    }
-    return;
-  }
-
-  if (payload.type === "mouseup") {
-    if (payload.button === 0) {
-      leftButtonDown = false;
-      dragStarted = false;
-      setActiveCursorSkinState("default");
-    }
-    engine.triggerHandlers.handlePointerUp(cursorEvent);
-    return;
-  }
-
-  if (payload.type === "wheel") {
-    engine.triggerHandlers.handleWheel(cursorEvent);
-    return;
-  }
+  if (event.kind === "keyboard") dispatchKeyboard(event);
+  else dispatchPointer(event);
 }
 
-api?.onCursorEvent(dispatch);
-
-// ============================================================
-// IPC 键盘事件 → 引擎分派
-// ============================================================
-
-function isMouseInThisOverlay(): boolean {
-  return pointerInside;
-}
-
-function dispatchKeyboard(payload: KeyboardEventPayload): void {
-  if (!isMouseInThisOverlay()) return;
-  if (!configStore.isCurrentSiteEnabled()) return;
-  const config = configStore.getKeyFeedbackConfig?.();
-  if (!config?.enabled) return;
-  engine.keyFeedback.handleKeyboardEvent(payload);
-}
-
-api?.onKeyboardEvent?.(dispatchKeyboard);
+const unsubscribeInput = api
+  ? createDesktopInputSource(api, () => ({
+      screenX: window.screenX,
+      screenY: window.screenY,
+      width: window.innerWidth,
+      height: window.innerHeight,
+    })).subscribe(dispatchInput)
+  : () => {};
 
 // 退出时清理（renderer 内部 hot reload 也走这里）
 window.addEventListener("beforeunload", () => {
   unsubscribeActiveWindow?.();
-  api?.offCursorEvent(dispatch);
-  api?.offKeyboardEvent?.(dispatchKeyboard);
+  unsubscribeInput();
   engine.cursorOverlay.clearStateCursorOverlay();
   setNativeCursorHidden(false);
 });

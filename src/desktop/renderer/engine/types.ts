@@ -1,4 +1,8 @@
 import type { KeyFeedbackConfig } from "./key-feedback-types";
+import type {
+  KeyboardEventPayload,
+  RuntimeCursorEvent,
+} from "@/shared/effect-runtime/contracts";
 
 // CursorDance 效果引擎共享类型
 //
@@ -14,21 +18,7 @@ import type { KeyFeedbackConfig } from "./key-feedback-types";
  *
  * 字段刻意保持最小集合，避免 IPC 序列化负担。
  */
-export interface CursorEvent {
-  /** "mousemove" | "mousedown" | "mouseup" | "click" | "dblclick" | "wheel" | ... */
-  type: string;
-  /** overlay 窗口本地 DIP 坐标 */
-  x: number;
-  y: number;
-  /** 鼠标按键位掩码：1=左 2=右 4=中（与 PointerEvent.buttons 同口径） */
-  buttons?: number;
-  /** PointerEvent.button：0=左 1=中 2=右，仅 mousedown/mouseup 携带 */
-  button?: number;
-  /** 滚轮 deltaY，仅 wheel 事件携带 */
-  deltaY?: number;
-  /** 事件时间戳。扩展端为 ms；桌面端为 uiohook 原始单位（macOS 纳秒，Windows ms），引擎当前未读取此字段 */
-  timestamp: number;
-}
+export type CursorEvent = RuntimeCursorEvent;
 
 /**
  * DOM 元素 id / 类名常量。
@@ -242,15 +232,7 @@ export interface TriggerHandlersModule {
 /**
  * 从主进程 IPC 投递的键盘事件（与 native-events.ts NativeKeyboardEvent 同形）。
  */
-export interface NativeKeyboardEvent {
-  type: "keydown" | "keyup";
-  keycode: number;
-  altKey: boolean;
-  ctrlKey: boolean;
-  metaKey: boolean;
-  shiftKey: boolean;
-  timestamp: number;
-}
+export type NativeKeyboardEvent = KeyboardEventPayload;
 
 /**
  * key-feedback 子模块对外暴露的 API。

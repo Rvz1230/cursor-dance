@@ -13,6 +13,7 @@ src/
   components/            Shared UI component library (Radix + Tailwind)
   shared/                Shared utilities + runtime detection
     effect-core/          Platform-neutral action/text/spec computation
+    effect-runtime/       Platform-neutral runtime adapter contracts
     ipc-channels.ts        Desktop IPC channel constants
     desktop-ipc-contracts.ts Typed invoke request/response contracts
     runtime.ts             PLATFORM / isDesktop() / isExtension()
@@ -35,4 +36,5 @@ Key rules:
 - `src/app/` and `src/components/` contain shared UI, but the Popup is extension-only. `extension/` and `src/desktop/` are platform-specific.
 - Pure action parsing, text semantics and effect spec computation live in `src/shared/effect-core/`. Shared core must not import DOM, Chrome, Electron or platform storage APIs.
 - Platform adapters only resolve environment capabilities. For example, the desktop action-config adapter converts an asset id to a renderer URL; it does not duplicate shared parsing.
+- Runtime input, context, effect surface and audio capabilities depend on contracts in `src/shared/effect-runtime/`; platform entry points own the concrete adapters and their lifecycle.
 - `extension/config-runtime/` remains a transitional IIFE mirror covered by parity tests until the extension build moves to Vite in R4-3. After that migration it must consume `src/shared/effect-core/` directly.

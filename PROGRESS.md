@@ -91,7 +91,9 @@
 - **R3-4 验证**：54 个根测试文件共 320 项通过；typecheck、lint（0 error，既有 warning 从 29 降至 24）、Web/Electron build、Web smoke 5/5 和 desktop smoke 1/1 通过；`config-io.ts` 由约 400 行降至 30 行，`subscriptions.ts` 由约 185 行降至 17 行
 - [x] R4-1：冻结共享效果核心边界——`text-semantics`、action config 与 compute specs 统一迁入 `src/shared/effect-core`，Workbench 和桌面 overlay 直接复用；桌面只保留 asset URL 平台 adapter
 - **R4-1 验证**：54 个根测试文件共 320 项通过；typecheck、lint（0 error，保留既有 24 warning）、Web/Electron build、Web smoke 5/5 和 desktop smoke 1/1 通过；Workbench `computeSpecs.ts` 从 528 行降至 1 行，本轮净减少约 503 行
-- **下一步**：进入 R4-2，建立输入、上下文、效果 surface 与音频输出 adapter contract，让扩展和桌面逐步共用 action/state machine。Windows 同步执行 R1-4 真机验收。
+- [ ] R4-2：建立 EffectRuntime adapters——共享 contract 已冻结，桌面 InputSource 与 ContextResolver 已接入 overlay；EffectSurface、AudioOutput 和共享 action state machine 待继续迁移
+- **R4-2 当前验证**：56 个根测试文件共 323 项通过；typecheck、lint（0 error，保留既有 24 warning）、Electron build 和 desktop smoke 1/1 通过
+- **下一步**：为桌面 visual effects / audio runtime 实现 EffectSurface 与 AudioOutput adapter，再让 trigger state machine 只依赖共享 contract。Windows 同步执行 R1-4 真机验收。
 
 ### 分支状态
 

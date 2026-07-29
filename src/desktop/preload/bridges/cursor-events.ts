@@ -5,26 +5,13 @@ import {
 } from "../../../shared/ipc-channels";
 import { createIpcSubscription } from "./ipc-subscription";
 import { invokeDesktop } from "./typed-invoke";
+import type {
+  KeyboardEventPayload,
+  ScreenPointerInputEvent,
+} from "../../../shared/effect-runtime/contracts";
 
-export type CursorEventPayload = {
-  type: "mousemove" | "mousedown" | "mouseup" | "wheel" | "leave";
-  x: number;
-  y: number;
-  buttons?: number;
-  button?: number;
-  deltaY?: number;
-  timestamp: number;
-};
-
-export type KeyboardEventPayload = {
-  type: "keydown" | "keyup";
-  keycode: number;
-  altKey: boolean;
-  ctrlKey: boolean;
-  metaKey: boolean;
-  shiftKey: boolean;
-  timestamp: number;
-};
+export type CursorEventPayload = ScreenPointerInputEvent;
+export type { KeyboardEventPayload };
 
 export function createCursorEventsBridge() {
   const cursorEvents = createIpcSubscription<CursorEventPayload>(CURSOR_EVENT);

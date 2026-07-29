@@ -9,35 +9,16 @@
 // 与 src/renderer/engine/types.ts 的 CursorEvent 一致。
 
 import { uIOhook, type UiohookMouseEvent, type UiohookWheelEvent, type UiohookKeyboardEvent } from "uiohook-napi";
+import type {
+  KeyboardEventPayload,
+  ScreenPointerEvent,
+} from "../../shared/effect-runtime/contracts";
 
 /** 投递给渲染层的最小事件（与 engine CursorEvent 同形）。 */
-export interface NativeCursorEvent {
-  type: "mousemove" | "mousedown" | "mouseup" | "wheel";
-  x: number;
-  y: number;
-  /** PointerEvent.buttons 同口径位掩码：1=left 2=right 4=middle */
-  buttons?: number;
-  /** PointerEvent.button 同口径：0=left 1=middle 2=right，仅 mousedown/mouseup 携带 */
-  button?: number;
-  /** wheel 事件携带，单位约等于 DOM WheelEvent.deltaY 风格的「100 像素一档」。
-   *  符号约定先沿用 uiohook rotation 透传，真机验证后再调整（详见 WheelAccumulator）。 */
-  deltaY?: number;
-  /** ms */
-  timestamp: number;
-}
+export type NativeCursorEvent = ScreenPointerEvent;
 
 /** 投递给渲染层的键盘事件。 */
-export interface NativeKeyboardEvent {
-  type: "keydown" | "keyup";
-  /** uiohook UiohookKey 键码 */
-  keycode: number;
-  altKey: boolean;
-  ctrlKey: boolean;
-  metaKey: boolean;
-  shiftKey: boolean;
-  /** ms */
-  timestamp: number;
-}
+export type NativeKeyboardEvent = KeyboardEventPayload;
 
 export interface IInputSource {
   start(callback: (event: NativeCursorEvent) => void, onKeyboard?: (event: NativeKeyboardEvent) => void): void;

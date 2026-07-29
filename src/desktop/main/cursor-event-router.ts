@@ -1,13 +1,12 @@
 import type { NativeCursorEvent } from "./native-events";
+import type { ScreenPointerInputEvent } from "../../shared/effect-runtime/contracts";
 
 export interface DisplayBounds {
   id: number;
   bounds: { x: number; y: number; width: number; height: number };
 }
 
-export type RoutedCursorEvent = NativeCursorEvent | (
-  Omit<NativeCursorEvent, "type"> & { type: "leave" }
-);
+export type RoutedCursorEvent = ScreenPointerInputEvent;
 
 type FrameHandle = ReturnType<typeof setTimeout>;
 
