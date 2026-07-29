@@ -12,60 +12,15 @@ import { getDefaultConfig, normalizeStoredConfig } from "./runtimeConfig";
 import { normalizeKeyFeedbackConfig } from "@/desktop/renderer/engine/key-feedback-types";
 import { isDesktop } from "@/shared/runtime";
 
-interface BuildStoredThemePackOptions {
+interface BuildStoredThemeOptions {
   includeAtmosphere?: boolean;
 }
 
-const LEGACY_CURSOR_STATE_TO_SKIN_STATE = {
-  default: "default",
-  pointer: "pointer",
-  text: "text",
-  wait: "busy",
-  notAllowed: "notAllowed",
-};
-
-const LEGACY_CURSOR_STATE_IDS = ["default", "pointer", "text", "help", "wait", "notAllowed"];
-
-function inferCursorSkinMimeType(dataUrl) {
-  if (typeof dataUrl !== "string") return "image/unknown";
-  if (dataUrl.startsWith("data:image/png")) return "image/png";
-  if (dataUrl.startsWith("data:image/svg+xml")) return "image/svg+xml";
-  if (dataUrl.startsWith("data:image/webp")) return "image/webp";
-  return "image/unknown";
-}
-
-function cursorSkinStateFromAsset(asset) {
-  if (!asset?.imageDataUrl) return null;
-  const size = Number.isFinite(asset.size) ? asset.size : 48;
-  return {
-    image: {
-      kind: "dataUrl",
-      mimeType: asset.mimeType || inferCursorSkinMimeType(asset.imageDataUrl),
-      dataUrl: asset.imageDataUrl,
-      width: asset.sourceWidth || size,
-      height: asset.sourceHeight || size,
-    },
-    hotspot: {
-      x: Number.isFinite(asset.hotspotX) ? asset.hotspotX : 0,
-      y: Number.isFinite(asset.hotspotY) ? asset.hotspotY : 0,
-    },
-    size: { mode: "fixedBox", boxSize: size },
-  };
-}
-
-function cursorSkinStateFromLegacyCursorState(cursorState) {
-  if (!cursorState?.imageDataUrl) return null;
-  return cursorSkinStateFromAsset({
-    imageDataUrl: cursorState.imageDataUrl,
-    hotspotX: cursorState.hotspotX,
-    hotspotY: cursorState.hotspotY,
-    size: cursorState.size,
-  });
-}
-
 function assetFromCursorSkinState(skinState) {
-  if (!skinState?.image?.dataUrl) return null;
-  const size = skinState.size?.mode === "fixedBox" ? (skinState.size.boxSize || 48) : Math.max(skinState.image.width || 48, skinState.image.height || 48);
+  if (!skinState?.image || skinState.image.kind !== "dataUrl") return null;
+  const size = skinState.size?.mode === "fixedBox"
+    ? (skinState.size.boxSize || 48)
+    : Math.max(skinState.image.width || 48, skinState.image.height || 48);
   return {
     imageDataUrl: skinState.image.dataUrl,
     hotspotX: skinState.hotspot?.x ?? 0,
@@ -77,143 +32,76 @@ function assetFromCursorSkinState(skinState) {
   };
 }
 
-function normalizeDraftCursorSkin(baseDraft, themePack, cursorDraft) {
-  const persistedSkin = themePack?.cursorSkin ?? themePack?.workbenchDraft?.cursorSkin;
-  const storedSkin = persistedSkin ?? baseDraft.cursorSkin;
-  const states = { ...(storedSkin?.states || {}) };
-
-  // cursorSkin 一旦持久化，就以它为唯一真相源；空 states 可能是用户主动清除的结果。
-  // 只有旧配置完全没有 cursorSkin 时，才从兼容字段执行一次迁移。
-  if (!persistedSkin) {
-    Object.entries(themePack?.cursorStates || {}).forEach(([legacyStateId, cursorState]) => {
-      const skinStateId = LEGACY_CURSOR_STATE_TO_SKIN_STATE[legacyStateId];
-      if (!skinStateId || states[skinStateId]) return;
-      const skinState = cursorSkinStateFromLegacyCursorState(cursorState);
-      if (skinState) states[skinStateId] = skinState;
-    });
-
-    Object.entries(cursorDraft.cursorStateAssets || {}).forEach(([stateId, asset]) => {
-      if (states[stateId]) return;
-      const skinState = cursorSkinStateFromAsset(asset);
-      if (skinState) states[stateId] = skinState;
-    });
-  }
-
-  return {
-    version: 1,
-    enabled: storedSkin?.enabled !== false,
-    transitionMs: Number.isFinite(storedSkin?.transitionMs) ? storedSkin.transitionMs : 80,
-    states,
-  };
-}
-
 function toWorkbenchCursorMode(stateId, mode) {
   if (stateId === "default") return "源";
   return mode === "override" ? "覆盖" : "继承";
 }
 
-function toExtensionCursorState(mode, actionId) {
-  return {
-    mode: mode === "覆盖" ? "override" : "inherit",
-    actionId: typeof actionId === "string" ? actionId : "leftClick",
-  };
-}
-
-function buildDraftActionConfigs(baseDraft, themePack) {
-  const storedActionConfigs = themePack?.workbenchDraft?.actionConfigs || {};
-
+function buildDraftActionConfigs(baseDraft, theme) {
   return Object.fromEntries(
-    PLATFORM_ACTIONS.map((action) => {
-      const baseActionConfig = baseDraft.actionConfigs[action.id];
-      const storedActionConfig = storedActionConfigs[action.id] || {};
-      return [
-        action.id,
-        mergeActionConfig(baseActionConfig, storedActionConfig),
-      ];
-    })
+    PLATFORM_ACTIONS.map((action) => [
+      action.id,
+      mergeActionConfig(baseDraft.actionConfigs[action.id], theme?.actionConfigs?.[action.id] || {}),
+    ]),
   );
 }
 
-function buildResetActionConfigs(baseDraft, themePack, actionConfigs) {
-  const storedResetActionConfigs = themePack?.workbenchDraft?.resetActionConfigs;
-  if (storedResetActionConfigs) {
-    return buildDraftActionConfigs(baseDraft, { workbenchDraft: { actionConfigs: storedResetActionConfigs } });
-  }
-  const isBuiltInTheme = THEMES.some((theme) => theme.id === themePack?.id);
-  return isBuiltInTheme ? buildDraftActionConfigs(baseDraft, undefined) : buildDraftActionConfigs({ actionConfigs }, undefined);
+function buildResetActionConfigs(baseDraft, theme, actionConfigs) {
+  const isBuiltInTheme = THEMES.some((candidate) => candidate.id === theme?.id);
+  return isBuiltInTheme
+    ? buildDraftActionConfigs(baseDraft, undefined)
+    : buildDraftActionConfigs({ actionConfigs }, { actionConfigs });
 }
 
-export function themePackToThemeLibraryItem(themePack, fallbackIndex = 0) {
-  return buildThemeLibraryItem(themePack, fallbackIndex);
-}
-
-function buildDraftCursorState(baseDraft, themePack, stateId) {
-  const legacyAsset = themePack?.workbenchDraft?.cursorStateAssets?.[stateId] || {};
-  const cursorState = themePack?.cursorStates?.[stateId] || {};
-
+function buildDraftCursorMaps(baseDraft, theme) {
+  const entries = CURSOR_STATES.map((state) => {
+    const binding = theme?.cursorBindings?.[state.id];
+    const asset = assetFromCursorSkinState(theme?.cursorSkin?.states?.[state.id]);
+    return [state.id, {
+      mode: binding ? toWorkbenchCursorMode(state.id, binding.mode) : baseDraft.cursorModes[state.id],
+      actionId: binding?.actionId || baseDraft.cursorStateActions[state.id],
+      asset: { ...baseDraft.cursorStateAssets[state.id], ...(asset || {}) },
+    }] as const;
+  });
   return {
-    mode:
-      themePack?.cursorStates?.[stateId]
-        ? toWorkbenchCursorMode(stateId, cursorState.mode)
-        : (themePack?.workbenchDraft?.cursorModes?.[stateId] || baseDraft.cursorModes[stateId]),
-    actionId:
-      themePack?.cursorStates?.[stateId]?.actionId
-      || themePack?.workbenchDraft?.cursorStateActions?.[stateId]
-      || baseDraft.cursorStateActions[stateId],
-    asset: {
-      ...baseDraft.cursorStateAssets[stateId],
-      ...legacyAsset,
-      imageDataUrl: cursorState.imageDataUrl || legacyAsset.imageDataUrl || baseDraft.cursorStateAssets[stateId].imageDataUrl,
-      hotspotX: cursorState.hotspotX ?? legacyAsset.hotspotX ?? baseDraft.cursorStateAssets[stateId].hotspotX,
-      hotspotY: cursorState.hotspotY ?? legacyAsset.hotspotY ?? baseDraft.cursorStateAssets[stateId].hotspotY,
-      size: cursorState.size ?? legacyAsset.size ?? baseDraft.cursorStateAssets[stateId].size,
-    },
+    cursorModes: Object.fromEntries(entries.map(([id, value]) => [id, value.mode])),
+    cursorStateActions: Object.fromEntries(entries.map(([id, value]) => [id, value.actionId])),
+    cursorStateAssets: Object.fromEntries(entries.map(([id, value]) => [id, value.asset])),
   };
 }
 
-function buildDraftCursorMaps(baseDraft, themePack) {
-  const draftStates = CURSOR_STATES.map((state) => [state.id, buildDraftCursorState(baseDraft, themePack, state.id)] as const);
-  return {
-    cursorModes: Object.fromEntries(draftStates.map(([stateId, stateDraft]) => [stateId, stateDraft.mode])),
-    cursorStateActions: Object.fromEntries(draftStates.map(([stateId, stateDraft]) => [stateId, stateDraft.actionId])),
-    cursorStateAssets: Object.fromEntries(draftStates.map(([stateId, stateDraft]) => [stateId, stateDraft.asset])),
-  };
-}
-
-function buildDraftFromThemePack(themePack) {
-  const themeId = themePack?.id;
-  const baseDraft = createThemeDraft(themeId);
-  const cursorDraft = buildDraftCursorMaps(baseDraft, themePack);
-  const cursorSkin = normalizeDraftCursorSkin(baseDraft, themePack, cursorDraft);
-  const actionConfigs = buildDraftActionConfigs(baseDraft, themePack);
-  const keyFeedbackConfig = normalizeKeyFeedbackConfig(themePack?.workbenchDraft?.keyFeedbackConfig || baseDraft.keyFeedbackConfig);
-  const resetKeyFeedbackConfig = normalizeKeyFeedbackConfig(themePack?.workbenchDraft?.resetKeyFeedbackConfig || keyFeedbackConfig);
-
+function buildDraftFromTheme(theme) {
+  const baseDraft = createThemeDraft(theme?.id);
+  const cursorDraft = buildDraftCursorMaps(baseDraft, theme);
+  const actionConfigs = buildDraftActionConfigs(baseDraft, theme);
+  const keyFeedbackConfig = normalizeKeyFeedbackConfig(theme?.keyFeedbackConfig || baseDraft.keyFeedbackConfig);
   return {
     ...baseDraft,
-    ...(themePack?.workbenchDraft || {}),
-    cursorModes: cursorDraft.cursorModes,
-    cursorStateActions: cursorDraft.cursorStateActions,
-    cursorStateAssets: cursorDraft.cursorStateAssets,
-    cursorSkin,
+    ...cursorDraft,
+    cursorSkin: theme?.cursorSkin || baseDraft.cursorSkin,
     keyFeedbackConfig,
-    resetKeyFeedbackConfig,
+    resetKeyFeedbackConfig: keyFeedbackConfig,
     actionConfigs,
-    resetActionConfigs: buildResetActionConfigs(baseDraft, themePack, actionConfigs),
+    resetActionConfigs: buildResetActionConfigs(baseDraft, theme, actionConfigs),
+    atmosphere: theme?.atmosphere || baseDraft.atmosphere,
   };
 }
 
-export function draftFromThemePack(themePack) {
-  return buildDraftFromThemePack(themePack);
+export function themePackToThemeLibraryItem(theme, fallbackIndex = 0) {
+  return buildThemeLibraryItem(theme, fallbackIndex);
+}
+
+export function draftFromThemePack(theme) {
+  return buildDraftFromTheme(theme);
 }
 
 export function buildThemeLibrary(config) {
-  const themePacks = Array.isArray(config?.themePacks) ? config.themePacks : [];
-  return themePacks.map((themePack, index) => themePackToThemeLibraryItem(themePack, index));
+  const themes = Array.isArray(config?.themes) ? config.themes : [];
+  return themes.map((theme, index) => themePackToThemeLibraryItem(theme, index));
 }
 
-function resolveSelectedThemeId(themeLibrary, draftsByTheme, activeThemePackId) {
-  if (activeThemePackId && draftsByTheme[activeThemePackId]) return activeThemePackId;
+function resolveSelectedThemeId(themeLibrary, draftsByTheme, activeThemeId) {
+  if (activeThemeId && draftsByTheme[activeThemeId]) return activeThemeId;
   return themeLibrary[0]?.id || THEMES[0]?.id || "";
 }
 
@@ -227,121 +115,93 @@ export function createWorkbenchThemeState(themeLibrary = THEMES) {
   };
 }
 
+function contextActionToWorkbench(action) {
+  return action?.type === "disable"
+    ? "disable"
+    : { enable: true, ...(action?.themeId ? { theme: action.themeId } : {}) };
+}
+
+function webRuleToWorkbench(rule) {
+  const path = rule.match.path || "";
+  return {
+    id: rule.id,
+    enabled: rule.enabled,
+    pattern: path
+      ? { type: "path", hostType: rule.match.type, value: `${rule.match.host}${path}` }
+      : { type: rule.match.type, value: rule.match.host },
+    action: contextActionToWorkbench(rule.action),
+  };
+}
+
+function desktopRuleToWorkbench(rule) {
+  return {
+    id: rule.id,
+    enabled: rule.enabled,
+    pattern: {
+      type: rule.match.type,
+      target: rule.match.target,
+      value: rule.match.value,
+    },
+    action: contextActionToWorkbench(rule.action),
+  };
+}
+
 export function hydrateWorkbenchState(config, site) {
-  const storedThemePacks = Array.isArray(config?.themePacks) ? config.themePacks : [];
+  const themes = Array.isArray(config?.themes) ? config.themes : [];
   const themeLibrary = buildThemeLibrary(config);
   const baseThemeState = createWorkbenchThemeState(themeLibrary);
-  const draftsByTheme = {
-    ...baseThemeState.draftsByTheme,
-  };
-
-  storedThemePacks.forEach((themePack) => {
-    draftsByTheme[themePack.id] = buildDraftFromThemePack(themePack);
-  });
-
-  const selectedThemeId = resolveSelectedThemeId(themeLibrary, draftsByTheme, config.activeThemePackId);
-  if (config.keyFeedbackConfig) {
-    storedThemePacks.forEach((themePack) => {
-      if (themePack?.workbenchDraft?.keyFeedbackConfig) return;
-      draftsByTheme[themePack.id] = {
-        ...(draftsByTheme[themePack.id] || createThemeDraft(themePack.id)),
-        keyFeedbackConfig: normalizeKeyFeedbackConfig(config.keyFeedbackConfig),
-        resetKeyFeedbackConfig: normalizeKeyFeedbackConfig(config.keyFeedbackConfig),
-      };
-    });
-  }
-  const workspaceAliasMap = {
-    workspace: "workbench",
-    states: "states",
-    sites: "sites",
-    diagnostics: "diagnostics",
-    keyboard: "keyboard",
-    assets: "workbench",
-  };
-  const resolvedWorkspace = workspaceAliasMap[config.editor?.lastWorkspace] || config.editor?.lastWorkspace || "workbench";
-  const PRIMARY_WORKSPACES = ["workbench", "states", "sites", "keyboard"];
-  const workspaceId = PRIMARY_WORKSPACES.includes(resolvedWorkspace) ? resolvedWorkspace : "workbench";
-  const selectedActionId = PLATFORM_ACTIONS.some((item) => item.id === config.editor?.lastActionId) ? config.editor.lastActionId : "leftClick";
-  const lastCursorState = config.editor?.lastCursorState === "wait" ? "busy" : config.editor?.lastCursorState;
-  const selectedCursorStateId = CURSOR_STATES.some((item) => item.id === lastCursorState) ? lastCursorState : "default";
+  const draftsByTheme = { ...baseThemeState.draftsByTheme };
+  themes.forEach((theme) => { draftsByTheme[theme.id] = buildDraftFromTheme(theme); });
 
   return {
-    workspaceId,
+    workspaceId: "workbench",
     selection: {
-      themeId: selectedThemeId,
-      actionId: selectedActionId,
-      cursorStateId: selectedCursorStateId,
+      themeId: resolveSelectedThemeId(themeLibrary, draftsByTheme, config.activeThemeId),
+      actionId: "leftClick",
+      cursorStateId: "default",
     },
-    siteRules: Array.isArray(config.siteRules) ? config.siteRules : [],
-    appRules: Array.isArray(config.appRules) ? config.appRules : [],
+    siteRules: (config.contextRules || []).filter((rule) => rule.context === "web").map(webRuleToWorkbench),
+    appRules: (config.contextRules || []).filter((rule) => rule.context === "desktop").map(desktopRuleToWorkbench),
     themeLibrary,
-    ui: {
-      enabled: config.enabled !== false,
-      unsaved: false,
-    },
+    ui: { enabled: config.enabled !== false, unsaved: false },
     site,
     draftsByTheme,
   };
 }
 
-function getStoredThemePack(config, themeId) {
-  return config.themePacks.find((item) => item.id === themeId) ?? getDefaultConfig().themePacks?.find((item) => item.id === themeId) ?? null;
+function getStoredTheme(config, themeId) {
+  return config?.themes?.find((theme) => theme.id === themeId)
+    ?? getDefaultConfig().themes?.find((theme) => theme.id === themeId)
+    ?? null;
 }
 
-function buildStoredCursorStates(draft) {
-  const hasCursorSkin = draft.cursorSkin && typeof draft.cursorSkin === "object";
-  return Object.fromEntries(
-    LEGACY_CURSOR_STATE_IDS.map((stateId) => {
-      const skinStateId = LEGACY_CURSOR_STATE_TO_SKIN_STATE[stateId];
-      const skinAsset = skinStateId ? assetFromCursorSkinState(draft.cursorSkin?.states?.[skinStateId]) : null;
-      const draftAsset = draft.cursorStateAssets?.[stateId] || {};
-      // 新模型存在时，缺失状态表示用户主动清除；不能再从旧草稿素材回填。
-      const asset = hasCursorSkin ? skinAsset : (skinAsset || draftAsset);
-
-      return [
-        stateId,
-        {
-          ...toExtensionCursorState(draft.cursorModes?.[stateId], draft.cursorStateActions?.[stateId]),
-          imageDataUrl: asset?.imageDataUrl || "",
-          hotspotX: asset?.hotspotX ?? 16,
-          hotspotY: asset?.hotspotY ?? 32,
-          size: asset?.size ?? 48,
-        },
-      ];
-    })
-  );
+function buildCursorBindings(draft) {
+  return Object.fromEntries(CURSOR_STATES.map((state) => [state.id, {
+    mode: state.id === "default" || draft.cursorModes?.[state.id] === "覆盖" ? "override" : "inherit",
+    actionId: draft.cursorStateActions?.[state.id] || "leftClick",
+  }]));
 }
 
-function buildStoredThemePack(
+function buildStoredTheme(
   themeId,
   draft,
   previousConfig,
   themeRecord,
-  options: BuildStoredThemePackOptions = {},
+  options: BuildStoredThemeOptions = {},
 ) {
-  const previousThemePack = getStoredThemePack(previousConfig, themeId) ?? {};
+  const previousTheme = getStoredTheme(previousConfig, themeId);
   const includeAtmosphere = options.includeAtmosphere ?? !isDesktop();
-  const storedAtmosphere = includeAtmosphere
-    ? draft.atmosphere ?? previousThemePack?.workbenchDraft?.atmosphere
-    : undefined;
-
+  const atmosphere = includeAtmosphere ? (draft.atmosphere || previousTheme?.atmosphere) : undefined;
   return {
-    ...previousThemePack,
     id: themeId,
-    name: themeRecord?.name ?? previousThemePack.name ?? themeId,
-    icon: themeRecord?.icon ?? previousThemePack.icon ?? "Wand2",
-    description: themeRecord?.description ?? themeRecord?.summary ?? previousThemePack.description ?? "",
-    kind: themeRecord?.kind === "内置" ? "builtin" : previousThemePack.kind || "custom",
-    workbenchDraft: {
-      actionConfigs: pickStoredWorkbenchActionConfigs(draft.actionConfigs),
-      resetActionConfigs: pickStoredWorkbenchActionConfigs(draft.resetActionConfigs || draft.actionConfigs),
-      cursorSkin: draft.cursorSkin,
-      keyFeedbackConfig: normalizeKeyFeedbackConfig(draft.keyFeedbackConfig),
-      resetKeyFeedbackConfig: normalizeKeyFeedbackConfig(draft.resetKeyFeedbackConfig || draft.keyFeedbackConfig),
-      ...(storedAtmosphere ? { atmosphere: storedAtmosphere } : {}),
-    },
+    name: themeRecord?.name ?? previousTheme?.name ?? themeId,
+    description: themeRecord?.description ?? themeRecord?.summary ?? previousTheme?.description ?? "",
+    kind: themeRecord?.kind === "内置" ? "builtin" : "custom",
+    actionConfigs: pickStoredWorkbenchActionConfigs(draft.actionConfigs),
+    cursorBindings: buildCursorBindings(draft),
     cursorSkin: draft.cursorSkin,
-    cursorStates: buildStoredCursorStates(draft),
+    keyFeedbackConfig: normalizeKeyFeedbackConfig(draft.keyFeedbackConfig),
+    ...(atmosphere ? { atmosphere } : {}),
   };
 }
 
@@ -353,39 +213,75 @@ export function buildStoredThemePackFromWorkbench(
   previousConfig,
   state,
   themeId = state.selection.themeId,
-  options: BuildStoredThemePackOptions = {},
+  options: BuildStoredThemeOptions = {},
 ) {
-  return buildStoredThemePack(
+  return buildStoredTheme(
     themeId,
     state.draftsByTheme[themeId],
     previousConfig,
-    state.themeLibrary.find((item) => item.id === themeId),
+    state.themeLibrary.find((theme) => theme.id === themeId),
     options,
   );
 }
 
-export function buildStoredConfigFromWorkbench(previousConfig, state) {
-  const nextThemePacks = (state.themeLibrary || []).map((theme) =>
-    buildStoredThemePackFromWorkbench(previousConfig, state, theme.id)
-  );
+function workbenchActionToContext(action) {
+  return action === "disable"
+    ? { type: "disable" }
+    : { type: "enable", ...(action?.theme ? { themeId: action.theme } : {}) };
+}
 
-  const workspaceId = state.workspaceId === "workbench" ? "workspace" : state.workspaceId;
-  const nextConfig = {
-    ...previousConfig,
-    enabled: state.ui.enabled,
-    activeThemePackId: state.selection.themeId,
-    activeSchemeId: state.selection.themeId,
-    themePacks: nextThemePacks,
-    schemes: nextThemePacks,
-    siteRules: Array.isArray(state.siteRules) ? state.siteRules : [],
-    appRules: Array.isArray(state.appRules) ? state.appRules : [],
-    editor: {
-      ...(previousConfig.editor || {}),
-      lastWorkspace: workspaceId,
-      lastActionId: state.selection.actionId,
-      lastCursorState: state.selection.cursorStateId,
+function splitWebPattern(value) {
+  const normalized = typeof value === "string" ? value.trim() : "";
+  const slashIndex = normalized.indexOf("/");
+  return slashIndex < 0
+    ? { host: normalized }
+    : { host: normalized.slice(0, slashIndex), path: normalized.slice(slashIndex) };
+}
+
+function workbenchWebRuleToContext(rule) {
+  const isPathRule = rule.pattern?.type === "path";
+  return {
+    id: rule.id,
+    context: "web",
+    enabled: rule.enabled !== false,
+    match: {
+      type: rule.pattern?.type === "glob" || (isPathRule && rule.pattern?.hostType === "glob")
+        ? "glob"
+        : "exact",
+      ...splitWebPattern(rule.pattern?.value),
     },
+    action: workbenchActionToContext(rule.action),
   };
+}
 
+function workbenchDesktopRuleToContext(rule) {
+  return {
+    id: rule.id,
+    context: "desktop",
+    enabled: rule.enabled !== false,
+    match: {
+      type: rule.pattern?.type === "glob" ? "glob" : "exact",
+      target: rule.pattern?.target === "title" ? "title" : "process",
+      value: rule.pattern?.value || "",
+    },
+    action: workbenchActionToContext(rule.action),
+  };
+}
+
+export function buildStoredConfigFromWorkbench(previousConfig, state) {
+  const themes = (state.themeLibrary || []).map((theme) =>
+    buildStoredThemePackFromWorkbench(previousConfig, state, theme.id),
+  );
+  const nextConfig = {
+    schemaVersion: 4,
+    enabled: state.ui.enabled,
+    activeThemeId: state.selection.themeId,
+    themes,
+    contextRules: [
+      ...(state.siteRules || []).map(workbenchWebRuleToContext),
+      ...(state.appRules || []).map(workbenchDesktopRuleToContext),
+    ],
+    performance: previousConfig?.performance || { maxActiveEffects: 48 },
+  };
   return normalizeStoredConfig(nextConfig);
 }

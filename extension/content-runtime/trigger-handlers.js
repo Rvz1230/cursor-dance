@@ -466,7 +466,7 @@
 
     function previewAtViewportCenter(schemeId, previewScheme, actionId) {
       if (!configStore.isCurrentSiteEnabled()) return;
-      const resolvedScheme = previewScheme || configStore.getConfig().schemes.find((scheme) => scheme.id === (schemeId || configStore.getConfig().activeSchemeId)) || configStore.getActiveScheme();
+      const resolvedScheme = previewScheme || configStore.getConfig().themes.find((theme) => theme.id === (schemeId || configStore.getConfig().activeThemeId)) || configStore.getActiveScheme();
       const x = Math.round(window.innerWidth / 2);
       const y = Math.round(window.innerHeight / 2);
       triggerAction(actionId || "leftClick", { x, y, target: document.body }, resolvedScheme, {

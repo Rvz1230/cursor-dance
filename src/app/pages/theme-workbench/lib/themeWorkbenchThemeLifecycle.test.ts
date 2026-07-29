@@ -6,6 +6,7 @@ import {
   buildDuplicateThemePayload,
   buildImportedThemePayload,
 } from "./themeWorkbenchThemeLifecycle";
+import { defaultConfig } from "@/desktop/renderer/engine/default-config";
 
 function createThemeRecord(overrides = {}) {
   return {
@@ -95,12 +96,21 @@ describe("themeWorkbenchThemeLifecycle", () => {
     const payload = buildImportedThemePayload(
       [createThemeRecord()],
       {
-        themePack: {
+        format: "cursordance-theme",
+        schemaVersion: 4,
+        theme: {
+          ...defaultConfig.themes[0],
           id: "imported-theme",
           name: "导入主题",
-          workbenchDraft: {
-            actionConfigs: { leftClick: { textContent: "导入" } },
-            keyFeedbackConfig: { color: "#FF00AA", fontSize: 66 },
+          kind: "custom",
+          actionConfigs: {
+            ...defaultConfig.themes[0].actionConfigs,
+            leftClick: { ...defaultConfig.themes[0].actionConfigs.leftClick, textContent: "导入" },
+          },
+          keyFeedbackConfig: {
+            ...defaultConfig.themes[0].keyFeedbackConfig,
+            color: "#FF00AA",
+            fontSize: 66,
           },
         },
       },

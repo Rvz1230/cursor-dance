@@ -1,26 +1,32 @@
-/** @platform desktop-only — built-in theme pack definitions */
+/** @platform shared-renderer — built-in v4 theme definitions. */
 
-import type { CursorStateConfig, ThemePack } from "../default-config";
+import type { ConfigJsonObject, ThemeKindV4 } from "../../../../shared/config-schema-v4";
 
-let _definitions: ThemePack[] | undefined;
+export interface DefaultThemeDefinition {
+  id: string;
+  name: string;
+  description: string;
+  kind: ThemeKindV4;
+  actionConfigs: Record<string, ConfigJsonObject>;
+}
 
-export function getDefaultThemePackDefinitions(cursorStates: Record<string, CursorStateConfig>): ThemePack[] {
+let _definitions: DefaultThemeDefinition[] | undefined;
+
+export function getDefaultThemeDefinitions(): DefaultThemeDefinition[] {
   if (!_definitions) {
-    _definitions = buildDefinitions(cursorStates);
+    _definitions = buildDefinitions();
   }
   return _definitions;
 }
 
-function buildDefinitions(cursorStates: Record<string, CursorStateConfig>): ThemePack[] {
+function buildDefinitions(): DefaultThemeDefinition[] {
   return [
   {
     id: "mono-geo",
     name: "几何",
     description: "黑白灰配色、方块粒子和几何波纹，极简克制的反馈风格。",
     kind: "builtin",
-    cursorStates,
-    workbenchDraft: {
-      actionConfigs: {
+    actionConfigs: {
         leftClick: {
           textEnabled: true,
           textKind: "数字飘字",
@@ -170,16 +176,13 @@ function buildDefinitions(cursorStates: Record<string, CursorStateConfig>): Them
           holdMs: 180,
         },
       },
-    },
   },
   {
     id: "drift",
     name: "流光",
     description: "轨道粒子环绕光标、涟漪扩散，沉静青绿调，适合专注工作场景。",
     kind: "builtin",
-    cursorStates,
-    workbenchDraft: {
-      actionConfigs: {
+    actionConfigs: {
         leftClick: {
           textEnabled: false,
           ripple: true,
@@ -315,16 +318,13 @@ function buildDefinitions(cursorStates: Record<string, CursorStateConfig>): Them
           holdMs: 180,
         },
       },
-    },
   },
   {
     id: "molten",
     name: "熔金",
     description: "火花向上喷发如熔岩飞溅、能量脉冲涟漪，温暖有力的橙金调。",
     kind: "builtin",
-    cursorStates,
-    workbenchDraft: {
-      actionConfigs: {
+    actionConfigs: {
         leftClick: {
           textEnabled: true,
           textContent: "+1",
@@ -501,16 +501,13 @@ function buildDefinitions(cursorStates: Record<string, CursorStateConfig>): Them
           holdMs: 180,
         },
       },
-    },
   },
   {
     id: "sunset",
     name: "夕霞",
     description: "钻石粒子缓缓飘落、回声涟漪荡漾，落日粉橙暖调，温柔优雅。",
     kind: "builtin",
-    cursorStates,
-    workbenchDraft: {
-      actionConfigs: {
+    actionConfigs: {
         leftClick: {
           textEnabled: true,
           textContent: "+1",
@@ -683,7 +680,6 @@ function buildDefinitions(cursorStates: Record<string, CursorStateConfig>): Them
           holdMs: 180,
         },
       },
-    },
   },
 ];
 }

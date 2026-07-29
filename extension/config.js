@@ -31,57 +31,72 @@
 
   const DEFAULT_CURSOR_STATE_IDS = [
     "default",
-    "pointer",
     "text",
-    "help",
-    "wait",
+    "pointer",
+    "grab",
+    "grabbing",
+    "busy",
     "notAllowed",
+    "crosshair",
+    "move",
+    "resizeHorizontal",
+    "resizeVertical",
+    "resizeDiagonalNWSE",
+    "resizeDiagonalNESW",
   ];
 
-  function createDefaultCursorStates() {
-    return DEFAULT_CURSOR_STATE_IDS.reduce((states, stateId) => {
-      states[stateId] = {
-        mode: "inherit",
+  function createDefaultCursorBindings() {
+    return Object.fromEntries(DEFAULT_CURSOR_STATE_IDS.map((stateId) => [
+      stateId,
+      {
+        mode: stateId === "default" ? "override" : "inherit",
         actionId: "leftClick",
-        imageDataUrl: "",
-        hotspotX: 16,
-        hotspotY: 32,
-        size: 48,
-      };
-      return states;
-    }, {});
+      },
+    ]));
   }
 
-  function normalizeCursorStateConfig(stateConfig, fallbackStateConfig) {
+  function createDefaultCursorSkin() {
     return {
-      ...(fallbackStateConfig || {}),
-      ...(stateConfig && typeof stateConfig === "object" && !Array.isArray(stateConfig) ? stateConfig : {}),
-      mode: stateConfig?.mode === "override" ? "override" : (fallbackStateConfig?.mode || "inherit"),
-      actionId: typeof stateConfig?.actionId === "string" ? stateConfig.actionId : (fallbackStateConfig?.actionId || "leftClick"),
-      imageDataUrl: typeof stateConfig?.imageDataUrl === "string" ? stateConfig.imageDataUrl : (fallbackStateConfig?.imageDataUrl || ""),
-      hotspotX: Number.isFinite(stateConfig?.hotspotX) ? stateConfig.hotspotX : (fallbackStateConfig?.hotspotX ?? 16),
-      hotspotY: Number.isFinite(stateConfig?.hotspotY) ? stateConfig.hotspotY : (fallbackStateConfig?.hotspotY ?? 32),
-      size: Number.isFinite(stateConfig?.size) ? stateConfig.size : (fallbackStateConfig?.size ?? 48),
+      version: 1,
+      enabled: true,
+      transitionMs: 80,
+      states: {},
     };
   }
 
-  function mergeCursorStates(fallbackCursorStates, cursorStates) {
-    const fallback = fallbackCursorStates || createDefaultCursorStates();
-    const nextStates = {
-      ...fallback,
-    };
-
-    DEFAULT_CURSOR_STATE_IDS.forEach((stateId) => {
-      nextStates[stateId] = normalizeCursorStateConfig(cursorStates?.[stateId], fallback[stateId]);
-    });
-
-    Object.entries(cursorStates || {}).forEach(([stateId, stateConfig]) => {
-      if (Object.prototype.hasOwnProperty.call(nextStates, stateId)) return;
-      nextStates[stateId] = normalizeCursorStateConfig(stateConfig, { mode: "inherit" });
-    });
-
-    return nextStates;
-  }
+  const defaultKeyFeedbackConfig = {
+    enabled: true,
+    animationStyle: "bounce",
+    originEdge: "bottom",
+    originMapping: "keyboardLayout",
+    globalOffsetX: 0.5,
+    globalOffsetY: 0.08,
+    fontSize: 48,
+    fontWeight: "加粗",
+    fontFamily: "系统默认",
+    color: "#F59E0B",
+    opacity: 90,
+    uppercase: false,
+    showModifierKeys: true,
+    keyDisplayMode: "typed",
+    semanticStyles: true,
+    typingCombo: true,
+    duration: 900,
+    easing: "弹跳",
+    scale: 1,
+    bounceHeight: 140,
+    gravity: 0.3,
+    wind: 0,
+    glow: false,
+    glowColor: "#FBBF24",
+    glowRadius: 8,
+    trail: false,
+    trailLength: 3,
+    splash: false,
+    cooldownMs: 35,
+    maxSimultaneous: 30,
+    delay: 0,
+  };
 
   const defaultThemePackDefinitions = [
     {
@@ -89,9 +104,7 @@
       name: "几何",
       description: "黑白灰配色、方块粒子和几何波纹，极简克制的反馈风格。",
       kind: "builtin",
-      cursorStates: createDefaultCursorStates(),
-      workbenchDraft: {
-        actionConfigs: {
+      actionConfigs: {
           leftClick: {
             textEnabled: true,
             textKind: "数字飘字",
@@ -129,16 +142,13 @@
             holdMs: 0,
           },
         },
-      },
     },
     {
       id: "drift",
       name: "流光",
       description: "轨道粒子环绕光标、涟漪扩散，沉静青绿调，适合专注工作场景。",
       kind: "builtin",
-      cursorStates: createDefaultCursorStates(),
-      workbenchDraft: {
-        actionConfigs: {
+      actionConfigs: {
           leftClick: {
             textEnabled: false,
             ripple: true,
@@ -170,16 +180,13 @@
             holdMs: 0,
           },
         },
-      },
     },
     {
       id: "molten",
       name: "熔金",
       description: "火花向上喷发如熔岩飞溅、能量脉冲涟漪，温暖有力的橙金调。",
       kind: "builtin",
-      cursorStates: createDefaultCursorStates(),
-      workbenchDraft: {
-        actionConfigs: {
+      actionConfigs: {
           leftClick: {
             textEnabled: true,
             textContent: "+1",
@@ -224,16 +231,13 @@
             holdMs: 0,
           },
         },
-      },
     },
     {
       id: "sunset",
       name: "夕霞",
       description: "钻石粒子缓缓飘落、回声涟漪荡漾，落日粉橙暖调，温柔优雅。",
       kind: "builtin",
-      cursorStates: createDefaultCursorStates(),
-      workbenchDraft: {
-        actionConfigs: {
+      actionConfigs: {
           leftClick: {
             textEnabled: true,
             textContent: "+1",
@@ -277,148 +281,71 @@
             holdMs: 0,
           },
         },
-      },
     },
   ];
 
-  function createDefaultThemePacks() {
-    return defaultThemePackDefinitions.map((pack) => cloneValue(pack));
+  function createDefaultThemes() {
+    return defaultThemePackDefinitions.map((definition) => ({
+      id: definition.id,
+      name: definition.name,
+      description: definition.description,
+      kind: definition.kind,
+      actionConfigs: cloneValue(definition.actionConfigs),
+      cursorBindings: createDefaultCursorBindings(),
+      cursorSkin: createDefaultCursorSkin(),
+      keyFeedbackConfig: cloneValue(defaultKeyFeedbackConfig),
+    }));
   }
 
-  function mergeThemePackWithFallback(fallbackPack, pack) {
-    const normalizedId = pack?.id || fallbackPack?.id;
-    const mergedWorkbenchDraft = {
-      ...(fallbackPack.workbenchDraft || {}),
-      ...(pack?.workbenchDraft || {}),
-      actionConfigs: {
-        ...(fallbackPack.workbenchDraft?.actionConfigs || {}),
-        ...(pack?.workbenchDraft?.actionConfigs || {}),
-      },
-    };
-    Object.keys(mergedWorkbenchDraft.actionConfigs).forEach((actionId) => {
-      mergedWorkbenchDraft.actionConfigs[actionId] = {
-        ...(fallbackPack.workbenchDraft?.actionConfigs?.[actionId] || {}),
-        ...(pack?.workbenchDraft?.actionConfigs?.[actionId] || {}),
-      };
-    });
-    return {
-      ...fallbackPack,
-      ...pack,
-      id: normalizedId,
-      kind: pack?.kind || fallbackPack.kind || "custom",
-      cursorStates: mergeCursorStates(fallbackPack.cursorStates, pack?.cursorStates),
-      workbenchDraft: mergedWorkbenchDraft,
-    };
+  const ROOT_KEYS = new Set(["schemaVersion", "enabled", "activeThemeId", "themes", "contextRules", "performance"]);
+  const THEME_KEYS = new Set(["id", "name", "description", "kind", "actionConfigs", "cursorBindings", "cursorSkin", "keyFeedbackConfig", "atmosphere"]);
+
+  function hasOnlyKeys(value, allowed) {
+    return value && typeof value === "object" && !Array.isArray(value)
+      && Object.keys(value).every((key) => allowed.has(key));
   }
 
-  function normalizeSiteRules(siteRules, fallbackSiteRules) {
-    if (Array.isArray(siteRules)) {
-      return siteRules.filter(function (rule) {
-        return rule && typeof rule === "object" && rule.pattern && rule.action;
-      }).map(function (rule, index) {
-        return {
-          id: rule.id || ("r" + (index + 1)),
-          pattern: {
-            type: (rule.pattern && rule.pattern.type) || "exact",
-            value: (rule.pattern && typeof rule.pattern.value === "string") ? rule.pattern.value : "",
-          },
-          action: rule.action,
-          enabled: rule.enabled !== false,
-        };
-      });
+  function isCompleteV4(value) {
+    if (!hasOnlyKeys(value, ROOT_KEYS) || value.schemaVersion !== 4 || typeof value.enabled !== "boolean") return false;
+    if (!Array.isArray(value.themes) || value.themes.length === 0 || !Array.isArray(value.contextRules)) return false;
+    const ids = new Set();
+    for (const theme of value.themes) {
+      if (!hasOnlyKeys(theme, THEME_KEYS) || typeof theme.id !== "string" || !theme.id || ids.has(theme.id)) return false;
+      if (typeof theme.name !== "string" || !theme.name || !["builtin", "custom"].includes(theme.kind)) return false;
+      if (!theme.actionConfigs || !theme.cursorBindings || !theme.cursorSkin || !theme.keyFeedbackConfig) return false;
+      if (theme.cursorSkin.version !== 1 || !theme.cursorSkin.states || typeof theme.cursorSkin.states !== "object") return false;
+      ids.add(theme.id);
     }
-
-    if (Array.isArray(fallbackSiteRules)) return fallbackSiteRules;
-    return [];
-  }
-
-  function normalizeEditorPrefs(editorPrefs, fallbackEditorPrefs) {
-    return {
-      mode: editorPrefs?.mode === "advanced" ? "advanced" : (fallbackEditorPrefs?.mode || "simple"),
-      lastWorkspace: editorPrefs?.lastWorkspace || fallbackEditorPrefs?.lastWorkspace || "workspace",
-      lastActionId: editorPrefs?.lastActionId || fallbackEditorPrefs?.lastActionId || "leftClick",
-      lastCursorState: editorPrefs?.lastCursorState || fallbackEditorPrefs?.lastCursorState || "default",
-    };
-  }
-
-  function normalizeThemePacks(themePacks, fallbackConfig) {
-    const fallbackThemePacks = Array.isArray(fallbackConfig.themePacks) ? fallbackConfig.themePacks : [];
-    const storedThemePacks = Array.isArray(themePacks)
-      ? themePacks.map((pack) => ({
-          ...pack,
-          id: pack?.id,
-        }))
-      : [];
-    const storedById = new Map(storedThemePacks.filter((pack) => pack?.id).map((pack) => [pack.id, pack]));
-    const knownIds = new Set(fallbackThemePacks.map((pack) => pack.id));
-    const merged = fallbackThemePacks.map((pack) => mergeThemePackWithFallback(pack, storedById.get(pack.id)));
-    return merged.concat(storedThemePacks.filter((pack) => pack?.id && !knownIds.has(pack.id)).map((pack) => ({
-      ...pack,
-      kind: pack.kind || "custom",
-    })));
+    if (typeof value.activeThemeId !== "string" || !ids.has(value.activeThemeId)) return false;
+    if (!value.performance || !Number.isInteger(value.performance.maxActiveEffects) || value.performance.maxActiveEffects < 1) return false;
+    return value.contextRules.every((rule) => {
+      if (!rule || typeof rule.id !== "string" || typeof rule.enabled !== "boolean") return false;
+      if (rule.context !== "web" && rule.context !== "desktop") return false;
+      if (!rule.match || !rule.action || !["enable", "disable"].includes(rule.action.type)) return false;
+      return !rule.action.themeId || ids.has(rule.action.themeId);
+    });
   }
 
   function normalizeConfig(value, fallbackConfig) {
-    const fallback = fallbackConfig || window.CursorDanceDefaultConfig || {};
-    const rawThemePacks = Array.isArray(value?.themePacks) ? value.themePacks : value?.schemes;
-    const themePacks = normalizeThemePacks(rawThemePacks, fallback);
-    const fallbackThemePackId = fallback.activeThemePackId || fallback.activeSchemeId || themePacks[0]?.id;
-    const rawActiveThemePackId = value?.activeThemePackId || value?.activeSchemeId;
-    const activeThemePackId = themePacks.some((pack) => pack.id === rawActiveThemePackId) ? rawActiveThemePackId : fallbackThemePackId;
-    const siteRules = normalizeSiteRules(value?.siteRules, fallback.siteRules);
-
-    return {
-      ...fallback,
-      ...value,
-      schemaVersion: 3,
-      enabled: value?.enabled !== false,
-      activeThemePackId,
-      activeSchemeId: activeThemePackId,
-      themePacks,
-      schemes: themePacks,
-      siteRules,
-      performance: {
-        ...(fallback.performance || {}),
-        ...(value?.performance || {}),
-      },
-      editor: normalizeEditorPrefs(value?.editor, fallback.editor),
-    };
+    const fallback = fallbackConfig || window.CursorDanceDefaultConfig;
+    return isCompleteV4(value) ? value : fallback;
   }
 
-  function needsMigration(value) {
-    if (!value || typeof value !== "object" || Array.isArray(value)) return true;
-    if (value.schemaVersion !== 3) return true;
-    if (!Array.isArray(value.themePacks)) return true;
-    if (!value.activeThemePackId) return true;
-    if (value.siteRules && !Array.isArray(value.siteRules)) return true;
-    return false;
-  }
-
-  const defaultThemePacks = createDefaultThemePacks();
+  const defaultThemes = createDefaultThemes();
   const defaultConfig = {
-    schemaVersion: 3,
+    schemaVersion: 4,
     enabled: true,
-    activeThemePackId: "mono-geo",
-    activeSchemeId: "mono-geo",
-    themePacks: defaultThemePacks,
-    schemes: defaultThemePacks,
+    activeThemeId: "mono-geo",
+    themes: defaultThemes,
+    contextRules: [],
     performance: {
       maxActiveEffects: 48,
-    },
-    siteRules: [],
-    editor: {
-      mode: "simple",
-      lastWorkspace: "workspace",
-      lastActionId: "leftClick",
-      lastCursorState: "default",
     },
   };
 
   window.CursorDanceDefaultConfig = defaultConfig;
   window.CursorDanceConfigRuntime = {
     cloneValue,
-    createDefaultThemePacks,
-    createDefaultCursorStates,
     inferTextKindFromEffect,
     resolveNumberStyleFromEffect,
     resolveTextModeFromEffect,
@@ -432,10 +359,6 @@
     getActionAnimationConfig,
     getActionImageConfig,
     getActionCursorFeedbackConfig,
-    mergeThemePackWithFallback,
-    mergeCursorStates,
-    normalizeSiteRules,
     normalizeConfig,
-    needsMigration,
   };
 })();

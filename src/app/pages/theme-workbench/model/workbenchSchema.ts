@@ -200,13 +200,13 @@ const toneMap = {
 
 function getDefaultThemePacks() {
   if (typeof window === "undefined") return [];
-  return Array.isArray(window.CursorDanceDefaultConfig?.themePacks) ? window.CursorDanceDefaultConfig.themePacks : [];
+  return Array.isArray(window.CursorDanceDefaultConfig?.themes) ? window.CursorDanceDefaultConfig.themes : [];
 }
 
 function getThemeSummaryActionConfig(themePack) {
-  if (themePack?.workbenchDraft?.actionConfigs?.leftClick) {
+  if (themePack?.actionConfigs?.leftClick) {
     const baseActionConfig = createThemeDraft(themePack?.id).actionConfigs.leftClick;
-    const storedActionConfig = themePack.workbenchDraft.actionConfigs.leftClick;
+    const storedActionConfig = themePack.actionConfigs.leftClick;
     return mergeActionConfig(baseActionConfig, storedActionConfig);
   }
   if (themePack?.id && THEME_TONE_BY_ID[themePack.id]) {
@@ -262,9 +262,9 @@ export function buildThemeLibraryItem(themePack, fallbackIndex = 0) {
   };
 }
 
-export function buildThemeLibrarySeed(themePacks = getDefaultThemePacks()) {
-  if (!themePacks.length) return FALLBACK_THEMES;
-  return themePacks.map((themePack, index) => buildThemeLibraryItem(themePack, index));
+export function buildThemeLibrarySeed(themes = getDefaultThemePacks()) {
+  if (!themes.length) return FALLBACK_THEMES;
+  return themes.map((theme, index) => buildThemeLibraryItem(theme, index));
 }
 
 export const THEMES = buildThemeLibrarySeed();

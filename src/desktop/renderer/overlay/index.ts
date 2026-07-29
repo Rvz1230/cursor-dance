@@ -25,6 +25,7 @@ import {
   activeAppInfoFromSnapshot,
   type ActiveWindowSnapshot,
 } from "../../../shared/app-rules";
+import type { CursorSkinStateV4, CursorSkinV4 } from "../../../shared/config-schema-v4";
 
 type CursorEventPayload = {
   type: "mousemove" | "mousedown" | "mouseup" | "wheel" | "leave";
@@ -69,27 +70,6 @@ type CursorSkinStateId =
   | "resizeDiagonalNWSE"
   | "resizeDiagonalNESW";
 
-type CursorSkinState = {
-  image?: {
-    dataUrl?: string;
-    width?: number;
-    height?: number;
-  };
-  hotspot?: {
-    x?: number;
-    y?: number;
-  };
-  size?: {
-    mode?: "source" | "fixedBox";
-    boxSize?: number;
-  };
-};
-
-type CursorSkin = {
-  enabled?: boolean;
-  states?: Partial<Record<CursorSkinStateId, CursorSkinState>>;
-};
-
 const constants: EngineConstants = {
   ROOT_ID: "cursordance-root",
   STYLE_ID: "cursordance-style",
@@ -98,9 +78,6 @@ const constants: EngineConstants = {
 
 const CONFIG_STORE_CONSTANTS = {
   CONFIG_STORAGE_KEY: "cursordance.config",
-  LEGACY_ENABLED_STORAGE_KEY: "cursordance.enabled",
-  LIVE_PREVIEW_CONFIG_STORAGE_KEY: "cursordance.livePreviewConfig",
-  CURSOR_ASSET_STORAGE_KEY_PREFIX: "cursordance.cursorAsset.",
   // 桌面端没有 DOM target，selector 给个无伤大雅的占位即可
   INTERACTIVE_SELECTOR: "",
   TEXT_EDITABLE_SELECTOR: "",
@@ -125,7 +102,6 @@ const electronBridgeAdapter: ConfigStoreAdapter = {
     const stored = bridge ? await bridge.getConfig() : null;
     return {
       [CONFIG_STORE_CONSTANTS.CONFIG_STORAGE_KEY]: stored ?? defaultConfig,
-      [CONFIG_STORE_CONSTANTS.LEGACY_ENABLED_STORAGE_KEY]: true,
     };
   },
   async set() {
@@ -166,13 +142,13 @@ function setActiveCursorSkinState(nextStateId: CursorSkinStateId): void {
   invalidateCursorStateCache();
 }
 
-function resolveCursorSkinState(cursorSkin: CursorSkin | undefined | null, stateId: CursorSkinStateId): CursorSkinState | null {
+function resolveCursorSkinState(cursorSkin: CursorSkinV4 | undefined | null, stateId: CursorSkinStateId): CursorSkinStateV4 | null {
   if (!cursorSkin || cursorSkin.enabled === false) return null;
   return cursorSkin.states?.[stateId] || (stateId !== "default" ? cursorSkin.states?.default : null) || null;
 }
 
-function cursorSkinStateToOverlayState(skinState: CursorSkinState | null | undefined): typeof cachedCursorState {
-  if (!skinState?.image?.dataUrl) return undefined;
+function cursorSkinStateToOverlayState(skinState: CursorSkinStateV4 | null | undefined): typeof cachedCursorState {
+  if (!skinState || skinState.image.kind !== "dataUrl") return undefined;
   const sourceSize = Math.max(skinState.image.width || 48, skinState.image.height || 48);
   const size = skinState.size?.mode === "fixedBox" ? (skinState.size.boxSize || 48) : sourceSize;
   return {
@@ -196,8 +172,8 @@ function resolveCachedCursorState(): typeof cachedCursorState {
   cursorStateCacheDirty = false;
   cachedCursorState = undefined;
   if (configStore.isCurrentSiteEnabled?.() !== false) {
-    const scheme = configStore.getActiveScheme?.() as { cursorSkin?: CursorSkin; workbenchDraft?: { cursorSkin?: CursorSkin } } | undefined;
-    const cursorSkin = scheme?.cursorSkin || scheme?.workbenchDraft?.cursorSkin;
+    const scheme = configStore.getActiveScheme?.();
+    const cursorSkin = scheme?.cursorSkin;
     cachedCursorState = cursorSkinStateToOverlayState(resolveCursorSkinState(cursorSkin, activeCursorSkinStateId));
   }
   setNativeCursorHidden(Boolean(cachedCursorState) && pointerInside);
@@ -240,14 +216,14 @@ function applyOverlayConfig(next: unknown, source: "stored" | "live-preview" | "
   configStore.setConfig(next || defaultConfig);
   invalidateCursorStateCache();
   syncCursorSkinAtLastPosition();
-  const scheme = configStore.getActiveScheme?.() as { id?: string; cursorSkin?: CursorSkin; workbenchDraft?: { cursorSkin?: CursorSkin } } | undefined;
-  const cursorSkin = scheme?.cursorSkin || scheme?.workbenchDraft?.cursorSkin;
+  const scheme = configStore.getActiveScheme?.();
+  const cursorSkin = scheme?.cursorSkin;
   const resolvedCursorState = resolveCachedCursorState();
   console.info("[cursordance] overlay cursorSkin config applied", {
     source,
     schemeId: scheme?.id,
     stateCount: cursorSkin?.states ? Object.keys(cursorSkin.states).length : 0,
-    hasDefault: Boolean(cursorSkin?.states?.default?.image?.dataUrl),
+    hasDefault: cursorSkin?.states.default?.image.kind === "dataUrl",
     activeCursorSkinStateId,
     hasResolvedCursor: Boolean(resolvedCursorState?.imageDataUrl),
     hidden: nativeCursorHidden,

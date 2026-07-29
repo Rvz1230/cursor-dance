@@ -1,5 +1,6 @@
 import { createThemeDraft } from "../model/workbenchSchema";
 import { draftFromThemePack, themePackToThemeLibraryItem } from "./extensionConfig";
+import { validateCursorDanceConfigV4 } from "@/shared/config-schema-v4";
 
 function cloneValue(value) {
   return JSON.parse(JSON.stringify(value));
@@ -39,16 +40,25 @@ export function resolveImportedThemePack(rawValue) {
     throw new Error("导入失败：JSON 需要是一个主题对象。");
   }
 
-  const candidate = rawValue.themePack || rawValue.theme || rawValue.pack || rawValue.cursordanceTheme || rawValue;
+  if (rawValue.format !== "cursordance-theme" || rawValue.schemaVersion !== 4) {
+    throw new Error("导入失败：只支持 CursorDance v4 主题文件。");
+  }
+  const candidate = rawValue.theme;
   if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) {
-    throw new Error("导入失败：没有识别到可用的主题包。");
+    throw new Error("导入失败：文件中没有 v4 主题。");
   }
-
-  if (!candidate.workbenchDraft && !candidate.behavior && !candidate.cursorStates) {
-    throw new Error("导入失败：主题包里缺少行为配置。");
+  const validation = validateCursorDanceConfigV4({
+    schemaVersion: 4,
+    enabled: true,
+    activeThemeId: candidate.id,
+    themes: [candidate],
+    contextRules: [],
+    performance: { maxActiveEffects: 48 },
+  });
+  if (validation.ok === false) {
+    throw new Error(`导入失败：v4 主题不完整（${validation.issues[0]?.path || "theme"}）。`);
   }
-
-  return candidate;
+  return validation.value.themes[0];
 }
 
 function withActionResetBaseline(draft) {

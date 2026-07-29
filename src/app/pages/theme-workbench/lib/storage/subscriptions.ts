@@ -3,7 +3,6 @@ import {
   CONFIG_STORAGE_KEY,
   CURSOR_ASSET_STORAGE_KEY_PREFIX,
   DIAGNOSTIC_EVENT_MESSAGE_TYPE,
-  LEGACY_ENABLED_STORAGE_KEY,
   LIVE_PREVIEW_CONFIG_STORAGE_KEY,
   LOCAL_PREVIEW_CHANNEL_NAME,
   canUseLocalStorage,
@@ -49,7 +48,7 @@ export function subscribeExtensionConfig(onChange) {
   if (!chromeApi?.storage?.onChanged) {
     if (!canUseLocalStorage()) return () => {};
     function handleStorage(event) {
-      if (event.key !== CONFIG_STORAGE_KEY && event.key !== LEGACY_ENABLED_STORAGE_KEY) return;
+      if (event.key !== CONFIG_STORAGE_KEY) return;
       onChange(readLocalStorageFallback() || normalizeStoredConfig(getDefaultConfig()));
     }
     window.addEventListener("storage", handleStorage);
@@ -62,14 +61,6 @@ export function subscribeExtensionConfig(onChange) {
     if (changedKeys.some((key) => key === CONFIG_STORAGE_KEY || key.startsWith(CURSOR_ASSET_STORAGE_KEY_PREFIX))) {
       onChange(await readExtensionConfig());
       return;
-    }
-    if (changes[LEGACY_ENABLED_STORAGE_KEY]) {
-      onChange((currentConfig) =>
-        normalizeStoredConfig({
-          ...currentConfig,
-          enabled: changes[LEGACY_ENABLED_STORAGE_KEY].newValue !== false,
-        })
-      );
     }
   }
 

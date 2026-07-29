@@ -1,160 +1,125 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { createConfigStore } from "./config-store";
-import { defaultConfig } from "./default-config";
-import { defaultKeyFeedbackConfig } from "./key-feedback-types";
-import type { EngineState } from "./types";
+import type { CursorDanceConfigV4 } from "../../../shared/config-schema-v4";
 import type { ActiveAppInfo } from "../../../shared/app-rules";
+import { createConfigStore, type ConfigStoreAdapter } from "./config-store";
+import { defaultConfig } from "./default-config";
+import type { EngineState } from "./types";
 
-function createStore(config: unknown, getActiveAppInfo?: () => ActiveAppInfo | null) {
+function createStore(
+  config: unknown = defaultConfig,
+  options: {
+    getActiveAppInfo?: () => ActiveAppInfo | null;
+    storeAdapter?: ConfigStoreAdapter;
+  } = {},
+) {
   const state: EngineState = { activeEffects: 0 };
   const store = createConfigStore({
     window: { location: { hostname: "localhost" } } as Window,
     state,
     constants: {
       CONFIG_STORAGE_KEY: "cursordance.config",
-      LEGACY_ENABLED_STORAGE_KEY: "cursordance.enabled",
-      LIVE_PREVIEW_CONFIG_STORAGE_KEY: "cursordance.livePreviewConfig",
-      CURSOR_ASSET_STORAGE_KEY_PREFIX: "cursordance.cursorAsset.",
-      INTERACTIVE_SELECTOR: "",
-      TEXT_EDITABLE_SELECTOR: "",
+      INTERACTIVE_SELECTOR: "a,button",
+      TEXT_EDITABLE_SELECTOR: "input,textarea",
     },
-    getActiveAppInfo,
+    getActiveAppInfo: options.getActiveAppInfo,
+    storeAdapter: options.storeAdapter,
   });
   store.setConfig(config);
   return store;
 }
 
-function withKeyFeedback(themeId: string, keyFeedbackConfig: Record<string, unknown>) {
-  return defaultConfig.themePacks.map((pack) => pack.id === themeId
-    ? {
-        ...pack,
-        workbenchDraft: {
-          ...(pack.workbenchDraft || {}),
-          keyFeedbackConfig,
-        },
-      }
-    : pack);
+function replaceTheme(
+  themeId: string,
+  update: (theme: CursorDanceConfigV4["themes"][number]) => CursorDanceConfigV4["themes"][number],
+): CursorDanceConfigV4["themes"] {
+  return defaultConfig.themes.map((theme) => theme.id === themeId ? update(theme) : theme);
 }
 
-describe("config-store keyFeedbackConfig", () => {
-  it("优先读取当前 active theme 的键盘动效配置", () => {
-    const themePacks = withKeyFeedback("mono-geo", { color: "#00FFAA", fontSize: 72 });
-    const store = createStore({
-      ...defaultConfig,
-      activeThemePackId: "mono-geo",
-      activeSchemeId: "mono-geo",
-      themePacks,
-      schemes: themePacks,
-      keyFeedbackConfig: { ...defaultKeyFeedbackConfig, color: "#FF0000", fontSize: 32 },
-    });
-
-    expect(store.getKeyFeedbackConfig().color).toBe("#00FFAA");
-    expect(store.getKeyFeedbackConfig().fontSize).toBe(72);
-  });
-
-  it("主题字段缺失时 fallback 到 legacy 顶层配置", () => {
-    const themePacks = defaultConfig.themePacks.map((pack) => ({
-      ...pack,
-      workbenchDraft: {
-        ...(pack.workbenchDraft || {}),
-        keyFeedbackConfig: undefined,
+describe("config-store schema v4", () => {
+  it("reads action, cursor and keyboard settings from the active theme", () => {
+    const themes = replaceTheme("drift", (theme) => ({
+      ...theme,
+      actionConfigs: {
+        ...theme.actionConfigs,
+        leftClick: { ...theme.actionConfigs.leftClick, textContent: "v4-only" },
       },
-    }));
-    const store = createStore({
-      ...defaultConfig,
-      activeThemePackId: "mono-geo",
-      activeSchemeId: "mono-geo",
-      themePacks,
-      schemes: themePacks,
-      keyFeedbackConfig: { ...defaultKeyFeedbackConfig, color: "#FF0000", fontSize: 32 },
-    });
-
-    expect(store.getKeyFeedbackConfig().color).toBe("#FF0000");
-    expect(store.getKeyFeedbackConfig().fontSize).toBe(32);
-  });
-
-  it("主题字段和 legacy 字段都缺失时 fallback 到默认键盘配置", () => {
-    const themePacks = defaultConfig.themePacks.map((pack) => ({
-      ...pack,
-      workbenchDraft: {
-        ...(pack.workbenchDraft || {}),
-        keyFeedbackConfig: undefined,
+      cursorBindings: {
+        ...theme.cursorBindings,
+        pointer: { mode: "override", actionId: "rightClick" },
       },
+      keyFeedbackConfig: { ...theme.keyFeedbackConfig, color: "#22CCDD", fontSize: 72 },
     }));
-    const store = createStore({
-      ...defaultConfig,
-      activeThemePackId: "mono-geo",
-      activeSchemeId: "mono-geo",
-      themePacks,
-      schemes: themePacks,
-      keyFeedbackConfig: undefined,
-    });
+    const store = createStore({ ...defaultConfig, activeThemeId: "drift", themes });
 
-    expect(store.getKeyFeedbackConfig().color).toBe(defaultKeyFeedbackConfig.color);
-    expect(store.getKeyFeedbackConfig().fontSize).toBe(defaultKeyFeedbackConfig.fontSize);
+    expect(store.getActiveScheme().id).toBe("drift");
+    expect(store.getActionConfig(store.getActiveScheme(), "leftClick")?.textContent).toBe("v4-only");
+    expect(store.getCursorStateBinding(store.getActiveScheme(), "pointer", "leftClick")).toMatchObject({
+      actionId: "rightClick",
+      inheritedFromDefault: false,
+    });
+    expect(store.getKeyFeedbackConfig()).toMatchObject({ color: "#22CCDD", fontSize: 72 });
   });
 
-  it("activeSchemeId 切换时读取对应主题的键盘动效配置", () => {
-    const themePacks = defaultConfig.themePacks.map((pack) => {
-      if (pack.id === "mono-geo") {
-        return { ...pack, workbenchDraft: { ...(pack.workbenchDraft || {}), keyFeedbackConfig: { color: "#111111" } } };
-      }
-      if (pack.id === "drift") {
-        return { ...pack, workbenchDraft: { ...(pack.workbenchDraft || {}), keyFeedbackConfig: { color: "#22CCDD" } } };
-      }
-      return pack;
-    });
+  it("applies the first matching desktop context rule", () => {
+    const activeApp = { processName: "Code", title: "README — Project Alpha" };
     const store = createStore({
       ...defaultConfig,
-      activeThemePackId: "drift",
-      activeSchemeId: "drift",
-      themePacks,
-      schemes: themePacks,
-    });
+      contextRules: [{
+        id: "project-theme",
+        context: "desktop",
+        enabled: true,
+        match: { type: "glob", target: "title", value: "*Project Alpha*" },
+        action: { type: "enable", themeId: "drift" },
+      }],
+    }, { getActiveAppInfo: () => activeApp });
 
-    expect(store.getKeyFeedbackConfig().color).toBe("#22CCDD");
+    expect(store.isCurrentSiteEnabled()).toBe(true);
+    expect(store.getActiveScheme().id).toBe("drift");
   });
-});
 
-describe("config-store appRules", () => {
-  it("按进程名禁用效果，并在没有授权快照时退化到全局配置", () => {
+  it("disables effects for a matching desktop context rule", () => {
     let activeApp: ActiveAppInfo | null = { processName: "Code", title: "README" };
     const store = createStore({
       ...defaultConfig,
-      enabled: true,
-      appRules: [{
+      contextRules: [{
         id: "disable-code",
-        pattern: { type: "exact", value: "Code", target: "process" },
-        action: "disable",
+        context: "desktop",
         enabled: true,
+        match: { type: "exact", target: "process", value: "Code" },
+        action: { type: "disable" },
       }],
-    }, () => activeApp);
+    }, { getActiveAppInfo: () => activeApp });
 
     expect(store.isCurrentSiteEnabled()).toBe(false);
     activeApp = null;
     expect(store.isCurrentSiteEnabled()).toBe(true);
   });
 
-  it("按窗口标题切换主题，并在规则重排后立即使用首个匹配项", () => {
-    const activeApp = { processName: "Code", title: "README — Project Alpha" };
-    const themeRule = {
-      id: "project-theme",
-      pattern: { type: "glob" as const, value: "*Project Alpha*", target: "title" as const },
-      action: { enable: true as const, theme: "drift" },
-      enabled: true,
+  it("accepts valid stored v4 without writing it back", async () => {
+    const stored = { ...defaultConfig, enabled: false };
+    const adapter: ConfigStoreAdapter = {
+      get: vi.fn().mockResolvedValue({ "cursordance.config": stored }),
+      set: vi.fn().mockResolvedValue(undefined),
     };
-    const store = createStore({
-      ...defaultConfig,
-      appRules: [themeRule],
-    }, () => activeApp);
+    const store = createStore(defaultConfig, { storeAdapter: adapter });
 
-    expect(store.getActiveScheme().id).toBe("drift");
+    await store.syncConfigFromStorage({ clearStateCursorOverlay: vi.fn() });
 
-    store.setConfig({
-      ...defaultConfig,
-      appRules: [{ ...themeRule, id: "disabled-first", action: "disable" }, themeRule],
-    });
-    expect(store.getResolvedAppRule()).toBe("disable");
+    expect(store.getConfig()).toBe(stored);
+    expect(adapter.set).not.toHaveBeenCalled();
+  });
+
+  it("resets and persists non-v4 stored data", async () => {
+    const adapter: ConfigStoreAdapter = {
+      get: vi.fn().mockResolvedValue({ "cursordance.config": { schemaVersion: 3 } }),
+      set: vi.fn().mockResolvedValue(undefined),
+    };
+    const store = createStore(defaultConfig, { storeAdapter: adapter });
+
+    await store.syncConfigFromStorage({ clearStateCursorOverlay: vi.fn() });
+
+    expect(store.getConfig()).toBe(defaultConfig);
+    expect(adapter.set).toHaveBeenCalledWith({ "cursordance.config": defaultConfig });
   });
 });

@@ -25,9 +25,8 @@ import type { KeyFeedbackConfig } from "./key-feedback-types";
 import { normalizeKeyFeedbackConfig } from "./key-feedback-types";
 import {
   defaultConfig as defaultEngineConfig,
-  mergeCursorStates as defaultMergeCursorStates,
+  needsConfigReset,
   normalizeConfig as defaultNormalizeConfig,
-  needsMigration as defaultNeedsMigration,
   type CursorDanceConfig,
   type ThemePack,
 } from "./default-config";
@@ -42,19 +41,17 @@ import {
   getActionImageConfig,
   getActionCursorFeedbackConfig,
 } from "./action-config";
-import { resolveAppRule, type ActiveAppInfo } from "../../../shared/app-rules";
+import { matchAppPattern, type ActiveAppInfo } from "../../../shared/app-rules";
+import type { ContextRuleActionV4 } from "../../../shared/config-schema-v4";
 
 export interface ConfigStoreConstants {
   CONFIG_STORAGE_KEY: string;
-  LEGACY_ENABLED_STORAGE_KEY: string;
-  LIVE_PREVIEW_CONFIG_STORAGE_KEY: string;
-  CURSOR_ASSET_STORAGE_KEY_PREFIX: string;
   INTERACTIVE_SELECTOR: string;
   TEXT_EDITABLE_SELECTOR: string;
 }
 
 export interface ConfigStoreAdapter {
-  /** 读取 { [CONFIG_STORAGE_KEY], [LEGACY_ENABLED_STORAGE_KEY] } 等键。返回值同 chrome.storage.local.get */
+  /** Read the canonical config entry. */
   get(keys: string[]): Promise<Record<string, unknown>>;
   /** 写入键值对。Set Promise resolve 后视为持久化完成。 */
   set(payload: Record<string, unknown>): Promise<void>;
@@ -82,7 +79,7 @@ export interface ConfigStoreApi extends ConfigStore {
   normalizeConfig(value: unknown): CursorDanceConfig;
   isLocalPreviewHost(): boolean;
   getActiveScheme(): ThemePack;
-  getResolvedAppRule(): ReturnType<typeof resolveAppRule>;
+  getResolvedAppRule(): ContextRuleActionV4 | null;
   isCurrentSiteEnabled(): boolean;
   getActionConfig(scheme: ThemePack | null | undefined, actionId: string): Record<string, unknown> | null;
   getCursorStateBinding(scheme: ThemePack | null | undefined, stateId: string, sourceActionId: string): {
@@ -101,12 +98,6 @@ export interface ConfigStoreApi extends ConfigStore {
   getMaxActiveEffects(): number;
   getKeyFeedbackConfig(): KeyFeedbackConfig;
   getBaseActionConfigs(): Record<string, Record<string, unknown>>;
-  getWorkbenchDraft(scheme: ThemePack | null | undefined): {
-    cursorModes: Record<string, string>;
-    cursorStateActions: Record<string, string>;
-    cursorStateAssets: Record<string, unknown>;
-    actionConfigs: Record<string, Record<string, unknown>>;
-  };
   syncConfigFromStorage(opts: { clearStateCursorOverlay: () => void }): Promise<void>;
   debouncedSyncConfigFromStorage(opts: { clearStateCursorOverlay: () => void }): void;
   setOnSyncComplete(cb: (() => void) | null): void;
@@ -127,7 +118,7 @@ export function createConfigStore(deps: ConfigStoreDeps): ConfigStoreApi {
   const stateAsAny = state as EngineState & { config?: CursorDanceConfig };
 
   function normalizeConfig(value: unknown): CursorDanceConfig {
-    return defaultNormalizeConfig(value as Partial<CursorDanceConfig>, defaultEngineConfig);
+    return defaultNormalizeConfig(value, defaultEngineConfig);
   }
 
   function setConfig(nextConfig: unknown): CursorDanceConfig {
@@ -144,69 +135,37 @@ export function createConfigStore(deps: ConfigStoreDeps): ConfigStoreApi {
     return hostname === "localhost" || hostname === "127.0.0.1";
   }
 
-  function buildCursorAssetStorageKey(themeId: string, stateId: string): string {
-    return `${constants.CURSOR_ASSET_STORAGE_KEY_PREFIX}${themeId}.${stateId}`;
-  }
-
-  function mergeCursorStates(
-    fallbackCursorStates: Record<string, unknown> | null | undefined,
-    cursorStates: Record<string, unknown> | null | undefined,
-  ): Record<string, unknown> {
-    return defaultMergeCursorStates(
-      fallbackCursorStates as never,
-      cursorStates as never,
-    ) as Record<string, unknown>;
-  }
-
   function getSchemeById(schemeId: string | undefined | null): ThemePack {
     const cfg = getConfig();
-    return cfg.schemes.find((scheme) => scheme.id === schemeId) || cfg.schemes[0] || ({} as ThemePack);
+    return cfg.themes.find((theme) => theme.id === schemeId) || cfg.themes[0];
   }
 
-  function getResolvedAppRule(): ReturnType<typeof resolveAppRule> {
+  function getResolvedAppRule(): ContextRuleActionV4 | null {
     const info = getActiveAppInfo?.();
-    return info ? resolveAppRule(getConfig().appRules, info) : null;
+    if (!info) return null;
+    for (const rule of getConfig().contextRules) {
+      if (
+        rule.context === "desktop"
+        && rule.enabled
+        && matchAppPattern(info, rule.match)
+      ) {
+        return rule.action;
+      }
+    }
+    return null;
   }
 
   function getActiveScheme(): ThemePack {
     const appAction = getResolvedAppRule();
-    const themeFromRule = appAction && typeof appAction === "object" && appAction.theme ? appAction.theme : "";
-    return getSchemeById(themeFromRule || getConfig().activeSchemeId);
+    const themeFromRule = appAction?.type === "enable" ? appAction.themeId : undefined;
+    return getSchemeById(themeFromRule || getConfig().activeThemeId);
   }
 
   function isCurrentSiteEnabled(): boolean {
     const appAction = getResolvedAppRule();
-    if (appAction === "disable") return false;
-    if (appAction && typeof appAction === "object" && appAction.enable) return true;
+    if (appAction?.type === "disable") return false;
+    if (appAction?.type === "enable") return true;
     return getConfig().enabled;
-  }
-
-  function withResolvedCursorAssets(
-    nextConfig: CursorDanceConfig,
-    assetEntries: Record<string, { imageDataUrl?: string }>,
-  ): CursorDanceConfig {
-    const assetMap = assetEntries || {};
-    const nextThemePacks = (nextConfig.themePacks || []).map((themePack) => ({
-      ...themePack,
-      cursorStates: Object.fromEntries(
-        Object.entries(themePack.cursorStates || {}).map(([stateId, stateConfig]) => [
-          stateId,
-          {
-            ...stateConfig,
-            imageDataUrl:
-              assetMap[buildCursorAssetStorageKey(themePack.id, stateId)]?.imageDataUrl
-              || stateConfig.imageDataUrl
-              || "",
-          },
-        ]),
-      ),
-    }));
-
-    return {
-      ...nextConfig,
-      themePacks: nextThemePacks,
-      schemes: nextThemePacks,
-    };
   }
 
   function getMaxActiveEffects(): number {
@@ -215,8 +174,7 @@ export function createConfigStore(deps: ConfigStoreDeps): ConfigStoreApi {
 
   function getKeyFeedbackConfig(): KeyFeedbackConfig {
     const activeScheme = getActiveScheme();
-    const keyFeedbackConfig = activeScheme?.workbenchDraft?.keyFeedbackConfig ?? getConfig().keyFeedbackConfig;
-    return normalizeKeyFeedbackConfig(keyFeedbackConfig as Partial<KeyFeedbackConfig> | undefined);
+    return normalizeKeyFeedbackConfig(activeScheme.keyFeedbackConfig);
   }
 
   function getBaseActionConfigs(): Record<string, Record<string, unknown>> {
@@ -250,52 +208,11 @@ export function createConfigStore(deps: ConfigStoreDeps): ConfigStoreApi {
     );
   }
 
-  function getWorkbenchDraft(scheme: ThemePack | null | undefined): {
-    cursorModes: Record<string, string>;
-    cursorStateActions: Record<string, string>;
-    cursorStateAssets: Record<string, unknown>;
-    actionConfigs: Record<string, Record<string, unknown>>;
-  } {
-    const fallbackPack = defaultEngineConfig.schemes?.[0]?.cursorStates as Record<string, unknown> | undefined;
-    const mergedCursorStates = mergeCursorStates(fallbackPack, scheme?.cursorStates as Record<string, unknown>);
-    const baseCursorModes = Object.fromEntries(
-      Object.entries(mergedCursorStates || {}).map(([stateId, stateConfig]) => {
-        const sc = stateConfig as { mode?: string };
-        if (stateId === "default") return [stateId, sc.mode === "override" ? "覆盖" : "源"];
-        return [stateId, sc.mode === "override" ? "覆盖" : "继承"];
-      }),
-    );
-    const baseCursorStateActions = Object.fromEntries(
-      Object.entries(mergedCursorStates || {}).map(([stateId, stateConfig]) => [
-        stateId,
-        (stateConfig as { actionId?: string })?.actionId || "leftClick",
-      ]),
-    );
-    const baseActionConfigs = getBaseActionConfigs();
-    const storedDraft = scheme?.workbenchDraft || {};
-    const storedActionConfigs = storedDraft.actionConfigs || {};
-
-    return {
-      cursorModes: { ...baseCursorModes, ...(storedDraft.cursorModes || {}) },
-      cursorStateActions: { ...baseCursorStateActions, ...(storedDraft.cursorStateActions || {}) },
-      cursorStateAssets: storedDraft.cursorStateAssets || {},
-      actionConfigs: Object.fromEntries(
-        Object.keys(baseActionConfigs).map((actionId) => [
-          actionId,
-          mergeActionConfig(baseActionConfigs[actionId], storedActionConfigs[actionId]),
-        ]),
-      ),
-    };
-  }
-
   function getActionConfig(scheme: ThemePack | null | undefined, actionId: string): Record<string, unknown> | null {
-    const draft = getWorkbenchDraft(scheme);
-    return draft.actionConfigs?.[actionId] ?? draft.actionConfigs?.leftClick ?? null;
-  }
-
-  function getMergedCursorStates(scheme: ThemePack | null | undefined): Record<string, unknown> {
-    const fallback = defaultEngineConfig.schemes?.[0]?.cursorStates as Record<string, unknown> | undefined;
-    return mergeCursorStates(fallback, scheme?.cursorStates as Record<string, unknown>);
+    if (!scheme) return null;
+    const stored = scheme.actionConfigs[actionId] ?? scheme.actionConfigs.leftClick;
+    const base = BASE_ACTION_CONFIGS[actionId] ?? BASE_ACTION_CONFIGS.leftClick;
+    return stored ? mergeActionConfig(base, stored as Record<string, unknown>) : base ?? null;
   }
 
   function getCursorStateBinding(
@@ -307,25 +224,19 @@ export function createConfigStore(deps: ConfigStoreDeps): ConfigStoreApi {
       return { cursorStateId: stateId, actionId: sourceActionId, inheritedFromDefault: false };
     }
 
-    const mergedCursorStates = getMergedCursorStates(scheme);
-    const defaultStateConfig = mergedCursorStates?.default as { actionId?: string } | undefined;
-    const defaultActionId = defaultStateConfig?.actionId || "leftClick";
-    const stateConfig = (mergedCursorStates?.[stateId] || {}) as { mode?: string; actionId?: string };
-    const inheritedFromDefault = stateId !== "default" && stateConfig.mode !== "override";
+    const defaultBinding = scheme?.cursorBindings.default;
+    const stateBinding = scheme?.cursorBindings[stateId];
+    const defaultActionId = defaultBinding?.actionId || "leftClick";
+    const inheritedFromDefault = stateId !== "default" && stateBinding?.mode !== "override";
     const actionId = inheritedFromDefault
       ? defaultActionId
-      : (stateConfig.actionId || defaultActionId || sourceActionId);
+      : (stateBinding?.actionId || defaultActionId || sourceActionId);
 
     return { cursorStateId: stateId, actionId, inheritedFromDefault };
   }
 
   function getEffectiveCursorStateConfig(scheme: ThemePack | null | undefined, stateId: string): unknown {
-    const mergedCursorStates = getMergedCursorStates(scheme);
-    const defaultState = mergedCursorStates?.default || null;
-    const stateConfig = (mergedCursorStates?.[stateId] || null) as { mode?: string } | null;
-    if (!stateConfig) return defaultState;
-    if (stateId === "default" || stateConfig.mode === "override") return stateConfig;
-    return defaultState;
+    return scheme?.cursorSkin.states[stateId] ?? scheme?.cursorSkin.states.default ?? null;
   }
 
   const cursorStateIdCache: { target: unknown; stateId: string } = { target: null, stateId: "default" };
@@ -439,27 +350,10 @@ export function createConfigStore(deps: ConfigStoreDeps): ConfigStoreApi {
       }
 
       if (storeAdapter) {
-        const result = await storeAdapter.get([
-          constants.CONFIG_STORAGE_KEY,
-          constants.LEGACY_ENABLED_STORAGE_KEY,
-        ]);
+        const result = await storeAdapter.get([constants.CONFIG_STORAGE_KEY]);
         const storedConfig = result[constants.CONFIG_STORAGE_KEY];
-        const nextConfig = normalizeConfig(
-          storedConfig || {
-            ...defaultEngineConfig,
-            enabled: result[constants.LEGACY_ENABLED_STORAGE_KEY] !== false,
-          },
-        );
-        const assetKeys = (nextConfig.themePacks || []).flatMap((themePack) =>
-          Object.keys(themePack.cursorStates || {}).map((stateId) =>
-            buildCursorAssetStorageKey(themePack.id, stateId),
-          ),
-        );
-        const assetEntries = assetKeys.length
-          ? (await storeAdapter.get(assetKeys)) as Record<string, { imageDataUrl?: string }>
-          : {};
-        stateAsAny.config = withResolvedCursorAssets(nextConfig, assetEntries);
-        if (!storedConfig || defaultNeedsMigration(storedConfig)) {
+        stateAsAny.config = normalizeConfig(storedConfig);
+        if (needsConfigReset(storedConfig)) {
           await storeAdapter.set({ [constants.CONFIG_STORAGE_KEY]: stateAsAny.config });
         }
         clearStateCursorOverlay();
@@ -467,12 +361,12 @@ export function createConfigStore(deps: ConfigStoreDeps): ConfigStoreApi {
         return;
       }
 
-      setConfig(getConfig() || defaultEngineConfig);
+      setConfig(defaultEngineConfig);
       clearStateCursorOverlay();
       onSyncComplete?.();
     } catch {
       reportRuntimeError?.("config-sync", "Failed to sync config from storage; using defaults.");
-      setConfig(getConfig() || defaultEngineConfig);
+      setConfig(defaultEngineConfig);
       clearStateCursorOverlay();
       onSyncComplete?.();
     }
@@ -502,7 +396,6 @@ export function createConfigStore(deps: ConfigStoreDeps): ConfigStoreApi {
     getMaxActiveEffects,
     getKeyFeedbackConfig,
     getBaseActionConfigs,
-    getWorkbenchDraft,
     syncConfigFromStorage,
     debouncedSyncConfigFromStorage,
     setOnSyncComplete,

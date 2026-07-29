@@ -120,8 +120,8 @@ export interface ConfigStore {
   getKeyFeedbackConfig(): KeyFeedbackConfig;
   /** trigger-handlers：当前 scheme（用户选中的方案） */
   getActiveScheme?(): unknown;
-  /** trigger-handlers：完整 config（含 schemes 列表 + activeSchemeId），仅 previewAtViewportCenter 用到 */
-  getConfig?(): { schemes: { id: string }[]; activeSchemeId: string };
+  /** trigger-handlers：完整 schema v4 config，仅 previewAtViewportCenter 用到 */
+  getConfig?(): { themes: readonly { id: string }[]; activeThemeId: string };
   /** trigger-handlers：站点/应用是否启用。桌面端由共享 app-rules 匹配器实现 */
   isCurrentSiteEnabled?(): boolean;
   /** trigger-handlers：根据 scheme + actionId 取动作配置 */

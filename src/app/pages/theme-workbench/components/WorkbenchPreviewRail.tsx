@@ -536,7 +536,7 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, act
       },
       getMaxActiveEffects: () => 200,
       getKeyFeedbackConfig: () => defaultKeyFeedbackConfig,
-      getConfig: () => ({ schemes: [previewScheme], activeSchemeId: previewScheme.id }),
+      getConfig: () => ({ themes: [previewScheme], activeThemeId: previewScheme.id }),
       getActiveScheme: () => previewScheme,
       isCurrentSiteEnabled: () => true,
       getActionConfig: (_scheme, actionId) => {

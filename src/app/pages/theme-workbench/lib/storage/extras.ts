@@ -1,4 +1,3 @@
-import { normalizeStoredConfig } from "../runtimeConfig";
 import {
   DIAGNOSTIC_DEBUG_KEY,
   LOCAL_PREVIEW_CHANNEL_NAME,
@@ -13,21 +12,11 @@ import {
 } from "./chrome-api";
 
 export function buildThemeExportPayload(themePack) {
-  const normalizedConfig = normalizeStoredConfig({
-    enabled: true,
-    activeThemePackId: themePack?.id || "",
-    activeSchemeId: themePack?.id || "",
-    themePacks: [themePack],
-    schemes: [themePack],
-    siteRules: [],
-    editor: {},
-  });
-
   return {
-    format: "cursordance-theme-pack",
-    version: 1,
+    format: "cursordance-theme",
+    schemaVersion: 4,
     exportedAt: new Date().toISOString(),
-    themePack: normalizedConfig.themePacks.find((item) => item.id === themePack?.id) || normalizedConfig.themePacks[0],
+    theme: themePack,
   };
 }
 

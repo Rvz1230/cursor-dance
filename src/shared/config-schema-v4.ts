@@ -2,27 +2,6 @@
 
 export const CURSORDANCE_CONFIG_SCHEMA_VERSION = 4 as const;
 
-export const CONFIG_V4_LEGACY_ROOT_FIELDS = [
-  "activeThemePackId",
-  "activeSchemeId",
-  "themePacks",
-  "schemes",
-  "siteRules",
-  "appRules",
-  "editor",
-  "keyFeedbackConfig",
-] as const;
-
-export const CONFIG_V4_LEGACY_THEME_FIELDS = [
-  "workbenchDraft",
-  "cursorStates",
-  "cursorModes",
-  "cursorStateActions",
-  "cursorStateAssets",
-  "resetActionConfigs",
-  "resetKeyFeedbackConfig",
-] as const;
-
 export type ConfigJsonPrimitive = string | number | boolean | null;
 export type ConfigJsonValue =
   | ConfigJsonPrimitive

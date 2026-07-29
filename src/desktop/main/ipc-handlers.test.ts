@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { STORE_GET, STORE_SET } from "../../shared/ipc-channels";
+import { defaultConfig } from "../renderer/engine/default-config";
 
 const mocks = vi.hoisted(() => ({
   handlers: new Map<string, (...args: unknown[]) => unknown>(),
@@ -33,10 +34,8 @@ function eventFor(id: number) {
 
 function validConfig(enabled: boolean) {
   return {
-    schemaVersion: 3,
+    ...defaultConfig,
     enabled,
-    activeThemePackId: "test-theme",
-    themePacks: [{ id: "test-theme" }],
   };
 }
 
@@ -54,9 +53,9 @@ describe("store IPC contracts", () => {
     const handler = mocks.handlers.get(STORE_SET)!;
     handler(eventFor(1), validConfig(false));
     expect(mocks.writeConfig).toHaveBeenCalledWith(expect.objectContaining({
-      schemaVersion: 3,
+      schemaVersion: 4,
       enabled: false,
-      themePacks: expect.any(Array),
+      themes: expect.any(Array),
     }));
   });
 

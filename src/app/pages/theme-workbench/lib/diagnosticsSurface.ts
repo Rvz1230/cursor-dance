@@ -18,8 +18,8 @@ export function summarizeLivePreviewConfig(config, selectedThemeId) {
     };
   }
 
-  const activeThemeId = config.activeThemePackId || config.activeSchemeId || "";
-  const themeCount = Array.isArray(config.themePacks) ? config.themePacks.length : 0;
+  const activeThemeId = config.activeThemeId || "";
+  const themeCount = Array.isArray(config.themes) ? config.themes.length : 0;
 
   if (activeThemeId && activeThemeId === selectedThemeId) {
     return {

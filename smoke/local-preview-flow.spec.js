@@ -21,7 +21,7 @@ async function waitForStoredTheme(page, themeId) {
       const raw = window.localStorage.getItem(configKey);
       if (!raw) return false;
       const parsed = JSON.parse(raw);
-      return parsed.activeThemePackId === expectedThemeId;
+      return parsed.activeThemeId === expectedThemeId;
     },
     {
       configKey: CONFIG_STORAGE_KEY,
@@ -63,9 +63,9 @@ async function waitForStoredAudioBlendMode(page, expectedMode) {
       const raw = window.localStorage.getItem(configKey);
       if (!raw) return false;
       const parsed = JSON.parse(raw);
-      const leftClickConfig = parsed.themePacks?.find(
-        (themePack) => themePack.id === parsed.activeThemePackId,
-      )?.workbenchDraft?.actionConfigs?.leftClick;
+      const leftClickConfig = parsed.themes?.find(
+        (theme) => theme.id === parsed.activeThemeId,
+      )?.actionConfigs?.leftClick;
       return leftClickConfig?.soundBlendMode === mode;
     },
     {
@@ -114,10 +114,10 @@ test("popup theme selection, live preview override, and fallback to saved config
     const raw = window.localStorage.getItem(previewKey);
     if (!raw) return false;
     const parsed = JSON.parse(raw);
-    return parsed.themePacks?.some(
-      (themePack) =>
-        themePack.id === "molten"
-        && themePack.workbenchDraft?.actionConfigs?.leftClick?.textContent === "临时预览"
+    return parsed.themes?.some(
+      (theme) =>
+        theme.id === "molten"
+        && theme.actionConfigs?.leftClick?.textContent === "临时预览"
     );
   }, LIVE_PREVIEW_CONFIG_STORAGE_KEY);
 
@@ -148,9 +148,9 @@ test("image effect can preview live, save into config, and render in content run
     const raw = window.localStorage.getItem(previewKey);
     if (!raw) return false;
     const parsed = JSON.parse(raw);
-    const leftClickConfig = parsed.themePacks?.find(
-      (themePack) => themePack.id === parsed.activeThemePackId,
-    )?.workbenchDraft?.actionConfigs?.leftClick;
+    const leftClickConfig = parsed.themes?.find(
+      (theme) => theme.id === parsed.activeThemeId,
+    )?.actionConfigs?.leftClick;
     return Boolean(leftClickConfig?.imageEnabled && leftClickConfig?.imageDataUrl);
   }, LIVE_PREVIEW_CONFIG_STORAGE_KEY);
 
@@ -162,9 +162,9 @@ test("image effect can preview live, save into config, and render in content run
     const raw = window.localStorage.getItem(configKey);
     if (!raw) return false;
     const parsed = JSON.parse(raw);
-    const leftClickConfig = parsed.themePacks?.find(
-      (themePack) => themePack.id === parsed.activeThemePackId,
-    )?.workbenchDraft?.actionConfigs?.leftClick;
+    const leftClickConfig = parsed.themes?.find(
+      (theme) => theme.id === parsed.activeThemeId,
+    )?.actionConfigs?.leftClick;
     return Boolean(leftClickConfig?.imageEnabled && leftClickConfig?.imageDataUrl);
   }, CONFIG_STORAGE_KEY);
 
@@ -188,9 +188,9 @@ test("animation effect can preview live, save into config, and render in content
     const raw = window.localStorage.getItem(previewKey);
     if (!raw) return false;
     const parsed = JSON.parse(raw);
-    const leftClickConfig = parsed.themePacks?.find(
-      (themePack) => themePack.id === parsed.activeThemePackId,
-    )?.workbenchDraft?.actionConfigs?.leftClick;
+    const leftClickConfig = parsed.themes?.find(
+      (theme) => theme.id === parsed.activeThemeId,
+    )?.actionConfigs?.leftClick;
     return Boolean(leftClickConfig?.animationEnabled && leftClickConfig?.animationStyle === "弹跳徽记");
   }, LIVE_PREVIEW_CONFIG_STORAGE_KEY);
 
@@ -202,9 +202,9 @@ test("animation effect can preview live, save into config, and render in content
     const raw = window.localStorage.getItem(configKey);
     if (!raw) return false;
     const parsed = JSON.parse(raw);
-    const leftClickConfig = parsed.themePacks?.find(
-      (themePack) => themePack.id === parsed.activeThemePackId,
-    )?.workbenchDraft?.actionConfigs?.leftClick;
+    const leftClickConfig = parsed.themes?.find(
+      (theme) => theme.id === parsed.activeThemeId,
+    )?.actionConfigs?.leftClick;
     return Boolean(leftClickConfig?.animationEnabled && leftClickConfig?.animationStyle === "弹跳徽记");
   }, CONFIG_STORAGE_KEY);
 
@@ -331,8 +331,8 @@ test("workbench dialogs, save toast, color picker, and slider controls are usabl
     const raw = window.localStorage.getItem(configKey);
     if (!raw) return false;
     const parsed = JSON.parse(raw);
-    const selectedId = parsed.activeThemePackId;
-    const leftClickConfig = parsed.themePacks?.find((themePack) => themePack.id === selectedId)?.workbenchDraft?.actionConfigs?.leftClick;
+    const selectedId = parsed.activeThemeId;
+    const leftClickConfig = parsed.themes?.find((theme) => theme.id === selectedId)?.actionConfigs?.leftClick;
     return leftClickConfig?.textColor === "#0284C7" && leftClickConfig?.fontSize === 26;
   }, CONFIG_STORAGE_KEY);
 });

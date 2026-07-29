@@ -48,30 +48,13 @@
       try {
         const previewRaw = window.localStorage.getItem(constants.LIVE_PREVIEW_CONFIG_STORAGE_KEY);
         const storedRaw = window.localStorage.getItem(constants.CONFIG_STORAGE_KEY);
-        const legacyEnabledRaw = window.localStorage.getItem(constants.LEGACY_ENABLED_STORAGE_KEY);
         const parsed = previewRaw
           ? JSON.parse(previewRaw)
           : (storedRaw ? JSON.parse(storedRaw) : null);
-        return normalizeConfig(
-          parsed || {
-            ...defaultConfig,
-            enabled: legacyEnabledRaw !== "false",
-          }
-        );
+        return normalizeConfig(parsed || defaultConfig);
       } catch {
         return null;
       }
-    }
-
-    function buildCursorAssetStorageKey(themeId, stateId) {
-      return `${constants.CURSOR_ASSET_STORAGE_KEY_PREFIX}${themeId}.${stateId}`;
-    }
-
-    function mergeCursorStates(fallbackCursorStates, cursorStates) {
-      return (runtimeConfig.mergeCursorStates || ((fallbackStates, nextStates) => ({
-        ...(fallbackStates || {}),
-        ...(nextStates || {}),
-      })))(fallbackCursorStates, cursorStates);
     }
 
     function getActionTriggerConfig(actionConfig) {
@@ -111,46 +94,48 @@
     }
 
     function getSchemeById(schemeId) {
-      return getConfig().schemes.find((scheme) => scheme.id === schemeId) || getConfig().schemes[0] || {};
+      return getConfig().themes.find((theme) => theme.id === schemeId) || getConfig().themes[0] || {};
+    }
+
+    function getResolvedWebRule() {
+      const host = normalizeHost(window.location.hostname);
+      const pathname = window.location.pathname || "/";
+      return modules.resolveWebContextRule(getConfig().contextRules, host, pathname);
     }
 
     function getActiveScheme() {
-      var host = normalizeHost(window.location.hostname);
-      var pathname = window.location.pathname || "/";
-      var siteAction = modules.resolveSiteRule(getConfig().siteRules, host, pathname);
-      var siteThemePackId = siteAction && siteAction.theme ? siteAction.theme : "";
-      return getSchemeById(siteThemePackId || getConfig().activeSchemeId);
+      const action = getResolvedWebRule();
+      const themeId = action?.type === "enable" ? action.themeId : "";
+      return getSchemeById(themeId || getConfig().activeThemeId);
     }
 
     function isCurrentSiteEnabled() {
-      var host = normalizeHost(window.location.hostname);
-      var pathname = window.location.pathname || "/";
-      var siteAction = modules.resolveSiteRule(getConfig().siteRules, host, pathname);
-      if (siteAction === "disable") return false;
-      if (siteAction && siteAction.enable) return true;
+      const action = getResolvedWebRule();
+      if (action?.type === "disable") return false;
+      if (action?.type === "enable") return true;
       return getConfig().enabled;
     }
 
     function withResolvedCursorAssets(nextConfig, assetEntries) {
       const assetMap = assetEntries || {};
-      const nextThemePacks = (nextConfig.themePacks || []).map((themePack) => ({
-        ...themePack,
-        cursorStates: Object.fromEntries(
-          Object.entries(themePack.cursorStates || {}).map(([stateId, stateConfig]) => [
-            stateId,
-            {
+      const themes = (nextConfig.themes || []).map((theme) => ({
+        ...theme,
+        cursorSkin: {
+          ...theme.cursorSkin,
+          states: Object.fromEntries(Object.entries(theme.cursorSkin?.states || {}).map(([stateId, stateConfig]) => {
+            if (stateConfig?.image?.kind !== "asset") return [stateId, stateConfig];
+            const dataUrl = assetMap[stateConfig.image.assetId]?.imageDataUrl;
+            if (!dataUrl) return [stateId, stateConfig];
+            const { assetId: _assetId, ...imageMetadata } = stateConfig.image;
+            return [stateId, {
               ...stateConfig,
-              imageDataUrl: assetMap[buildCursorAssetStorageKey(themePack.id, stateId)]?.imageDataUrl || stateConfig.imageDataUrl || "",
-            },
-          ])
-        ),
+              image: { ...imageMetadata, kind: "dataUrl", dataUrl },
+            }];
+          })),
+        },
       }));
 
-      return {
-        ...nextConfig,
-        themePacks: nextThemePacks,
-        schemes: nextThemePacks,
-      };
+      return { ...nextConfig, themes };
     }
 
     function getMaxActiveEffects() {
@@ -754,48 +739,16 @@
     }
 
     function getAtmosphereConfig(scheme) {
-      var storedDraft = scheme?.workbenchDraft || {};
-      var storedAtmosphere = storedDraft.atmosphere || {};
+      var storedAtmosphere = scheme?.atmosphere || {};
       return {
         mode: storedAtmosphere.mode || ATMOSPHERE_DEFAULTS.mode,
       };
     }
 
-    function getWorkbenchDraft(scheme) {
-      const mergedCursorStates = mergeCursorStates(defaultConfig.schemes?.[0]?.cursorStates, scheme?.cursorStates);
-      const baseCursorModes = Object.fromEntries(
-        Object.entries(mergedCursorStates || {}).map(([stateId, stateConfig]) => [
-          stateId,
-          stateId === "default" ? (stateConfig.mode === "override" ? "覆盖" : "源") : (stateConfig.mode === "override" ? "覆盖" : "继承"),
-        ])
-      );
-      const baseCursorStateActions = Object.fromEntries(
-        Object.entries(mergedCursorStates || {}).map(([stateId, stateConfig]) => [stateId, stateConfig?.actionId || "leftClick"])
-      );
-      const baseActionConfigs = getBaseActionConfigs();
-      const storedDraft = scheme?.workbenchDraft || {};
-      const storedActionConfigs = storedDraft.actionConfigs || {};
-
-      return {
-        cursorModes: { ...baseCursorModes, ...(storedDraft.cursorModes || {}) },
-        cursorStateActions: { ...baseCursorStateActions, ...(storedDraft.cursorStateActions || {}) },
-        cursorStateAssets: storedDraft.cursorStateAssets || {},
-        actionConfigs: Object.fromEntries(
-          Object.keys(baseActionConfigs).map((actionId) => [
-            actionId,
-            mergeActionConfig(baseActionConfigs[actionId], storedActionConfigs[actionId] || {}),
-          ])
-        ),
-      };
-    }
-
     function getActionConfig(scheme, actionId) {
-      const draft = getWorkbenchDraft(scheme);
-      return draft.actionConfigs?.[actionId] || draft.actionConfigs?.leftClick || null;
-    }
-
-    function getMergedCursorStates(scheme) {
-      return mergeCursorStates(defaultConfig.schemes?.[0]?.cursorStates, scheme?.cursorStates);
+      const stored = scheme?.actionConfigs?.[actionId] || scheme?.actionConfigs?.leftClick;
+      const base = getBaseActionConfigs()[actionId] || getBaseActionConfigs().leftClick;
+      return stored ? mergeActionConfig(base, stored) : base || null;
     }
 
     function getCursorStateBinding(scheme, stateId, sourceActionId) {
@@ -807,11 +760,11 @@
         };
       }
 
-      const mergedCursorStates = getMergedCursorStates(scheme);
-      const defaultActionId = mergedCursorStates?.default?.actionId || "leftClick";
-      const stateConfig = mergedCursorStates?.[stateId] || {};
-      const inheritedFromDefault = stateId !== "default" && stateConfig.mode !== "override";
-      const actionId = inheritedFromDefault ? defaultActionId : (stateConfig.actionId || defaultActionId || sourceActionId);
+      const defaultBinding = scheme?.cursorBindings?.default;
+      const stateBinding = scheme?.cursorBindings?.[stateId];
+      const defaultActionId = defaultBinding?.actionId || "leftClick";
+      const inheritedFromDefault = stateId !== "default" && stateBinding?.mode !== "override";
+      const actionId = inheritedFromDefault ? defaultActionId : (stateBinding?.actionId || defaultActionId || sourceActionId);
 
       return {
         cursorStateId: stateId,
@@ -821,12 +774,7 @@
     }
 
     function getEffectiveCursorStateConfig(scheme, stateId) {
-      const mergedCursorStates = getMergedCursorStates(scheme);
-      const defaultState = mergedCursorStates?.default || null;
-      const stateConfig = mergedCursorStates?.[stateId] || null;
-      if (!stateConfig) return defaultState;
-      if (stateId === "default" || stateConfig.mode === "override") return stateConfig;
-      return defaultState;
+      return scheme?.cursorSkin?.states?.[stateId] || scheme?.cursorSkin?.states?.default || null;
     }
 
     var cursorStateIdCache = { target: null, stateId: "default" };
@@ -930,21 +878,17 @@
         }
 
         if (chrome?.storage?.local) {
-          const result = await chrome.storage.local.get([constants.CONFIG_STORAGE_KEY, constants.LEGACY_ENABLED_STORAGE_KEY]);
+          const result = await chrome.storage.local.get([constants.CONFIG_STORAGE_KEY]);
           const storedConfig = result[constants.CONFIG_STORAGE_KEY];
-          const nextConfig = normalizeConfig(
-            storedConfig || {
-              ...defaultConfig,
-              enabled: result[constants.LEGACY_ENABLED_STORAGE_KEY] !== false,
-            }
-          );
-          const assetKeys = (nextConfig.themePacks || []).flatMap((themePack) =>
-            Object.keys(themePack.cursorStates || {}).map((stateId) => buildCursorAssetStorageKey(themePack.id, stateId))
+          const nextConfig = normalizeConfig(storedConfig || defaultConfig);
+          const assetKeys = (nextConfig.themes || []).flatMap((theme) =>
+            Object.values(theme.cursorSkin?.states || {}).flatMap((stateConfig) =>
+              stateConfig?.image?.kind === "asset" ? [stateConfig.image.assetId] : [])
           );
           const assetEntries = assetKeys.length ? await chrome.storage.local.get(assetKeys) : {};
           state.config = withResolvedCursorAssets(nextConfig, assetEntries);
-          if (!storedConfig || (runtimeConfig.needsMigration && runtimeConfig.needsMigration(storedConfig))) {
-            await chrome.storage.local.set({ [constants.CONFIG_STORAGE_KEY]: state.config });
+          if (!storedConfig || nextConfig !== storedConfig) {
+            await chrome.storage.local.set({ [constants.CONFIG_STORAGE_KEY]: nextConfig });
           }
           clearStateCursorOverlay();
           onSyncComplete?.();

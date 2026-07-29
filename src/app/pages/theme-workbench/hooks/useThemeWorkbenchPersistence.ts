@@ -49,7 +49,7 @@ export function useThemeWorkbenchPersistence({ state, dispatch, configRef }) {
         const tid = editorState.themeId;
         if (tid && hydratedState.themeLibrary.some((t) => t.id === tid)) {
           hydratedState.selection.themeId = tid;
-          if (tid !== config.activeThemePackId) {
+          if (tid !== config.activeThemeId) {
             hydratedState.ui.unsaved = true;
           }
         }

@@ -109,7 +109,7 @@ export function createPreviewSimulation(deps: PreviewSimulationDeps): PreviewSim
     if (!configStore.isCurrentSiteEnabled?.()) return;
     const config = configStore.getConfig?.();
     const resolvedScheme = previewScheme
-      || (config?.schemes.find((scheme) => scheme.id === (schemeId || config?.activeSchemeId)))
+      || (config?.themes.find((theme) => theme.id === (schemeId || config.activeThemeId)))
       || configStore.getActiveScheme?.();
     const resolvedActionId = actionId || "leftClick";
 

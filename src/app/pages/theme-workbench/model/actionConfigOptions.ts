@@ -245,7 +245,11 @@ export const ACTION_CONFIG_MODEL_BOUNDARIES = {
 };
 
 function pickActionConfigFields(config, fieldNames) {
-  return Object.fromEntries(fieldNames.map((fieldName) => [fieldName, config?.[fieldName]]));
+  return Object.fromEntries(
+    fieldNames
+      .map((fieldName) => [fieldName, config?.[fieldName]])
+      .filter(([, value]) => value !== undefined),
+  );
 }
 
 export function getActionTriggerConfig(config) {

@@ -3,7 +3,6 @@ import { getDefaultConfig, normalizeStoredConfig } from "../runtimeConfig";
 import {
   CONFIG_STORAGE_KEY,
   EDITOR_STATE_STORAGE_KEY,
-  LEGACY_ENABLED_STORAGE_KEY,
   LIVE_PREVIEW_CONFIG_STORAGE_KEY,
   MAX_CURSOR_ASSET_DATA_URL_LENGTH,
   buildCursorAssetStorageKey,
@@ -18,12 +17,13 @@ function readLocalStorageConfig() {
   if (!canUseLocalStorage()) return null;
   try {
     const raw = window.localStorage.getItem(CONFIG_STORAGE_KEY);
-    const legacyEnabledRaw = window.localStorage.getItem(LEGACY_ENABLED_STORAGE_KEY);
     const defaultConfig = getDefaultConfig();
     const parsed = raw ? JSON.parse(raw) : null;
-    return normalizeStoredConfig(
-      parsed || { ...defaultConfig, enabled: legacyEnabledRaw !== "false" }
-    );
+    const normalized = normalizeStoredConfig(parsed || defaultConfig);
+    if (parsed && normalized !== parsed) {
+      window.localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(normalized));
+    }
+    return normalized;
   } catch {
     return normalizeStoredConfig(getDefaultConfig());
   }
@@ -34,7 +34,6 @@ function writeLocalStorageConfig(config) {
   const normalized = normalizeStoredConfig(config);
   try {
     window.localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(normalized));
-    window.localStorage.setItem(LEGACY_ENABLED_STORAGE_KEY, String(normalized.enabled !== false));
     postLocalPreviewMessage({ type: "config-updated", config: normalized });
   } catch {
     return normalized;
@@ -74,24 +73,40 @@ function clearLocalStoragePreviewConfig() {
 }
 
 function buildCursorAssetStorageKeys(config) {
-  return (config.themePacks || []).flatMap((themePack) =>
-    CURSOR_STATES.map((state) => buildCursorAssetStorageKey(themePack.id, state.id))
-  );
+  return [...new Set((config.themes || []).flatMap((theme) => [
+    ...CURSOR_STATES.map((state) => buildCursorAssetStorageKey(theme.id, state.id)),
+    ...Object.values(theme.cursorSkin?.states || {}).flatMap((stateValue) => {
+      const state = stateValue as Record<string, any>;
+      return state?.image?.kind === "asset" ? [state.image.assetId] : [];
+    }),
+  ]))];
 }
 
 function withResolvedCursorAssets(config, assetEntries) {
   const assetMap = assetEntries || {};
-  const nextThemePacks = (config.themePacks || []).map((themePack) => ({
-    ...themePack,
-    cursorStates: Object.fromEntries(
-      CURSOR_STATES.map((state) => {
-        const currentState = themePack.cursorStates?.[state.id] || {};
-        const assetRecord = assetMap[buildCursorAssetStorageKey(themePack.id, state.id)];
-        return [state.id, { ...currentState, imageDataUrl: assetRecord?.imageDataUrl || currentState.imageDataUrl || "" }];
-      })
-    ),
+  const themes = (config.themes || []).map((theme) => ({
+    ...theme,
+    cursorSkin: {
+      ...theme.cursorSkin,
+      states: Object.fromEntries(Object.entries(theme.cursorSkin?.states || {}).map(([stateId, stateValue]) => {
+        const state = stateValue as Record<string, any>;
+        if (state?.image?.kind !== "asset") return [stateId, state];
+        const assetRecord = assetMap[state.image.assetId];
+        if (!assetRecord?.imageDataUrl) return [stateId, state];
+        return [stateId, {
+          ...state,
+          image: {
+            kind: "dataUrl",
+            mimeType: state.image.mimeType,
+            dataUrl: assetRecord.imageDataUrl,
+            width: state.image.width,
+            height: state.image.height,
+          },
+        }];
+      })),
+    },
   }));
-  return { ...config, themePacks: nextThemePacks, schemes: nextThemePacks };
+  return { ...config, themes };
 }
 
 async function resolveCursorAssetsForConfig(config, chromeApi) {
@@ -103,22 +118,31 @@ async function resolveCursorAssetsForConfig(config, chromeApi) {
 }
 
 function stripInlineCursorAssets(config) {
-  const nextThemePacks = (config.themePacks || []).map((themePack) => ({
-    ...themePack,
-    cursorStates: Object.fromEntries(
-      Object.entries(themePack.cursorStates || {}).map(([stateId, stateConfig]) => [
-        stateId,
-        { ...(stateConfig as Record<string, any>), imageDataUrl: "" },
-      ])
-    ),
+  const themes = (config.themes || []).map((theme) => ({
+    ...theme,
+    cursorSkin: {
+      ...theme.cursorSkin,
+      states: Object.fromEntries(Object.entries(theme.cursorSkin?.states || {}).map(([stateId, stateValue]) => {
+        const state = stateValue as Record<string, any>;
+        if (state?.image?.kind !== "dataUrl") return [stateId, state];
+        return [stateId, {
+          ...state,
+          image: {
+            kind: "asset",
+            assetId: buildCursorAssetStorageKey(theme.id, stateId),
+            mimeType: state.image.mimeType,
+            width: state.image.width,
+            height: state.image.height,
+          },
+        }];
+      })),
+    },
   }));
-  return { ...config, themePacks: nextThemePacks, schemes: nextThemePacks };
+  return { ...config, themes };
 }
 
 export async function readExtensionConfig() {
-  // 任务 3.0：Electron 桌面端走 IPC → main → electron-store。
-  // electron-store 没有 chrome.storage 的 5MB 单 key 限制，cursor 资产可以
-  // 直接内联在 cursorStates.imageDataUrl 里，不走 buildCursorAssetStorageKeys 拆分。
+  // Electron 使用单一 v4 config；Chrome 扩展才把大图片拆成 asset 引用。
   const bridge = getElectronStorageBridge();
   if (bridge) {
     const stored = await bridge.getConfig();
@@ -126,7 +150,9 @@ export async function readExtensionConfig() {
     if (!stored) {
       return writeExtensionConfig(normalizeStoredConfig(defaultConfig));
     }
-    return normalizeStoredConfig(stored);
+    const normalized = normalizeStoredConfig(stored);
+    if (normalized !== stored) await bridge.setConfig(normalized);
+    return normalized;
   }
 
   const chromeApi = getChromeApi();
@@ -134,12 +160,10 @@ export async function readExtensionConfig() {
   if (!chromeApi?.storage?.local) {
     return readLocalStorageConfig() || normalizeStoredConfig(defaultConfig);
   }
-  const result = await chromeApi.storage.local.get([CONFIG_STORAGE_KEY, LEGACY_ENABLED_STORAGE_KEY]);
+  const result = await chromeApi.storage.local.get([CONFIG_STORAGE_KEY]);
   const storedConfig = result[CONFIG_STORAGE_KEY];
-  const nextConfig = normalizeStoredConfig(
-    storedConfig || { ...defaultConfig, enabled: result[LEGACY_ENABLED_STORAGE_KEY] !== false }
-  );
-  if (!storedConfig) {
+  const nextConfig = normalizeStoredConfig(storedConfig || defaultConfig);
+  if (!storedConfig || nextConfig !== storedConfig) {
     return writeExtensionConfig(nextConfig);
   }
   return resolveCursorAssetsForConfig(nextConfig, chromeApi);
@@ -183,20 +207,25 @@ export async function writeExtensionConfig(config) {
   }
   const assetWrites = {};
   const assetRemovals = [];
-  Object.values(normalized.themePacks || {}).forEach((themePackValue) => {
-    const themePack = themePackValue as Record<string, any>;
-    Object.entries(themePack.cursorStates || {}).forEach(([stateId, stateConfigValue]) => {
-      const stateConfig = stateConfigValue as Record<string, any>;
-      if ((stateConfig?.imageDataUrl || "").length > MAX_CURSOR_ASSET_DATA_URL_LENGTH) {
+  Object.values(normalized.themes || {}).forEach((themeValue) => {
+    const theme = themeValue as Record<string, any>;
+    const states = theme.cursorSkin?.states || {};
+    Object.entries(states).forEach(([stateId, stateValue]) => {
+      const state = stateValue as Record<string, any>;
+      const imageDataUrl = state.image?.kind === "dataUrl" ? state.image.dataUrl : "";
+      if (imageDataUrl.length > MAX_CURSOR_ASSET_DATA_URL_LENGTH) {
         throw new Error(`光标图片过大，当前 ${stateId} 状态请换成更小的 PNG / WebP 后再保存。`);
       }
-      const assetKey = buildCursorAssetStorageKey(themePack.id, stateId);
-      if (stateConfig?.imageDataUrl) {
-        assetWrites[assetKey] = { imageDataUrl: stateConfig.imageDataUrl, updatedAt: Date.now() };
+      const assetKey = buildCursorAssetStorageKey(theme.id, stateId);
+      if (imageDataUrl) {
+        assetWrites[assetKey] = { imageDataUrl, updatedAt: Date.now() };
       } else {
         assetRemovals.push(assetKey);
       }
     });
+    for (const cursorState of CURSOR_STATES) {
+      if (!(cursorState.id in states)) assetRemovals.push(buildCursorAssetStorageKey(theme.id, cursorState.id));
+    }
   });
   if (Object.keys(assetWrites).length) await chromeApi.storage.local.set(assetWrites);
   if (assetRemovals.length) await chromeApi.storage.local.remove(assetRemovals);

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { normalizeStoredConfig } from "./runtimeConfig";
+import { getRuntimeConfig, normalizeStoredConfig } from "./runtimeConfig";
+import { defaultConfig } from "@/desktop/renderer/engine/default-config";
 
 function installWindowStub(overrides = {}) {
   globalThis.window = {
@@ -35,14 +36,28 @@ describe("runtimeConfig", () => {
     expect(calls).toEqual([[inputConfig, defaultConfig]]);
   });
 
-  it("falls back to the provided config or default config without a runtime adapter", () => {
-    const defaultConfig = { enabled: true, activeThemePackId: "mono-geo" };
-
+  it("accepts complete v4 and resets incomplete data without a runtime adapter", () => {
     installWindowStub({
       CursorDanceDefaultConfig: defaultConfig,
     });
 
-    expect(normalizeStoredConfig({ enabled: false })).toEqual({ enabled: false });
-    expect(normalizeStoredConfig(null)).toEqual(defaultConfig);
+    const valid = { ...defaultConfig, enabled: false };
+    expect(normalizeStoredConfig(valid)).toBe(valid);
+    expect(normalizeStoredConfig({ enabled: false })).toBe(defaultConfig);
+    expect(normalizeStoredConfig(null)).toBe(defaultConfig);
+  });
+
+  it("matches v4 glob hosts carried through the path-rule editor model", () => {
+    installWindowStub();
+    expect(getRuntimeConfig().matchPattern("docs.example.com", "/guide/start", {
+      type: "path",
+      hostType: "glob",
+      value: "*.example.com/guide",
+    })).toBe(true);
+    expect(getRuntimeConfig().matchPattern("docs.example.com", "/blog", {
+      type: "path",
+      hostType: "glob",
+      value: "*.example.com/guide",
+    })).toBe(false);
   });
 });

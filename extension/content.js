@@ -11,7 +11,6 @@
     LIVE_PREVIEW_CONFIG_STORAGE_KEY: "cursordance.livePreviewConfig",
     LOCAL_PREVIEW_CHANNEL_NAME: "cursordance.local-preview",
     CURSOR_ASSET_STORAGE_KEY_PREFIX: "cursordance.cursorAsset.",
-    LEGACY_ENABLED_STORAGE_KEY: "cursordance.enabled",
     RUNTIME_ERRORS_STORAGE_KEY: "cursordance.runtimeErrors",
     INTERACTIVE_SELECTOR: 'a,button,input,textarea,select,summary,label,[role="button"],[tabindex]',
     TEXT_EDITABLE_SELECTOR: 'textarea,input:not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]),[contenteditable]:not([contenteditable="false"])',
@@ -120,7 +119,7 @@
   visualEffects.ensureRoot();
   diagnostics.log("runtime.ready", {
     diagnosticsStorageKey: diagnostics.STORAGE_KEY,
-    activeSchemeId: state.config?.activeSchemeId || defaultConfig.activeSchemeId || null,
+    activeThemeId: state.config?.activeThemeId || defaultConfig.activeThemeId || null,
     host: window.location.host || null,
     localPreviewHost: configStore.isLocalPreviewHost(),
   });
@@ -150,7 +149,6 @@
       window.addEventListener("storage", (event) => {
         if (
           event.key !== constants.CONFIG_STORAGE_KEY
-          && event.key !== constants.LEGACY_ENABLED_STORAGE_KEY
           && event.key !== constants.LIVE_PREVIEW_CONFIG_STORAGE_KEY
         ) {
           return;
@@ -190,7 +188,6 @@
       if (
         changedKeys.includes(constants.CONFIG_STORAGE_KEY)
         || changedKeys.includes(constants.LIVE_PREVIEW_CONFIG_STORAGE_KEY)
-        || changedKeys.includes(constants.LEGACY_ENABLED_STORAGE_KEY)
         || changedKeys.some((key) => key.startsWith(constants.CURSOR_ASSET_STORAGE_KEY_PREFIX))
       ) {
         void configStore.debouncedSyncConfigFromStorage({

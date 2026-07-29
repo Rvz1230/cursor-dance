@@ -1,6 +1,6 @@
 # CursorDance 配置 Schema v4
 
-状态：**R3-1 已冻结**
+状态：**R3-2 已投入生产链路**
 
 类型与运行时契约：`src/shared/config-schema-v4.ts`
 生效范围：Chrome 扩展、Electron 桌面端、静态 Workbench 共用的运行时配置
@@ -150,10 +150,12 @@ unknown persisted input
 - normalize 只能处理 v4 内部允许的等价表示，禁止重新生成 `themePacks/schemes` 等兼容别名。
 - Chrome Storage、Electron Store 和静态预览 adapter 使用同一读取策略，平台层只负责存取，不解释 schema。
 
-## 7. R3-1 验收结果
+## 7. R3-2 验收结果
 
 - 建立共享只读 TypeScript domain contract。
 - 建立严格运行时验证器和断言函数。
 - 根字段、主题字段、规则判别、ID 引用、JSON 数据和素材引用均有拒绝路径测试。
 - 键盘反馈类型已改为复用共享 v4 定义，开始消除两端模型重复。
-- 当前生产持久化仍写 v3；R3-2 将直接切换到 v4，并在遇到既有非 v4 数据时恢复最新默认配置。
+- Electron、Chrome 扩展和静态 Workbench 已统一只读写 v4。
+- Workbench 编辑草稿与导航状态不再混入运行时配置，主题文件只接受当前 v4 envelope。
+- 既有非 v4、缺失字段、未知字段或损坏数据直接恢复最新默认配置，不执行迁移。

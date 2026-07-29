@@ -13,7 +13,7 @@
 |---|---|---|
 | R0-1 类型与版本基线 | 已完成 | TypeScript 5.9.3、Vite 7.3.6 已统一；类型检查与基础 lint 已接入 CI，桌面端显式 `any` 和 IPC 字符串通道作为阻断规则 |
 | R1-1 Workbench 生命周期 | 已完成 | Dock 激活、托盘点击、二次启动统一复用窗口控制器，并有单元测试覆盖 |
-| R1-2 桌面应用规则 | 已完成 | 独立 `appRules` schema、前台应用缓存与变更广播、overlay 即时匹配、旧规则迁移和未授权降级均已接通 |
+| R1-2 桌面应用规则 | 已完成 | v4 `contextRules` 桌面规则、前台应用缓存与变更广播、overlay 即时匹配和未授权降级均已接通 |
 | R1-3 多屏事件路由 | 已完成 | 全局输入按目标显示器投递，mousemove 按帧合并，跨屏/拔屏清理残留，并在 Windows 统一转换为 DIP 坐标 |
 | R1-4 自定义光标平台能力 | 进行中 | macOS helper 与 watchdog 已完成；Windows Win32 helper、构建和 CI 验证已接线，等待 Windows 真机验收后正式启用 |
 | R1-5 氛围运行时 | 已完成 | 桌面端明确暂不支持，Workbench 隐藏配置和预览，桌面导出不再写入该字段，并删除无调用方 runtime |
@@ -22,12 +22,14 @@
 | R2-2 IPC contract | 已完成 | 共享 invoke 类型契约、窗口身份白名单、默认拒绝 sender policy，以及配置/主题/AI/外链运行时校验已接入 |
 | R0-2 Electron smoke | 已完成 | Playwright Electron 已覆盖启动、首次引导、窗口数量、二次启动重开和配置驱动 overlay 显隐，并已在 macOS 实跑通过 |
 | R0-3 性能与代码量基线 | 已完成 | 已记录代码量、bundle、配置载荷、启动、CPU、内存和 1,000 Hz IPC 压力基线 |
+| R3-1 配置 schema v4 | 已完成 | 共享只读 domain contract、严格验证器、Web/desktop 判别规则和素材引用边界已冻结 |
+| R3-2 生产链路 v4-only | 已完成 | Electron、Chrome、静态预览、Workbench、Popup、IPC 与主题文件均只读写 v4；非 v4 整份恢复默认 |
 
 当前验证基线：
 
 - `npm run typecheck` 通过。
 - `npm run lint` 通过（0 error；共享旧代码的 29 条显式 `any` 暂作为 warning 逐步收紧）。
-- Vitest 44 个测试文件、328 个测试通过。
+- Vitest 49 个测试文件、306 个测试通过；删除的数量来自 legacy 迁移与旧站点规则用例，不再作为兼容能力保留。
 - API 177 个测试通过。
 - 根 Web、landing、Electron main/preload/renderer 构建通过。
 - 根项目、landing、Electron Vite、Vitest 均复用 Vite 7.3.6。
@@ -483,7 +485,7 @@ overlay preload:
 - 新增共享 `DesktopIpcInvokeContract`，preload 的所有 `invoke` 统一通过泛型 helper，编译期约束 request/response。
 - Workbench 与 Overlay 创建时登记不可伪造的 `webContents.id -> window kind`；主进程中央策略表对未登记 sender 和未知通道默认拒绝。
 - 配置读允许 Workbench/Overlay，配置写、主题文件、首次启动、外链、窗口控制和 AI 仅允许 Workbench；系统光标显隐仅允许 Overlay。
-- 配置写入要求完整 schema v3、有效 active theme，并限制为 8 MiB、最多 256 个主题和 1,000 条规则。
+- 配置写入要求完整 schema v4、有效主题/规则引用，并保留 8 MiB IPC payload 上限。
 - 主题导入导出限制为 8 MiB，校验 JSON 和主题结构，导出文件名禁止路径；AI 设置限制字段、长度、URL protocol 和 apiMode；外链先限制长度再走协议白名单。
 - invoke 非业务错误统一通过 rejected Promise 返回；文件对话框和外链继续使用显式 result envelope，用户取消不视为异常。
 - 新增 sender policy、payload contract、store handler 和光标越权回归测试。
@@ -601,6 +603,16 @@ unknown input
 - normalize 不得隐式补写旧别名。
 - 运行时消费链路只接收 v4 domain model。
 - 主题导入导出只保证当前 v4 格式，不承担旧主题升级。
+
+实现结果：
+
+- 桌面和扩展默认配置直接生成 v4；共享 TypeScript 默认配置启动时使用严格验证器断言。
+- Workbench 草稿、reset 快照和导航状态只存在编辑器内存或独立 editor storage，保存边界只输出六个规范根字段。
+- Electron IPC 复用共享 v4 验证器；主题文件改为 `cursordance-theme` + `schemaVersion: 4`，拒绝旧主题 envelope。
+- Overlay、Popup 与 Chrome content runtime 直接消费 `themes/contextRules/cursorBindings/cursorSkin`，不再读取或写入兼容别名。
+- Chrome 大图片使用 v4 `asset` 引用拆分存储，Electron 当前仍内联，后续由 R3-3 统一素材仓库。
+- 本轮变更合计净删除 1,716 行（1,203 行新增、2,919 行删除，含测试与文档）。
+- Web smoke 5/5 与 Electron desktop smoke 1/1 已按 v4 真实存储和消费链路通过。
 
 ### R3-3：拆分配置与素材存储
 
@@ -896,11 +908,11 @@ AiSchemePanel              # 组合层
 
 ## 9. 风险与回滚策略
 
-### 配置迁移风险
+### 配置格式风险
 
-- 写 v4 前备份最后一份可解析 v3 配置。
-- migration 必须纯函数化并用真实 fixture 测试。
-- 首个 v4 版本保留 v3 读取，不再继续写 v3。
+- 按产品决策不兼容 v3 及更早格式；非 v4 数据整份恢复最新默认配置。
+- 不保留 migration、legacy fixture 或旧字段识别分支，避免兼容代码重新进入生产链路。
+- 默认配置、持久化写入和 IPC 均通过同一 v4 验证器，防止产生无法再次读取的数据。
 
 ### 原生输入与光标风险
 
@@ -956,7 +968,7 @@ AiSchemePanel              # 组合层
 ### 架构
 
 - [ ] `src/app` 不依赖 desktop implementation。
-- [ ] 配置只有一个规范 schema。
+- [x] 配置只有一个规范 schema。
 - [ ] 扩展和桌面共享核心动作/效果实现。
 - [ ] preload 按窗口最小授权。
 - [ ] IPC 有运行时校验和 sender 限制。
@@ -966,7 +978,7 @@ AiSchemePanel              # 组合层
 
 - [ ] 无孤立 renderer entry。
 - [ ] 无未引用组件和运行时模块。
-- [ ] 旧配置别名只存在于迁移器。
+- [x] 生产代码不再读写旧配置别名，且不保留迁移器。
 - [ ] 旧双引擎文件已删除。
 - [ ] package.json 无无用依赖。
 - [ ] 架构文档不再要求人工同步两套实现。

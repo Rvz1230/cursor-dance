@@ -86,7 +86,7 @@ function toEntryDetails(entry) {
     trigger: entry.trigger,
     reason: entry.reason,
     host: entry.host,
-    activeSchemeId: entry.activeSchemeId,
+    activeThemeId: entry.activeThemeId,
     localPreviewHost: entry.localPreviewHost,
     triggerZone: entry.triggerZone,
     target: entry.target,

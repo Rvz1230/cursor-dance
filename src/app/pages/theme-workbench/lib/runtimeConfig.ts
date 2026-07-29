@@ -1,3 +1,5 @@
+import { validateCursorDanceConfigV4 } from "@/shared/config-schema-v4";
+
 function matchPattern(host, path, pattern) {
   if (!pattern || typeof pattern !== "object" || !pattern.type || typeof pattern.value !== "string") {
     return false;
@@ -29,9 +31,11 @@ function matchPattern(host, path, pattern) {
       const parts = v.split("/");
       const patternHost = (parts[0] || "").toLowerCase();
       const patternPath = "/" + parts.slice(1).join("/");
-      if (h !== patternHost) {
-        const alt = h.replace(/^www\./, "");
-        if (alt !== patternHost.replace(/^www\./, "")) return false;
+      const hostMatches = pattern.hostType === "glob"
+        ? matchPattern(h, path, { type: "glob", value: patternHost })
+        : h === patternHost || h.replace(/^www\./, "") === patternHost.replace(/^www\./, "");
+      if (!hostMatches) {
+        return false;
       }
       if (typeof path === "string") {
         let p = path.trim();
@@ -67,13 +71,14 @@ function resolveSiteRule(rules, host, path) {
 }
 
 const NOOP_RUNTIME = {
-  normalizeConfig: (value, fallback) => value ?? fallback,
-  normalizeSiteRules: (siteRules, fallback) => (Array.isArray(siteRules) ? siteRules : Array.isArray(fallback) ? fallback : []),
+  normalizeConfig: (value, fallback) => {
+    const candidate = validateCursorDanceConfigV4(value);
+    if (candidate.ok) return candidate.value;
+    const fallbackResult = validateCursorDanceConfigV4(fallback);
+    return fallbackResult.ok ? fallbackResult.value : {};
+  },
   matchPattern,
   resolveSiteRule,
-  mergeCursorStates: (a, b) => ({ ...(a || {}), ...(b || {}) }),
-  mergeThemePackWithFallback: (fallbackPack, pack) => ({ ...fallbackPack, ...pack }),
-  needsMigration: () => false,
   cloneValue: (value) => {
     try { return JSON.parse(JSON.stringify(value)); } catch { return value; }
   },

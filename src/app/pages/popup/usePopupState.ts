@@ -7,6 +7,7 @@ import {
   normalizeStoredConfig,
   previewThemePack,
   readActiveSiteContext,
+  readEditorState,
   readExtensionConfig,
   readLivePreviewConfig,
   readRuntimeErrors,
@@ -34,9 +35,9 @@ const EMPTY_STATE = {
   draftsByTheme: EMPTY_THEME_STATE.draftsByTheme,
 };
 
-function getPreviewActionId(config) {
-  return ACTIONS.some((item) => item.id === config?.editor?.lastActionId)
-    ? config.editor.lastActionId
+function getPreviewActionId(editorState) {
+  return ACTIONS.some((item) => item.id === editorState?.actionId)
+    ? editorState.actionId
     : "leftClick";
 }
 
@@ -63,29 +64,50 @@ function getErrorMessage(error, fallback) {
 function getSiteAction(config, host, path) {
   if (!config) return null;
   var runtime = getRuntimeConfig();
-  if (typeof runtime.resolveSiteRule === "function") {
-    return runtime.resolveSiteRule(config.siteRules, host, path);
+  var rules = Array.isArray(config.contextRules)
+    ? config.contextRules.filter((rule) => rule?.context === "web")
+    : [];
+  for (var i = 0; i < rules.length; i++) {
+    var rule = rules[i];
+    if (!rule.enabled) continue;
+    var hostPattern = {
+      type: rule.match?.type,
+      value: rule.match?.host || "",
+    };
+    var hostMatches = typeof runtime.matchPattern === "function"
+      && runtime.matchPattern(host, path, hostPattern);
+    var pathMatches = !rule.match?.path || path.startsWith(rule.match.path);
+    if (hostMatches && pathMatches) {
+      return rule.action;
+    }
   }
   return null;
 }
 
 export function getEffectiveActiveThemeId(siteAction, activeThemeId) {
-  if (siteAction && siteAction.enable && siteAction.theme) {
-    return siteAction.theme;
+  if (siteAction?.type === "enable" && siteAction.themeId) {
+    return siteAction.themeId;
   }
   return activeThemeId;
 }
 
-export function resolveNextConfigForThemeChange(currentConfig, site, themeId, previewActionId) {
+export function resolveNextConfigForThemeChange(currentConfig, site, themeId) {
   var host = site.host || "";
   var pathname = "/";
   var runtime = getRuntimeConfig();
-  var rules = Array.isArray(currentConfig.siteRules) ? currentConfig.siteRules : [];
+  var rules = Array.isArray(currentConfig.contextRules) ? currentConfig.contextRules : [];
 
   var matchedIndex = -1;
   for (var i = 0; i < rules.length; i++) {
     var rule = rules[i];
-    if (rule && rule.enabled !== false && typeof runtime.matchPattern === "function" && runtime.matchPattern(host, pathname, rule.pattern)) {
+    var hostPattern = rule?.context === "web" ? {
+      type: rule.match?.type,
+      value: rule.match?.host || "",
+    } : null;
+    var hostMatches = hostPattern && typeof runtime.matchPattern === "function"
+      && runtime.matchPattern(host, pathname, hostPattern);
+    var pathMatches = !rule?.match?.path || pathname.startsWith(rule.match.path);
+    if (rule?.enabled && hostMatches && pathMatches) {
       matchedIndex = i;
       break;
     }
@@ -94,30 +116,20 @@ export function resolveNextConfigForThemeChange(currentConfig, site, themeId, pr
   if (matchedIndex >= 0 && host) {
     var matchedRule = rules[matchedIndex];
     var nextRules = rules.slice();
-    if (matchedRule.action && typeof matchedRule.action === "object" && matchedRule.action.enable) {
-      nextRules[matchedIndex] = { ...matchedRule, action: { ...matchedRule.action, theme: themeId } };
-    } else if (matchedRule.action === "disable") {
-      nextRules[matchedIndex] = { ...matchedRule, action: { enable: true, theme: themeId } };
-    } else {
-      nextRules[matchedIndex] = { ...matchedRule, action: { enable: true, theme: themeId } };
-    }
-    return { ...currentConfig, siteRules: nextRules };
+    nextRules[matchedIndex] = { ...matchedRule, action: { type: "enable", themeId } };
+    return { ...currentConfig, contextRules: nextRules };
   }
 
   return {
     ...currentConfig,
-    activeThemePackId: themeId,
-    activeSchemeId: themeId,
-    editor: {
-      ...(currentConfig.editor || {}),
-      lastActionId: previewActionId,
-    },
+    activeThemeId: themeId,
   };
 }
 
 export function usePopupState() {
   const [config, setConfig] = useState(null);
   const [livePreviewConfig, setLivePreviewConfig] = useState(null);
+  const [editorState, setEditorState] = useState(null);
   const [site, setSite] = useState(EMPTY_SITE);
   const [busyKey, setBusyKey] = useState("");
   const [notice, setNotice] = useState({ tone: "slate", message: "正在连接主题切换器…" });
@@ -127,15 +139,17 @@ export function usePopupState() {
     let cancelled = false;
 
     async function hydrate() {
-      const [nextConfig, nextLivePreviewConfig, nextSite, errors] = await Promise.all([
+      const [nextConfig, nextLivePreviewConfig, nextEditorState, nextSite, errors] = await Promise.all([
         readExtensionConfig(),
         readLivePreviewConfig(),
+        readEditorState(),
         readActiveSiteContext(),
         readRuntimeErrors(),
       ]);
       if (cancelled) return;
       setConfig(nextConfig);
       setLivePreviewConfig(nextLivePreviewConfig);
+      setEditorState(nextEditorState);
       setSite(nextSite);
       setRuntimeErrors(errors);
       if (errors.length > 0) {
@@ -186,20 +200,20 @@ export function usePopupState() {
   const activeThemeId = hydrated.selection.themeId;
   var siteAction = getSiteAction(effectiveConfig, site.host, "/");
   const effectiveActiveThemeId = getEffectiveActiveThemeId(siteAction, activeThemeId);
-  const previewActionId = getPreviewActionId(effectiveConfig);
+  const previewActionId = getPreviewActionId(editorState);
   const activeAction = ACTIONS.find((item) => item.id === previewActionId) ?? ACTIONS[0];
 
   const themeChoices = useMemo(
     () =>
       hydrated.themeLibrary.map((theme) => {
-        const themePack = effectiveConfig?.themePacks?.find((item) => item.id === theme.id) ?? null;
+        const themePack = effectiveConfig?.themes?.find((item) => item.id === theme.id) ?? null;
         return {
           theme,
           themePack,
           actionConfig: getActionConfig(hydrated.draftsByTheme, theme.id, previewActionId),
         };
       }),
-    [effectiveConfig?.themePacks, hydrated.draftsByTheme, hydrated.themeLibrary, previewActionId]
+    [effectiveConfig?.themes, hydrated.draftsByTheme, hydrated.themeLibrary, previewActionId]
   );
 
   const activeThemeChoice = themeChoices.find((item) => item.theme.id === effectiveActiveThemeId) ?? themeChoices[0] ?? null;
@@ -254,7 +268,7 @@ export function usePopupState() {
   async function setThemeId(themeId) {
     const savedConfig = await commitConfig(
       "theme",
-      async (currentConfig) => resolveNextConfigForThemeChange(currentConfig, site, themeId, previewActionId),
+      async (currentConfig) => resolveNextConfigForThemeChange(currentConfig, site, themeId),
       {
         tone: "slate",
         message: "当前主题已切换。",

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { defaultConfig } from "../renderer/engine/default-config";
 import {
   MAX_CONFIG_PAYLOAD_BYTES,
   MAX_AI_TRANSPORT_BYTES,
@@ -14,52 +15,43 @@ import {
 
 function validThemeContents(): string {
   return JSON.stringify({
-    format: "cursordance-theme-pack",
-    version: 1,
-    themePack: {
-      id: "test-theme",
-      workbenchDraft: { actionConfigs: {} },
-    },
+    format: "cursordance-theme",
+    schemaVersion: 4,
+    theme: defaultConfig.themes[0],
   });
-}
-
-function validConfig(overrides: Record<string, unknown> = {}) {
-  return {
-    schemaVersion: 3,
-    enabled: true,
-    activeThemePackId: "test-theme",
-    themePacks: [{ id: "test-theme" }],
-    siteRules: [],
-    appRules: [],
-    ...overrides,
-  };
 }
 
 describe("IPC payload contracts", () => {
-  it("accepts bounded schema v3 desktop configs before persistence", () => {
-    const config = validateConfigPayload(validConfig({ enabled: false }));
-    expect(config.schemaVersion).toBe(3);
-    expect(config.enabled).toBe(false);
-    expect(config.themePacks).toHaveLength(1);
+  it("accepts a complete schema v4 config before persistence", () => {
+    const input = { ...defaultConfig, enabled: false };
+    const config = validateConfigPayload(input);
+    expect(config).toBe(input);
+    expect(config.schemaVersion).toBe(4);
   });
 
-  it("rejects invalid schema versions and oversized configs", () => {
-    expect(() => validateConfigPayload(validConfig({ schemaVersion: 2 }))).toThrow(/schemaVersion/);
-    const oversized = validConfig({ value: "x".repeat(MAX_CONFIG_PAYLOAD_BYTES) });
+  it("rejects legacy, incomplete, unknown and oversized configs", () => {
+    expect(() => validateConfigPayload({ ...defaultConfig, schemaVersion: 3 })).toThrow(/schema v4/);
+    expect(() => validateConfigPayload({ ...defaultConfig, themes: [] })).toThrow(/themes/);
+    expect(() => validateConfigPayload({ ...defaultConfig, editor: {} })).toThrow(/editor/);
+    const oversized = { ...defaultConfig, value: "x".repeat(MAX_CONFIG_PAYLOAD_BYTES) };
     expect(() => validateConfigPayload(oversized)).toThrow(/exceeds/);
   });
 
-  it("limits theme and rule collection sizes", () => {
-    expect(() => validateConfigPayload(validConfig({ themePacks: new Array(257).fill({ id: "x" }) }))).toThrow(/themePacks/);
-    expect(() => validateConfigPayload(validConfig({ appRules: new Array(1_001).fill({}) }))).toThrow(/appRules/);
+  it("requires valid active theme and context-rule references", () => {
+    expect(() => validateConfigPayload({ ...defaultConfig, activeThemeId: "missing" })).toThrow(/activeThemeId/);
+    expect(() => validateConfigPayload({
+      ...defaultConfig,
+      contextRules: [{
+        id: "bad-theme",
+        context: "desktop",
+        enabled: true,
+        match: { type: "exact", target: "process", value: "Code" },
+        action: { type: "enable", themeId: "missing" },
+      }],
+    })).toThrow(/themeId/);
   });
 
-  it("requires a valid active theme reference", () => {
-    expect(() => validateConfigPayload(validConfig({ activeThemePackId: "missing" }))).toThrow(/activeThemePackId/);
-    expect(() => validateConfigPayload(validConfig({ themePacks: [{ name: "missing-id" }] }))).toThrow(/non-empty id/);
-  });
-
-  it("accepts valid theme exports and rejects paths or malformed JSON", () => {
+  it("accepts only v4 theme exports", () => {
     expect(validateSaveThemeFileRequest({
       defaultFileName: "theme.cursordance-theme.json",
       contents: validThemeContents(),
@@ -69,7 +61,11 @@ describe("IPC payload contracts", () => {
       contents: validThemeContents(),
     })).toThrow(/must not contain a path/);
     expect(() => validateThemeFileContents("not json")).toThrow(/valid JSON/);
-    expect(() => validateThemeFileContents(JSON.stringify({ hello: "world" }))).toThrow(/behavior settings/);
+    expect(() => validateThemeFileContents(JSON.stringify({
+      format: "cursordance-theme-pack",
+      version: 1,
+      themePack: defaultConfig.themes[0],
+    }))).toThrow(/schema v4/);
   });
 
   it("allows only bounded known AI settings fields", () => {

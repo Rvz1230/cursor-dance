@@ -64,7 +64,7 @@ export function useThemeWorkbenchState() {
       const savedConfig = await writeExtensionConfig(nextConfig);
       configRef.current = savedConfig;
       const latestState = stateRef.current;
-      const hasStaleSelection = latestState.selection.themeId !== nextConfig.activeThemePackId;
+      const hasStaleSelection = latestState.selection.themeId !== nextConfig.activeThemeId;
       if (!latestState.ui.unsaved || !hasStaleSelection) {
         await clearLivePreviewConfig();
       }
@@ -79,7 +79,7 @@ export function useThemeWorkbenchState() {
 
   function discardThemeChanges(themeId) {
     const storedConfig = configRef.current;
-    const themePack = storedConfig?.themePacks?.find((tp) => tp.id === themeId);
+    const themePack = storedConfig?.themes?.find((theme) => theme.id === themeId);
     const draft = themePack ? draftFromThemePack(themePack) : createThemeDraft(themeId);
     dispatch({ type: "theme/discard-changes", payload: { themeId, draft } });
   }
@@ -139,14 +139,12 @@ export function useThemeWorkbenchState() {
     }
 
     const previousConfig = configRef.current ?? {
+      schemaVersion: 4,
       enabled: state.ui.enabled,
-      activeThemePackId: state.selection.themeId,
-      activeSchemeId: state.selection.themeId,
-      themePacks: [],
-      schemes: [],
-      siteRules: [],
-      appRules: [],
-      editor: {},
+      activeThemeId: state.selection.themeId,
+      themes: [],
+      contextRules: [],
+      performance: { maxActiveEffects: 48 },
     };
     const themePack = buildStoredThemePackFromWorkbench(previousConfig, state, themeId);
     const fileName = await downloadThemePackExport(themePack);

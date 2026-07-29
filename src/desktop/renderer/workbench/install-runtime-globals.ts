@@ -8,8 +8,6 @@
 //     getDefaultConfig() 返回 {}、normalizeStoredConfig 退化为 NOOP，
 //     主题列表为空、保存后改动被重置、livePreview 链路传递的是残缺 config。
 //
-// 已有素材：阶段二的引擎迁移（任务 2.5/2.9）已经把 createDefaultThemePacks /
-// normalizeConfig / mergeThemePackWithFallback 等迁到 default-config.ts，
 // action helper 在 action-config.ts，文本语义 helper 在 text-semantics.ts。
 // 这里只是把这些 ES 模块导出"再挂到 window 上"，让 runtimeConfig.ts 拿得到。
 //
@@ -18,15 +16,8 @@
 
 import {
   cloneValue,
-  createDefaultThemePacks,
-  createDefaultCursorStates,
   defaultConfig,
-  mergeCursorStates,
-  mergeThemePackWithFallback,
-  needsMigration,
   normalizeConfig,
-  normalizeAppRules,
-  normalizeSiteRules,
 } from "../engine/default-config";
 import {
   getActionAnimationConfig,
@@ -55,8 +46,6 @@ if (typeof window !== "undefined") {
   if (!window.CursorDanceConfigRuntime) {
     window.CursorDanceConfigRuntime = {
       cloneValue,
-      createDefaultThemePacks,
-      createDefaultCursorStates,
       inferTextKindFromEffect,
       resolveNumberStyleFromEffect,
       resolveTextModeFromEffect,
@@ -70,12 +59,7 @@ if (typeof window !== "undefined") {
       getActionAnimationConfig,
       getActionImageConfig,
       getActionCursorFeedbackConfig,
-      mergeThemePackWithFallback,
-      mergeCursorStates,
-      normalizeSiteRules,
-      normalizeAppRules,
       normalizeConfig,
-      needsMigration,
     };
   }
 }

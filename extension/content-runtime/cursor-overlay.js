@@ -41,20 +41,22 @@
       const stateId = configStore.resolveCursorStateId(target);
       const cursorState = configStore.getEffectiveCursorStateConfig(scheme, stateId);
 
-      if (!cursorState?.imageDataUrl) {
+      if (cursorState?.image?.kind !== "dataUrl") {
         clearStateCursorOverlay();
         return;
       }
 
       const cursorNode = ensureStateCursorNode();
-      const cursorSize = Math.max(24, Math.min(96, cursorState.size || 48));
+      const sourceSize = Math.max(cursorState.image.width || 48, cursorState.image.height || 48);
+      const configuredSize = cursorState.size?.mode === "fixedBox" ? cursorState.size.boxSize : sourceSize;
+      const cursorSize = Math.max(24, Math.min(96, configuredSize || 48));
       cursorNode.hidden = false;
       cursorNode.style.width = `${cursorSize}px`;
       cursorNode.style.height = `${cursorSize}px`;
-      cursorNode.style.transform = `translate3d(${event.clientX - (cursorState.hotspotX || 0)}px, ${event.clientY - (cursorState.hotspotY || 0)}px, 0)`;
+      cursorNode.style.transform = `translate3d(${event.clientX - (cursorState.hotspot?.x || 0)}px, ${event.clientY - (cursorState.hotspot?.y || 0)}px, 0)`;
 
-      if (state.stateCursorImg.src !== cursorState.imageDataUrl) {
-        state.stateCursorImg.src = cursorState.imageDataUrl;
+      if (state.stateCursorImg.src !== cursorState.image.dataUrl) {
+        state.stateCursorImg.src = cursorState.image.dataUrl;
       }
 
       document.documentElement.classList.add(constants.HIDE_CURSOR_CLASS);

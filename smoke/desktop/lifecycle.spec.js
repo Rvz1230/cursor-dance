@@ -12,12 +12,22 @@ function isWindowType(url, type) {
 
 async function readWindowState(electronApp) {
   return electronApp.evaluate(({ BrowserWindow, screen }) => {
-    const windows = BrowserWindow.getAllWindows().filter((win) => !win.isDestroyed());
+    const windows = BrowserWindow.getAllWindows();
     const summarize = (segment) => {
-      const matching = windows.filter((win) => win.webContents.getURL().includes(segment));
+      const matching = windows.filter((win) => {
+        try {
+          return !win.isDestroyed()
+            && !win.webContents.isDestroyed()
+            && win.webContents.getURL().includes(segment);
+        } catch {
+          return false;
+        }
+      });
       return {
         count: matching.length,
-        visibleCount: matching.filter((win) => win.isVisible()).length,
+        visibleCount: matching.filter((win) => {
+          try { return !win.isDestroyed() && win.isVisible(); } catch { return false; }
+        }).length,
       };
     };
 
@@ -238,11 +248,12 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
       await window.cursorDanceStorage.setConfig({
         ...(current || {}),
         enabled: true,
-        appRules: [{
+        contextRules: [{
           id: "smoke-disable-code",
-          pattern: { type: "exact", value: "Code", target: "process" },
-          action: "disable",
+          context: "desktop",
           enabled: true,
+          match: { type: "exact", value: "Code", target: "process" },
+          action: { type: "disable" },
         }],
       });
     });
@@ -275,7 +286,7 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
     await workbenchPage.evaluate(async () => {
       if (!window.cursorDanceStorage) throw new Error("cursorDanceStorage bridge is unavailable");
       const current = await window.cursorDanceStorage.getConfig();
-      await window.cursorDanceStorage.setConfig({ ...(current || {}), appRules: [] });
+      await window.cursorDanceStorage.setConfig({ ...(current || {}), contextRules: [] });
     });
     await sendClick();
     await expect(overlayPage.locator(".cd-effect").first()).toBeAttached();

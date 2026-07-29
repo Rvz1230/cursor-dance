@@ -18,8 +18,8 @@ describe("diagnosticsSurface", () => {
     expect(
       summarizeLivePreviewConfig(
         {
-          activeThemePackId: "mono-geo",
-          themePacks: [{ id: "mono-geo" }],
+          activeThemeId: "mono-geo",
+          themes: [{ id: "mono-geo" }],
         },
         "mono-geo"
       )

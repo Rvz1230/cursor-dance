@@ -81,10 +81,11 @@
 - **R2-3 验证**：46 个测试文件共 338 项通过；typecheck、lint（0 error，保留原有 29 warning）、Electron build 和桌面 smoke 通过，smoke 同时验证 sandbox 下窗口能力白名单
 - [x] R2-4：桌面 AI IPC transport——快速提案、流式提案、Agent 与取消操作直达主进程 provider，删除 localhost HTTP server、端口与 endpoint/access token 注入
 - **R2-4 验证**：47 个根测试文件共 344 项、API 包 178 项通过；typecheck、lint（0 error，保留原有 29 warning）、Electron build 和桌面 smoke 通过；main bundle 由 148.85 KiB 降至 137.98 KiB
-- [x] R3-1：配置 schema v4——冻结共享只读 domain contract、严格验证器、Web/desktop 判别规则、主题单一真值与素材引用边界；生产持久化仍保持 v3
+- [x] R3-1：配置 schema v4——冻结共享只读 domain contract、严格验证器、Web/desktop 判别规则、主题单一真值与素材引用边界
 - **R3-1 验证**：48 个根测试文件共 350 项通过；typecheck、lint（0 error，保留既有 29 warning）、Web/Electron build、Web smoke 5/5 和桌面 smoke 1/1 通过
-- [ ] R3-2：生产配置切换为 v4-only——只读取通过 v4 严格验证的数据；缺失、损坏或非 v4 数据直接恢复最新默认配置，不实现 legacy/v3 迁移，也不保留旧字段识别逻辑
-- **下一步**：完成 v4 默认配置、平台存储与运行时消费链路切换，删除 v3 模型和兼容别名；随后进入 R3-3，以 asset id 消除图片 data URL 的全配置重复传输。Windows 同步执行 R1-4 真机验收。
+- [x] R3-2：生产配置切换为 v4-only——Electron、Chrome、静态预览、Workbench、Popup、IPC 和主题文件均只读写 v4；缺失、损坏或非 v4 数据整份恢复最新默认配置
+- **R3-2 验证**：49 个根测试文件共 306 项通过；typecheck、lint（0 error，保留既有 29 warning）、Web/Electron build、Web smoke 5/5 和 desktop smoke 1/1 通过；本轮变更净删除 1,716 行
+- **下一步**：进入 R3-3，建立 Electron 素材仓库，以 asset id 消除图片 data URL 在完整配置与 Live Preview 中的重复传输。Windows 同步执行 R1-4 真机验收。
 
 ### 分支状态
 

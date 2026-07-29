@@ -1,4 +1,4 @@
-import { normalizeAppRules } from "../../shared/app-rules";
+import { validateCursorDanceConfigV4 } from "../../shared/config-schema-v4";
 
 /**
  * A globally disabled config can still opt specific applications back in.
@@ -6,16 +6,10 @@ import { normalizeAppRules } from "../../shared/app-rules";
  * current application; otherwise hiding them is the cheapest idle state.
  */
 export function shouldKeepOverlaysVisible(config: unknown): boolean {
-  if (!config || typeof config !== "object") return true;
-  const candidate = config as { enabled?: unknown; appRules?: unknown; siteRules?: unknown };
-  if (candidate.enabled !== false) return true;
-  const legacyAppRules = Array.isArray(candidate.siteRules)
-    ? candidate.siteRules.filter((rule) => {
-        const target = (rule as { pattern?: { target?: unknown } })?.pattern?.target;
-        return target === "process" || target === "title";
-      })
-    : [];
-  return normalizeAppRules(candidate.appRules ?? legacyAppRules).some(
-    (rule) => rule.enabled !== false && rule.action !== "disable" && rule.action.enable === true,
+  const validation = validateCursorDanceConfigV4(config);
+  if (validation.ok === false) return true;
+  if (validation.value.enabled) return true;
+  return validation.value.contextRules.some(
+    (rule) => rule.context === "desktop" && rule.enabled && rule.action.type === "enable",
   );
 }

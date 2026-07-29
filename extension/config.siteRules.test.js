@@ -16,83 +16,51 @@ beforeAll(() => {
   new Function(publicConfigSource)();
 });
 
-describe("normalizeSiteRules", () => {
-  const normalizeSiteRules = () => globalThis.window.CursorDanceConfigRuntime.normalizeSiteRules;
-
-  describe("new array format", () => {
-    it("returns array as-is for valid rules", () => {
-      const rules = [
-        { id: "r1", pattern: { type: "exact", value: "example.com" }, action: "disable" },
-        { id: "r2", pattern: { type: "glob", value: "*.google.com" }, action: { enable: true, theme: "woodfish" } },
-      ];
-      const result = normalizeSiteRules()(rules);
-      expect(result[0]).toMatchObject({ id: "r1", pattern: { type: "exact", value: "example.com" }, action: "disable" });
-      expect(result[1]).toMatchObject({ id: "r2", pattern: { type: "glob", value: "*.google.com" }, action: { enable: true, theme: "woodfish" } });
-    });
-
-    it("generates ids for rules without them", () => {
-      const rules = [
-        { pattern: { type: "exact", value: "example.com" }, action: "disable" },
-        { pattern: { type: "glob", value: "*.test.com" }, action: { enable: true } },
-      ];
-      const result = normalizeSiteRules()(rules);
-      expect(result[0].id).toBe("r1");
-      expect(result[1].id).toBe("r2");
-    });
-
-    it("defaults enabled to true", () => {
-      const rules = [
-        { id: "r1", pattern: { type: "exact", value: "example.com" }, action: "disable" },
-      ];
-      const result = normalizeSiteRules()(rules);
-      expect(result[0].enabled).toBe(true);
-    });
-
-    it("preserves explicit enabled: false", () => {
-      const rules = [
-        { id: "r1", pattern: { type: "exact", value: "example.com" }, action: "disable", enabled: false },
-      ];
-      const result = normalizeSiteRules()(rules);
-      expect(result[0].enabled).toBe(false);
-    });
-
-    it("filters out rules without pattern or action", () => {
-      const rules = [
-        { id: "r1", pattern: { type: "exact", value: "example.com" }, action: "disable" },
-        { id: "r2", pattern: null, action: "disable" },
-        { id: "r3", pattern: { type: "exact", value: "test.com" }, action: null },
-      ];
-      const result = normalizeSiteRules()(rules);
-      expect(result).toHaveLength(1);
-      expect(result[0].id).toBe("r1");
-    });
+describe("extension config v4-only", () => {
+  it("publishes a canonical v4 default without legacy aliases", () => {
+    const config = globalThis.window.CursorDanceDefaultConfig;
+    expect(config.schemaVersion).toBe(4);
+    expect(config.activeThemeId).toBe("mono-geo");
+    expect(config.themes).toHaveLength(4);
+    expect(config.contextRules).toEqual([]);
+    expect(config).not.toHaveProperty("themePacks");
+    expect(config).not.toHaveProperty("schemes");
+    expect(config).not.toHaveProperty("editor");
+    for (const theme of config.themes) {
+      expect(theme).not.toHaveProperty("workbenchDraft");
+      expect(theme).not.toHaveProperty("cursorStates");
+      expect(theme.cursorBindings.default).toEqual({ mode: "override", actionId: "leftClick" });
+      expect(theme.keyFeedbackConfig.animationStyle).toBe("bounce");
+    }
   });
 
+  it("accepts a complete v4 config without rewriting it", () => {
+    const config = { ...globalThis.window.CursorDanceDefaultConfig, enabled: false };
+    expect(globalThis.window.CursorDanceConfigRuntime.normalizeConfig(config)).toBe(config);
+  });
 
-  describe("fallback and edge cases", () => {
-    it("returns empty array for null input", () => {
-      expect(normalizeSiteRules()(null)).toEqual([]);
-    });
+  it.each([
+    ["legacy v3", () => ({ schemaVersion: 3, enabled: true, themePacks: [] })],
+    ["missing fields", () => ({ schemaVersion: 4, enabled: true })],
+    ["unknown root field", () => ({ ...globalThis.window.CursorDanceDefaultConfig, editor: {} })],
+  ])("resets %s to the complete default", (_label, createValue) => {
+    expect(globalThis.window.CursorDanceConfigRuntime.normalizeConfig(createValue()))
+      .toBe(globalThis.window.CursorDanceDefaultConfig);
+  });
 
-    it("returns empty array for undefined input", () => {
-      expect(normalizeSiteRules()(undefined)).toEqual([]);
-    });
+  it("accepts v4 web context rules and rejects missing theme references", () => {
+    const defaultConfig = globalThis.window.CursorDanceDefaultConfig;
+    const rule = {
+      id: "docs",
+      context: "web",
+      enabled: true,
+      match: { type: "glob", host: "*.example.com", path: "/docs" },
+      action: { type: "enable", themeId: "drift" },
+    };
+    const valid = { ...defaultConfig, contextRules: [rule] };
+    expect(globalThis.window.CursorDanceConfigRuntime.normalizeConfig(valid)).toBe(valid);
 
-    it("returns empty array for non-object non-array input", () => {
-      expect(normalizeSiteRules()("not-valid")).toEqual([]);
-    });
-
-    it("uses fallback array when primary is null", () => {
-      const fallback = [
-        { id: "r1", pattern: { type: "exact", value: "fallback.com" }, action: "disable" },
-      ];
-      expect(normalizeSiteRules()(null, fallback)).toEqual(fallback);
-    });
-
-    it("returns empty array when fallback is non-array", () => {
-      const fallback = { byHost: { "example.com": { mode: "disabled" } } };
-      const result = normalizeSiteRules()(null, fallback);
-      expect(result).toEqual([]);
-    });
+    const invalid = { ...defaultConfig, contextRules: [{ ...rule, action: { type: "enable", themeId: "missing" } }] };
+    expect(globalThis.window.CursorDanceConfigRuntime.normalizeConfig(invalid)).toBe(defaultConfig);
   });
 });

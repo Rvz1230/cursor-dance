@@ -3,11 +3,12 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { createThemeDraft } from "../model/workbenchSchema";
 import { buildStoredConfigFromWorkbench, hydrateWorkbenchState } from "../lib/themeDraftAdapter";
 import { initialState, reducer } from "./themeWorkbenchStateStore";
+import { defaultConfig, normalizeConfig } from "@/desktop/renderer/engine/default-config";
 
 function installWindowStub() {
   globalThis.window = {
-    CursorDanceDefaultConfig: {},
-    CursorDanceConfigRuntime: {},
+    CursorDanceDefaultConfig: defaultConfig,
+    CursorDanceConfigRuntime: { normalizeConfig },
     CursorDanceConfigHelpers: {},
   } as unknown as Window & typeof globalThis;
 }
@@ -72,15 +73,7 @@ describe("themeWorkbenchStateStore", () => {
     });
 
     const storedConfig = buildStoredConfigFromWorkbench(
-      {
-        enabled: true,
-        activeThemePackId: themeA,
-        activeSchemeId: themeA,
-        themePacks: [],
-        schemes: [],
-        siteRules: [],
-        editor: {},
-      },
+      defaultConfig,
       editedState
     );
     const hydratedState = hydrateWorkbenchState(storedConfig, { host: "example.com" });

@@ -1,32 +1,31 @@
 import { describe, expect, it } from "vitest";
+import { defaultConfig } from "../renderer/engine/default-config";
 import { shouldKeepOverlaysVisible } from "./overlay-visibility";
 
 describe("shouldKeepOverlaysVisible", () => {
   it("keeps overlays visible for the global enabled state", () => {
-    expect(shouldKeepOverlaysVisible({ enabled: true, appRules: [] })).toBe(true);
+    expect(shouldKeepOverlaysVisible(defaultConfig)).toBe(true);
   });
 
   it("hides overlays when globally disabled without an application opt-in", () => {
-    expect(shouldKeepOverlaysVisible({
-      enabled: false,
-      appRules: [{
-        id: "disable-code",
-        pattern: { type: "exact", value: "Code", target: "process" },
-        action: "disable",
-        enabled: true,
-      }],
-    })).toBe(false);
+    expect(shouldKeepOverlaysVisible({ ...defaultConfig, enabled: false })).toBe(false);
   });
 
-  it("keeps overlays available when an enabled application rule can opt in", () => {
+  it("keeps overlays available when an enabled desktop rule can opt in", () => {
     expect(shouldKeepOverlaysVisible({
+      ...defaultConfig,
       enabled: false,
-      appRules: [{
+      contextRules: [{
         id: "enable-code",
-        pattern: { type: "exact", value: "Code", target: "process" },
-        action: { enable: true, theme: "drift" },
+        context: "desktop",
         enabled: true,
+        match: { type: "exact", target: "process", value: "Code" },
+        action: { type: "enable", themeId: "drift" },
       }],
     })).toBe(true);
+  });
+
+  it("fails open for corrupted storage until it is reset", () => {
+    expect(shouldKeepOverlaysVisible({ schemaVersion: 3, enabled: false })).toBe(true);
   });
 });
