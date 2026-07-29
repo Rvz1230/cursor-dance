@@ -26,6 +26,7 @@
 | R3-2 生产链路 v4-only | 已完成 | Electron、Chrome、静态预览、Workbench、Popup、IPC 与主题文件均只读写 v4；非 v4 整份恢复默认 |
 | R3-3 配置与素材拆分 | 已完成 | Electron 图片按 SHA-256 写入 userData 素材仓库，配置和预览只传 asset id，renderer 通过受限协议按需加载，导出恢复可移植 data URL |
 | R3-4 Workbench persistence | 已完成 | 统一 repository contract；Electron、Chrome 与静态预览使用独立 adapter，业务 facade 不再判断运行平台 |
+| R4-1 共享效果核心边界 | 已完成 | `text-semantics`、action config 与 compute specs 迁入共享 core；桌面仅保留素材 URL adapter，Workbench 删除重复算法 |
 
 当前验证基线：
 
@@ -691,6 +692,13 @@ unknown input
 - 系统光标替换
 - 全局输入监听
 - overlay 坐标和多显示器路由
+
+已完成：
+
+- 新建 `src/shared/effect-core/`，集中承载 `text-semantics`、action config 与 compute specs；共享层不依赖 DOM、Chrome、Electron 或平台存储。
+- 桌面 action config 收敛为素材引用 adapter，仅把 SHA-256 asset id 转换为 renderer 可加载 URL；overlay 和 Workbench 直接复用共享算法。
+- Workbench `computeSpecs.ts` 由 528 行收敛为 1 行兼容 facade，桌面重复的 text/compute 模块删除，本轮净减少约 503 行。
+- 扩展 IIFE 暂作为 MV3 旧入口保留并继续由 parity 测试约束；R4-3 接入正式构建后改为直接打包共享 core，R4-4 再删除镜像文件。
 
 ### R4-2：建立 EffectRuntime adapters
 

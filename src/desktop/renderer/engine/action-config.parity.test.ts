@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import { beforeAll, describe, expect, it } from "vitest";
-import * as desktopHelpers from "./action-config";
+import * as sharedHelpers from "@/shared/effect-core/action-config";
 
 const RUNTIME_PATH = new URL("../../../../extension/config-runtime/action-config.js", import.meta.url);
 
@@ -15,7 +15,7 @@ const FIELD_GROUPS = [
   "ACTION_CURSOR_FEEDBACK_FIELDS",
 ] as const;
 
-type RuntimeHelpers = typeof desktopHelpers;
+type RuntimeHelpers = typeof sharedHelpers;
 
 let runtimeHelpers: RuntimeHelpers;
 
@@ -35,24 +35,24 @@ beforeAll(() => {
   globals.CursorDanceConfigHelpers = previousHelpers;
 });
 
-describe("extension/desktop action-config parity", () => {
+describe("extension/shared action-config parity", () => {
   it("keeps every action field group in the same order", () => {
     for (const groupName of FIELD_GROUPS) {
-      expect(runtimeHelpers[groupName], groupName).toEqual(desktopHelpers[groupName]);
+      expect(runtimeHelpers[groupName], groupName).toEqual(sharedHelpers[groupName]);
     }
   });
 
   it("keeps shared pure helper behavior aligned", () => {
     for (const [hex, alpha] of [["#f59e0b", 0.5], ["#fff", 1], [undefined, 0.25]] as const) {
-      expect(runtimeHelpers.hexToRgba(hex, alpha)).toBe(desktopHelpers.hexToRgba(hex, alpha));
+      expect(runtimeHelpers.hexToRgba(hex, alpha)).toBe(sharedHelpers.hexToRgba(hex, alpha));
     }
 
     for (const easing of ["线性", "缓入", "缓入缓出", "弹跳", "弹性", "unknown"]) {
-      expect(runtimeHelpers.getAnimationEasing(easing)).toBe(desktopHelpers.getAnimationEasing(easing));
+      expect(runtimeHelpers.getAnimationEasing(easing)).toBe(sharedHelpers.getAnimationEasing(easing));
     }
 
     for (const weight of ["加粗", "中等", "常规"]) {
-      expect(runtimeHelpers.getTextWeightValue(weight)).toBe(desktopHelpers.getTextWeightValue(weight));
+      expect(runtimeHelpers.getTextWeightValue(weight)).toBe(sharedHelpers.getTextWeightValue(weight));
     }
   });
 

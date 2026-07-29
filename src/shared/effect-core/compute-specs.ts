@@ -5,8 +5,16 @@ import {
   getActionAnimationConfig,
   hexToRgba,
   formatNumber,
+  getTextWeightValue,
   getOrderedTextTags,
 } from "./action-config";
+
+export {
+  formatNumber,
+  getTextWeightValue,
+  hexToRgba,
+};
+export { getAnimationEasing as getAnimationEasingCss } from "./action-config";
 
 // ─── Text content ─────────────────────────────────────────────────────
 
@@ -463,4 +471,14 @@ export function getAnimationVisualStyle(config: Record<string, unknown>): Animat
     border: "2px solid " + hexToRgba(animColor, 0.42),
     boxShadow: glow || undefined,
   };
+}
+
+export function getAnimationKeyframeName(style: string): string {
+  if (style === "斜切闪片") return "cursorDancePreviewAnimSlice";
+  if (style === "弹跳徽记") return "cursorDancePreviewAnimBounce";
+  if (style === "漩涡旋转") return "cursorDancePreviewAnimSwirl";
+  if (style === "星光闪耀") return "cursorDancePreviewAnimStar";
+  if (style === "轨道环绕") return "cursorDancePreviewAnimOrbit";
+  if (style === "螺旋上升") return "cursorDancePreviewAnimSpiral";
+  return "cursorDancePreviewAnimPulse";
 }

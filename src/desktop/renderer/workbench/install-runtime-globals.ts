@@ -35,7 +35,7 @@ import {
   resolveActionTextConfigFromEffect,
   resolveNumberStyleFromEffect,
   resolveTextModeFromEffect,
-} from "../engine/text-semantics";
+} from "@/shared/effect-core/text-semantics";
 
 if (typeof window !== "undefined") {
   // 只在第一次 import 时注入；HMR 重新执行时跳过避免反复覆盖（runtime 内部

@@ -1,10 +1,10 @@
 import fs from "node:fs";
 import { beforeAll, describe, expect, it } from "vitest";
-import * as desktopHelpers from "./text-semantics";
+import * as sharedHelpers from "@/shared/effect-core/text-semantics";
 
 const RUNTIME_PATH = new URL("../../../../extension/config-runtime/text-semantics.js", import.meta.url);
 
-type RuntimeHelpers = typeof desktopHelpers;
+type RuntimeHelpers = typeof sharedHelpers;
 
 let runtimeHelpers: RuntimeHelpers;
 
@@ -24,7 +24,7 @@ beforeAll(() => {
   globals.CursorDanceConfigHelpers = previousHelpers;
 });
 
-describe("extension/desktop text-semantics parity", () => {
+describe("extension/shared text-semantics parity", () => {
   const baseConfig = {
     textKind: "数字飘字",
     textStyle: "阿拉伯数字 (1, 2, 3)",
@@ -46,12 +46,12 @@ describe("extension/desktop text-semantics parity", () => {
     ];
 
     for (const effect of effects) {
-      expect(runtimeHelpers.inferTextKindFromEffect(effect)).toBe(desktopHelpers.inferTextKindFromEffect(effect));
+      expect(runtimeHelpers.inferTextKindFromEffect(effect)).toBe(sharedHelpers.inferTextKindFromEffect(effect));
       expect(runtimeHelpers.resolveNumberStyleFromEffect(effect, baseConfig.textStyle)).toBe(
-        desktopHelpers.resolveNumberStyleFromEffect(effect, baseConfig.textStyle),
+        sharedHelpers.resolveNumberStyleFromEffect(effect, baseConfig.textStyle),
       );
       expect(runtimeHelpers.resolveTextModeFromEffect(effect, baseConfig.textMode)).toBe(
-        desktopHelpers.resolveTextModeFromEffect(effect, baseConfig.textMode),
+        sharedHelpers.resolveTextModeFromEffect(effect, baseConfig.textMode),
       );
     }
   });
@@ -64,14 +64,14 @@ describe("extension/desktop text-semantics parity", () => {
 
     for (const effect of effects) {
       expect(runtimeHelpers.resolveActionTextConfigFromEffect(baseConfig, effect)).toEqual(
-        desktopHelpers.resolveActionTextConfigFromEffect(baseConfig, effect),
+        sharedHelpers.resolveActionTextConfigFromEffect(baseConfig, effect),
       );
     }
 
     const actionConfig = { ...baseConfig, textKind: "文本飘字", textContent: "命中" };
     const orderedTags = ["命中", "Nice!"];
     expect(runtimeHelpers.buildStoredTextEffectPayload(actionConfig, orderedTags)).toEqual(
-      desktopHelpers.buildStoredTextEffectPayload(actionConfig, orderedTags),
+      sharedHelpers.buildStoredTextEffectPayload(actionConfig, orderedTags),
     );
   });
 });

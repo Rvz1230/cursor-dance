@@ -89,7 +89,9 @@
 - **R3-3 验证**：53 个根测试文件共 316 项通过；typecheck、lint（0 error，保留既有 29 warning）、Web/Electron build、Web smoke 5/5 和 desktop smoke 1/1 通过；desktop smoke 真实断言配置不含 data URL、相同图片只落一个 asset id 且协议可加载
 - [x] R3-4：统一 Workbench persistence——配置、Live Preview、editor state、recent assets 与 diagnostics 统一经 `WorkbenchRepository`，Electron、Chrome 与静态预览分别使用独立 adapter；业务 facade 不再包含平台判断
 - **R3-4 验证**：54 个根测试文件共 320 项通过；typecheck、lint（0 error，既有 warning 从 29 降至 24）、Web/Electron build、Web smoke 5/5 和 desktop smoke 1/1 通过；`config-io.ts` 由约 400 行降至 30 行，`subscriptions.ts` 由约 185 行降至 17 行
-- **下一步**：进入 R4-1，冻结共享效果核心与平台 adapter 的边界，优先合并 `text-semantics`、action config 和 compute specs。Windows 同步执行 R1-4 真机验收。
+- [x] R4-1：冻结共享效果核心边界——`text-semantics`、action config 与 compute specs 统一迁入 `src/shared/effect-core`，Workbench 和桌面 overlay 直接复用；桌面只保留 asset URL 平台 adapter
+- **R4-1 验证**：54 个根测试文件共 320 项通过；typecheck、lint（0 error，保留既有 24 warning）、Web/Electron build、Web smoke 5/5 和 desktop smoke 1/1 通过；Workbench `computeSpecs.ts` 从 528 行降至 1 行，本轮净减少约 503 行
+- **下一步**：进入 R4-2，建立输入、上下文、效果 surface 与音频输出 adapter contract，让扩展和桌面逐步共用 action/state machine。Windows 同步执行 R1-4 真机验收。
 
 ### 分支状态
 

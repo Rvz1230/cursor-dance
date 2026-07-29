@@ -12,6 +12,7 @@ src/
   app/                   Shared UI — Workbench and extension Popup pages
   components/            Shared UI component library (Radix + Tailwind)
   shared/                Shared utilities + runtime detection
+    effect-core/          Platform-neutral action/text/spec computation
     ipc-channels.ts        Desktop IPC channel constants
     desktop-ipc-contracts.ts Typed invoke request/response contracts
     runtime.ts             PLATFORM / isDesktop() / isExtension()
@@ -24,10 +25,14 @@ src/
       workbench.ts         Config writes, dialogs, AI, window controls
       overlay.ts           Input events and read-only runtime state
     renderer/              Electron renderer
-      engine/              Effect engine (parity with extension/content-runtime/*)
+      engine/              Desktop effect runtime and platform adapters
       overlay/             Overlay window entry
       workbench/           Workbench window entry
 ```
 
-Key rule: `src/app/` and `src/components/` contain shared UI, but the Popup is extension-only. `extension/` and `src/desktop/` are platform-specific.
-Changes to `src/desktop/renderer/engine/` must be reflected in `extension/content-runtime/` and `extension/config-runtime/`.
+Key rules:
+
+- `src/app/` and `src/components/` contain shared UI, but the Popup is extension-only. `extension/` and `src/desktop/` are platform-specific.
+- Pure action parsing, text semantics and effect spec computation live in `src/shared/effect-core/`. Shared core must not import DOM, Chrome, Electron or platform storage APIs.
+- Platform adapters only resolve environment capabilities. For example, the desktop action-config adapter converts an asset id to a renderer URL; it does not duplicate shared parsing.
+- `extension/config-runtime/` remains a transitional IIFE mirror covered by parity tests until the extension build moves to Vite in R4-3. After that migration it must consume `src/shared/effect-core/` directly.

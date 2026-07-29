@@ -25,7 +25,7 @@ import {
   getParticleShapeStyle,
   getAnimationVisualStyle,
   getParticleTint,
-} from "./compute-specs";
+} from "@/shared/effect-core/compute-specs";
 import { buildVisualEffectsCSS } from "./data/visual-effects-styles";
 
 type AnimateOptions = number | { duration?: number; easing?: string; delay?: number };
