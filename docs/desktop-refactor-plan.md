@@ -28,12 +28,13 @@
 | R3-4 Workbench persistence | 已完成 | 统一 repository contract；Electron、Chrome 与静态预览使用独立 adapter，业务 facade 不再判断运行平台 |
 | R4-1 共享效果核心边界 | 已完成 | `text-semantics`、action config 与 compute specs 迁入共享 core；桌面仅保留素材 URL adapter，Workbench 删除重复算法 |
 | R4-2 EffectRuntime adapters | 已完成 | 桌面四类 adapter 已接入；共享 state machine 统一 timing、throttle、run/combo 状态推进与 output plan |
+| R4-3 扩展正式构建 | 进行中 | manifest 已收敛到单一 Vite content bundle；共享 core/runtime 已接入，剩余 legacy IIFE 由 bundle 暂时封装 |
 
 当前验证基线：
 
 - `npm run typecheck` 通过。
 - `npm run lint` 通过（0 error；共享旧代码的 24 条显式 `any` 暂作为 warning 逐步收紧）。
-- Vitest 61 个测试文件、336 个测试通过；删除的数量来自 legacy 迁移与旧站点规则用例，不再作为兼容能力保留。
+- Vitest 60 个测试文件、319 个测试通过；删除的数量来自 legacy/parity 镜像用例收敛为共享实现的直接行为测试，不再重复比较两份实现。
 - API 177 个测试通过。
 - 根 Web、landing、Electron main/preload/renderer 构建通过。
 - 根项目、landing、Electron Vite、Vitest 均复用 Vite 7.3.6。
@@ -699,7 +700,7 @@ unknown input
 - 新建 `src/shared/effect-core/`，集中承载 `text-semantics`、action config 与 compute specs；共享层不依赖 DOM、Chrome、Electron 或平台存储。
 - 桌面 action config 收敛为素材引用 adapter，仅把 SHA-256 asset id 转换为 renderer 可加载 URL；overlay 和 Workbench 直接复用共享算法。
 - Workbench `computeSpecs.ts` 由 528 行收敛为 1 行兼容 facade，桌面重复的 text/compute 模块删除，本轮净减少约 503 行。
-- 扩展 IIFE 暂作为 MV3 旧入口保留并继续由 parity 测试约束；R4-3 接入正式构建后改为直接打包共享 core，R4-4 再删除镜像文件。
+- 扩展已经通过 Vite 单入口直接打包共享 core/runtime；`text-semantics`、action config 与 compute specs 三份 IIFE 镜像及 parity 测试已删除，剩余 legacy IIFE 仅作为 bundle 内的待迁移模块保留。
 
 ### R4-2：建立 EffectRuntime adapters
 
@@ -742,6 +743,15 @@ interface AudioOutput {
 - manifest 引用构建输出，不再手工维护 IIFE 模块加载顺序。
 - 保持 content script 无 Node/Electron 依赖。
 - 为 CSP、启动性能和 sourcemap 做扩展商店验证。
+
+当前进度：
+
+- 新增独立扩展 Vite 配置，产出稳定路径 `dist/content-runtime/content.js`；根构建会自动生成并校验 manifest 中全部 content script 产物。
+- manifest 的 content scripts 已由 12 个有序脚本收敛为一个构建产物，dist 不再复制未打包的 content-runtime 文件。
+- 扩展、Web 本地预览和桌面共用同一份 action timing、throttle、run/combo 与 output plan；扩展 trigger handler 删除对应重复决策代码。
+- 删除三份 config-runtime IIFE、镜像测试和失去意义的 parity 测试，改为共享模块直接行为测试；本段净减少约 1,209 行。
+- 最终 content bundle 已在系统 Chrome 中直接注入验证：共享 core/runtime 全局可用、效果根节点正常创建，真实点击可生成效果节点。
+- 待完成：迁移 double click/long press、visual effects 等剩余 IIFE，并补真实 Chrome 扩展加载、CSP 与启动性能验收。
 
 ### R4-4：按模块删除旧引擎
 

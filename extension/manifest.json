@@ -25,22 +25,7 @@
   "content_scripts": [
     {
       "matches": ["http://*/*", "https://*/*"],
-      "js": [
-        "config-runtime/text-semantics.js",
-        "config-runtime/action-config.js",
-        "config-runtime/compute-specs.js",
-        "config.js",
-        "content-runtime/site-matcher.js",
-        "content-runtime/diagnostics.js",
-        "content-runtime/config-store.js",
-        "content-runtime/visual-effects.js",
-        "content-runtime/audio-duck-profile.js",
-        "content-runtime/audio.js",
-        "content-runtime/cursor-overlay.js",
-        "content-runtime/trigger-handlers.js",
-        "content-runtime/atmosphere.js",
-        "content.js"
-      ],
+      "js": ["content-runtime/content.js"],
       "run_at": "document_idle"
     }
   ]

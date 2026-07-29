@@ -1,0 +1,12 @@
+import "./runtime-globals";
+import "../../extension/config.js";
+import "../../extension/content-runtime/site-matcher.js";
+import "../../extension/content-runtime/diagnostics.js";
+import "../../extension/content-runtime/config-store.js";
+import "../../extension/content-runtime/visual-effects.js";
+import "../../extension/content-runtime/audio-duck-profile.js";
+import "../../extension/content-runtime/audio.js";
+import "../../extension/content-runtime/cursor-overlay.js";
+import "../../extension/content-runtime/trigger-handlers.js";
+import "../../extension/content-runtime/atmosphere.js";
+import "../../extension/content.js";

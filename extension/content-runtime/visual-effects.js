@@ -57,7 +57,7 @@
       }
       return String(number);
     };
-    // Computation helpers from config-runtime/compute-specs.js (loaded before this file)
+    // Computation helpers are provided by the generated shared-runtime bundle.
     var computeParticleSpecs = helpers.computeParticleSpecs || function () { return []; };
     var computeOrbitalParticleSpecs = helpers.computeOrbitalParticleSpecs || function () { return []; };
     var computeRippleLayers = helpers.computeRippleLayers || function () { return []; };

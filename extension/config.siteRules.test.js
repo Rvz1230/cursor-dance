@@ -1,18 +1,16 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
+import * as actionConfig from "../src/shared/effect-core/action-config.ts";
+import * as textSemantics from "../src/shared/effect-core/text-semantics.ts";
 
-const textSemanticsSource = readFileSync(new URL("./config-runtime/text-semantics.js", import.meta.url), "utf8");
-const actionConfigSource = readFileSync(new URL("./config-runtime/action-config.js", import.meta.url), "utf8");
 const publicConfigSource = readFileSync(new URL("./config.js", import.meta.url), "utf8");
 
 beforeAll(() => {
   globalThis.window = {
     CursorDanceDefaultConfig: {},
     CursorDanceConfigRuntime: {},
-    CursorDanceConfigHelpers: {},
+    CursorDanceConfigHelpers: { ...textSemantics, ...actionConfig },
   };
-  new Function(textSemanticsSource)();
-  new Function(actionConfigSource)();
   new Function(publicConfigSource)();
 });
 

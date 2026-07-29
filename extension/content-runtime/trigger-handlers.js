@@ -1,5 +1,11 @@
 (function registerContentTriggerHandlers(globalThis) {
   const modules = globalThis.CursorDanceContentModules || (globalThis.CursorDanceContentModules = {});
+  const effectRuntime = globalThis.CursorDanceEffectRuntime || {};
+  const { decideActionExecution, getActionTimingMs } = effectRuntime;
+
+  if (typeof decideActionExecution !== "function" || typeof getActionTimingMs !== "function") {
+    throw new Error("CursorDance shared effect runtime is not loaded.");
+  }
 
   modules.createTriggerHandlers = function createTriggerHandlers(runtime) {
     const {
@@ -12,35 +18,6 @@
       audioRuntime,
       cursorOverlay,
     } = runtime;
-
-    function getActionTimingMs(actionId, actionConfig) {
-      const rawValue = Number(actionConfig?.holdMs);
-      const value = Number.isFinite(rawValue) ? rawValue : 0;
-
-      if (actionId === "leftClick" || actionId === "rightClick") {
-        return value === 420 ? 0 : Math.max(0, Math.min(320, value));
-      }
-      if (actionId === "doubleClick") {
-        return value === 420 ? 320 : Math.max(180, Math.min(520, value || 320));
-      }
-      if (actionId === "wheel") {
-        return value === 420 ? 180 : Math.max(80, Math.min(520, value || 180));
-      }
-      if (actionId === "hover") {
-        return value === 420 ? 220 : Math.max(80, Math.min(700, value || 220));
-      }
-      if (actionId === "longPress") {
-        return Math.max(120, Math.min(900, value || 420));
-      }
-      return Math.max(0, value);
-    }
-
-    function getComboWindowMs(actionConfig) {
-      const rawValue = Number(actionConfig?.comboWindowMs);
-      return Number.isFinite(rawValue)
-        ? Math.max(120, Math.min(3000, rawValue))
-        : 900;
-    }
 
     function makeCoordsFromEvent(event) {
       return {
@@ -120,82 +97,61 @@
         });
         return;
       }
-      const textConfig = configStore.getActionTextConfig(actionConfig);
-      const particleConfig = configStore.getActionParticleConfig(actionConfig);
-      const rippleConfig = configStore.getActionRippleConfig(actionConfig);
-      const audioConfig = configStore.getActionAudioConfig(actionConfig);
-      const animationConfig = configStore.getActionAnimationConfig(actionConfig);
-      const imageConfig = configStore.getActionImageConfig(actionConfig);
-      const outputSummary = {
-        textEnabled: Boolean(textConfig.textEnabled),
-        particleEnabled: Boolean(particleConfig.particle),
-        rippleEnabled: Boolean(rippleConfig.ripple),
-        soundEnabled: Boolean(audioConfig.sound),
-        animationEnabled: Boolean(animationConfig.animationEnabled),
-        imageEnabled: Boolean(imageConfig.imageEnabled && imageConfig.imageDataUrl),
-        cursorOverrideEnabled: Boolean(visualEffects.hasCursorOverride(actionConfig)),
-      };
-      if (!outputSummary.textEnabled && !outputSummary.particleEnabled && !outputSummary.rippleEnabled && !outputSummary.soundEnabled && !outputSummary.animationEnabled && !outputSummary.imageEnabled && !outputSummary.cursorOverrideEnabled) {
+      const decision = decideActionExecution(state, {
+        sourceActionId,
+        resolvedActionId,
+        x: coords.x,
+        y: coords.y,
+        actionConfig,
+        sourceTriggerConfig,
+        now: Date.now(),
+        throttleMs: options.throttleMs,
+        force: options.force,
+      });
+      if (decision.status === "skip") {
         diagnostics?.log("action.skip", {
-          reason: "no-enabled-effects",
+          reason: decision.reason,
           sourceActionId,
           resolvedActionId,
           triggerSource,
-          outputs: outputSummary,
+          outputs: decision.outputs,
+          ...(decision.reason === "throttled"
+            ? { elapsedMs: decision.elapsedMs, throttleMs: decision.throttleMs }
+            : {}),
         });
         return;
       }
-
-      const now = Date.now();
-      const throttleMs = options.throttleMs ?? (sourceActionId === "wheel" || sourceActionId === "hover" ? Math.max(80, sourceTriggerConfig.holdMs || 80) : 40);
-      const elapsedMs = now - (state.lastTriggerAtByAction[sourceActionId] || 0);
-      if (!options.force && elapsedMs < throttleMs) {
-        diagnostics?.log("action.skip", {
-          reason: "throttled",
-          sourceActionId,
-          resolvedActionId,
-          triggerSource,
-          elapsedMs,
-          throttleMs,
-        });
-        return;
-      }
-      state.lastTriggerAtByAction[sourceActionId] = now;
-
-      const runIndex = (state.actionRunCounts[resolvedActionId] || 0) + 1;
-      state.actionRunCounts[resolvedActionId] = runIndex;
-      const comboWindowMs = getComboWindowMs(actionConfig);
-      const previousComboState = state.actionComboStates[resolvedActionId] || { count: 0, lastAt: 0 };
-      const comboIndex = now - previousComboState.lastAt <= comboWindowMs
-        ? previousComboState.count + 1
-        : 1;
-      state.actionComboStates[resolvedActionId] = {
-        count: comboIndex,
-        lastAt: now,
-      };
       diagnostics?.log("action.fire", {
         sourceActionId,
         resolvedActionId,
         triggerSource,
-        runIndex,
-        comboIndex,
-        comboWindowMs,
+        runIndex: decision.runIndex,
+        comboIndex: decision.comboIndex,
+        comboWindowMs: decision.comboWindowMs,
         force: Boolean(options.force),
-        outputs: outputSummary,
+        outputs: decision.outputs,
         target: diagnostics?.describeTarget(coords.target),
       });
-      visualEffects.renderRipple(coords.x, coords.y, actionConfig);
-      var particleCfg = configStore.getActionParticleConfig(actionConfig);
-      if (particleCfg.particleMotionMode === "orbital") {
-        visualEffects.renderOrbitalParticles(coords.x, coords.y, actionConfig, runIndex, resolvedActionId);
-      } else {
-        visualEffects.renderParticles(coords.x, coords.y, actionConfig, runIndex);
+      for (const effect of decision.outputPlan.effects) {
+        if (effect.kind === "ripple") visualEffects.renderRipple(effect.x, effect.y, effect.actionConfig);
+        else if (effect.kind === "particle" && effect.particleMode === "orbital") {
+          visualEffects.renderOrbitalParticles(effect.x, effect.y, effect.actionConfig, effect.runIndex, effect.actionId);
+        } else if (effect.kind === "particle") {
+          visualEffects.renderParticles(effect.x, effect.y, effect.actionConfig, effect.runIndex);
+        } else if (effect.kind === "text") {
+          visualEffects.renderText(effect.x, effect.y, effect.actionConfig, effect.actionId, effect.runIndex);
+        } else if (effect.kind === "animation") visualEffects.renderAnimationEffect(effect.x, effect.y, effect.actionConfig);
+        else if (effect.kind === "image") visualEffects.renderImageEffect(effect.x, effect.y, effect.actionConfig);
+        else if (effect.kind === "cursor") visualEffects.renderCursorOverride(effect.x, effect.y, effect.actionConfig);
       }
-      visualEffects.renderText(coords.x, coords.y, actionConfig, resolvedActionId, comboIndex);
-      visualEffects.renderAnimationEffect(coords.x, coords.y, actionConfig);
-      visualEffects.renderImageEffect(coords.x, coords.y, actionConfig);
-      visualEffects.renderCursorOverride(coords.x, coords.y, actionConfig);
-      audioRuntime.playSound(actionConfig, resolvedActionId, { comboIndex, comboWindowMs, runIndex });
+      if (decision.outputPlan.audio) {
+        const audio = decision.outputPlan.audio;
+        audioRuntime.playSound(audio.actionConfig, audio.actionId, {
+          comboIndex: audio.comboIndex,
+          comboWindowMs: audio.comboWindowMs,
+          runIndex: audio.runIndex,
+        });
+      }
     }
 
     function scheduleActionTrigger(actionId, coords, scheme, delayMs, options = {}) {

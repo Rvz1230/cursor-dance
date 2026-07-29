@@ -1,14 +1,13 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
+import {
+  ACTION_TRIGGER_FIELDS,
+  getActionAudioConfig,
+  getActionTriggerConfig,
+} from "./action-config";
 
-beforeAll(async () => {
-  globalThis.window = globalThis;
-  await import("./action-config.js");
-});
-
-describe("config-runtime action config helpers", () => {
+describe("shared action config helpers", () => {
   it("picks only audio fields from a larger action config", () => {
-    const { getActionAudioConfig } = globalThis.CursorDanceConfigHelpers;
-    const audioConfig = getActionAudioConfig({
+    expect(getActionAudioConfig({
       sound: true,
       volume: 88,
       playbackRate: 110,
@@ -19,9 +18,7 @@ describe("config-runtime action config helpers", () => {
       soundFile: "woodfish-deep.wav",
       textKind: "数字飘字",
       imageEnabled: true,
-    });
-
-    expect(audioConfig).toEqual({
+    })).toEqual({
       sound: true,
       volume: 88,
       playbackRate: 110,
@@ -33,17 +30,14 @@ describe("config-runtime action config helpers", () => {
     });
   });
 
-  it("exposes the shared trigger field list through the helper bundle", () => {
-    const { ACTION_TRIGGER_FIELDS, getActionTriggerConfig } = globalThis.CursorDanceConfigHelpers;
+  it("keeps the trigger field contract explicit", () => {
     expect(ACTION_TRIGGER_FIELDS).toEqual(["triggerTiming", "triggerZone", "holdMs"]);
-    expect(
-      getActionTriggerConfig({
-        triggerTiming: "抬起时",
-        triggerZone: "当前页面可点击区域",
-        holdMs: 80,
-        sound: true,
-      })
-    ).toEqual({
+    expect(getActionTriggerConfig({
+      triggerTiming: "抬起时",
+      triggerZone: "当前页面可点击区域",
+      holdMs: 80,
+      sound: true,
+    })).toEqual({
       triggerTiming: "抬起时",
       triggerZone: "当前页面可点击区域",
       holdMs: 80,
