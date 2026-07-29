@@ -576,12 +576,20 @@ interface CursorDanceConfigV4 {
 }
 ```
 
+实现结果：
+
+- 已在 `src/shared/config-schema-v4.ts` 冻结共享只读 domain contract，并由 `docs/config-schema-v4.md` 记录字段归属、v3 映射和迁移边界。
+- 根配置严格收敛为 `schemaVersion/enabled/activeThemeId/themes/contextRules/performance`；验证器明确拒绝旧主题别名、`siteRules/appRules`、全局键盘配置和 editor 状态。
+- 主题规范位置只保留 `actionConfigs/cursorBindings/cursorSkin/keyFeedbackConfig`；拒绝 `workbenchDraft`、旧 cursor 多份表示与 reset 派生快照。
+- Web/desktop 规则通过 `context` 判别；主题与规则 ID、主题引用、JSON 数据、光标素材两种引用形态均有运行时契约校验。
+- R3-1 不切换生产持久化版本；现有 v3 数据继续运行，待 R3-2 单向迁移器及损坏数据恢复策略完成后统一切换。
+
 ### R3-2：建立单向迁移器
 
 ```text
 unknown input
   -> validate envelope
-  -> migrate v1/v2/v3 to v4
+  -> migrate unversioned legacy / v3 to v4
   -> normalize v4
   -> immutable domain object
 ```
@@ -590,6 +598,7 @@ unknown input
 
 - normalize 不再隐式补写旧别名。
 - migration 和 runtime normalize 分开。
+- Git 历史中没有正式发布的 schema v1/v2；迁移器只支持可由历史代码和文档证明的未标版本 `schemes/activeSchemeId` 结构与 schema v3，不虚构中间版本。
 - 导入旧主题有 fixture 测试。
 - 配置损坏时保留原始备份并恢复到安全默认值。
 - 至少保留一个正式版本的 v3 读取能力，再决定何时删除。

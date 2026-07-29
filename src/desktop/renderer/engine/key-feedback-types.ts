@@ -1,48 +1,11 @@
+import type { KeyFeedbackConfigV4 } from "../../../shared/config-schema-v4";
+
 // CursorDance 键盘动效配置类型
 //
 // 字段与 Flutter 版 key_feedback_config.dart 对齐，保证跨平台配置文件兼容。
 // trail / splash 字段 schema 保留但不实现不暴露 UI。
 
-export interface KeyFeedbackConfig {
-  // ── 总开关 ──
-  enabled: boolean;
-  // ── 动画形式 ──
-  animationStyle: "bounce" | "raindrop";
-  // ── 弹出位置 ──
-  originEdge: "bottom" | "top" | "left" | "right";
-  originMapping: "keyboardLayout" | "center";
-  globalOffsetX: number;
-  globalOffsetY: number;
-  // ── 字符样式 ──
-  fontSize: number;
-  fontWeight: string;
-  fontFamily: string;
-  color: string;
-  opacity: number;
-  uppercase: boolean;
-  showModifierKeys: boolean;
-  keyDisplayMode: "typed" | "physical";
-  semanticStyles: boolean;
-  typingCombo: boolean;
-  // ── 动画参数 ──
-  duration: number;
-  easing: string;
-  scale: number;
-  bounceHeight: number;
-  gravity: number;
-  wind: number;
-  // ── 特效增强 ──
-  glow: boolean;
-  glowColor: string;
-  glowRadius: number;
-  trail: boolean;
-  trailLength: number;
-  splash: boolean;
-  // ── 高级 ──
-  cooldownMs: number;
-  maxSimultaneous: number;
-  delay: number;
-}
+export type KeyFeedbackConfig = KeyFeedbackConfigV4;
 
 export const defaultKeyFeedbackConfig: KeyFeedbackConfig = {
   enabled: true,
