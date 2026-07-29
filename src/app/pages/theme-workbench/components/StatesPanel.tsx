@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/utils";
 import { CURSOR_STATES } from "../model/workbenchSchema";
 import { validateCursorAssetFile } from "../lib/cursorAssetPresets";
+import { resolveDesktopImageSource } from "@/shared/asset-reference";
 
 const MAX_CURSOR_UPLOAD_BYTES = 300 * 1024;
 const DEFAULT_BOX_SIZE = 48;
@@ -112,14 +113,15 @@ function getDefaultHotspot(stateMeta, width, height) {
 
 function CursorImage({ skinState, inherited = false, className = "" }) {
   const size = skinState ? Math.min(getDisplaySize(skinState), 44) : 34;
+  const imageSource = resolveDesktopImageSource(skinState?.image);
   return (
     <div className={cn(
       "grid shrink-0 place-items-center rounded-[22px] border bg-white/85 shadow-sm backdrop-blur",
       inherited ? "border-dashed border-slate-300" : "border-white/70",
       className,
     )}>
-      {skinState?.image?.dataUrl ? (
-        <img src={skinState.image.dataUrl} alt="" className="object-contain drop-shadow-sm" style={{ width: size, height: size }} />
+      {imageSource ? (
+        <img src={imageSource} alt="" className="object-contain drop-shadow-sm" style={{ width: size, height: size }} />
       ) : (
         <MousePointer2 className="h-5 w-5 text-slate-300" />
       )}
@@ -201,6 +203,7 @@ function HotspotStudio({ skinState, stateMeta, onChangeHotspot, onChangeSize }) 
   const stageRef = useRef(null);
   const [dragging, setDragging] = useState(false);
   const image = skinState?.image;
+  const imageSource = resolveDesktopImageSource(image);
   const displaySize = getDisplaySize(skinState);
   const naturalWidth = image?.width || DEFAULT_BOX_SIZE;
   const naturalHeight = image?.height || DEFAULT_BOX_SIZE;
@@ -251,8 +254,8 @@ function HotspotStudio({ skinState, stateMeta, onChangeHotspot, onChangeSize }) 
         <div className="absolute inset-0 opacity-70" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, #cbd5e1 1px, transparent 0)", backgroundSize: "18px 18px" }} />
         <div className="absolute left-1/2 top-0 h-full w-px bg-slate-300/70" />
         <div className="absolute left-0 top-1/2 h-px w-full bg-slate-300/70" />
-        {image?.dataUrl ? (
-          <img src={image.dataUrl} alt="" draggable={false} className="absolute select-none object-contain drop-shadow-md" style={{ width: previewSize, height: previewSize, left, top }} />
+        {imageSource ? (
+          <img src={imageSource} alt="" draggable={false} className="absolute select-none object-contain drop-shadow-md" style={{ width: previewSize, height: previewSize, left, top }} />
         ) : (
           <div className="absolute inset-0 grid place-items-center text-center text-sm text-slate-400">
             <div>
@@ -261,7 +264,7 @@ function HotspotStudio({ skinState, stateMeta, onChangeHotspot, onChangeSize }) 
             </div>
           </div>
         )}
-        {image?.dataUrl ? <div className="absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-rose-500 shadow-lg ring-4 ring-rose-500/20" style={{ left: hotspotLeft, top: hotspotTop }} /> : null}
+        {imageSource ? <div className="absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-rose-500 shadow-lg ring-4 ring-rose-500/20" style={{ left: hotspotLeft, top: hotspotTop }} /> : null}
       </div>
 
       <div className="rounded-[32px] border border-white/70 bg-white/78 p-5 shadow-sm backdrop-blur">

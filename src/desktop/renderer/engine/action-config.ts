@@ -1,3 +1,5 @@
+import { isDesktopAssetId, toDesktopAssetUrl } from "../../../shared/asset-reference";
+
 const ACTION_TRIGGER_FIELDS = ["triggerTiming", "triggerZone", "holdMs"];
 const ACTION_TEXT_FIELDS = [
   "textKind",
@@ -85,6 +87,7 @@ const ACTION_ANIMATION_FIELDS = [
 const ACTION_IMAGE_FIELDS = [
   "imageEnabled",
   "imageDataUrl",
+  "imageAssetId",
   "imageDuration",
   "imageSize",
   "imageOpacity",
@@ -123,7 +126,11 @@ export function getActionAnimationConfig(config: Record<string, unknown> | undef
 }
 
 export function getActionImageConfig(config: Record<string, unknown> | undefined): Record<string, unknown> {
-  return pickActionConfigFields(config, ACTION_IMAGE_FIELDS);
+  const imageConfig = pickActionConfigFields(config, ACTION_IMAGE_FIELDS);
+  if (!imageConfig.imageDataUrl && isDesktopAssetId(imageConfig.imageAssetId)) {
+    imageConfig.imageDataUrl = toDesktopAssetUrl(imageConfig.imageAssetId);
+  }
+  return imageConfig;
 }
 
 export function getActionCursorFeedbackConfig(config: Record<string, unknown> | undefined): Record<string, unknown> {

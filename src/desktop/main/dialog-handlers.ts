@@ -20,6 +20,7 @@ import {
   validateThemeFileContents,
 } from "./ipc-contracts";
 import { assertIpcSender } from "./ipc-security";
+import { hydrateThemeExportContents } from "./asset-repository";
 
 const THEME_FILE_FILTERS = [
   { name: "CursorDance Theme", extensions: ["cursordance-theme.json", "json"] },
@@ -53,7 +54,12 @@ export function registerDialogIpc(): void {
       if (result.canceled || !result.filePath) {
         return { ok: true, canceled: true };
       }
-      await fs.writeFile(result.filePath, request.contents, "utf8");
+      const portableContents = await hydrateThemeExportContents(request.contents);
+      if (Buffer.byteLength(portableContents, "utf8") > MAX_THEME_FILE_BYTES) {
+        throw new Error(`导出主题超过 ${MAX_THEME_FILE_BYTES} bytes 限制。`);
+      }
+      validateThemeFileContents(portableContents);
+      await fs.writeFile(result.filePath, portableContents, "utf8");
       return { ok: true, canceled: false, filePath: result.filePath };
     } catch (error) {
       const message = error instanceof Error ? error.message : "保存主题文件失败。";

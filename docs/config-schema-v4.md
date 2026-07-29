@@ -1,6 +1,6 @@
 # CursorDance 配置 Schema v4
 
-状态：**R3-2 已投入生产链路**
+状态：**R3-3 已投入生产链路**
 
 类型与运行时契约：`src/shared/config-schema-v4.ts`
 生效范围：Chrome 扩展、Electron 桌面端、静态 Workbench 共用的运行时配置
@@ -83,7 +83,9 @@ type CursorImageV4 =
   | { kind: "asset"; assetId: string; mimeType: string; width: number; height: number };
 ```
 
-`dataUrl` 只用于主题导入导出和尚未进入资产仓库的临时数据。R3-3 完成后，平台持久化层必须先将大素材转换成 `assetId`，再保存配置；业务 domain 不需要因此升级到 schema v5。
+`dataUrl` 只用于主题导入导出和尚未进入资产仓库的临时数据。Electron 与 Chrome 持久化层都会先将大素材转换成 `assetId` 再保存配置；业务 domain 不需要因此升级到 schema v5。Electron 使用 `sha256:<digest>` 内容寻址并通过 `cursordance-asset://` 只读协议加载，主题导出时由主进程恢复为可移植 data URL。
+
+动作贴纸目前仍属于通用 `actionConfigs` JSON：编辑态使用 `imageDataUrl`，Electron 持久化态使用 `imageAssetId`，两者不会同时写入磁盘。主进程拒绝远程图片 URL 和非法 asset URL；后续动作配置强类型化时再把该字段收敛为与光标一致的判别联合类型。
 
 ## 4. 上下文规则
 

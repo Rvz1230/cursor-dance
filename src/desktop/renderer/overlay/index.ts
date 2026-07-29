@@ -26,6 +26,7 @@ import {
   type ActiveWindowSnapshot,
 } from "../../../shared/app-rules";
 import type { CursorSkinStateV4, CursorSkinV4 } from "../../../shared/config-schema-v4";
+import { resolveDesktopImageSource } from "../../../shared/asset-reference";
 
 type CursorEventPayload = {
   type: "mousemove" | "mousedown" | "mouseup" | "wheel" | "leave";
@@ -148,11 +149,13 @@ function resolveCursorSkinState(cursorSkin: CursorSkinV4 | undefined | null, sta
 }
 
 function cursorSkinStateToOverlayState(skinState: CursorSkinStateV4 | null | undefined): typeof cachedCursorState {
-  if (!skinState || skinState.image.kind !== "dataUrl") return undefined;
+  if (!skinState) return undefined;
+  const imageDataUrl = resolveDesktopImageSource(skinState.image);
+  if (!imageDataUrl) return undefined;
   const sourceSize = Math.max(skinState.image.width || 48, skinState.image.height || 48);
   const size = skinState.size?.mode === "fixedBox" ? (skinState.size.boxSize || 48) : sourceSize;
   return {
-    imageDataUrl: skinState.image.dataUrl,
+    imageDataUrl,
     size,
     hotspotX: skinState.hotspot?.x ?? 0,
     hotspotY: skinState.hotspot?.y ?? 0,
@@ -223,7 +226,7 @@ function applyOverlayConfig(next: unknown, source: "stored" | "live-preview" | "
     source,
     schemeId: scheme?.id,
     stateCount: cursorSkin?.states ? Object.keys(cursorSkin.states).length : 0,
-    hasDefault: cursorSkin?.states.default?.image.kind === "dataUrl",
+    hasDefault: Boolean(resolveDesktopImageSource(cursorSkin?.states.default?.image)),
     activeCursorSkinStateId,
     hasResolvedCursor: Boolean(resolvedCursorState?.imageDataUrl),
     hidden: nativeCursorHidden,

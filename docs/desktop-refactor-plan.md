@@ -24,12 +24,13 @@
 | R0-3 性能与代码量基线 | 已完成 | 已记录代码量、bundle、配置载荷、启动、CPU、内存和 1,000 Hz IPC 压力基线 |
 | R3-1 配置 schema v4 | 已完成 | 共享只读 domain contract、严格验证器、Web/desktop 判别规则和素材引用边界已冻结 |
 | R3-2 生产链路 v4-only | 已完成 | Electron、Chrome、静态预览、Workbench、Popup、IPC 与主题文件均只读写 v4；非 v4 整份恢复默认 |
+| R3-3 配置与素材拆分 | 已完成 | Electron 图片按 SHA-256 写入 userData 素材仓库，配置和预览只传 asset id，renderer 通过受限协议按需加载，导出恢复可移植 data URL |
 
 当前验证基线：
 
 - `npm run typecheck` 通过。
 - `npm run lint` 通过（0 error；共享旧代码的 29 条显式 `any` 暂作为 warning 逐步收紧）。
-- Vitest 49 个测试文件、306 个测试通过；删除的数量来自 legacy 迁移与旧站点规则用例，不再作为兼容能力保留。
+- Vitest 53 个测试文件、316 个测试通过；删除的数量来自 legacy 迁移与旧站点规则用例，不再作为兼容能力保留。
 - API 177 个测试通过。
 - 根 Web、landing、Electron main/preload/renderer 构建通过。
 - 根项目、landing、Electron Vite、Vitest 均复用 Vite 7.3.6。
@@ -610,7 +611,7 @@ unknown input
 - Workbench 草稿、reset 快照和导航状态只存在编辑器内存或独立 editor storage，保存边界只输出六个规范根字段。
 - Electron IPC 复用共享 v4 验证器；主题文件改为 `cursordance-theme` + `schemaVersion: 4`，拒绝旧主题 envelope。
 - Overlay、Popup 与 Chrome content runtime 直接消费 `themes/contextRules/cursorBindings/cursorSkin`，不再读取或写入兼容别名。
-- Chrome 大图片使用 v4 `asset` 引用拆分存储，Electron 当前仍内联，后续由 R3-3 统一素材仓库。
+- Chrome 大图片使用 v4 `asset` 引用拆分存储；Electron 由 R3-3 使用内容寻址素材仓库，不再持久化内联图片。
 - 本轮变更合计净删除 1,716 行（1,203 行新增、2,919 行删除，含测试与文档）。
 - Web smoke 5/5 与 Electron desktop smoke 1/1 已按 v4 真实存储和消费链路通过。
 
@@ -629,6 +630,16 @@ unknown input
 - 调节一个 slider 不再传输全部图片 data URL。
 - 同一素材跨主题只存一份。
 - 主题导出仍能生成可移植文件，导入时重新落盘素材。
+
+实现结果：
+
+- 主进程建立 `userData/assets` 内容寻址仓库，光标和动作贴纸按原始字节 SHA-256 去重；同一图片跨状态、动作和主题只保存一份。
+- Electron Store、持久化广播和 Live Preview 只携带 `assetId`。renderer 首次上传后缓存 data URL 与 asset id 的映射，后续滑块变化不会再次跨 IPC 发送图片正文。
+- Workbench 与 Overlay 通过只读 `cursordance-asset://asset/<id>` 协议加载素材；协议限制为合法 SHA-256 id，并配合 CSP、不可变缓存与 MIME sniffing。
+- 主题保存由主进程重新内联素材，导出文件保持可移植；导入的 data URL 在第一次持久化时重新落盘。
+- 清理采用引用扫描与 24 小时宽限期，避免保存、预览、撤销和导出过程中的短暂失联误删。
+- 本阶段仍广播不含二进制的完整 v4 JSON；revision/patch 属于 R6-1 的进一步性能优化，不作为素材拆分的阻塞条件。
+- Vitest 53 个文件共 316 项、Web smoke 5/5、desktop smoke 1/1、typecheck、lint 和 Web/Electron build 均通过；desktop smoke 在真实 sandbox renderer 中验证协议加载与去重存储。
 
 ### R3-4：统一 Workbench persistence
 

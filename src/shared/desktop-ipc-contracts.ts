@@ -87,9 +87,9 @@ type InvokeContract<Request, Response> = {
 
 export interface DesktopIpcInvokeContract {
   [STORE_GET]: InvokeContract<void, unknown | null>;
-  [STORE_SET]: InvokeContract<unknown, void>;
+  [STORE_SET]: InvokeContract<unknown, unknown>;
   [STORE_GET_LIVE_PREVIEW]: InvokeContract<void, unknown | null>;
-  [STORE_SET_LIVE_PREVIEW]: InvokeContract<unknown, void>;
+  [STORE_SET_LIVE_PREVIEW]: InvokeContract<unknown, unknown>;
   [STORE_CLEAR_LIVE_PREVIEW]: InvokeContract<void, void>;
   [DIALOG_SAVE_THEME_FILE]: InvokeContract<SaveThemeFileRequest, SaveThemeFileResult>;
   [DIALOG_OPEN_THEME_FILE]: InvokeContract<void, OpenThemeFileResult>;

@@ -69,9 +69,9 @@ interface Window {
 
 interface CursorDanceStorageBridge {
   getConfig: () => Promise<unknown | null>
-  setConfig: (config: unknown) => Promise<void>
+  setConfig: (config: unknown) => Promise<unknown>
   getLivePreview: () => Promise<unknown | null>
-  setLivePreview: (config: unknown) => Promise<void>
+  setLivePreview: (config: unknown) => Promise<unknown>
   clearLivePreview: () => Promise<void>
   onChange: (callback: (config: unknown) => void) => () => void
   onLivePreviewChange: (callback: (config: unknown | null) => void) => () => void

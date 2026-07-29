@@ -11,18 +11,24 @@ import {
 import { getDefaultConfig, normalizeStoredConfig } from "./runtimeConfig";
 import { normalizeKeyFeedbackConfig } from "@/desktop/renderer/engine/key-feedback-types";
 import { isDesktop } from "@/shared/runtime";
+import {
+  isDesktopAssetId,
+  resolveDesktopImageSource,
+  toDesktopAssetUrl,
+} from "@/shared/asset-reference";
 
 interface BuildStoredThemeOptions {
   includeAtmosphere?: boolean;
 }
 
 function assetFromCursorSkinState(skinState) {
-  if (!skinState?.image || skinState.image.kind !== "dataUrl") return null;
+  const imageDataUrl = resolveDesktopImageSource(skinState?.image);
+  if (!imageDataUrl) return null;
   const size = skinState.size?.mode === "fixedBox"
     ? (skinState.size.boxSize || 48)
     : Math.max(skinState.image.width || 48, skinState.image.height || 48);
   return {
-    imageDataUrl: skinState.image.dataUrl,
+    imageDataUrl,
     hotspotX: skinState.hotspot?.x ?? 0,
     hotspotY: skinState.hotspot?.y ?? 0,
     size,
@@ -39,10 +45,13 @@ function toWorkbenchCursorMode(stateId, mode) {
 
 function buildDraftActionConfigs(baseDraft, theme) {
   return Object.fromEntries(
-    PLATFORM_ACTIONS.map((action) => [
-      action.id,
-      mergeActionConfig(baseDraft.actionConfigs[action.id], theme?.actionConfigs?.[action.id] || {}),
-    ]),
+    PLATFORM_ACTIONS.map((action) => {
+      const merged = mergeActionConfig(baseDraft.actionConfigs[action.id], theme?.actionConfigs?.[action.id] || {});
+      if (isDesktop() && isDesktopAssetId(merged.imageAssetId) && !merged.imageDataUrl) {
+        merged.imageDataUrl = toDesktopAssetUrl(merged.imageAssetId);
+      }
+      return [action.id, merged];
+    }),
   );
 }
 
@@ -182,6 +191,14 @@ function buildCursorBindings(draft) {
   }]));
 }
 
+function buildStoredActionConfigs(draft) {
+  const actionConfigs = pickStoredWorkbenchActionConfigs(draft.actionConfigs);
+  for (const actionConfig of Object.values(actionConfigs)) {
+    if (actionConfig.imageDataUrl === "") delete actionConfig.imageAssetId;
+  }
+  return actionConfigs;
+}
+
 function buildStoredTheme(
   themeId,
   draft,
@@ -197,7 +214,7 @@ function buildStoredTheme(
     name: themeRecord?.name ?? previousTheme?.name ?? themeId,
     description: themeRecord?.description ?? themeRecord?.summary ?? previousTheme?.description ?? "",
     kind: themeRecord?.kind === "内置" ? "builtin" : "custom",
-    actionConfigs: pickStoredWorkbenchActionConfigs(draft.actionConfigs),
+    actionConfigs: buildStoredActionConfigs(draft),
     cursorBindings: buildCursorBindings(draft),
     cursorSkin: draft.cursorSkin,
     keyFeedbackConfig: normalizeKeyFeedbackConfig(draft.keyFeedbackConfig),

@@ -85,7 +85,9 @@
 - **R3-1 验证**：48 个根测试文件共 350 项通过；typecheck、lint（0 error，保留既有 29 warning）、Web/Electron build、Web smoke 5/5 和桌面 smoke 1/1 通过
 - [x] R3-2：生产配置切换为 v4-only——Electron、Chrome、静态预览、Workbench、Popup、IPC 和主题文件均只读写 v4；缺失、损坏或非 v4 数据整份恢复最新默认配置
 - **R3-2 验证**：49 个根测试文件共 306 项通过；typecheck、lint（0 error，保留既有 29 warning）、Web/Electron build、Web smoke 5/5 和 desktop smoke 1/1 通过；本轮变更净删除 1,716 行
-- **下一步**：进入 R3-3，建立 Electron 素材仓库，以 asset id 消除图片 data URL 在完整配置与 Live Preview 中的重复传输。Windows 同步执行 R1-4 真机验收。
+- [x] R3-3：Electron 素材仓库——光标和动作贴纸按 SHA-256 去重写入 `userData/assets`，配置与 Live Preview 只保存 asset id，renderer 通过受限 `cursordance-asset://` 协议按需加载；主题导出自动内联为可移植 data URL，孤立素材按 24 小时宽限期清理
+- **R3-3 验证**：53 个根测试文件共 316 项通过；typecheck、lint（0 error，保留既有 29 warning）、Web/Electron build、Web smoke 5/5 和 desktop smoke 1/1 通过；desktop smoke 真实断言配置不含 data URL、相同图片只落一个 asset id 且协议可加载
+- **下一步**：进入 R3-4，以 `WorkbenchRepository` 收口 Electron、Chrome Storage 与 localStorage 分支。Windows 同步执行 R1-4 真机验收。
 
 ### 分支状态
 

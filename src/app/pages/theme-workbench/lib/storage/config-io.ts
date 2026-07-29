@@ -1,6 +1,10 @@
 import { CURSOR_STATES } from "../../model/workbenchSchema";
 import { getDefaultConfig, normalizeStoredConfig } from "../runtimeConfig";
 import {
+  assetIdFromDesktopAssetUrl,
+  isDesktopAssetId,
+} from "@/shared/asset-reference";
+import {
   CONFIG_STORAGE_KEY,
   EDITOR_STATE_STORAGE_KEY,
   LIVE_PREVIEW_CONFIG_STORAGE_KEY,
@@ -12,6 +16,91 @@ import {
   getElectronStorageBridge,
   postLocalPreviewMessage,
 } from "./chrome-api";
+
+const desktopAssetIdByDataUrl = new Map<string, string>();
+
+type TransportImage = {
+  kind?: unknown;
+  dataUrl?: unknown;
+  assetId?: unknown;
+  mimeType?: unknown;
+  width?: unknown;
+  height?: unknown;
+};
+
+type TransportState = { image?: TransportImage };
+type TransportAction = Record<string, unknown>;
+type TransportTheme = {
+  id?: unknown;
+  cursorSkin?: { states?: Record<string, TransportState> };
+  actionConfigs?: Record<string, TransportAction>;
+};
+type TransportConfig = { themes?: TransportTheme[] };
+
+function cloneConfig(config: unknown): TransportConfig {
+  return JSON.parse(JSON.stringify(config)) as TransportConfig;
+}
+
+function canonicalizeCachedDesktopAssets(config: unknown): TransportConfig {
+  const next = cloneConfig(config);
+  for (const theme of next.themes || []) {
+    for (const state of Object.values(theme.cursorSkin?.states || {})) {
+      const image = state.image;
+      if (image?.kind !== "dataUrl" || typeof image.dataUrl !== "string") continue;
+      const assetId = desktopAssetIdByDataUrl.get(image.dataUrl);
+      if (!assetId) continue;
+      state.image = {
+        kind: "asset",
+        assetId,
+        mimeType: image.mimeType,
+        width: image.width,
+        height: image.height,
+      };
+    }
+    for (const action of Object.values(theme.actionConfigs || {})) {
+      const imageDataUrl = typeof action.imageDataUrl === "string" ? action.imageDataUrl : "";
+      if ("imageDataUrl" in action && imageDataUrl === "") {
+        delete action.imageAssetId;
+        continue;
+      }
+      const assetId = desktopAssetIdByDataUrl.get(imageDataUrl)
+        ?? assetIdFromDesktopAssetUrl(imageDataUrl)
+        ?? (isDesktopAssetId(action.imageAssetId) ? action.imageAssetId : null);
+      if (!assetId) continue;
+      action.imageAssetId = assetId;
+      delete action.imageDataUrl;
+    }
+  }
+  return next;
+}
+
+function rememberMaterializedDesktopAssets(sourceValue: unknown, storedValue: unknown) {
+  const sourceConfig = sourceValue as TransportConfig;
+  const storedConfig = storedValue as TransportConfig;
+  const storedThemes = new Map((storedConfig?.themes || []).map((theme) => [theme.id, theme]));
+  for (const sourceTheme of sourceConfig?.themes || []) {
+    const storedTheme = storedThemes.get(sourceTheme.id);
+    if (!storedTheme) continue;
+    for (const [stateId, sourceState] of Object.entries(sourceTheme.cursorSkin?.states || {})) {
+      const sourceImage = sourceState.image;
+      const storedImage = storedTheme.cursorSkin?.states?.[stateId]?.image;
+      if (
+        sourceImage?.kind === "dataUrl"
+        && typeof sourceImage.dataUrl === "string"
+        && isDesktopAssetId(storedImage?.assetId)
+      ) {
+        desktopAssetIdByDataUrl.set(sourceImage.dataUrl, storedImage.assetId);
+      }
+    }
+    for (const [actionId, sourceAction] of Object.entries(sourceTheme.actionConfigs || {})) {
+      const imageDataUrl = sourceAction.imageDataUrl;
+      const assetId = storedTheme.actionConfigs?.[actionId]?.imageAssetId;
+      if (typeof imageDataUrl === "string" && imageDataUrl.startsWith("data:") && isDesktopAssetId(assetId)) {
+        desktopAssetIdByDataUrl.set(imageDataUrl, assetId);
+      }
+    }
+  }
+}
 
 function readLocalStorageConfig() {
   if (!canUseLocalStorage()) return null;
@@ -196,9 +285,11 @@ export async function writeExtensionConfig(config) {
 
   const bridge = getElectronStorageBridge();
   if (bridge) {
-    // electron-store 单 key 容量足够大；cursor 资产无需拆分，整个 normalized 直接落盘。
-    await bridge.setConfig(normalized);
-    return normalized;
+    const payload = canonicalizeCachedDesktopAssets(normalized);
+    const stored = await bridge.setConfig(payload);
+    const materialized = stored ? normalizeStoredConfig(stored) : normalized;
+    rememberMaterializedDesktopAssets(normalized, materialized);
+    return materialized;
   }
 
   const chromeApi = getChromeApi();
@@ -239,8 +330,11 @@ export async function writeLivePreviewConfig(config) {
 
   const bridge = getElectronStorageBridge();
   if (bridge) {
-    await bridge.setLivePreview(normalized);
-    return normalized;
+    const payload = canonicalizeCachedDesktopAssets(normalized);
+    const stored = await bridge.setLivePreview(payload);
+    const materialized = stored ? normalizeStoredConfig(stored) : normalized;
+    rememberMaterializedDesktopAssets(normalized, materialized);
+    return materialized;
   }
 
   const chromeApi = getChromeApi();

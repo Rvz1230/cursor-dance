@@ -32,6 +32,11 @@ import {
   writeConfig,
 } from "./electron-store";
 import { APP_ACTIVE_WINDOW_CHANGED, CURSOR_EVENT, KEYBOARD_EVENT } from "../../shared/ipc-channels";
+import {
+  registerAssetProtocol,
+  registerAssetSchemePrivileges,
+  unregisterAssetProtocol,
+} from "./asset-protocol";
 
 let stopMouseCapture: (() => void) | null = null;
 let stopDisplayWatcher: (() => void) | null = null;
@@ -50,6 +55,8 @@ const smokeUserDataPath = process.env.CURSORDANCE_DESKTOP_SMOKE_USER_DATA;
 if (isDesktopSmokeTest && smokeUserDataPath) {
   app.setPath("userData", smokeUserDataPath);
 }
+
+registerAssetSchemePrivileges();
 
 const workbenchWindowController = createWorkbenchWindowController(createWorkbenchWindow);
 
@@ -133,6 +140,8 @@ function openWorkbench(): void {
 }
 
 void app.whenReady().then(async () => {
+  registerAssetProtocol();
+
   if (process.platform === "darwin" && !app.isPackaged && app.dock) {
     const iconPath = join(app.getAppPath(), "build/icon.png");
     const icon = nativeImage.createFromPath(iconPath);
@@ -280,6 +289,7 @@ app.on("before-quit", () => {
   unregisterFirstRunIpc();
   unregisterAiIpc();
   unregisterCursorVisibilityIpc();
+  unregisterAssetProtocol();
   restoreNativeCursor();
   destroyAllOverlays();
 });

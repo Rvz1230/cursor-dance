@@ -110,6 +110,49 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
     await expect.poll(() => workbenchPage.evaluate(() =>
       document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.getAttribute("content"),
     )).toContain("default-src 'self'");
+    const assetResult = await workbenchPage.evaluate(async () => {
+      const bridge = window.cursorDanceStorage;
+      if (!bridge) throw new Error("cursorDanceStorage bridge is unavailable");
+      const current = await bridge.getConfig();
+      const next = structuredClone(current);
+      const theme = next.themes.find((item) => item.id === next.activeThemeId) || next.themes[0];
+      const dataUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+      theme.cursorSkin.states.default = {
+        image: { kind: "dataUrl", mimeType: "image/png", dataUrl, width: 1, height: 1 },
+        hotspot: { x: 0, y: 0 },
+        size: { mode: "fixedBox", boxSize: 32 },
+      };
+      theme.actionConfigs.leftClick.imageEnabled = true;
+      theme.actionConfigs.leftClick.imageDataUrl = dataUrl;
+      const stored = await bridge.setConfig(next);
+      const storedTheme = stored.themes.find((item) => item.id === stored.activeThemeId) || stored.themes[0];
+      const cursorImage = storedTheme.cursorSkin.states.default.image;
+      const action = storedTheme.actionConfigs.leftClick;
+      const source = `cursordance-asset://asset/${encodeURIComponent(cursorImage.assetId)}`;
+      const loaded = await new Promise((resolve) => {
+        const image = new Image();
+        const timer = window.setTimeout(() => resolve(false), 2_000);
+        image.onload = () => { window.clearTimeout(timer); resolve(true); };
+        image.onerror = () => { window.clearTimeout(timer); resolve(false); };
+        image.src = source;
+      });
+      return {
+        cursorKind: cursorImage.kind,
+        cursorAssetId: cursorImage.assetId,
+        actionAssetId: action.imageAssetId,
+        actionHasInlineData: typeof action.imageDataUrl === "string" && action.imageDataUrl.startsWith("data:"),
+        serializedHasInlineData: JSON.stringify(stored).includes("data:image/"),
+        loaded,
+      };
+    });
+    expect(assetResult).toMatchObject({
+      cursorKind: "asset",
+      actionHasInlineData: false,
+      serializedHasInlineData: false,
+      loaded: true,
+    });
+    expect(assetResult.cursorAssetId).toMatch(/^sha256:[a-f0-9]{64}$/);
+    expect(assetResult.actionAssetId).toBe(assetResult.cursorAssetId);
     await expect(electronApp.evaluate(({ BrowserWindow }) => {
       const workbench = BrowserWindow.getAllWindows().find((win) =>
         win.webContents.getURL().includes("/renderer/workbench/index.html"),

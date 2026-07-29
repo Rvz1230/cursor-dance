@@ -25,6 +25,12 @@ vi.mock("./electron-store", () => ({
   clearLivePreview: vi.fn(),
 }));
 
+vi.mock("./asset-repository", () => ({
+  collectReferencedAssetIds: vi.fn(() => new Set()),
+  materializeConfigAssets: vi.fn(async (config: unknown) => config),
+  sweepUnreferencedAssets: vi.fn(async () => 0),
+}));
+
 import { registerStoreIpc } from "./ipc-handlers";
 import { __testing__, registerIpcSender } from "./ipc-security";
 
@@ -48,10 +54,10 @@ describe("store IPC contracts", () => {
     registerStoreIpc(() => []);
   });
 
-  it("validates Workbench writes before persistence", () => {
+  it("validates Workbench writes before persistence", async () => {
     registerIpcSender({ id: 1 }, "workbench");
     const handler = mocks.handlers.get(STORE_SET)!;
-    handler(eventFor(1), validConfig(false));
+    await handler(eventFor(1), validConfig(false));
     expect(mocks.writeConfig).toHaveBeenCalledWith(expect.objectContaining({
       schemaVersion: 4,
       enabled: false,

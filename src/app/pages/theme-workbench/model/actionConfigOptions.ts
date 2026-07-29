@@ -169,6 +169,7 @@ export const ACTION_ANIMATION_FIELDS = [
 export const ACTION_IMAGE_FIELDS = [
   "imageEnabled",
   "imageDataUrl",
+  "imageAssetId",
   "imageDuration",
   "imageSize",
   "imageOpacity",
