@@ -458,7 +458,7 @@ overlay preload:
 
 实现结果：
 
-- Electron Vite 生成独立 `workbench.mjs` 与 `overlay.mjs` preload 入口，窗口不再复用全量 bridge。
+- preload 源码和 bridge factory 按 Workbench/Overlay 拆分，两个窗口不再暴露同一套全量能力；R2-3 启用 sandbox 后改由自包含 CommonJS dispatcher 按主进程注入的窗口类型选择对应能力面。
 - Workbench 不再暴露全局输入事件；Overlay 不再暴露配置写入、live preview 写入、文件对话框、首次启动、外链、窗口控制、AI 或平台能力桥。
 - 按存储、前台应用、输入、对话框、窗口、AI 和平台信息拆分 bridge factory，共享统一的 IPC 订阅生命周期实现。
 - Electron smoke 对两个窗口的实际 `window` 能力面做白名单断言，避免后续误把高权限 bridge 加回 Overlay。
@@ -496,6 +496,15 @@ overlay preload:
 - 禁止 AI Markdown 直接创建 Electron 子窗口。
 - renderer HTML 增加适合开发和生产的 CSP。
 - 在验证 preload 可运行后启用 `sandbox: true`。
+
+实现结果：
+
+- 新增统一窗口安全绑定，Workbench 和 Overlay 同时拦截非入口 URL 的 `will-navigate` / `will-redirect`，拒绝所有 Electron 子窗口与 `webview` 附加。
+- 导航白名单只允许窗口自身入口的协议、host 和 pathname，保留应用内部 query/hash；开发服务器和生产 `file://` 均使用创建窗口时算出的准确入口 URL。
+- AI Markdown 链接在桌面端改走 `cursorDanceApp.openExternal`，继续复用主进程协议、长度和 sender 白名单；浏览器扩展仍保留普通链接行为。
+- Workbench 和 Overlay 分别加入最小 CSP；Workbench 暂时只放行本机 AI HTTP 与 Vite HMR，Overlay 完全禁止网络连接。
+- 两个 renderer 已启用 `sandbox: true`。为兼容 Electron sandbox 不支持 ESM preload 本地共享 chunk 的限制，构建改为单个自包含 CommonJS preload；主进程通过 `additionalArguments` 注入窗口类型，dispatcher 只注册对应 bridge，主进程 IPC sender policy 仍作为第二层权限校验。
+- 单元测试覆盖入口 URL 判定、导航/重定向阻断、子窗口/webview 拒绝、销毁清理和 preload 窗口类型解析；Electron smoke 覆盖 CSP、监听器、新窗口拒绝、sandbox 下 bridge 能力面与原有生命周期。
 
 ### R2-4：桌面 AI 改为 IPC transport
 

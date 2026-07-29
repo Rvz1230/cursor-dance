@@ -13,8 +13,10 @@
 
 import { BrowserWindow, type Display } from "electron";
 import { join } from "path";
-import { fileURLToPath } from "url";
+import { fileURLToPath, pathToFileURL } from "url";
+import { desktopWindowKindArgument } from "../../shared/desktop-window-kind";
 import { registerIpcSender } from "./ipc-security";
+import { bindWindowSecurity } from "./window-security";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
@@ -53,14 +55,21 @@ export function createOverlayWindow(display: Display): BrowserWindow {
     backgroundColor: "#00000000",
     type: process.platform === "linux" ? undefined : "normal",
     webPreferences: {
-      preload: join(__dirname, "../preload/overlay.mjs"),
+      preload: join(__dirname, "../preload/index.js"),
+      additionalArguments: [desktopWindowKindArgument("overlay")],
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      sandbox: true,
       backgroundThrottling: false,
     },
   });
   const unregisterIpcSender = registerIpcSender(win.webContents, "overlay");
+
+  const devUrl = process.env["ELECTRON_RENDERER_URL"];
+  const entryUrl = devUrl
+    ? new URL("overlay/index.html", `${devUrl.replace(/\/$/, "")}/`).href
+    : pathToFileURL(join(__dirname, "../renderer/overlay/index.html")).href;
+  const unbindWindowSecurity = bindWindowSecurity(win.webContents, entryUrl);
 
   // 鼠标穿透：forward:true 在 macOS 仍能让 hover 事件传递出去——但我们走的是
   // uiohook 全局抓事件，主要诉求只是「不要把点击吃掉」。
@@ -81,16 +90,12 @@ export function createOverlayWindow(display: Display): BrowserWindow {
     win.showInactive(); // 不抢焦点
   });
 
-  const devUrl = process.env["ELECTRON_RENDERER_URL"];
-  if (devUrl) {
-    void win.loadURL(`${devUrl}/overlay/index.html`);
-  } else {
-    void win.loadFile(join(__dirname, "../renderer/overlay/index.html"));
-  }
+  void win.loadURL(entryUrl);
 
   overlayWindows.set(display.id, win);
   win.once("closed", () => {
     unregisterIpcSender();
+    unbindWindowSecurity();
     overlayWindows.delete(display.id);
   });
 

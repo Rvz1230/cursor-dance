@@ -97,6 +97,20 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
     let workbenchPage = await getWorkbenchPage(electronApp);
     await expect(workbenchPage).toHaveTitle("CursorDance 工作台");
     await waitForWorkbenchReady(workbenchPage);
+    await expect.poll(() => workbenchPage.evaluate(() =>
+      document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.getAttribute("content"),
+    )).toContain("default-src 'self'");
+    await expect(electronApp.evaluate(({ BrowserWindow }) => {
+      const workbench = BrowserWindow.getAllWindows().find((win) =>
+        win.webContents.getURL().includes("/renderer/workbench/index.html"),
+      );
+      return {
+        navigate: workbench?.webContents.listenerCount("will-navigate") ?? 0,
+        redirect: workbench?.webContents.listenerCount("will-redirect") ?? 0,
+        webview: workbench?.webContents.listenerCount("will-attach-webview") ?? 0,
+      };
+    })).resolves.toEqual({ navigate: 1, redirect: 1, webview: 1 });
+    await expect(workbenchPage.evaluate(() => window.open("https://example.com/blocked-window") === null)).resolves.toBe(true);
     await expect(workbenchPage.getByText("氛围动效", { exact: true })).toHaveCount(0);
     await expect.poll(() => workbenchPage.evaluate(() => ({
       cursorEvents: "cursorDanceAPI" in window,
@@ -156,6 +170,9 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
 
     const overlayPage = electronApp.windows().find((page) => isWindowType(page.url(), "overlay"));
     if (!overlayPage) throw new Error("Overlay page did not open");
+    await expect.poll(() => overlayPage.evaluate(() =>
+      document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.getAttribute("content"),
+    )).toContain("default-src 'none'");
     await expect.poll(() => overlayPage.evaluate(() => ({
       cursorEvents: "cursorDanceAPI" in window,
       storageMethods: Object.keys(window.cursorDanceStorage || {}).sort(),

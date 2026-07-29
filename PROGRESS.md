@@ -76,7 +76,9 @@
 - **R2-1 验证**：typecheck、lint、Electron build 和桌面 smoke 通过；smoke 已对白名单能力面做真实窗口断言
 - [x] R2-2：typed IPC contract——共享 request/response 类型、主进程 sender/window kind 白名单，以及配置/主题/AI/外链 payload 校验已接入
 - **R2-2 验证**：44 个测试文件共 328 项通过；覆盖未知 sender、Overlay 越权写配置、Workbench 越权控制光标、schema/大小/字段校验
-- **下一步**：进入 R2-3，阻断任意导航和新窗口并补 CSP；Windows 同步执行 R1-4 真机验收。
+- [x] R2-3：窗口安全边界——阻断任意导航、重定向、Electron 子窗口和 webview，补齐 CSP，并在自包含 CommonJS preload 下启用 renderer sandbox
+- **R2-3 验证**：46 个测试文件共 338 项通过；typecheck、lint（0 error，保留原有 29 warning）、Electron build 和桌面 smoke 通过，smoke 同时验证 sandbox 下窗口能力白名单
+- **下一步**：进入 R2-4，将桌面 AI 从 localhost HTTP 服务迁移到 typed IPC transport；Windows 同步执行 R1-4 真机验收。
 
 ### 分支状态
 

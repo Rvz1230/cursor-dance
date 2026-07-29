@@ -21,9 +21,11 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()],
     build: {
       rollupOptions: {
-        input: {
-          workbench: resolve(__dirname, "src/desktop/preload/workbench.ts"),
-          overlay: resolve(__dirname, "src/desktop/preload/overlay.ts"),
+        input: resolve(__dirname, "src/desktop/preload/index.ts"),
+        output: {
+          format: "cjs",
+          entryFileNames: "index.js",
+          inlineDynamicImports: true,
         },
       },
     },

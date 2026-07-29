@@ -6,9 +6,11 @@ import { createWindowBridge } from "./bridges/window";
 import { createWorkbenchAppBridge } from "./bridges/workbench-app";
 import { createWorkbenchStorageBridge } from "./bridges/workbench-storage";
 
-contextBridge.exposeInMainWorld("electronAPI", createPlatformBridge());
-contextBridge.exposeInMainWorld("cursorDanceStorage", createWorkbenchStorageBridge());
-contextBridge.exposeInMainWorld("cursorDanceDialog", createDialogBridge());
-contextBridge.exposeInMainWorld("cursorDanceApp", createWorkbenchAppBridge());
-contextBridge.exposeInMainWorld("cursorDanceWindow", createWindowBridge());
-contextBridge.exposeInMainWorld("cursorDanceAi", createAiBridge());
+export function exposeWorkbenchPreload(): void {
+  contextBridge.exposeInMainWorld("electronAPI", createPlatformBridge());
+  contextBridge.exposeInMainWorld("cursorDanceStorage", createWorkbenchStorageBridge());
+  contextBridge.exposeInMainWorld("cursorDanceDialog", createDialogBridge());
+  contextBridge.exposeInMainWorld("cursorDanceApp", createWorkbenchAppBridge());
+  contextBridge.exposeInMainWorld("cursorDanceWindow", createWindowBridge());
+  contextBridge.exposeInMainWorld("cursorDanceAi", createAiBridge());
+}

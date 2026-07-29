@@ -13,9 +13,11 @@
 
 import { BrowserWindow } from "electron";
 import { join } from "path";
-import { fileURLToPath } from "url";
+import { fileURLToPath, pathToFileURL } from "url";
+import { desktopWindowKindArgument } from "../../shared/desktop-window-kind";
 import { registerIpcSender } from "./ipc-security";
 import { bindWindowStateBroadcast } from "./window-controls";
+import { bindWindowSecurity } from "./window-security";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
@@ -32,13 +34,20 @@ export function createWorkbenchWindow(): BrowserWindow {
     trafficLightPosition: isMac ? { x: 11, y: 7 } : undefined,
     backgroundColor: "#f1f5f9",
     webPreferences: {
-      preload: join(__dirname, "../preload/workbench.mjs"),
+      preload: join(__dirname, "../preload/index.js"),
+      additionalArguments: [desktopWindowKindArgument("workbench")],
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      sandbox: true,
     },
   });
   const unregisterIpcSender = registerIpcSender(win.webContents, "workbench");
+
+  const devUrl = process.env["ELECTRON_RENDERER_URL"];
+  const entryUrl = devUrl
+    ? new URL("workbench/index.html", `${devUrl.replace(/\/$/, "")}/`).href
+    : pathToFileURL(join(__dirname, "../renderer/workbench/index.html")).href;
+  const unbindWindowSecurity = bindWindowSecurity(win.webContents, entryUrl);
 
   win.on("ready-to-show", () => win.show());
 
@@ -46,14 +55,10 @@ export function createWorkbenchWindow(): BrowserWindow {
   win.once("closed", () => {
     unregisterIpcSender();
     unbindStateBroadcast();
+    unbindWindowSecurity();
   });
 
-  const devUrl = process.env["ELECTRON_RENDERER_URL"];
-  if (devUrl) {
-    void win.loadURL(`${devUrl}/workbench/index.html`);
-  } else {
-    void win.loadFile(join(__dirname, "../renderer/workbench/index.html"));
-  }
+  void win.loadURL(entryUrl);
 
   return win;
 }

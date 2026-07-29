@@ -167,7 +167,17 @@ function MessageBubble({ message, onEdit, actionId, notify }) {
                 li: ({ children }) => <li className="text-xs leading-5">{children}</li>,
                 strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
                 a: ({ href, children }) => (
-                  <a href={href} className="underline underline-offset-2 hover:text-slate-900" target="_blank" rel="noreferrer">
+                  <a
+                    href={href}
+                    className="underline underline-offset-2 hover:text-slate-900"
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={(event) => {
+                      if (!href || !window.cursorDanceApp) return;
+                      event.preventDefault();
+                      void window.cursorDanceApp.openExternal(href);
+                    }}
+                  >
                     {children}
                   </a>
                 ),
