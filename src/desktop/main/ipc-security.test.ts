@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+  AI_CREATE_PROPOSAL_STREAM,
   APP_GET_ACTIVE_WINDOW,
   CURSOR_VISIBILITY_SET_HIDDEN,
   STORE_GET,
@@ -46,6 +47,7 @@ describe("IPC sender policy", () => {
   it("rejects workbench-only writes from overlays", () => {
     registerIpcSender({ id: 2 }, "overlay");
     expect(() => assertIpcSender(eventFor(2), STORE_SET)).toThrow(/access denied/);
+    expect(() => assertIpcSender(eventFor(2), AI_CREATE_PROPOSAL_STREAM)).toThrow(/access denied/);
   });
 
   it("rejects overlay-only cursor control from Workbench", () => {
@@ -62,6 +64,7 @@ describe("IPC sender policy", () => {
   it("keeps the policy explicit for shared, Workbench and Overlay capabilities", () => {
     expect(IPC_SENDER_POLICY[STORE_GET]).toEqual(["workbench", "overlay"]);
     expect(IPC_SENDER_POLICY[STORE_SET]).toEqual(["workbench"]);
+    expect(IPC_SENDER_POLICY[AI_CREATE_PROPOSAL_STREAM]).toEqual(["workbench"]);
     expect(IPC_SENDER_POLICY[CURSOR_VISIBILITY_SET_HIDDEN]).toEqual(["overlay"]);
   });
 });

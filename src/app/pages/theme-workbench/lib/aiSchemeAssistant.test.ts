@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { createThemeDraft } from "../model/workbenchSchema";
 import {
@@ -16,6 +16,7 @@ import {
   getAiPatchSanitizeMeta,
   normalizeAiSchemeProposal,
   requestAiSchemeEdit,
+  requestAiSchemeEditStreaming,
   sanitizeAiSchemePatch,
   validateAiSchemeRequest,
 } from "./aiSchemeAssistant";
@@ -136,6 +137,63 @@ describe("aiSchemeAssistant", () => {
     expect(requestBody.proposalContext.targets[0].patch).toEqual({ sound: true });
 
     globalThis.fetch = originalFetch;
+  });
+
+  it("uses the desktop IPC bridge and forwards streaming progress", async () => {
+    const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+    const onProgress = vi.fn();
+    let requestListener = null;
+    const bridge = {
+      onRequestEvent(callback) {
+        requestListener = callback;
+        return () => { requestListener = null; };
+      },
+      cancelRequest: vi.fn(async () => undefined),
+      createProposalStream: vi.fn(async (request) => {
+        requestListener?.({
+          requestId: request.requestId,
+          type: "progress",
+          data: { reply: "正在生成" },
+        });
+        return {
+          status: 200,
+          body: {
+            schemaVersion: AI_SCHEMA_VERSION,
+            mode: "modify_action",
+            targets: [{ type: "action", actionId: "leftClick", label: "左键单击", patch: { sound: false } }],
+            reply: "已关闭声音。",
+          },
+        };
+      }),
+    };
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: { cursorDanceAi: bridge },
+    });
+
+    try {
+      const { result } = await requestAiSchemeEditStreaming({
+        prompt: "关闭声音",
+        actionId: "leftClick",
+        actionLabel: "左键单击",
+        currentConfig: { sound: true },
+        taskMode: "modify_action",
+        onProgress,
+      });
+
+      expect(bridge.createProposalStream).toHaveBeenCalledOnce();
+      expect(onProgress).toHaveBeenCalledWith("正在生成");
+      expect(result.patch).toEqual({ sound: false });
+      expect(result.diffItems).toEqual([
+        expect.objectContaining({ fieldName: "sound", beforeLabel: "开启", afterLabel: "关闭" }),
+      ]);
+    } finally {
+      if (originalWindow) {
+        Object.defineProperty(globalThis, "window", originalWindow);
+      } else {
+        Reflect.deleteProperty(globalThis, "window");
+      }
+    }
   });
 
   it("normalizes AI responses into proposal contract", () => {

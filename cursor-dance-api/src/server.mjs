@@ -2,23 +2,12 @@ import { createServer } from "node:http";
 import {
   buildCorsHeaders,
   createAiSchemeProposal,
+  createAiSchemeProposalStreaming,
+  createAiAgentProposal,
+  validateAiStreamingRequest,
   getAiServiceHealth,
   validateAiApiAccess,
-  serializeAiProposal,
 } from "./proposal-service.mjs";
-import {
-  generateSchemePatchWithModelStreaming,
-  hasConfiguredModelProvider,
-} from "./model-provider.mjs";
-import {
-  getAiPatchSanitizeMeta,
-  sanitizeAiSchemePatch,
-} from "./sanitize.js";
-import {
-  normalizeAiSchemeProposal,
-  validateAiSchemeRequest,
-} from "./normalize.js";
-import { runAgentLoop } from "./agent-loop.mjs";
 import { AI_SCHEMA_VERSION } from "./field-defs.js";
 import {
   acquireSlot,
@@ -97,21 +86,9 @@ async function handleAgentRun(request, response) {
     return;
   }
 
-  const requestState = validateAiSchemeRequest(payload);
-  if (!requestState.ok) {
-    sendJson(response, 400, {
-      error: "Invalid AI agent request",
-      code: "invalid_request",
-      details: requestState.errors,
-    }, request.headers.origin || "");
-    return;
-  }
-
-  if (!hasConfiguredModelProvider(process.env)) {
-    sendJson(response, 503, {
-      error: "AI model provider is not configured",
-      code: "provider_failed",
-    }, request.headers.origin || "");
+  const validation = validateAiStreamingRequest(payload, { requestLabel: "AI agent" });
+  if (!validation.ok) {
+    sendJson(response, validation.result.status, validation.result.body, request.headers.origin || "");
     return;
   }
 
@@ -130,9 +107,7 @@ async function handleAgentRun(request, response) {
   sendSseHeaders(response, origin);
 
   try {
-    const result = await runAgentLoop({
-      ...requestState.value,
-      env: process.env,
+    const result = await createAiAgentProposal(payload, {
       onEvent: (event, data) => {
         if (!response.writableEnded) {
           sendSseEvent(response, event, data);
@@ -140,20 +115,10 @@ async function handleAgentRun(request, response) {
       },
     });
 
-    if (!response.writableEnded && result.ok) {
-      sendSseEvent(response, "result", {
-        proposal: serializeAiProposal(result.proposal),
-        steps: result.steps,
-        totalTokens: result.totalTokens,
-        totalCacheHitTokens: result.totalCacheHitTokens,
-        totalCacheMissTokens: result.totalCacheMissTokens,
-        durationMs: result.durationMs,
-      });
-    } else if (!response.writableEnded && !result.ok) {
-      sendSseEvent(response, "error", {
-        error: result.error || "Agent loop failed",
-        steps: result.steps?.length || 0,
-      });
+    if (!response.writableEnded && result.status === 200) {
+      sendSseEvent(response, "result", result.body);
+    } else if (!response.writableEnded) {
+      sendSseEvent(response, "error", result.body);
     }
   } catch (error) {
     if (!response.writableEnded) {
@@ -226,21 +191,9 @@ async function handleSchemeProposalStream(request, response) {
     return;
   }
 
-  const requestState = validateAiSchemeRequest(payload);
-  if (!requestState.ok) {
-    sendJson(response, 400, {
-      error: "Invalid AI scheme request",
-      code: "invalid_request",
-      details: requestState.errors,
-    }, request.headers.origin || "");
-    return;
-  }
-
-  if (!hasConfiguredModelProvider(process.env)) {
-    sendJson(response, 503, {
-      error: "AI model provider is not configured",
-      code: "provider_failed",
-    }, request.headers.origin || "");
+  const validation = validateAiStreamingRequest(payload);
+  if (!validation.ok) {
+    sendJson(response, validation.result.status, validation.result.body, request.headers.origin || "");
     return;
   }
 
@@ -259,28 +212,18 @@ async function handleSchemeProposalStream(request, response) {
   sendSseHeaders(response, origin);
 
   try {
-    const result = await generateSchemePatchWithModelStreaming(
-      requestState.value,
-      process.env,
-      (replyText) => {
+    const result = await createAiSchemeProposalStreaming(payload, {
+      onProgress: (replyText) => {
         if (!response.writableEnded) {
           sendSseEvent(response, "progress", { reply: replyText });
         }
-      }
-    );
-
-    const sanitizedPatch = sanitizeAiSchemePatch(result.patch);
-    const proposal = normalizeAiSchemeProposal(
-      {
-        ...result,
-        patch: sanitizedPatch,
-        sanitizeMeta: getAiPatchSanitizeMeta(result.patch, sanitizedPatch),
       },
-      requestState.value
-    );
+    });
 
-    if (!response.writableEnded) {
-      sendSseEvent(response, "result", serializeAiProposal(proposal));
+    if (!response.writableEnded && result.status === 200) {
+      sendSseEvent(response, "result", result.body);
+    } else if (!response.writableEnded) {
+      sendSseEvent(response, "error", result.body);
     }
   } catch (error) {
     if (!response.writableEnded) {

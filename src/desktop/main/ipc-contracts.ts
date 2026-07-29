@@ -8,6 +8,8 @@ const MAX_AI_SECRET_LENGTH = 16_384;
 const MAX_AI_URL_LENGTH = 2_048;
 const MAX_AI_MODEL_LENGTH = 256;
 const MAX_AI_MODE_LENGTH = 64;
+export const MAX_AI_TRANSPORT_BYTES = 50 * 1024;
+const MAX_AI_REQUEST_ID_LENGTH = 128;
 
 export function isPlainRecord(value: unknown): value is Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
@@ -114,7 +116,6 @@ export type ValidatedAiSettingsPatch = {
   baseUrl?: string;
   model?: string;
   apiMode?: string;
-  accessToken?: string;
 };
 
 const AI_PATCH_LIMITS: Record<keyof ValidatedAiSettingsPatch, number> = {
@@ -122,7 +123,6 @@ const AI_PATCH_LIMITS: Record<keyof ValidatedAiSettingsPatch, number> = {
   baseUrl: MAX_AI_URL_LENGTH,
   model: MAX_AI_MODEL_LENGTH,
   apiMode: MAX_AI_MODE_LENGTH,
-  accessToken: MAX_AI_SECRET_LENGTH,
 };
 
 export function validateAiSettingsPatch(payload: unknown): ValidatedAiSettingsPatch {
@@ -151,6 +151,42 @@ export function validateAiSettingsPatch(payload: unknown): ValidatedAiSettingsPa
     throw new Error("apiMode is not supported");
   }
   return patch;
+}
+
+export function validateAiTransportPayload(payload: unknown): Record<string, unknown> {
+  if (!isPlainRecord(payload)) throw new Error("AI request payload must be an object");
+  assertMaxBytes(payload, MAX_AI_TRANSPORT_BYTES, "AI request payload");
+  return payload;
+}
+
+export type ValidatedAiStreamRequest = {
+  requestId: string;
+  payload: Record<string, unknown>;
+};
+
+function validateAiRequestId(requestId: unknown): string {
+  if (
+    typeof requestId !== "string"
+    || requestId.length === 0
+    || requestId.length > MAX_AI_REQUEST_ID_LENGTH
+    || !/^[A-Za-z0-9_-]+$/.test(requestId)
+  ) {
+    throw new Error("AI request id is invalid");
+  }
+  return requestId;
+}
+
+export function validateAiStreamRequest(payload: unknown): ValidatedAiStreamRequest {
+  if (!isPlainRecord(payload)) throw new Error("AI stream request must be an object");
+  return {
+    requestId: validateAiRequestId(payload.requestId),
+    payload: validateAiTransportPayload(payload.payload),
+  };
+}
+
+export function validateAiCancelRequest(payload: unknown): { requestId: string } {
+  if (!isPlainRecord(payload)) throw new Error("AI cancel request must be an object");
+  return { requestId: validateAiRequestId(payload.requestId) };
 }
 
 export function validateExternalTarget(target: unknown): string {

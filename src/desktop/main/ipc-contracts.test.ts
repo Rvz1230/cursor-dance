@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   MAX_CONFIG_PAYLOAD_BYTES,
+  MAX_AI_TRANSPORT_BYTES,
   validateConfigPayload,
+  validateAiCancelRequest,
   validateAiSettingsPatch,
+  validateAiStreamRequest,
+  validateAiTransportPayload,
   validateExternalTarget,
   validateSaveThemeFileRequest,
   validateThemeFileContents,
@@ -81,6 +85,20 @@ describe("IPC payload contracts", () => {
     expect(() => validateAiSettingsPatch({ unexpected: "value" })).toThrow(/unknown/);
     expect(() => validateAiSettingsPatch({ baseUrl: "file:///tmp/key" })).toThrow(/protocol/);
     expect(() => validateAiSettingsPatch({ apiMode: "legacy" })).toThrow(/not supported/);
+  });
+
+  it("bounds AI transport payloads and validates request ids", () => {
+    expect(validateAiTransportPayload({ prompt: "做成蓝色" })).toEqual({ prompt: "做成蓝色" });
+    expect(validateAiStreamRequest({
+      requestId: "request_01-test",
+      payload: { prompt: "做成蓝色" },
+    })).toEqual({
+      requestId: "request_01-test",
+      payload: { prompt: "做成蓝色" },
+    });
+    expect(validateAiCancelRequest({ requestId: "request_01-test" })).toEqual({ requestId: "request_01-test" });
+    expect(() => validateAiStreamRequest({ requestId: "../escape", payload: {} })).toThrow(/id is invalid/);
+    expect(() => validateAiTransportPayload({ prompt: "x".repeat(MAX_AI_TRANSPORT_BYTES) })).toThrow(/exceeds/);
   });
 
   it("bounds external targets before protocol validation", () => {

@@ -1,7 +1,7 @@
 // 任务 5.0：AI 用户设置 + safeStorage 加密 API key
 //
 // 职责：
-//   - 持久化用户 AI 配置：apiKey（加密）、baseUrl、model、taskMode、accessToken（可选）
+//   - 持久化用户 AI 配置：apiKey（加密）、baseUrl、model、apiMode
 //   - 写入后同步到 process.env，让嵌入的 cursor-dance-api 立即用到最新值
 //   - 读出明文给 renderer 时只返回「已配置 / 未配置」flag，不回流 apiKey 明文
 //
@@ -23,14 +23,12 @@ const FIELD_API_KEY_PLAINTEXT_FALLBACK = "apiKeyPlain"; // 仅当 safeStorage �
 const FIELD_BASE_URL = "baseUrl";
 const FIELD_MODEL = "model";
 const FIELD_API_MODE = "apiMode"; // chat_completions / responses
-const FIELD_ACCESS_TOKEN = "accessToken"; // 可选 —— 给走代理的 self-hosted 网关用
 
 const ENV_KEYS = {
   apiKey: ["CURSORDANCE_AI_API_KEY", "OPENAI_API_KEY"],
   baseUrl: ["CURSORDANCE_AI_API_BASE_URL"],
   model: ["CURSORDANCE_AI_MODEL"],
   apiMode: ["CURSORDANCE_AI_API_MODE"],
-  accessToken: ["CURSORDANCE_AI_API_ACCESS_TOKEN"],
 };
 
 let store: ElectronStore | null = null;
@@ -92,7 +90,6 @@ export type AiUserSettings = {
   baseUrl: string;
   model: string;
   apiMode: string;
-  accessToken: string;
 };
 
 export type AiUserSettingsView = Omit<AiUserSettings, "apiKey"> & {
@@ -106,7 +103,6 @@ export function readSettings(): AiUserSettings {
     baseUrl: (s.get(FIELD_BASE_URL, "") as string) || "",
     model: (s.get(FIELD_MODEL, "") as string) || "",
     apiMode: (s.get(FIELD_API_MODE, "") as string) || "",
-    accessToken: (s.get(FIELD_ACCESS_TOKEN, "") as string) || "",
   };
 }
 
@@ -117,7 +113,6 @@ export function readSettingsView(): AiUserSettingsView {
     baseUrl: settings.baseUrl,
     model: settings.model,
     apiMode: settings.apiMode,
-    accessToken: settings.accessToken,
   };
 }
 
@@ -136,9 +131,6 @@ export function writeSettings(patch: Partial<AiUserSettings>): AiUserSettingsVie
   if (Object.prototype.hasOwnProperty.call(patch, "apiMode")) {
     s.set(FIELD_API_MODE, typeof patch.apiMode === "string" ? patch.apiMode : "");
   }
-  if (Object.prototype.hasOwnProperty.call(patch, "accessToken")) {
-    s.set(FIELD_ACCESS_TOKEN, typeof patch.accessToken === "string" ? patch.accessToken : "");
-  }
   syncEnvFromSettings();
   return readSettingsView();
 }
@@ -151,7 +143,6 @@ export function syncEnvFromSettings(): void {
   setEnvAll(ENV_KEYS.baseUrl, settings.baseUrl);
   setEnvAll(ENV_KEYS.model, settings.model);
   setEnvAll(ENV_KEYS.apiMode, settings.apiMode);
-  setEnvAll(ENV_KEYS.accessToken, settings.accessToken);
 }
 
 function setEnvAll(keys: string[], value: string): void {

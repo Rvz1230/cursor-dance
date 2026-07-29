@@ -1,6 +1,6 @@
 // 任务 5.0：AI 服务用户设置面板
 //
-// 桌面端 cursor-dance-api 嵌入主进程后，模型 provider 还需要一份用户的 API key。
+// 桌面端由主进程直接调用模型 provider，需要一份用户的 API key。
 // 这个 dialog 让用户填 / 改 / 清除 apiKey + baseUrl + model + apiMode。
 // 数据通过 window.cursorDanceAi.setSettings 写入主进程，apiKey 走 safeStorage 加密。
 //
@@ -139,7 +139,7 @@ export function AiSettingsDialog({ open, onClose }: AiSettingsDialogProps) {
             <div className="flex flex-col gap-1">
               <h2 id="ai-settings-title" className="text-base font-semibold text-slate-900">AI 服务设置</h2>
               <p className="text-xs leading-relaxed text-slate-500">
-                AI 助手运行在本机的嵌入式服务上。填入模型 API key 后，工作台的「AI 设计助手」即可调用大模型生成 / 修改配置。
+                AI 助手由桌面主进程直接调用模型服务。填入模型 API key 后，工作台的「AI 设计助手」即可生成 / 修改配置。
                 密钥使用系统 Keychain / DPAPI 加密保存，不会回传到 renderer。
               </p>
             </div>

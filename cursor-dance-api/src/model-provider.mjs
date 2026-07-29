@@ -273,7 +273,7 @@ function buildAgentMessages({ prompt, actionId, actionLabel, currentConfig, task
   ];
 }
 
-async function postJson(url, apiKey, body) {
+async function postJson(url, apiKey, body, signal) {
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -281,6 +281,7 @@ async function postJson(url, apiKey, body) {
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify(body),
+    signal,
   });
 
   const text = await response.text();
@@ -302,7 +303,7 @@ function getApiConfig(env = process.env) {
   return { mode, apiKey, baseUrl, model, maxOutputTokens };
 }
 
-async function callChatCompletionsApi({ apiKey, baseUrl, model, requestState, maxOutputTokens }) {
+async function callChatCompletionsApi({ apiKey, baseUrl, model, requestState, maxOutputTokens, signal }) {
   const payload = await postJson(`${trimTrailingSlash(baseUrl)}/chat/completions`, apiKey, {
     model,
     messages: [
@@ -311,7 +312,7 @@ async function callChatCompletionsApi({ apiKey, baseUrl, model, requestState, ma
     ],
     response_format: { type: "json_object" },
     ...(maxOutputTokens ? { max_tokens: maxOutputTokens } : {}),
-  });
+  }, signal);
 
   const content = payload?.choices?.[0]?.message?.content;
   const parsed = safeJsonParse(content);
@@ -319,7 +320,7 @@ async function callChatCompletionsApi({ apiKey, baseUrl, model, requestState, ma
   return normalizeModelPayload(parsed, "model-chat-completions", requestState);
 }
 
-async function callChatCompletionsApiStreaming({ apiKey, baseUrl, model, requestState, maxOutputTokens, onProgress }) {
+async function callChatCompletionsApiStreaming({ apiKey, baseUrl, model, requestState, maxOutputTokens, onProgress, signal }) {
   const response = await fetch(`${trimTrailingSlash(baseUrl)}/chat/completions`, {
     method: "POST",
     headers: {
@@ -335,6 +336,7 @@ async function callChatCompletionsApiStreaming({ apiKey, baseUrl, model, request
       stream: true,
       ...(maxOutputTokens ? { max_tokens: maxOutputTokens } : {}),
     }),
+    signal,
   });
 
   if (!response.ok) {
@@ -391,14 +393,14 @@ export function hasConfiguredModelProvider(env = process.env) {
   return Boolean(env.CURSORDANCE_AI_API_KEY || env.OPENAI_API_KEY);
 }
 
-async function callChatCompletionsApiWithTools({ apiKey, baseUrl, model, messages, tools, maxOutputTokens }) {
+async function callChatCompletionsApiWithTools({ apiKey, baseUrl, model, messages, tools, maxOutputTokens, signal }) {
   const payload = await postJson(`${trimTrailingSlash(baseUrl)}/chat/completions`, apiKey, {
     model,
     messages,
     tools,
     tool_choice: "auto",
     ...(maxOutputTokens ? { max_tokens: maxOutputTokens } : {}),
-  });
+  }, signal);
 
   const choice = payload?.choices?.[0];
   const message = choice?.message;
@@ -418,7 +420,7 @@ async function callChatCompletionsApiWithTools({ apiKey, baseUrl, model, message
   };
 }
 
-async function callChatCompletionsApiWithToolsStreaming({ apiKey, baseUrl, model, messages, tools, maxOutputTokens, onEvent }) {
+async function callChatCompletionsApiWithToolsStreaming({ apiKey, baseUrl, model, messages, tools, maxOutputTokens, onEvent, signal }) {
   const response = await fetch(`${trimTrailingSlash(baseUrl)}/chat/completions`, {
     method: "POST",
     headers: {
@@ -433,6 +435,7 @@ async function callChatCompletionsApiWithToolsStreaming({ apiKey, baseUrl, model
       stream: true,
       ...(maxOutputTokens ? { max_tokens: maxOutputTokens } : {}),
     }),
+    signal,
   });
 
   if (!response.ok) {
@@ -525,19 +528,19 @@ export function buildAgentMessagesFromState(requestState) {
 
 export { buildAgentSystemPrompt };
 
-export async function generateAgentResponse({ messages, tools, env = process.env, onEvent }) {
+export async function generateAgentResponse({ messages, tools, env = process.env, onEvent, signal }) {
   const { apiKey, baseUrl, model, maxOutputTokens } = getApiConfig(env);
   if (!apiKey) throw new Error("AI model provider is not configured");
 
   if (onEvent) {
     return callChatCompletionsApiWithToolsStreaming({
-      apiKey, baseUrl, model, messages, tools, maxOutputTokens, onEvent,
+      apiKey, baseUrl, model, messages, tools, maxOutputTokens, onEvent, signal,
     });
   }
-  return callChatCompletionsApiWithTools({ apiKey, baseUrl, model, messages, tools, maxOutputTokens });
+  return callChatCompletionsApiWithTools({ apiKey, baseUrl, model, messages, tools, maxOutputTokens, signal });
 }
 
-export async function generateSchemePatchWithModel(requestState, env = process.env) {
+export async function generateSchemePatchWithModel(requestState, env = process.env, signal) {
   const { apiKey, baseUrl, model, maxOutputTokens } = getApiConfig(env);
   if (!apiKey) return null;
 
@@ -546,10 +549,10 @@ export async function generateSchemePatchWithModel(requestState, env = process.e
     maxOutputTokens: env.CURSORDANCE_AI_MAX_OUTPUT_TOKENS || requestState.maxOutputTokens,
   };
 
-  return callChatCompletionsApi({ apiKey, baseUrl, model, requestState: modelRequestState, maxOutputTokens });
+  return callChatCompletionsApi({ apiKey, baseUrl, model, requestState: modelRequestState, maxOutputTokens, signal });
 }
 
-export async function generateSchemePatchWithModelStreaming(requestState, env = process.env, onProgress) {
+export async function generateSchemePatchWithModelStreaming(requestState, env = process.env, onProgress, signal) {
   const { apiKey, baseUrl, model, maxOutputTokens } = getApiConfig(env);
   if (!apiKey) return null;
 
@@ -558,5 +561,5 @@ export async function generateSchemePatchWithModelStreaming(requestState, env = 
     maxOutputTokens: env.CURSORDANCE_AI_MAX_OUTPUT_TOKENS || requestState.maxOutputTokens,
   };
 
-  return callChatCompletionsApiStreaming({ apiKey, baseUrl, model, requestState: modelRequestState, maxOutputTokens, onProgress });
+  return callChatCompletionsApiStreaming({ apiKey, baseUrl, model, requestState: modelRequestState, maxOutputTokens, onProgress, signal });
 }

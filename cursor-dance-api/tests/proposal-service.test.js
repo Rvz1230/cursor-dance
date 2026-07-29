@@ -7,8 +7,34 @@ import {
   getAllowedOrigins,
   buildCorsHeaders,
   validateAiApiAccess,
+  validateAiStreamingRequest,
+  createAiSchemeProposalStreaming,
+  createAiAgentProposal,
   serializeAiProposal,
 } from "../src/proposal-service.mjs";
+
+describe("direct AI service transport", () => {
+  it("returns structured validation and provider errors without HTTP", async () => {
+    const invalid = validateAiStreamingRequest({ prompt: "" }, { env: {} });
+    assert.equal(invalid.ok, false);
+    assert.equal(invalid.result.status, 400);
+    assert.equal(invalid.result.body.code, "invalid_request");
+
+    const streamResult = await createAiSchemeProposalStreaming(
+      { prompt: "蓝色", currentConfig: {} },
+      { env: {} },
+    );
+    assert.equal(streamResult.status, 503);
+    assert.equal(streamResult.body.code, "provider_failed");
+
+    const agentResult = await createAiAgentProposal(
+      { prompt: "蓝色", currentConfig: {} },
+      { env: {} },
+    );
+    assert.equal(agentResult.status, 503);
+    assert.equal(agentResult.body.code, "provider_failed");
+  });
+});
 
 describe("getAiRequestLimits", () => {
   it("returns defaults when no env is set", () => {

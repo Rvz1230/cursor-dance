@@ -1,50 +1,133 @@
-// 任务 5.0：AI 服务相关 IPC
-//
-// 注册三个通道：
-//   - AI_GET_RUNTIME_CONFIG：renderer 启动时拉嵌入服务的 endpoint，注入 globalThis。
-//   - AI_GET_USER_SETTINGS / AI_SET_USER_SETTINGS：设置面板的读 / 写。
-//
-// 职责边界：
-//   - 这里只做 IPC 转发，不做端口探测 / 加密——委托给 api-server / ai-config。
-//   - 写入设置后立即同步 process.env（ai-config.writeSettings 已内置 syncEnvFromSettings），
-//     不需要重启嵌入服务。
-
-import { ipcMain } from "electron";
+import { ipcMain, type IpcMainInvokeEvent } from "electron";
 import {
-  AI_GET_RUNTIME_CONFIG,
+  createAiAgentProposal,
+  createAiSchemeProposal,
+  createAiSchemeProposalStreaming,
+} from "../../../cursor-dance-api/src/proposal-service.mjs";
+import {
+  AI_CANCEL_REQUEST,
+  AI_CREATE_PROPOSAL,
+  AI_CREATE_PROPOSAL_STREAM,
   AI_GET_USER_SETTINGS,
+  AI_REQUEST_EVENT,
+  AI_RUN_AGENT,
   AI_SET_USER_SETTINGS,
 } from "../../shared/ipc-channels";
-import type { AiRuntimeConfig } from "../../shared/desktop-ipc-contracts";
+import type {
+  AiRequestEvent,
+  AiTransportResponse,
+  AiUserSettingsView,
+} from "../../shared/desktop-ipc-contracts";
 import {
   readSettingsView,
+  syncEnvFromSettings,
   writeSettings,
-  type AiUserSettingsView,
 } from "./ai-config";
 import {
-  getEmbeddedAiAgentEndpoint,
-  getEmbeddedAiServerEndpoint,
-  getEmbeddedAiServerStreamEndpoint,
-  startEmbeddedAiServer,
-} from "./api-server";
-import { validateAiSettingsPatch } from "./ipc-contracts";
+  validateAiCancelRequest,
+  validateAiSettingsPatch,
+  validateAiStreamRequest,
+  validateAiTransportPayload,
+} from "./ipc-contracts";
 import { assertIpcSender } from "./ipc-security";
 
-async function getRuntimeConfig(): Promise<AiRuntimeConfig> {
-  await startEmbeddedAiServer();
-  return {
-    endpoint: getEmbeddedAiServerEndpoint(),
-    streamEndpoint: getEmbeddedAiServerStreamEndpoint(),
-    agentEndpoint: getEmbeddedAiAgentEndpoint(),
-    accessToken: "",
+type ActiveAiRequest = {
+  senderId: number;
+  requestId: string;
+  cancelled: boolean;
+  abortController: AbortController;
+  abortOnDestroyed: () => void;
+};
+
+const activeRequests = new Map<string, ActiveAiRequest>();
+
+const runProposalStreamService = createAiSchemeProposalStreaming as unknown as (
+  payload: Record<string, unknown>,
+  options: { env: NodeJS.ProcessEnv; onProgress: (reply: string) => void; signal: AbortSignal },
+) => Promise<unknown>;
+
+const runAgentService = createAiAgentProposal as unknown as (
+  payload: Record<string, unknown>,
+  options: { env: NodeJS.ProcessEnv; onEvent: (type: string, data: unknown) => void; signal: AbortSignal },
+) => Promise<unknown>;
+
+function requestKey(senderId: number, requestId: string): string {
+  return `${senderId}:${requestId}`;
+}
+
+function normalizeServiceResponse(result: unknown): AiTransportResponse {
+  if (!result || typeof result !== "object") {
+    return { status: 500, body: { error: "AI service returned an invalid response", code: "service_failed" } };
+  }
+  const candidate = result as { status?: unknown; body?: unknown };
+  const status = typeof candidate.status === "number" ? candidate.status : 500;
+  const body = candidate.body && typeof candidate.body === "object" && !Array.isArray(candidate.body)
+    ? candidate.body as Record<string, unknown>
+    : { error: "AI service returned an invalid body", code: "service_failed" };
+  return { status, body };
+}
+
+function beginRequest(event: IpcMainInvokeEvent, requestId: string): ActiveAiRequest {
+  const key = requestKey(event.sender.id, requestId);
+  if (activeRequests.has(key)) throw new Error("AI request id is already active");
+  const abortController = new AbortController();
+  const request: ActiveAiRequest = {
+    senderId: event.sender.id,
+    requestId,
+    cancelled: false,
+    abortController,
+    abortOnDestroyed: () => {
+      request.cancelled = true;
+      abortController.abort();
+    },
   };
+  event.sender.once("destroyed", request.abortOnDestroyed);
+  activeRequests.set(key, request);
+  return request;
+}
+
+function emitRequestEvent(
+  event: IpcMainInvokeEvent,
+  request: ActiveAiRequest,
+  type: string,
+  data: unknown,
+): void {
+  if (request.cancelled || event.sender.isDestroyed()) return;
+  const payload: AiRequestEvent = { requestId: request.requestId, type, data };
+  event.sender.send(AI_REQUEST_EVENT, payload);
+}
+
+async function runStreamingRequest(
+  event: IpcMainInvokeEvent,
+  payload: unknown,
+  kind: "proposal" | "agent",
+): Promise<AiTransportResponse> {
+  const requestData = validateAiStreamRequest(payload);
+  const request = beginRequest(event, requestData.requestId);
+  try {
+    const result = kind === "proposal"
+      ? await runProposalStreamService(requestData.payload, {
+        env: process.env,
+        onProgress: (reply: string) => emitRequestEvent(event, request, "progress", { reply }),
+        signal: request.abortController.signal,
+      })
+      : await runAgentService(requestData.payload, {
+        env: process.env,
+        onEvent: (type: string, data: unknown) => emitRequestEvent(event, request, type, data),
+        signal: request.abortController.signal,
+      });
+    if (request.cancelled) {
+      return { status: 499, body: { error: "AI request was cancelled", code: "abort" } };
+    }
+    return normalizeServiceResponse(result);
+  } finally {
+    if (!event.sender.isDestroyed()) event.sender.off("destroyed", request.abortOnDestroyed);
+    activeRequests.delete(requestKey(request.senderId, request.requestId));
+  }
 }
 
 export function registerAiIpc(): void {
-  ipcMain.handle(AI_GET_RUNTIME_CONFIG, (event): Promise<AiRuntimeConfig> => {
-    assertIpcSender(event, AI_GET_RUNTIME_CONFIG);
-    return getRuntimeConfig();
-  });
+  syncEnvFromSettings();
 
   ipcMain.handle(AI_GET_USER_SETTINGS, (event): AiUserSettingsView => {
     assertIpcSender(event, AI_GET_USER_SETTINGS);
@@ -55,10 +138,55 @@ export function registerAiIpc(): void {
     assertIpcSender(event, AI_SET_USER_SETTINGS);
     return writeSettings(validateAiSettingsPatch(payload));
   });
+
+  ipcMain.handle(AI_CREATE_PROPOSAL, async (event, payload: unknown): Promise<AiTransportResponse> => {
+    assertIpcSender(event, AI_CREATE_PROPOSAL);
+    return normalizeServiceResponse(await createAiSchemeProposal(
+      validateAiTransportPayload(payload),
+      { env: process.env },
+    ));
+  });
+
+  ipcMain.handle(AI_CREATE_PROPOSAL_STREAM, (event, payload: unknown): Promise<AiTransportResponse> => {
+    assertIpcSender(event, AI_CREATE_PROPOSAL_STREAM);
+    return runStreamingRequest(event, payload, "proposal");
+  });
+
+  ipcMain.handle(AI_RUN_AGENT, (event, payload: unknown): Promise<AiTransportResponse> => {
+    assertIpcSender(event, AI_RUN_AGENT);
+    return runStreamingRequest(event, payload, "agent");
+  });
+
+  ipcMain.handle(AI_CANCEL_REQUEST, (event, payload: unknown): void => {
+    assertIpcSender(event, AI_CANCEL_REQUEST);
+    const { requestId } = validateAiCancelRequest(payload);
+    const request = activeRequests.get(requestKey(event.sender.id, requestId));
+    if (request) {
+      request.cancelled = true;
+      request.abortController.abort();
+    }
+  });
 }
 
 export function unregisterAiIpc(): void {
-  ipcMain.removeHandler(AI_GET_RUNTIME_CONFIG);
   ipcMain.removeHandler(AI_GET_USER_SETTINGS);
   ipcMain.removeHandler(AI_SET_USER_SETTINGS);
+  ipcMain.removeHandler(AI_CREATE_PROPOSAL);
+  ipcMain.removeHandler(AI_CREATE_PROPOSAL_STREAM);
+  ipcMain.removeHandler(AI_RUN_AGENT);
+  ipcMain.removeHandler(AI_CANCEL_REQUEST);
+  for (const request of activeRequests.values()) {
+    request.cancelled = true;
+    request.abortController.abort();
+  }
+  activeRequests.clear();
 }
+
+export const __testing__ = {
+  activeRequestCount(): number {
+    return activeRequests.size;
+  },
+  reset(): void {
+    activeRequests.clear();
+  },
+};

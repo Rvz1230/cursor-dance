@@ -1,7 +1,10 @@
 import type { ActiveWindowSnapshot } from "./app-rules";
 import {
-  AI_GET_RUNTIME_CONFIG,
+  AI_CANCEL_REQUEST,
+  AI_CREATE_PROPOSAL,
+  AI_CREATE_PROPOSAL_STREAM,
   AI_GET_USER_SETTINGS,
+  AI_RUN_AGENT,
   AI_SET_USER_SETTINGS,
   APP_GET_ACTIVE_WINDOW,
   APP_GET_FIRST_RUN,
@@ -41,19 +44,11 @@ export type WindowStateSnapshot = {
   isFullScreen: boolean;
 };
 
-export type AiRuntimeConfig = {
-  endpoint: string | null;
-  streamEndpoint: string | null;
-  agentEndpoint: string | null;
-  accessToken: string;
-};
-
 export type AiUserSettingsView = {
   hasApiKey: boolean;
   baseUrl: string;
   model: string;
   apiMode: string;
-  accessToken: string;
 };
 
 export type AiUserSettingsPatch = {
@@ -61,7 +56,28 @@ export type AiUserSettingsPatch = {
   baseUrl?: string;
   model?: string;
   apiMode?: string;
-  accessToken?: string;
+};
+
+export type AiTransportPayload = Record<string, unknown>;
+
+export type AiTransportResponse = {
+  status: number;
+  body: Record<string, unknown>;
+};
+
+export type AiStreamRequest = {
+  requestId: string;
+  payload: AiTransportPayload;
+};
+
+export type AiCancelRequest = {
+  requestId: string;
+};
+
+export type AiRequestEvent = {
+  requestId: string;
+  type: string;
+  data: unknown;
 };
 
 type InvokeContract<Request, Response> = {
@@ -85,9 +101,12 @@ export interface DesktopIpcInvokeContract {
   [WINDOW_TOGGLE_MAXIMIZE]: InvokeContract<void, void>;
   [WINDOW_CLOSE]: InvokeContract<void, void>;
   [WINDOW_GET_STATE]: InvokeContract<void, WindowStateSnapshot>;
-  [AI_GET_RUNTIME_CONFIG]: InvokeContract<void, AiRuntimeConfig>;
   [AI_GET_USER_SETTINGS]: InvokeContract<void, AiUserSettingsView>;
   [AI_SET_USER_SETTINGS]: InvokeContract<AiUserSettingsPatch, AiUserSettingsView>;
+  [AI_CREATE_PROPOSAL]: InvokeContract<AiTransportPayload, AiTransportResponse>;
+  [AI_CREATE_PROPOSAL_STREAM]: InvokeContract<AiStreamRequest, AiTransportResponse>;
+  [AI_RUN_AGENT]: InvokeContract<AiStreamRequest, AiTransportResponse>;
+  [AI_CANCEL_REQUEST]: InvokeContract<AiCancelRequest, void>;
   [CURSOR_VISIBILITY_SET_HIDDEN]: InvokeContract<boolean, void>;
 }
 

@@ -11,8 +11,10 @@ import {
 } from "./normalize.js";
 import {
   generateSchemePatchWithModel,
+  generateSchemePatchWithModelStreaming,
   hasConfiguredModelProvider,
 } from "./model-provider.mjs";
+import { runAgentLoop } from "./agent-loop.mjs";
 
 const DEFAULT_ALLOWED_ORIGINS = [
   "http://localhost:5173",
@@ -266,4 +268,125 @@ export async function createAiSchemeProposal(payload, { env = process.env } = {}
     status: 200,
     body: serializeAiProposal(proposal),
   };
+}
+
+export function validateAiStreamingRequest(
+  payload,
+  { env = process.env, requestLabel = "AI scheme" } = {},
+) {
+  const requestState = validateAiSchemeRequest(payload);
+  if (!requestState.ok) {
+    return {
+      ok: false,
+      result: {
+        status: 400,
+        body: {
+          error: `Invalid ${requestLabel} request`,
+          code: "invalid_request",
+          details: requestState.errors,
+          schemaVersion: AI_SCHEMA_VERSION,
+        },
+      },
+    };
+  }
+  if (!hasConfiguredModelProvider(env)) {
+    return {
+      ok: false,
+      result: {
+        status: 503,
+        body: {
+          error: "AI model provider is not configured",
+          code: "provider_failed",
+          schemaVersion: AI_SCHEMA_VERSION,
+        },
+      },
+    };
+  }
+  return { ok: true, requestState: requestState.value };
+}
+
+export async function createAiSchemeProposalStreaming(
+  payload,
+  { env = process.env, onProgress, signal } = {},
+) {
+  const prepared = validateAiStreamingRequest(payload, { env, requestLabel: "AI scheme" });
+  if (!prepared.ok) return prepared.result;
+
+  try {
+    const result = await generateSchemePatchWithModelStreaming(
+      prepared.requestState,
+      env,
+      onProgress,
+      signal,
+    );
+    const sanitizedPatch = sanitizeAiSchemePatch(result.patch);
+    const proposal = normalizeAiSchemeProposal(
+      {
+        ...result,
+        patch: sanitizedPatch,
+        sanitizeMeta: getAiPatchSanitizeMeta(result.patch, sanitizedPatch),
+      },
+      prepared.requestState,
+    );
+    return { status: 200, body: serializeAiProposal(proposal) };
+  } catch (error) {
+    return {
+      status: 502,
+      body: {
+        error: "AI model provider streaming failed",
+        code: "provider_failed",
+        details: error instanceof Error ? error.message : "Unknown error.",
+        schemaVersion: AI_SCHEMA_VERSION,
+      },
+    };
+  }
+}
+
+export async function createAiAgentProposal(
+  payload,
+  { env = process.env, onEvent, signal } = {},
+) {
+  const prepared = validateAiStreamingRequest(payload, { env, requestLabel: "AI agent" });
+  if (!prepared.ok) return prepared.result;
+
+  try {
+    const result = await runAgentLoop({
+      ...prepared.requestState,
+      env,
+      onEvent,
+      signal,
+    });
+    if (!result.ok) {
+      return {
+        status: 502,
+        body: {
+          error: result.error || "Agent loop failed",
+          code: "provider_failed",
+          steps: result.steps?.length || 0,
+          schemaVersion: AI_SCHEMA_VERSION,
+        },
+      };
+    }
+    return {
+      status: 200,
+      body: {
+        proposal: serializeAiProposal(result.proposal),
+        steps: result.steps,
+        totalTokens: result.totalTokens,
+        totalCacheHitTokens: result.totalCacheHitTokens,
+        totalCacheMissTokens: result.totalCacheMissTokens,
+        durationMs: result.durationMs,
+      },
+    };
+  } catch (error) {
+    return {
+      status: 502,
+      body: {
+        error: "Agent run failed",
+        code: "provider_failed",
+        details: error instanceof Error ? error.message : "Unknown error.",
+        schemaVersion: AI_SCHEMA_VERSION,
+      },
+    };
+  }
 }

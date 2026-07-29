@@ -42,13 +42,6 @@ export default defineConfig({
     css: {
       postcss: resolve(__dirname, "postcss.config.js"),
     },
-    define: {
-      "globalThis.VITE_CURSORDANCE_AI_API_ENDPOINT": JSON.stringify(process.env.VITE_CURSORDANCE_AI_API_ENDPOINT || ""),
-      "globalThis.VITE_CURSORDANCE_AI_API_STREAM_ENDPOINT": JSON.stringify(process.env.VITE_CURSORDANCE_AI_API_STREAM_ENDPOINT || ""),
-      "globalThis.VITE_CURSORDANCE_AI_AGENT_ENDPOINT": JSON.stringify(process.env.VITE_CURSORDANCE_AI_AGENT_ENDPOINT || ""),
-      "globalThis.VITE_CURSORDANCE_AI_API_ACCESS_TOKEN": JSON.stringify(process.env.VITE_CURSORDANCE_AI_API_ACCESS_TOKEN || ""),
-      "globalThis.VITE_CURSORDANCE_AI_TIMEOUT_MS": JSON.stringify(process.env.VITE_CURSORDANCE_AI_TIMEOUT_MS || ""),
-    },
     build: {
       rollupOptions: {
         input: {

@@ -118,7 +118,7 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
       dialog: "cursorDanceDialog" in window,
       app: "cursorDanceApp" in window,
       windowControls: "cursorDanceWindow" in window,
-      ai: "cursorDanceAi" in window,
+      aiMethods: Object.keys(window.cursorDanceAi || {}).sort(),
       platform: "electronAPI" in window,
     }))).toEqual({
       cursorEvents: false,
@@ -126,8 +126,28 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
       dialog: true,
       app: true,
       windowControls: true,
-      ai: true,
+      aiMethods: [
+        "cancelRequest",
+        "createProposal",
+        "createProposalStream",
+        "getSettings",
+        "onRequestEvent",
+        "runAgent",
+        "setSettings",
+      ],
       platform: true,
+    });
+    await expect(workbenchPage.evaluate(async () => {
+      if (!window.cursorDanceAi) throw new Error("cursorDanceAi bridge is unavailable");
+      return window.cursorDanceAi.createProposal({
+        prompt: "smoke test proposal",
+        currentConfig: {},
+        actionId: "leftClick",
+        taskMode: "modify_action",
+      });
+    })).resolves.toMatchObject({
+      status: 503,
+      body: { code: "provider_failed" },
     });
 
     await expect.poll(() => readWindowState(electronApp)).toMatchObject({

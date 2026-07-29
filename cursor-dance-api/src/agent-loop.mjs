@@ -78,6 +78,7 @@ export async function runAgentLoop({
   maxSteps = DEFAULT_MAX_STEPS,
   onEvent,
   generateResponse,
+  signal,
 }) {
   const steps = [];
   const startedAt = Date.now();
@@ -100,6 +101,11 @@ export async function runAgentLoop({
   let finalProposalArgs = null;
 
   for (let stepIndex = 0; stepIndex < maxSteps && !finished; stepIndex++) {
+    if (signal?.aborted) {
+      const error = new Error("AI agent request was cancelled");
+      error.name = "AbortError";
+      throw error;
+    }
     const stepStartedAt = Date.now();
 
     emitEvent(onEvent, "step_start", { step: stepIndex + 1, totalSteps: maxSteps });
@@ -115,6 +121,7 @@ export async function runAgentLoop({
             emitEvent(onEvent, "stream_token", { step: stepIndex + 1, text: event.text });
           }
         },
+        signal,
       });
     } catch (error) {
       emitEvent(onEvent, "error", {

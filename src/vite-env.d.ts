@@ -135,19 +135,11 @@ interface CursorDanceAppBridge {
   openExternal: (target: string) => Promise<{ ok: boolean; error?: string }>
 }
 
-interface CursorDanceAiRuntimeConfig {
-  endpoint: string | null
-  streamEndpoint: string | null
-  agentEndpoint: string | null
-  accessToken: string
-}
-
 interface CursorDanceAiSettingsView {
   hasApiKey: boolean
   baseUrl: string
   model: string
   apiMode: string
-  accessToken: string
 }
 
 interface CursorDanceAiSettingsPatch {
@@ -155,11 +147,14 @@ interface CursorDanceAiSettingsPatch {
   baseUrl?: string
   model?: string
   apiMode?: string
-  accessToken?: string
 }
 
 interface CursorDanceAiBridge {
-  getRuntimeConfig: () => Promise<CursorDanceAiRuntimeConfig>
   getSettings: () => Promise<CursorDanceAiSettingsView>
   setSettings: (patch: CursorDanceAiSettingsPatch) => Promise<CursorDanceAiSettingsView>
+  createProposal: (payload: Record<string, unknown>) => Promise<{ status: number; body: Record<string, unknown> }>
+  createProposalStream: (request: { requestId: string; payload: Record<string, unknown> }) => Promise<{ status: number; body: Record<string, unknown> }>
+  runAgent: (request: { requestId: string; payload: Record<string, unknown> }) => Promise<{ status: number; body: Record<string, unknown> }>
+  cancelRequest: (requestId: string) => Promise<void>
+  onRequestEvent: (callback: (event: { requestId: string; type: string; data: unknown }) => void) => () => void
 }

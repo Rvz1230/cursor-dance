@@ -502,7 +502,7 @@ overlay preload:
 - 新增统一窗口安全绑定，Workbench 和 Overlay 同时拦截非入口 URL 的 `will-navigate` / `will-redirect`，拒绝所有 Electron 子窗口与 `webview` 附加。
 - 导航白名单只允许窗口自身入口的协议、host 和 pathname，保留应用内部 query/hash；开发服务器和生产 `file://` 均使用创建窗口时算出的准确入口 URL。
 - AI Markdown 链接在桌面端改走 `cursorDanceApp.openExternal`，继续复用主进程协议、长度和 sender 白名单；浏览器扩展仍保留普通链接行为。
-- Workbench 和 Overlay 分别加入最小 CSP；Workbench 暂时只放行本机 AI HTTP 与 Vite HMR，Overlay 完全禁止网络连接。
+- Workbench 和 Overlay 分别加入最小 CSP；R2-4 删除本机 AI HTTP 后，Workbench 只额外放行 Vite HMR，Overlay 完全禁止网络连接。
 - 两个 renderer 已启用 `sandbox: true`。为兼容 Electron sandbox 不支持 ESM preload 本地共享 chunk 的限制，构建改为单个自包含 CommonJS preload；主进程通过 `additionalArguments` 注入窗口类型，dispatcher 只注册对应 bridge，主进程 IPC sender policy 仍作为第二层权限校验。
 - 单元测试覆盖入口 URL 判定、导航/重定向阻断、子窗口/webview 拒绝、销毁清理和 preload 窗口类型解析；Electron smoke 覆盖 CSP、监听器、新窗口拒绝、sandbox 下 bridge 能力面与原有生命周期。
 
@@ -530,6 +530,15 @@ Workbench renderer
 - 消除 packaged `file://` CORS 风险。
 - 消除本机端口暴露、随机端口和访问 token 问题。
 - 减少桌面启动服务和 HTTP 序列化开销。
+
+实现结果：
+
+- 新增普通提案、流式提案、Agent run 和取消请求的 typed IPC contract；主进程继续按 `webContents.id` 限制为 Workbench，并对 payload 施加 50 KiB 上限和 request id 格式校验。
+- `proposal-service.mjs` 提取可直接调用的流式提案与 Agent 服务，桌面主进程和 standalone HTTP server 共用同一套校验、provider、sanitize 和 serialize 流程，扩展及远程部署接口保持不变。
+- 流式进度按 request id 单播给发起窗口；renderer 取消或超时会调用主进程 `AbortController`，中止对应模型 `fetch` 并停止后续事件。
+- preload 不再暴露 endpoint/access token，而是只暴露提案、流式、Agent、取消、设置和事件订阅；API key 仍由 `safeStorage` 保存且只在主进程注入 provider 环境。
+- 删除桌面 `api-server.ts`、端口探测、启动/退出 HTTP 生命周期、`install-ai-endpoints.ts`、runtime endpoint 全局和桌面 access token；Workbench CSP 同步移除 localhost HTTP 权限。
+- Electron main bundle 从 R2-3 的 148.85 KiB 降至 137.98 KiB；桌面 smoke 在空 AI 配置下通过 IPC 得到结构化 503，确认 bridge 契约可用且不依赖本地服务。
 
 ### Phase 2 完成条件
 
@@ -756,7 +765,7 @@ AiSchemePanel              # 组合层
 #### 必须在替代实现上线后删除
 
 - `install-runtime-globals.ts`：共享 core 被 UI 直接 import 后删除。
-- 桌面 `api-server.ts` 和 `install-ai-endpoints.ts`：AI IPC transport 上线后删除。
+- [x] 桌面 `api-server.ts` 和 `install-ai-endpoints.ts`：AI IPC transport 上线后删除。
 - `themePacks/schemes` 双写：schema v4 迁移完成后删除。
 - `siteRules` 桌面复用：contextRules 上线后删除。
 - extension/desktop 重复 engine 文件：共享 runtime 切换后逐个删除。

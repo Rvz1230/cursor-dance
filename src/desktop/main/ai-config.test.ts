@@ -56,7 +56,6 @@ beforeEach(() => {
     "CURSORDANCE_AI_API_BASE_URL",
     "CURSORDANCE_AI_MODEL",
     "CURSORDANCE_AI_API_MODE",
-    "CURSORDANCE_AI_API_ACCESS_TOKEN",
   ]) {
     delete process.env[key];
   }
@@ -95,7 +94,7 @@ describe("ai-config", () => {
     expect(readSettingsView().hasApiKey).toBe(true);
   });
 
-  it("baseUrl / model / apiMode / accessToken 部分更新不破坏其他字段", () => {
+  it("baseUrl / model / apiMode 部分更新不破坏其他字段", () => {
     writeSettings({ baseUrl: "https://example.com/v1", model: "gpt-x", apiKey: "sk-1" });
     writeSettings({ model: "gpt-y" }); // 仅改 model
     const settings = readSettings();
@@ -110,7 +109,6 @@ describe("ai-config", () => {
       baseUrl: "https://api.example.com/v1",
       model: "demo-model",
       apiMode: "chat_completions",
-      accessToken: "tok-1",
     });
     // writeSettings 自身就会调一次 syncEnvFromSettings；单独再调一次也无副作用
     syncEnvFromSettings();
@@ -119,7 +117,6 @@ describe("ai-config", () => {
     expect(process.env.CURSORDANCE_AI_API_BASE_URL).toBe("https://api.example.com/v1");
     expect(process.env.CURSORDANCE_AI_MODEL).toBe("demo-model");
     expect(process.env.CURSORDANCE_AI_API_MODE).toBe("chat_completions");
-    expect(process.env.CURSORDANCE_AI_API_ACCESS_TOKEN).toBe("tok-1");
   });
 
   it("清除 apiKey 后从 process.env 同步删除", () => {

@@ -21,7 +21,6 @@ import { registerFirstRunIpc, unregisterFirstRunIpc } from "./first-run";
 import { registerAiIpc, unregisterAiIpc } from "./ai-ipc";
 import { registerCursorVisibilityIpc, restoreNativeCursor, unregisterCursorVisibilityIpc } from "./cursor-visibility";
 import { shouldKeepOverlaysVisible } from "./overlay-visibility";
-import { startEmbeddedAiServer, stopEmbeddedAiServer } from "./api-server";
 import { registerAutoUpdater } from "./auto-updater";
 import { createTray, destroyTray } from "./tray";
 import {
@@ -234,15 +233,7 @@ void app.whenReady().then(async () => {
     });
   }
 
-  // 5) 嵌入式 AI 服务：在 IPC + 托盘都就位后启动。失败不阻塞主流程——
-  //    AiSchemePanel 在请求失败时会显示错误信息，用户去设置面板填 API key 再重试。
-  if (!isDesktopSmokeTest) {
-    startEmbeddedAiServer().catch((error) => {
-      console.error("[cursordance] failed to start embedded AI server:", error);
-    });
-  }
-
-  // 6) 自动更新（任务 6.1）：仅在 packaged 模式下启用，dev 跳过。
+  // 5) 自动更新（任务 6.1）：仅在 packaged 模式下启用，dev 跳过。
   //    立即检查一次，之后 4h 轮询；下载完成等到下次正常退出再安装。
   if (!isDesktopSmokeTest) {
     stopAutoUpdater = registerAutoUpdater();
@@ -285,7 +276,6 @@ app.on("before-quit", () => {
   unregisterAiIpc();
   unregisterCursorVisibilityIpc();
   restoreNativeCursor();
-  stopEmbeddedAiServer().catch(() => undefined);
   destroyAllOverlays();
 });
 

@@ -1,7 +1,10 @@
 import type { IpcMainInvokeEvent } from "electron";
 import {
-  AI_GET_RUNTIME_CONFIG,
+  AI_CANCEL_REQUEST,
+  AI_CREATE_PROPOSAL,
+  AI_CREATE_PROPOSAL_STREAM,
   AI_GET_USER_SETTINGS,
+  AI_RUN_AGENT,
   AI_SET_USER_SETTINGS,
   APP_GET_ACTIVE_WINDOW,
   APP_GET_FIRST_RUN,
@@ -48,9 +51,12 @@ export const IPC_SENDER_POLICY: Readonly<Record<string, readonly DesktopWindowKi
   [WINDOW_TOGGLE_MAXIMIZE]: ["workbench"],
   [WINDOW_CLOSE]: ["workbench"],
   [WINDOW_GET_STATE]: ["workbench"],
-  [AI_GET_RUNTIME_CONFIG]: ["workbench"],
   [AI_GET_USER_SETTINGS]: ["workbench"],
   [AI_SET_USER_SETTINGS]: ["workbench"],
+  [AI_CREATE_PROPOSAL]: ["workbench"],
+  [AI_CREATE_PROPOSAL_STREAM]: ["workbench"],
+  [AI_RUN_AGENT]: ["workbench"],
+  [AI_CANCEL_REQUEST]: ["workbench"],
   [CURSOR_VISIBILITY_SET_HIDDEN]: ["overlay"],
 };
 
