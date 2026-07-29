@@ -177,6 +177,21 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
       await window.cursorDanceStorage.setConfig({ ...(current || {}), enabled: false });
     });
     await expect.poll(async () => (await readWindowState(electronApp)).overlay.visibleCount).toBe(0);
+    await expect(electronApp.evaluate(({ screen }) => {
+      const testing = globalThis.__cursorDanceMainTesting;
+      if (!testing) throw new Error("Desktop smoke routing bridge is unavailable");
+      const { x, y } = screen.getPrimaryDisplay().bounds;
+      testing.resetCursorIpcCount();
+      testing.routeCursorEvent({
+        type: "mousedown",
+        x: x + 20,
+        y: y + 20,
+        button: 0,
+        buttons: 1,
+        timestamp: Date.now(),
+      });
+      return testing.getCursorIpcCount();
+    })).resolves.toBe(0);
 
     await workbenchPage.evaluate(async () => {
       if (!window.cursorDanceStorage) throw new Error("cursorDanceStorage bridge is unavailable");

@@ -6,21 +6,23 @@
 //     给主进程；实际的全局鼠标已经由 uiohook 抓，forward 主要是为了 cursor 不被吞）
 //   - 全 workspace 可见 + 全屏可见
 //   - backgroundThrottling 关闭，避免 alwaysOnTop 在不可见 workspace 时降帧
-//   - type 用默认 'normal' —— macOS 上 toolbar/panel 会被 Mission Control 吞，
-//     normal + alwaysOnTop:'screen-saver' 是兼容性最稳的组合
+//   - macOS 使用 NSPanel；普通 NSWindow 在多显示器同时全屏时可能只加入普通
+//     Space，panel + canJoinAllSpaces/fullScreenAuxiliary 才能稳定覆盖每块屏幕
 //
-// 每个 display 一个窗口，bounds 跟随 display.bounds，windowsByDisplayId 对外暴露。
+// 每个 display 一个窗口，bounds 跟随 display.bounds，overlayWindows 统一持有。
 
 import { BrowserWindow, type Display } from "electron";
 import { join } from "path";
 import { fileURLToPath, pathToFileURL } from "url";
 import { desktopWindowKindArgument } from "../../shared/desktop-window-kind";
 import { registerIpcSender } from "./ipc-security";
+import { applyOverlaySpacePolicy, getOverlayWindowType } from "./overlay-space-policy";
 import { bindWindowSecurity } from "./window-security";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
 const overlayWindows = new Map<number, BrowserWindow>();
+type ShouldShowOverlay = () => boolean;
 
 export function getOverlayWindows(): ReadonlyMap<number, BrowserWindow> {
   return overlayWindows;
@@ -29,9 +31,21 @@ export function getOverlayWindows(): ReadonlyMap<number, BrowserWindow> {
 /**
  * 为指定 display 创建 overlay 窗口。已存在时返回现有实例（不重建）。
  */
-export function createOverlayWindow(display: Display): BrowserWindow {
+export function createOverlayWindow(
+  display: Display,
+  shouldShow: ShouldShowOverlay = () => true,
+): BrowserWindow {
   const existing = overlayWindows.get(display.id);
-  if (existing && !existing.isDestroyed()) return existing;
+  if (existing && !existing.isDestroyed()) {
+    existing.setBounds(display.bounds);
+    applyOverlaySpacePolicy(existing);
+    if (shouldShow()) {
+      if (!existing.isVisible()) existing.showInactive();
+    } else if (existing.isVisible()) {
+      existing.hide();
+    }
+    return existing;
+  }
 
   const { x, y, width, height } = display.bounds;
 
@@ -53,7 +67,7 @@ export function createOverlayWindow(display: Display): BrowserWindow {
     skipTaskbar: true,
     show: false,
     backgroundColor: "#00000000",
-    type: process.platform === "linux" ? undefined : "normal",
+    type: getOverlayWindowType(),
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
       additionalArguments: [desktopWindowKindArgument("overlay")],
@@ -74,20 +88,16 @@ export function createOverlayWindow(display: Display): BrowserWindow {
   // 鼠标穿透：forward:true 在 macOS 仍能让 hover 事件传递出去——但我们走的是
   // uiohook 全局抓事件，主要诉求只是「不要把点击吃掉」。
   win.setIgnoreMouseEvents(true, { forward: true });
-  win.setAlwaysOnTop(true, "screen-saver");
-  win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
-
-  // macOS：把窗口排除出 Mission Control 的应用窗口列表
-  if (process.platform === "darwin") {
-    try {
-      win.setHiddenInMissionControl(true);
-    } catch {
-      // Electron 较老版本无此 API，吞掉即可
-    }
-  }
+  applyOverlaySpacePolicy(win);
 
   win.webContents.on("did-finish-load", () => {
-    win.showInactive(); // 不抢焦点
+    // Renderer load/reload can recreate native compositor state. Consult the
+    // latest config here so a disabled overlay is not accidentally shown by a
+    // late load after startup or display hot-plug.
+    if (shouldShow()) {
+      applyOverlaySpacePolicy(win);
+      win.showInactive(); // 不抢焦点
+    }
   });
 
   void win.loadURL(entryUrl);
@@ -96,7 +106,9 @@ export function createOverlayWindow(display: Display): BrowserWindow {
   win.once("closed", () => {
     unregisterIpcSender();
     unbindWindowSecurity();
-    overlayWindows.delete(display.id);
+    if (overlayWindows.get(display.id) === win) {
+      overlayWindows.delete(display.id);
+    }
   });
 
   return win;
@@ -117,6 +129,7 @@ export function syncOverlayBounds(display: Display): void {
   const win = overlayWindows.get(display.id);
   if (!win || win.isDestroyed()) return;
   win.setBounds(display.bounds);
+  applyOverlaySpacePolicy(win);
 }
 
 /** 全部销毁——退出前清理。 */

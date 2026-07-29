@@ -2,7 +2,7 @@
 //
 // overlay 窗口是「每个 display 一个」：每次新增 / 拔出 / 分辨率改变都需要同步增删
 // overlay。本模块只负责把 Electron screen 模块的事件包装成简洁回调，避免
-// windows.ts 直接耦合 screen API（也方便未来在 wayland / X11 平台调整实现）。
+// main/index.ts 直接耦合 screen API（也方便未来在 Wayland / X11 平台调整实现）。
 
 import { screen, type Display } from "electron";
 

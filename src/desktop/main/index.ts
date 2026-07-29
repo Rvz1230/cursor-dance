@@ -21,6 +21,7 @@ import { registerFirstRunIpc, unregisterFirstRunIpc } from "./first-run";
 import { registerAiIpc, unregisterAiIpc } from "./ai-ipc";
 import { registerCursorVisibilityIpc, restoreNativeCursor, unregisterCursorVisibilityIpc } from "./cursor-visibility";
 import { shouldKeepOverlaysVisible } from "./overlay-visibility";
+import { applyOverlaySpacePolicy } from "./overlay-space-policy";
 import { registerAutoUpdater } from "./auto-updater";
 import { createTray, destroyTray } from "./tray";
 import {
@@ -60,7 +61,7 @@ if (!gotTheLock) {
 
 function sendCursorEventToDisplay(displayId: number, event: RoutedCursorEvent): void {
   const target = getOverlayWindows().get(displayId);
-  if (target) {
+  if (target?.isVisible()) {
     sendToWindow(target, CURSOR_EVENT, event);
     if (isDesktopSmokeTest) cursorIpcMessageCount += 1;
   }
@@ -70,12 +71,12 @@ function routeKeyboardEvent(event: NativeKeyboardEvent): void {
   const displayId = cursorEventRouter?.getActiveDisplayId();
   if (displayId === null || displayId === undefined) return;
   const target = getOverlayWindows().get(displayId);
-  if (target) sendToWindow(target, KEYBOARD_EVENT, event);
+  if (target?.isVisible()) sendToWindow(target, KEYBOARD_EVENT, event);
 }
 
 function ensureOverlayPerDisplay(): void {
   for (const display of getAllDisplays()) {
-    createOverlayWindow(display);
+    createOverlayWindow(display, shouldShowOverlays);
   }
 }
 
@@ -105,8 +106,12 @@ function setOverlayVisibility(visible: boolean): void {
   for (const win of getOverlayWindows().values()) {
     if (win.isDestroyed()) continue;
     if (visible) {
-      // 不抢焦点，保持原有 showInactive 语义
-      if (!win.isVisible()) win.showInactive();
+      // Live Preview can update several times per second. The panel's Space
+      // membership is persistent, so only touch native window state after hide.
+      if (!win.isVisible()) {
+        applyOverlaySpacePolicy(win);
+        win.showInactive();
+      }
     } else if (win.isVisible()) {
       win.hide();
     }
@@ -187,7 +192,7 @@ void app.whenReady().then(async () => {
     };
   }
   stopDisplayWatcher = onDisplayChanges(({ added, removed, changed }) => {
-    for (const d of added) createOverlayWindow(d);
+    for (const d of added) createOverlayWindow(d, shouldShowOverlays);
     for (const d of removed) {
       cursorEventRouter?.removeDisplay(d.id);
       destroyOverlayWindow(d.id);
