@@ -33,11 +33,13 @@ function createHelper() {
   const helper = new EventEmitter() as EventEmitter & {
     killed: boolean;
     stderr: EventEmitter;
+    stdout: EventEmitter;
     stdin: { write: ReturnType<typeof vi.fn> };
     kill: ReturnType<typeof vi.fn>;
   };
   helper.killed = false;
   helper.stderr = new EventEmitter();
+  helper.stdout = new EventEmitter();
   helper.stdin = { write: vi.fn((_chunk, callback) => callback?.()) };
   helper.kill = vi.fn(() => {
     helper.killed = true;
@@ -75,7 +77,7 @@ describe("cursor visibility helper", () => {
     expect(spawnMock).toHaveBeenCalledWith(
       `/project/build/native/${process.arch}/cursordance-cursor-helper`,
       [],
-      { stdio: ["pipe", "ignore", "pipe"] },
+      { stdio: ["pipe", "pipe", "pipe"] },
     );
   });
 
@@ -89,6 +91,7 @@ describe("cursor visibility helper", () => {
     const senderTwo = Object.assign(new EventEmitter(), { id: 2 });
 
     handler({ sender: senderOne }, true);
+    helper.stdout.emit("data", "ready\n");
     handler({ sender: senderTwo }, true);
     handler({ sender: senderOne }, false);
     expect(helper.stdin.write.mock.calls.map(([command]) => command)).toEqual(["hide\n"]);
@@ -107,6 +110,7 @@ describe("cursor visibility helper", () => {
     const sender = Object.assign(new EventEmitter(), { id: 7 });
 
     handler({ sender }, true);
+    helper.stdout.emit("data", "ready\n");
     sender.emit("destroyed");
 
     expect(helper.stdin.write.mock.calls.map(([command]) => command)).toEqual(["hide\n", "show\n"]);

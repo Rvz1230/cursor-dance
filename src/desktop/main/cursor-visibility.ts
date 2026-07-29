@@ -1,10 +1,10 @@
 import { app, ipcMain } from "electron";
-import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { spawn } from "node:child_process";
 import { join } from "node:path";
 import { CURSOR_VISIBILITY_SET_HIDDEN } from "../../shared/ipc-channels";
+import { createCursorVisibilityController, type CursorVisibilityController } from "./cursor-visibility-controller";
 
-let hidden = false;
-let cursorHelper: ChildProcessWithoutNullStreams | null = null;
+let cursorVisibilityController: CursorVisibilityController | null = null;
 const hiddenRequesters = new Set<number>();
 const trackedRequesters = new Set<number>();
 
@@ -17,83 +17,29 @@ function resolveCursorHelperPath(): string {
   return join(app.getAppPath(), "build", "native", process.arch, CURSOR_HELPER_NAME);
 }
 
-function ensureCursorHelper(): ChildProcessWithoutNullStreams | null {
+function getCursorVisibilityController(): CursorVisibilityController | null {
   if (process.platform !== "darwin") return null;
-  if (cursorHelper && !cursorHelper.killed) return cursorHelper;
-
-  try {
-    cursorHelper = spawn(resolveCursorHelperPath(), [], {
-      stdio: ["pipe", "ignore", "pipe"],
-    });
-  } catch (error) {
-    console.error("[cursordance] macOS cursor helper 启动失败:", error);
-    cursorHelper = null;
-    return null;
-  }
-
-  const helper = cursorHelper;
-
-  helper.once("error", (error) => {
-    console.error("[cursordance] macOS cursor helper 启动失败:", error);
-    if (cursorHelper === helper) cursorHelper = null;
-    hidden = false;
+  cursorVisibilityController ??= createCursorVisibilityController({
+    spawnHelper: () => spawn(resolveCursorHelperPath(), [], {
+      stdio: ["pipe", "pipe", "pipe"],
+    }),
+    onUnavailable: () => {
+      hiddenRequesters.clear();
+    },
   });
-
-  helper.stderr.on("data", (chunk) => {
-    console.error("[cursordance] macOS cursor helper 错误:", String(chunk).trim());
-  });
-
-  helper.on("exit", (code, signal) => {
-    if (hidden) {
-      console.error("[cursordance] macOS cursor helper 意外退出:", { code, signal });
-    }
-    if (cursorHelper === helper) {
-      cursorHelper = null;
-      hidden = false;
-    }
-  });
-
-  return helper;
-}
-
-function sendCursorCommand(command: "hide" | "show" | "quit"): boolean {
-  const helper = command === "hide" ? ensureCursorHelper() : cursorHelper;
-  if (!helper || helper.killed) return false;
-  helper.stdin.write(`${command}\n`, (error) => {
-    if (error) {
-      console.error("[cursordance] macOS cursor helper 写入失败:", error);
-    }
-  });
-  return true;
+  return cursorVisibilityController;
 }
 
 export function setNativeCursorHidden(nextHidden: boolean): void {
-  if (process.platform !== "darwin") return;
-  if (hidden === nextHidden) return;
-  if (sendCursorCommand(nextHidden ? "hide" : "show")) {
-    hidden = nextHidden;
-    console.info("[cursordance] macOS native cursor hidden:", hidden);
-  }
+  if (nextHidden) getCursorVisibilityController()?.setHidden(true);
+  else cursorVisibilityController?.setHidden(false);
 }
 
 export function restoreNativeCursor(): void {
   if (process.platform !== "darwin") return;
   hiddenRequesters.clear();
-  if (hidden) {
-    if (sendCursorCommand("show")) {
-      hidden = false;
-    }
-  }
-  if (cursorHelper && !cursorHelper.killed) {
-    const helper = cursorHelper;
-    sendCursorCommand("quit");
-    // Do not reuse a helper that is already shutting down if a new renderer
-    // requests cursor hiding before the child process emits its exit event.
-    cursorHelper = null;
-    setTimeout(() => {
-      if (!helper.killed) helper.kill();
-    }, 1000).unref();
-  }
+  cursorVisibilityController?.stop();
+  cursorVisibilityController = null;
 }
 
 export function registerCursorVisibilityIpc(): void {

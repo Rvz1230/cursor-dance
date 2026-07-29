@@ -15,7 +15,7 @@
 | R1-1 Workbench 生命周期 | 已完成 | Dock 激活、托盘点击、二次启动统一复用窗口控制器，并有单元测试覆盖 |
 | R1-2 桌面应用规则 | 已完成 | 独立 `appRules` schema、前台应用缓存与变更广播、overlay 即时匹配、旧规则迁移和未授权降级均已接通 |
 | R1-3 多屏事件路由 | 已完成 | 全局输入按目标显示器投递，mousemove 按帧合并，跨屏/拔屏清理残留，并在 Windows 统一转换为 DIP 坐标 |
-| R1-4 自定义光标平台能力 | 进行中 | 已选择方案 A；macOS 已切换为随包原生 helper，Windows 原生实现与完整故障 watchdog 待完成 |
+| R1-4 自定义光标平台能力 | 进行中 | 已选择方案 A；macOS 已切换为随包原生 helper 并接入确认协议与 watchdog，Windows 原生实现待完成 |
 | R0-2 Electron smoke | 已完成 | Playwright Electron 已覆盖启动、首次引导、窗口数量、二次启动重开和配置驱动 overlay 显隐，并已在 macOS 实跑通过 |
 | R0-3 性能与代码量基线 | 已完成 | 已记录代码量、bundle、配置载荷、启动、CPU、内存和 1,000 Hz IPC 压力基线 |
 
@@ -23,7 +23,7 @@
 
 - `npm run typecheck` 通过。
 - `npm run lint` 通过（0 error；共享旧代码的 29 条显式 `any` 暂作为 warning 逐步收紧）。
-- Vitest 40 个测试文件、305 个测试通过。
+- Vitest 41 个测试文件、309 个测试通过。
 - API 177 个测试通过。
 - 根 Web、landing、Electron main/preload/renderer 构建通过。
 - 根项目、landing、Electron Vite、Vitest 均复用 Vite 7.3.6。
@@ -363,7 +363,9 @@ Phase 0 已于 2026-07-28 完成；后续工作进入 Phase 1，优先完成 R1-
 - 保留多 renderer 请求引用计数，并补充最后一个 requester 释放、renderer 销毁和 helper 启动失败测试；修复了 helper 已进入退出流程时仍可能被新请求复用的问题。
 - 新增桌面能力契约：macOS 标记为 `supported`，Windows 标记为 `planned`，Linux 标记为 `unsupported`；Workbench 会对未完成平台展示明确提示。
 - 删除 overlay 中无条件 `cursor: none` 的重复 CSS；桌面系统光标显隐统一由受控原生后端负责，helper 失败时保留系统光标作为安全降级。
-- 待完成：Windows 原生 helper、helper 异常崩溃 watchdog、macOS 正式签名/公证后的真机验收。
+- helper 协议增加 `ready/hidden/shown/pong` 确认；主进程不再把 stdin 写入成功误判为系统光标已隐藏。2 秒心跳超时会终止并重启 helper，硬崩溃后先执行 `recover` 平衡可能残留的 hide count，再按当前引用请求恢复隐藏。
+- 30 秒内连续重启 3 次后停止隐藏并清空请求，避免 helper 缺失时形成无限重启；控制器测试覆盖确认协议、崩溃恢复、watchdog 超时与连续失败降级。
+- 待完成：Windows 原生 helper、macOS 正式签名/公证后的真机验收。
 
 ### R1-5：接通或删除氛围运行时
 
