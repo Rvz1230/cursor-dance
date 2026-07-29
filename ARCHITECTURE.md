@@ -9,7 +9,7 @@ extension/              Chrome extension (MV3) — IIFE modules, loaded by manif
   manifest.json          Extension manifest
 
 src/
-  app/                   Shared UI — Workbench + Popup pages (used by both platforms)
+  app/                   Shared UI — Workbench and extension Popup pages
   components/            Shared UI component library (Radix + Tailwind)
   shared/                Shared utilities + runtime detection
     ipc-channels.ts        Desktop IPC channel constants
@@ -21,8 +21,7 @@ src/
       engine/              Effect engine (parity with extension/content-runtime/*)
       overlay/             Overlay window entry
       workbench/           Workbench window entry
-      popup/               Tray popup entry
 ```
 
-Key rule: `src/app/` and `src/components/` are shared. `extension/` and `src/desktop/` are platform-specific.
+Key rule: `src/app/` and `src/components/` contain shared UI, but the Popup is extension-only. `extension/` and `src/desktop/` are platform-specific.
 Changes to `src/desktop/renderer/engine/` must be reflected in `extension/content-runtime/` and `extension/config-runtime/`.

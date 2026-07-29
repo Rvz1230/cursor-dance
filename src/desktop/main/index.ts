@@ -81,7 +81,7 @@ function ensureOverlayPerDisplay(): void {
 }
 
 // ----------------------------------------------------------------
-// 任务 4.1：全局 enabled 开关 —— tray / popup / workbench 共用一份
+// 任务 4.1：全局 enabled 开关 —— tray / workbench 共用一份
 //
 // 真值来自 electron-store 的 cursordance.config.enabled。tray 不能直接读 store——
 // 通过 isEnabled / toggleEnabled / onEnabledChange 三个回调注入。

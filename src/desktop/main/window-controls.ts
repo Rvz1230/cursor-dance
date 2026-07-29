@@ -2,7 +2,7 @@
 //
 // 渲染进程的 TitleBar 通过 invoke 触发最小化 / 切换最大化 / 关闭，
 // 主进程根据 event.sender 定位到对应 BrowserWindow。这样 renderer 不需要
-// 知道任何 windowId，多窗口（workbench / popup）共用同一套桥。
+// 知道任何 windowId，Workbench 只通过同一套窄桥控制自身窗口。
 //
 // maximize/unmaximize 状态变化广播给该窗口的 webContents，让 TitleBar
 // 切换图标（最大化 ↔ 还原）。close/maximize/minimize 都是 BrowserWindow

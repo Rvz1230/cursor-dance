@@ -100,7 +100,6 @@ export interface ConfigStoreApi extends ConfigStore {
   ): boolean;
   getMaxActiveEffects(): number;
   getKeyFeedbackConfig(): KeyFeedbackConfig;
-  getAtmosphereConfig(scheme: ThemePack | null | undefined): { mode: string };
   getBaseActionConfigs(): Record<string, Record<string, unknown>>;
   getWorkbenchDraft(scheme: ThemePack | null | undefined): {
     cursorModes: Record<string, string>;
@@ -112,8 +111,6 @@ export interface ConfigStoreApi extends ConfigStore {
   debouncedSyncConfigFromStorage(opts: { clearStateCursorOverlay: () => void }): void;
   setOnSyncComplete(cb: (() => void) | null): void;
 }
-
-const ATMOSPHERE_DEFAULTS = { mode: "none" as const };
 
 export function createConfigStore(deps: ConfigStoreDeps): ConfigStoreApi {
   const {
@@ -251,12 +248,6 @@ export function createConfigStore(deps: ConfigStoreDeps): ConfigStoreApi {
           : [],
       } as Record<string, unknown>,
     );
-  }
-
-  function getAtmosphereConfig(scheme: ThemePack | null | undefined): { mode: string } {
-    const storedDraft = scheme?.workbenchDraft || {};
-    const storedAtmosphere = storedDraft.atmosphere || {};
-    return { mode: storedAtmosphere.mode || ATMOSPHERE_DEFAULTS.mode };
   }
 
   function getWorkbenchDraft(scheme: ThemePack | null | undefined): {
@@ -510,7 +501,6 @@ export function createConfigStore(deps: ConfigStoreDeps): ConfigStoreApi {
     matchesTriggerZone,
     getMaxActiveEffects,
     getKeyFeedbackConfig,
-    getAtmosphereConfig,
     getBaseActionConfigs,
     getWorkbenchDraft,
     syncConfigFromStorage,

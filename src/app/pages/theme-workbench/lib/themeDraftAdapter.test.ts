@@ -572,6 +572,23 @@ describe("themeDraftAdapter", () => {
     expect(payload.themePack.workbenchDraft.actionConfigs.leftClick).toHaveProperty("textKind", "文本飘字");
   });
 
+  it("omits atmosphere settings from desktop theme exports", () => {
+    const { defaultConfig } = installPublicConfigRuntime();
+    const state = hydrateWorkbenchState(defaultConfig, { host: "example.com" });
+    state.draftsByTheme["mono-geo"].atmosphere = { mode: "creative-mouse" };
+
+    const themePack = buildStoredThemePackFromWorkbench(
+      defaultConfig,
+      state,
+      "mono-geo",
+      { includeAtmosphere: false },
+    );
+    const payload = buildThemeExportPayload(themePack);
+
+    expect(themePack.workbenchDraft).not.toHaveProperty("atmosphere");
+    expect(payload.themePack.workbenchDraft).not.toHaveProperty("atmosphere");
+  });
+
   it("exports custom theme packs instead of the first normalized fallback theme", () => {
     const { defaultConfig } = installPublicConfigRuntime();
     const state = hydrateWorkbenchState(defaultConfig, { host: "example.com" });

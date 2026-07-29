@@ -10,6 +10,11 @@ import {
 } from "../model/workbenchSchema";
 import { getDefaultConfig, normalizeStoredConfig } from "./runtimeConfig";
 import { normalizeKeyFeedbackConfig } from "@/desktop/renderer/engine/key-feedback-types";
+import { isDesktop } from "@/shared/runtime";
+
+interface BuildStoredThemePackOptions {
+  includeAtmosphere?: boolean;
+}
 
 const LEGACY_CURSOR_STATE_TO_SKIN_STATE = {
   default: "default",
@@ -307,9 +312,18 @@ function buildStoredCursorStates(draft) {
   );
 }
 
-function buildStoredThemePack(themeId, draft, previousConfig, themeRecord) {
+function buildStoredThemePack(
+  themeId,
+  draft,
+  previousConfig,
+  themeRecord,
+  options: BuildStoredThemePackOptions = {},
+) {
   const previousThemePack = getStoredThemePack(previousConfig, themeId) ?? {};
-  const storedAtmosphere = draft.atmosphere ?? previousThemePack?.workbenchDraft?.atmosphere;
+  const includeAtmosphere = options.includeAtmosphere ?? !isDesktop();
+  const storedAtmosphere = includeAtmosphere
+    ? draft.atmosphere ?? previousThemePack?.workbenchDraft?.atmosphere
+    : undefined;
 
   return {
     ...previousThemePack,
@@ -335,12 +349,18 @@ export function buildPreviewThemePackFromWorkbench(previousConfig, state) {
   return buildStoredThemePackFromWorkbench(previousConfig, state, state.selection.themeId);
 }
 
-export function buildStoredThemePackFromWorkbench(previousConfig, state, themeId = state.selection.themeId) {
+export function buildStoredThemePackFromWorkbench(
+  previousConfig,
+  state,
+  themeId = state.selection.themeId,
+  options: BuildStoredThemePackOptions = {},
+) {
   return buildStoredThemePack(
     themeId,
     state.draftsByTheme[themeId],
     previousConfig,
-    state.themeLibrary.find((item) => item.id === themeId)
+    state.themeLibrary.find((item) => item.id === themeId),
+    options,
   );
 }
 

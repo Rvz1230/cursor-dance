@@ -69,7 +69,10 @@
 - **R1-3 验证**：39 个测试文件共 301 项通过；Electron build、Web smoke 5/5、桌面 smoke 1/1 通过；双屏 1,000 个源 mousemove 的 IPC 从 2,000 条降至 62 条（约 96.9%）
 - [ ] R1-4：自定义光标平台能力——macOS helper/watchdog 已完成；Windows Win32 helper、MSVC 构建、安装包资源和 CI 协议验证已接线，并由实验开关保护
 - **R1-4 当前验证**：41 个测试文件共 310 项通过；macOS helper 协议已真机实跑，Windows helper 等待新增 CI 与 Windows 真机验证，能力状态仍为 `planned`
-- **下一步**：在 Windows 执行隐藏/恢复、helper 强杀和应用强杀验收；通过后移除实验开关并完成 R1-4。macOS 正式签名/公证随发布链路验收。
+- [x] R1-5：桌面氛围运行时取舍——桌面 Workbench 隐藏配置与预览，桌面导出省略氛围字段，删除无调用方 runtime；Chrome 扩展能力不变
+- [x] R1-6：取消桌面 Popup——删除孤立 renderer、HTML 和构建入口，托盘继续提供快速开关和打开工作台
+- **R1-5/R1-6 验证**：41 个测试文件共 311 项、Web smoke 5/5、桌面 smoke 1/1、typecheck、lint 和 Electron build 均通过；renderer 输出减少 65,126 bytes（约 3.1%）
+- **下一步**：进入 Phase 2，按 Workbench/Overlay 拆分 preload 并收紧 IPC 能力；Windows 同步执行隐藏/恢复、helper 强杀和应用强杀验收，通过后完成 R1-4。
 
 ### 分支状态
 

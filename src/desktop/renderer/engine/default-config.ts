@@ -77,7 +77,6 @@ export interface ThemePack {
     cursorSkin?: CursorSkin;
     keyFeedbackConfig?: Partial<KeyFeedbackConfig>;
     resetKeyFeedbackConfig?: Partial<KeyFeedbackConfig>;
-    atmosphere?: { mode?: string };
   };
 }
 

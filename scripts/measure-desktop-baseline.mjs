@@ -298,7 +298,6 @@ const result = {
   bundles: {
     workbench: await measureReferencedBundle("workbench"),
     overlay: await measureReferencedBundle("overlay"),
-    popup: await measureReferencedBundle("popup"),
     rendererOutputBytes: (await Promise.all((await listSourceFiles(resolve(PROJECT_ROOT, "out/renderer"))).map(async (file) => (await stat(file)).size)))
       .reduce((sum, size) => sum + size, 0),
   },

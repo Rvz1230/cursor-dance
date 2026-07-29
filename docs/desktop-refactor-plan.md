@@ -16,6 +16,8 @@
 | R1-2 桌面应用规则 | 已完成 | 独立 `appRules` schema、前台应用缓存与变更广播、overlay 即时匹配、旧规则迁移和未授权降级均已接通 |
 | R1-3 多屏事件路由 | 已完成 | 全局输入按目标显示器投递，mousemove 按帧合并，跨屏/拔屏清理残留，并在 Windows 统一转换为 DIP 坐标 |
 | R1-4 自定义光标平台能力 | 进行中 | macOS helper 与 watchdog 已完成；Windows Win32 helper、构建和 CI 验证已接线，等待 Windows 真机验收后正式启用 |
+| R1-5 氛围运行时 | 已完成 | 桌面端明确暂不支持，Workbench 隐藏配置和预览，桌面导出不再写入该字段，并删除无调用方 runtime |
+| R1-6 桌面 Popup | 已完成 | 采用取消方案，删除孤立 renderer 与构建入口，托盘继续承担快速开关和打开 Workbench |
 | R0-2 Electron smoke | 已完成 | Playwright Electron 已覆盖启动、首次引导、窗口数量、二次启动重开和配置驱动 overlay 显隐，并已在 macOS 实跑通过 |
 | R0-3 性能与代码量基线 | 已完成 | 已记录代码量、bundle、配置载荷、启动、CPU、内存和 1,000 Hz IPC 压力基线 |
 
@@ -23,13 +25,14 @@
 
 - `npm run typecheck` 通过。
 - `npm run lint` 通过（0 error；共享旧代码的 29 条显式 `any` 暂作为 warning 逐步收紧）。
-- Vitest 41 个测试文件、310 个测试通过。
+- Vitest 41 个测试文件、311 个测试通过。
 - API 177 个测试通过。
 - 根 Web、landing、Electron main/preload/renderer 构建通过。
 - 根项目、landing、Electron Vite、Vitest 均复用 Vite 7.3.6。
 - Electron smoke 已在 macOS 实跑通过并接入 Linux CI；除生命周期外，已覆盖应用规则禁用与清空后即时恢复，以及点击只进入目标显示器 overlay 的真实消费路径。测试使用隔离 userData，并禁用全局输入、托盘、AI 服务和更新器等真机副作用。
 - 静态重构基线已记录在 [`docs/desktop-refactor-baseline.md`](./desktop-refactor-baseline.md)：生产代码 25,237 有效行，renderer 输出约 2.01 MiB，默认配置 JSON 约 43.9 KiB。
 - 动态基线已在双显示器 Mac 上实测：Workbench ready 1,127.2 ms，空闲主进程 CPU 0.198%，总工作集约 832.9 MiB，1,000 Hz 目标实际达到 998.997 Hz。
+- R1-5/R1-6 清理后 renderer 输出由 2,106,709 bytes 降至 2,041,583 bytes，减少 65,126 bytes（约 3.1%），且不再生成 popup HTML/JS 产物。
 - npm audit 当前报告 27 个依赖漏洞，需单独分类生产依赖与开发/打包依赖；不得直接运行 `npm audit fix --force`。
 
 ## 1. 背景与结论
@@ -171,11 +174,9 @@ src/
       preload/
         workbench.ts
         overlay.ts
-        popup.ts
       renderer/
         overlay/
         workbench/
-        popup/
         adapters/
 ```
 
@@ -371,6 +372,8 @@ Phase 0 已于 2026-07-28 完成；后续工作进入 Phase 1，优先完成 R1-
 
 ### R1-5：接通或删除氛围运行时
 
+决策：桌面端暂不支持，扩展端继续保留该能力。
+
 若保留氛围功能：
 
 - overlay 创建并销毁 atmosphere runtime。
@@ -386,7 +389,15 @@ Phase 0 已于 2026-07-28 完成；后续工作进入 Phase 1，优先完成 R1-
 
 禁止继续保留“UI 可配置、运行时无调用方”的中间状态。
 
+实现结果：
+
+- 桌面 Workbench 不再展示氛围配置和预览，Chrome 扩展行为保持不变。
+- 桌面主题保存和导出会省略 `workbenchDraft.atmosphere`。
+- 删除无调用方的桌面 `atmosphere.ts` 及 config store 中对应的死接口。
+
 ### R1-6：决定桌面 Popup 去留
+
+决策：采用方案 B，桌面快速操作继续由托盘菜单承担。
 
 方案 A：实现桌面 Popup：
 
@@ -403,6 +414,12 @@ Phase 0 已于 2026-07-28 完成；后续工作进入 Phase 1，优先完成 R1-
 - README 不再宣称桌面 Popup 已提供。
 
 建议在 Phase 1 开始时完成产品决策；如果没有明确需求，优先选择 B，减少维护面。
+
+实现结果：
+
+- 删除 desktop popup renderer、HTML 与 Electron Vite 构建入口。
+- 性能基线脚本不再要求不存在的 popup bundle。
+- README 和架构说明明确 Popup 仅属于 Chrome 扩展。
 
 ### Phase 1 完成条件
 
@@ -433,11 +450,6 @@ overlay preload:
   activeApp.subscribe
   diagnostics.publish
   cursor.requestVisibility
-
-popup preload:
-  config.read/write
-  activeApp.read
-  workbench.open
 ```
 
 删除 overlay 不需要的文件对话框、AI 设置、外链和窗口控制能力。
@@ -708,7 +720,7 @@ AiSchemePanel              # 组合层
 #### 可在确认无调用方后优先删除
 
 - 未被引用的 `ElementMagnetCard.tsx`。
-- 如果取消桌面 Popup：桌面 popup entry、HTML 和 build input。
+- [x] 桌面 popup entry、HTML 和 build input。
 - 只服务 localhost 预览、但被误当成桌面正式通道的 fallback 分支。
 - 已由实际实现替代的任务编号注释、过时阶段说明和重复架构注释。
 - 未被使用的导出、测试 hook 和兼容 wrapper。
@@ -809,7 +821,7 @@ AiSchemePanel              # 组合层
 4. `fix: preserve and apply desktop application rules`
 5. `refactor: route input events to active display overlay`
 6. `fix: finalize desktop cursor support policy and implementation`
-7. `fix/refactor: wire atmosphere runtime or remove desktop entry`
+7. `refactor: remove unsupported desktop atmosphere and popup entries`
 8. `refactor: split preload capabilities and validate ipc payloads`
 9. `refactor: move desktop ai transport from http to ipc`
 10. `feat: introduce config schema v4 and migrations`

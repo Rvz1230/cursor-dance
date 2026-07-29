@@ -97,6 +97,7 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
     let workbenchPage = await getWorkbenchPage(electronApp);
     await expect(workbenchPage).toHaveTitle("CursorDance 工作台");
     await waitForWorkbenchReady(workbenchPage);
+    await expect(workbenchPage.getByText("氛围动效", { exact: true })).toHaveCount(0);
 
     await expect.poll(() => readWindowState(electronApp)).toMatchObject({
       workbench: { count: 1, visibleCount: 1 },

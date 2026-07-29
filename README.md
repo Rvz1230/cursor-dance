@@ -15,7 +15,7 @@ CursorDance 为网页和桌面系统添加可定制的鼠标交互效果——�
 
 - Chrome 扩展（Manifest V3）已上架，内容脚本在目标网页中渲染效果。
 - Electron 桌面版正在开发，通过透明 overlay 和全局输入监听在操作系统桌面渲染效果。
-- 两端复用 React 工作台、Popup、设计系统和 schema v3 配置模型。
+- 两端复用 React 工作台、设计系统和 schema v3 配置模型；Popup 目前仅由 Chrome 扩展提供。
 
 ## 截图
 
@@ -26,7 +26,7 @@ CursorDance 为网页和桌面系统添加可定制的鼠标交互效果——�
 
 <p align="center">
   <img src="screenshots/popup.png" alt="Popup 主题切换" width="300">
-  <br><em>Popup 快速切换主题</em>
+  <br><em>Chrome 扩展 Popup 快速切换主题</em>
 </p>
 
 ## 安装
@@ -59,18 +59,18 @@ npm run dev:electron
 - **7 种触发动作**：左键单击、右键单击、双击、长按、滚轮、悬停、悬停离开
 - **9 类反馈效果**：数字/文本飘字、粒子、波纹、音效、动画、图片贴纸、光标形状、氛围粒子、元素磁吸
 - **5 种光标状态**：默认、手型、文本、等待、禁用——每种可独立绑定动作和光标图案
-- **氛围效果**：自定义光标拖尾、氛围粒子、视差跟随，增强页面沉浸感
+- **氛围效果（Chrome 扩展）**：自定义光标拖尾、氛围粒子、视差跟随，增强页面沉浸感
 - **主题系统**：4 套内置主题 + 自定义主题的创建、复制、导入/导出
 - **站点规则**：按域名独立配置启用/禁用、指定专属主题
 - **AI 方案助手**：自然语言描述需求，自动生成效果配置
 - **实时预览**：工作台 Live Preview 即时在目标网页上查看效果
-- **Popup 快速切换**：工具栏弹窗一键切换主题，站点规则感知
+- **Popup 快速切换（Chrome 扩展）**：工具栏弹窗一键切换主题，站点规则感知
 
 ## 技术栈
 
 | 层 | 技术 |
 |---|------|
-| 共享工作台 + Popup | React 18 + Vite + Tailwind CSS + Framer Motion |
+| 共享工作台 + 扩展 Popup | React 18 + Vite + Tailwind CSS + Framer Motion |
 | Chrome 扩展 | Manifest V3 + 原生 IIFE 内容脚本 |
 | Electron 桌面端 | electron-vite + 透明 overlay + uiohook-napi |
 | 状态管理 | useReducer + Chrome Storage / electron-store |

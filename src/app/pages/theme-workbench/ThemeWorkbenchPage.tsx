@@ -25,7 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { ToastProvider, useToast } from "@/components/ui/toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { isDesktop } from "@/shared/runtime";
+import { isDesktop, isExtension } from "@/shared/runtime";
 import {
   activeAppInfoFromSnapshot,
   resolveAppRule,
@@ -309,6 +309,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
     ),
   );
   const activeAppInfo = activeAppInfoFromSnapshot(activeWindowSnapshot);
+  const workbenchAtmosphere = isExtension() ? draft?.atmosphere : undefined;
   const contextAction = isDesktop()
     ? (activeAppInfo ? resolveAppRule(state.appRules, activeAppInfo) : null)
     : getRuntimeConfig().resolveSiteRule(state.siteRules, state.site.host);
@@ -534,7 +535,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                           resetConfig={draft?.resetActionConfigs?.[selected.actionId]}
                           updateActionConfig={handleUpdateActionConfig}
                           conflicts={currentConflicts}
-                          atmosphere={draft?.atmosphere}
+                          atmosphere={workbenchAtmosphere}
                           updateAtmosphere={updateAtmosphere}
                         />
                       </div>
@@ -555,7 +556,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                       disabled={contextAction === "disable"}
                       previewMode={isPreviewingAiProposal}
                       updateActionConfig={updateActionConfig}
-                      atmosphere={draft?.atmosphere}
+                      atmosphere={workbenchAtmosphere}
                     />
                   </div>
 

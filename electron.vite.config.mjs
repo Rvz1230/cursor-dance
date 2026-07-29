@@ -51,7 +51,6 @@ export default defineConfig({
         input: {
           workbench: resolve(__dirname, "src/desktop/renderer/workbench/index.html"),
           overlay: resolve(__dirname, "src/desktop/renderer/overlay/index.html"),
-          popup: resolve(__dirname, "src/desktop/renderer/popup/index.html"),
         },
       },
     },
