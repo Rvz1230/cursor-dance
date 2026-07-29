@@ -381,6 +381,7 @@ const unsubscribeInput = api
 window.addEventListener("beforeunload", () => {
   unsubscribeActiveWindow?.();
   unsubscribeInput();
+  engine.effectSurface.clear();
   engine.cursorOverlay.clearStateCursorOverlay();
   setNativeCursorHidden(false);
 });

@@ -37,11 +37,14 @@ describe("createEffectEngine (skeleton)", () => {
     expect(typeof engine.visualEffects.ensureRoot).toBe("function");
     expect(typeof engine.visualEffects.renderText).toBe("function");
     expect(typeof engine.visualEffects.clearOrbitalParticles).toBe("function");
+    expect(typeof engine.effectSurface.createNode).toBe("function");
+    expect(typeof engine.effectSurface.clear).toBe("function");
     // cursorOverlay 暴露 syncStateCursorOverlay / clearStateCursorOverlay
     expect(typeof engine.cursorOverlay.syncStateCursorOverlay).toBe("function");
     expect(typeof engine.cursorOverlay.clearStateCursorOverlay).toBe("function");
     // audioRuntime 暴露 playSound（duckPageMedia 一族在桌面端被裁剪掉）
     expect(typeof engine.audioRuntime.playSound).toBe("function");
+    expect(typeof engine.audioOutput.play).toBe("function");
     // triggerHandlers 暴露 7 个 handler（桌面端裁剪 hover：无 handlePointerOver / handlePointerOut）
     expect(typeof engine.triggerHandlers.handleLeftPointerDown).toBe("function");
     expect(typeof engine.triggerHandlers.handlePointerUp).toBe("function");

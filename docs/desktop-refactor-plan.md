@@ -27,7 +27,7 @@
 | R3-3 配置与素材拆分 | 已完成 | Electron 图片按 SHA-256 写入 userData 素材仓库，配置和预览只传 asset id，renderer 通过受限协议按需加载，导出恢复可移植 data URL |
 | R3-4 Workbench persistence | 已完成 | 统一 repository contract；Electron、Chrome 与静态预览使用独立 adapter，业务 facade 不再判断运行平台 |
 | R4-1 共享效果核心边界 | 已完成 | `text-semantics`、action config 与 compute specs 迁入共享 core；桌面仅保留素材 URL adapter，Workbench 删除重复算法 |
-| R4-2 EffectRuntime adapters | 进行中 | 已建立共享 contract，并让桌面输入与前台应用上下文通过独立 adapter 接入 overlay |
+| R4-2 EffectRuntime adapters | 进行中 | 桌面输入、上下文、效果 surface 与音频输出均已通过共享 contract；待提取共享 action state machine |
 
 当前验证基线：
 
@@ -730,7 +730,9 @@ interface AudioOutput {
 - 已建立平台无关的 `InputSource`、`ContextResolver`、`EffectSurface` 与 `AudioOutput` contract，以及统一输入、效果和音频 spec。
 - 桌面 `InputSource` 负责 IPC 鼠标/键盘订阅、全局 DIP 到 overlay 本地坐标转换和订阅释放；overlay 不再直接绑定 preload 事件。
 - 桌面 `ContextResolver` 统一前台应用初始读取、变更订阅和生命周期，并通过 revision 防止较慢的初始读取覆盖较新的 push 更新。
-- 下一段将把现有 visual effects 和 audio runtime 包装为 `EffectSurface` / `AudioOutput` adapter，再提取共享 action state machine。
+- 桌面 visual effects 和 Web Audio runtime 已分别包装为 `EffectSurface` / `AudioOutput`；trigger pipeline 只发出平台无关的 effect/audio spec，不再直接调用六个 renderer 方法。
+- `EffectHandle.dispose()` 具有真实取消语义；surface 清理会停止活动动画、删除轨道粒子并恢复临时 pointer 样式。
+- 下一段提取 timing、throttle、combo 与 output plan，形成共享 action state machine。
 
 ### R4-3：让扩展运行时进入正式构建
 

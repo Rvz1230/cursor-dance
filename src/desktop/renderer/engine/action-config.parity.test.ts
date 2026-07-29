@@ -69,4 +69,11 @@ describe("extension/shared action-config parity", () => {
     expect(runtimeHelpers.getActionAnimationConfig(config).animationDelay).toBe(30);
     expect(runtimeHelpers.getActionImageConfig(config).imageDelay).toBe(40);
   });
+
+  it("keeps cursor override capability detection aligned", () => {
+    for (const cursorOverride of ["切换到 pointer", "木鱼（增强态）", "跟随当前状态", undefined]) {
+      const config = { cursorOverride };
+      expect(runtimeHelpers.hasCursorOverride(config)).toBe(sharedHelpers.hasCursorOverride(config));
+    }
+  });
 });

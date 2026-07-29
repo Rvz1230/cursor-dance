@@ -134,6 +134,14 @@
     return pickActionConfigFields(config, ACTION_CURSOR_FEEDBACK_FIELDS);
   }
 
+  function hasCursorOverride(config) {
+    const cursorOverride = config?.cursorOverride;
+    return cursorOverride === "木鱼（增强态）"
+      || cursorOverride === "木鱼（按压态）"
+      || cursorOverride === "木鱼（继承默认）"
+      || cursorOverride === "切换到 pointer";
+  }
+
   function hexToRgba(hex, alpha) {
     const normalized = (hex || "#f59e0b").replace("#", "");
     const value = normalized.length === 3
@@ -231,6 +239,7 @@
     getActionAnimationConfig,
     getActionImageConfig,
     getActionCursorFeedbackConfig,
+    hasCursorOverride,
     hexToRgba,
     getAnimationEasing,
     getTextWeightValue,

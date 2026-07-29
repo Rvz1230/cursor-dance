@@ -131,6 +131,14 @@ export function getActionCursorFeedbackConfig(config: Record<string, unknown> | 
   return pickActionConfigFields(config, ACTION_CURSOR_FEEDBACK_FIELDS);
 }
 
+export function hasCursorOverride(config: Record<string, unknown> | undefined): boolean {
+  const cursorOverride = config?.cursorOverride;
+  return cursorOverride === "木鱼（增强态）"
+    || cursorOverride === "木鱼（按压态）"
+    || cursorOverride === "木鱼（继承默认）"
+    || cursorOverride === "切换到 pointer";
+}
+
 export function hexToRgba(hex: string | undefined, alpha: number): string {
   const normalized = (hex || "#f59e0b").replace("#", "");
   const value = normalized.length === 3

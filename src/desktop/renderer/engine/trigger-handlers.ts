@@ -22,15 +22,15 @@
 //   预览模拟   → preview-simulation.ts
 
 import type {
-  AudioRuntimeModule,
   ConfigStore,
   CursorEvent,
   CursorOverlayModule,
   DiagnosticsModule,
   EngineState,
   TriggerHandlersModule,
-  VisualEffectsModule,
 } from "./types";
+import type { AudioOutput, EffectSurface } from "@/shared/effect-runtime/contracts";
+import { hasCursorOverride } from "@/shared/effect-core/action-config";
 
 import { createLongPressTracker, type LongPressTracker } from "./long-press-state";
 import { createDoubleClickDetector, type DoubleClickDetector } from "./double-click-detector";
@@ -42,8 +42,8 @@ export interface TriggerHandlersDeps {
   state: EngineState;
   diagnostics?: DiagnosticsModule;
   configStore: ConfigStore;
-  visualEffects: VisualEffectsModule;
-  audioRuntime: AudioRuntimeModule;
+  effectSurface: EffectSurface;
+  audioOutput: AudioOutput;
   cursorOverlay: CursorOverlayModule;
 }
 
@@ -70,8 +70,8 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
     state,
     diagnostics,
     configStore,
-    visualEffects,
-    audioRuntime,
+    effectSurface,
+    audioOutput,
     cursorOverlay: _cursorOverlay,
   } = deps;
   // cursorOverlay 在扩展端由 handlePointerOver/Out 调用；桌面端 hover 已裁剪，
@@ -213,6 +213,7 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
     const audioConfig = configStore.getActionAudioConfig(actionConfig);
     const animationConfig = configStore.getActionAnimationConfig(actionConfig);
     const imageConfig = configStore.getActionImageConfig(actionConfig);
+    const cursorFeedbackConfig = configStore.getActionCursorFeedbackConfig(actionConfig);
     const outputSummary = {
       textEnabled: Boolean(textConfig.textEnabled),
       particleEnabled: Boolean(particleConfig.particle),
@@ -220,7 +221,7 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
       soundEnabled: Boolean(audioConfig.sound),
       animationEnabled: Boolean(animationConfig.animationEnabled),
       imageEnabled: Boolean(imageConfig.imageEnabled && imageConfig.imageDataUrl),
-      cursorOverrideEnabled: Boolean(visualEffects.hasCursorOverride(actionConfig)),
+      cursorOverrideEnabled: hasCursorOverride(cursorFeedbackConfig),
     };
     if (!outputSummary.textEnabled && !outputSummary.particleEnabled && !outputSummary.rippleEnabled && !outputSummary.soundEnabled && !outputSummary.animationEnabled && !outputSummary.imageEnabled && !outputSummary.cursorOverrideEnabled) {
       diagnostics?.log("action.skip", {
@@ -275,18 +276,24 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
       outputs: outputSummary,
       target: diagnostics?.describeTarget?.(coords.target),
     });
-    visualEffects.renderRipple(coords.x, coords.y, actionConfig);
+    effectSurface.createNode({ kind: "ripple", x: coords.x, y: coords.y, actionConfig });
     const particleCfg = configStore.getActionParticleConfig(actionConfig);
-    if (particleCfg.particleMotionMode === "orbital") {
-      visualEffects.renderOrbitalParticles(coords.x, coords.y, actionConfig, runIndex, resolvedActionId);
-    } else {
-      visualEffects.renderParticles(coords.x, coords.y, actionConfig, runIndex);
-    }
-    visualEffects.renderText(coords.x, coords.y, actionConfig, resolvedActionId, comboIndex);
-    visualEffects.renderAnimationEffect(coords.x, coords.y, actionConfig);
-    visualEffects.renderImageEffect(coords.x, coords.y, actionConfig);
-    visualEffects.renderCursorOverride(coords.x, coords.y, actionConfig);
-    audioRuntime.playSound(actionConfig, resolvedActionId, { comboIndex });
+    effectSurface.createNode({
+      kind: "particle",
+      x: coords.x,
+      y: coords.y,
+      actionConfig,
+      actionId: resolvedActionId,
+      runIndex,
+      particleMode: particleCfg.particleMotionMode === "orbital" ? "orbital" : "burst",
+    });
+    effectSurface.createNode({ kind: "text", x: coords.x, y: coords.y, actionConfig, actionId: resolvedActionId, runIndex: comboIndex });
+    effectSurface.createNode({ kind: "animation", x: coords.x, y: coords.y, actionConfig });
+    effectSurface.createNode({ kind: "image", x: coords.x, y: coords.y, actionConfig });
+    effectSurface.createNode({ kind: "cursor", x: coords.x, y: coords.y, actionConfig });
+    void audioOutput.play({ actionConfig, actionId: resolvedActionId, comboIndex }).catch(() => {
+      diagnostics?.log("audio.skip", { actionId: resolvedActionId, reason: "output-adapter-error" });
+    });
   }
 
   function scheduleActionTrigger(

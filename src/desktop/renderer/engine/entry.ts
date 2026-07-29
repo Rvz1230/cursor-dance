@@ -11,6 +11,8 @@ import { createCursorOverlay } from "./cursor-overlay";
 import { createAudioRuntime } from "./audio";
 import { createTriggerHandlers } from "./trigger-handlers";
 import { createKeyFeedback } from "./key-feedback";
+import { createDesktopEffectSurface } from "../adapters/effect-surface";
+import { createDesktopAudioOutput } from "../adapters/audio-output";
 
 export function createEffectEngine(deps: EngineDeps): EffectEngine {
   const visualEffects = createVisualEffects(deps);
@@ -27,22 +29,26 @@ export function createEffectEngine(deps: EngineDeps): EffectEngine {
     diagnostics: deps.diagnostics,
     reportRuntimeError: deps.reportRuntimeError,
   });
+  const effectSurface = createDesktopEffectSurface(visualEffects);
+  const audioOutput = createDesktopAudioOutput(audioRuntime);
   const triggerHandlers = createTriggerHandlers({
     window: deps.window,
     document: deps.document,
     state: deps.state,
     diagnostics: deps.diagnostics,
     configStore: deps.configStore,
-    visualEffects,
-    audioRuntime,
+    effectSurface,
+    audioOutput,
     cursorOverlay,
   });
   const keyFeedback = createKeyFeedback(deps);
 
   return {
     visualEffects,
+    effectSurface,
     cursorOverlay,
     audioRuntime,
+    audioOutput,
     triggerHandlers,
     keyFeedback,
   };

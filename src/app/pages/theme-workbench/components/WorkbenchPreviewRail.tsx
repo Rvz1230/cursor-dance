@@ -570,7 +570,7 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, act
     engineRef.current = { engine, state: engineState, root };
     return () => {
       try { engine.cursorOverlay.clearStateCursorOverlay(); } catch {}
-      try { engine.visualEffects.clearOrbitalParticles(); } catch {}
+      try { engine.effectSurface.clear(); } catch {}
       // close 异步返回 Promise，吞错即可（unmount 阶段对 fail-safe 不敏感）
       try { engineState.audioContext?.close().catch(() => {}); } catch {}
       if (doubleClickIdleTimeoutRef.current !== null) {

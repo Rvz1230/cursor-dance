@@ -27,11 +27,27 @@ import {
   getParticleTint,
 } from "@/shared/effect-core/compute-specs";
 import { buildVisualEffectsCSS } from "./data/visual-effects-styles";
+import type { EffectHandle } from "@/shared/effect-runtime/contracts";
 
 type AnimateOptions = number | { duration?: number; easing?: string; delay?: number };
 
 export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
   const { window, document, constants, state, configStore } = deps;
+  const emptyHandle: EffectHandle = { dispose() {} };
+  const cursorRestores = new Set<() => void>();
+  let pointerOverrideCount = 0;
+  let pointerOverrideBase = "";
+
+  function combineHandles(handles: EffectHandle[]): EffectHandle {
+    let disposed = false;
+    return {
+      dispose() {
+        if (disposed) return;
+        disposed = true;
+        for (const handle of handles) handle.dispose();
+      },
+    };
+  }
 
   const getTextWeight = (config: Record<string, unknown>): number =>
     getTextWeightValue((config?.textWeight as string) || "常规");
@@ -60,8 +76,8 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
     return root;
   }
 
-  function animateNode(node: HTMLElement, keyframes: Keyframe[], options: AnimateOptions): void {
-    if (state.activeEffects >= configStore.getMaxActiveEffects()) return;
+  function animateNode(node: HTMLElement, keyframes: Keyframe[], options: AnimateOptions): EffectHandle {
+    if (state.activeEffects >= configStore.getMaxActiveEffects()) return emptyHandle;
 
     const animationOptions = typeof options === "number"
       ? { duration: options, easing: "ease-out", delay: 0 }
@@ -80,13 +96,22 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
       fill: "forwards",
     });
 
+    let cleaned = false;
     const cleanup = (): void => {
+      if (cleaned) return;
+      cleaned = true;
       node.remove();
       state.activeEffects = Math.max(0, state.activeEffects - 1);
     };
 
     animation.addEventListener("finish", cleanup, { once: true });
     animation.addEventListener("cancel", cleanup, { once: true });
+    return {
+      dispose() {
+        animation.cancel();
+        cleanup();
+      },
+    };
   }
 
   function getCursorOverrideKind(cursorOverride: unknown): "boost" | "press" | "woodfish" | "pointer" | null {
@@ -102,19 +127,29 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
     return Boolean(getCursorOverrideKind(cursorFeedbackConfig.cursorOverride));
   }
 
-  function renderCursorOverride(x: number, y: number, actionConfig: Record<string, unknown>): void {
+  function renderCursorOverride(x: number, y: number, actionConfig: Record<string, unknown>): EffectHandle {
     const cursorFeedbackConfig = configStore.getActionCursorFeedbackConfig(actionConfig);
     const cursorKind = getCursorOverrideKind(cursorFeedbackConfig.cursorOverride);
-    if (!cursorKind) return;
+    if (!cursorKind) return emptyHandle;
 
     if (cursorKind === "pointer") {
       const target = document.body;
-      const previousCursor = target.style.cursor;
+      if (pointerOverrideCount === 0) pointerOverrideBase = target.style.cursor;
+      pointerOverrideCount += 1;
       target.style.cursor = "pointer";
-      window.setTimeout(() => {
-        target.style.cursor = previousCursor;
-      }, 360);
-      return;
+      let restored = false;
+      let timeoutId = 0;
+      const restore = (): void => {
+        if (restored) return;
+        restored = true;
+        window.clearTimeout(timeoutId);
+        pointerOverrideCount = Math.max(0, pointerOverrideCount - 1);
+        if (pointerOverrideCount === 0) target.style.cursor = pointerOverrideBase;
+        cursorRestores.delete(restore);
+      };
+      cursorRestores.add(restore);
+      timeoutId = window.setTimeout(restore, 360);
+      return { dispose: restore };
     }
 
     const node = document.createElement("div");
@@ -140,7 +175,7 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
     const shake = Math.max(0, (cursorFeedbackConfig.shake as number) || 0) / 100;
     const driftX = (shake * 18) || 4;
     const driftY = Math.max(8, shake * 26);
-    animateNode(
+    return animateNode(
       node,
       [
         { opacity: 0, transform: "translate3d(-50%, -50%, 0) scale(0.86)" },
@@ -157,12 +192,12 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
     actionConfig: Record<string, unknown>,
     actionId: string,
     runIndex: number,
-  ): void {
+  ): EffectHandle {
     const textConfig = configStore.getActionTextConfig(actionConfig);
-    if (!textConfig.textEnabled) return;
+    if (!textConfig.textEnabled) return emptyHandle;
 
     const content = getActionText(actionConfig, actionId, runIndex);
-    if (!content) return;
+    if (!content) return emptyHandle;
 
     const node = document.createElement("div");
     node.className = "cd-effect cd-text";
@@ -182,7 +217,7 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
         ? `0 4px 12px ${hexToRgba((textConfig.textColor as string) || "#ec4899", 0.22)}`
         : "none";
 
-    animateNode(
+    return animateNode(
       node,
       [
         { opacity: 0, transform: "translate3d(-50%, -32%, 0) scale(0.92)" },
@@ -196,9 +231,9 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
     );
   }
 
-  function renderRipple(x: number, y: number, actionConfig: Record<string, unknown>): void {
+  function renderRipple(x: number, y: number, actionConfig: Record<string, unknown>): EffectHandle {
     const rippleConfig = configStore.getActionRippleConfig(actionConfig);
-    if (!rippleConfig.ripple) return;
+    if (!rippleConfig.ripple) return emptyHandle;
 
     const easing = getAnimationEasing(rippleConfig.rippleEasing as string);
     const lineWidth = (rippleConfig.rippleLineWidth as number) || 2;
@@ -206,8 +241,9 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
     const rippleColor = (rippleConfig.rippleColor as string) || "#34D399";
 
     const layers = computeRippleLayers(actionConfig);
-    if (!layers || !layers.length) return;
+    if (!layers || !layers.length) return emptyHandle;
 
+    const handles: EffectHandle[] = [];
     for (let li = 0; li < layers.length; li++) {
       const layer = layers[li];
       const node = document.createElement("div");
@@ -223,7 +259,7 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
         node.style.boxShadow = "0 0 0 1px " + hexToRgba(rippleColor, layer.opacity * 0.22) + " inset";
       }
 
-      animateNode(
+      handles.push(animateNode(
         node,
         [
           { opacity: layer.filled ? layer.opacity * 0.84 : layer.opacity * 0.46, transform: "translate3d(-50%, -50%, 0) scale(" + layer.scaleFrom + ")" },
@@ -235,13 +271,14 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
           delay: layer.delay,
           easing,
         },
-      );
+      ));
     }
+    return combineHandles(handles);
   }
 
-  function renderAnimationEffect(x: number, y: number, actionConfig: Record<string, unknown>): void {
+  function renderAnimationEffect(x: number, y: number, actionConfig: Record<string, unknown>): EffectHandle {
     const animationConfig = configStore.getActionAnimationConfig(actionConfig);
-    if (!animationConfig.animationEnabled) return;
+    if (!animationConfig.animationEnabled) return emptyHandle;
 
     const node = document.createElement("div");
     const scale = Math.max(0.6, ((animationConfig.animationScale as number) || 100) / 100);
@@ -312,15 +349,15 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
       ];
     }
 
-    animateNode(node, keyframes, {
+    return animateNode(node, keyframes, {
       duration,
       easing: getAnimationEasing(animationConfig.animationEasing as string),
     });
   }
 
-  function renderImageEffect(x: number, y: number, actionConfig: Record<string, unknown>): void {
+  function renderImageEffect(x: number, y: number, actionConfig: Record<string, unknown>): EffectHandle {
     const imageConfig = configStore.getActionImageConfig(actionConfig);
-    if (!imageConfig.imageEnabled || !imageConfig.imageDataUrl) return;
+    if (!imageConfig.imageEnabled || !imageConfig.imageDataUrl) return emptyHandle;
 
     const node = document.createElement("div");
     node.className = "cd-effect cd-image-effect";
@@ -335,7 +372,7 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
     image.alt = "";
     node.append(image);
 
-    animateNode(
+    return animateNode(
       node,
       [
         { opacity: 0, transform: "translate3d(-50%, -30%, 0) scale(0.72) rotate(-8deg)" },
@@ -349,18 +386,19 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
     );
   }
 
-  function renderParticles(x: number, y: number, actionConfig: Record<string, unknown>, runIndex: number): void {
+  function renderParticles(x: number, y: number, actionConfig: Record<string, unknown>, runIndex: number): EffectHandle {
     const particleConfig = configStore.getActionParticleConfig(actionConfig);
-    if (!particleConfig.particle) return;
+    if (!particleConfig.particle) return emptyHandle;
 
     const count = Math.min((particleConfig.particleCount as number) || 0, 40);
-    if (!count) return;
+    if (!count) return emptyHandle;
 
     const hasTrail = particleConfig.particleTrail;
 
     const specs = computeParticleSpecs(actionConfig, runIndex);
-    if (!specs || !specs.length) return;
+    if (!specs || !specs.length) return emptyHandle;
 
+    const handles: EffectHandle[] = [];
     for (let index = 0; index < specs.length; index++) {
       const spec = specs[index];
       let rotation = 0;
@@ -384,7 +422,7 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
       const midTransform = "translate3d(calc(-50% + " + spec.midX + "px), calc(-50% + " + spec.midY + "px), 0) rotate(" + rotation + "deg)";
       const endTransform = "translate3d(calc(-50% + " + spec.x + "px), calc(-50% + " + spec.y + "px), 0) rotate(" + rotation + "deg)";
 
-      animateNode(
+      handles.push(animateNode(
         node,
         [
           { opacity: 0, transform: "translate3d(-50%, -50%, 0) rotate(" + rotation + "deg) scale(0.5)" },
@@ -400,7 +438,7 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
               : "ease-out",
           delay: spec.delay,
         },
-      );
+      ));
 
       if (hasTrail && index % 3 === 0) {
         for (let t = 1; t <= 2; t++) {
@@ -423,7 +461,7 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
           const trailTxEnd = spec.x * 0.6;
           const trailTyEnd = spec.y * 0.6;
           trailNode.style.opacity = String(Math.max(0.12, 0.4 - t * 0.14));
-          animateNode(
+          handles.push(animateNode(
             trailNode,
             [
               { opacity: 0, transform: "translate3d(-50%, -50%, 0) rotate(" + rotation + "deg) scale(0.5)" },
@@ -431,10 +469,11 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
               { opacity: 0, transform: "translate3d(calc(-50% + " + trailTxEnd + "px), calc(-50% + " + trailTyEnd + "px), 0) rotate(" + rotation + "deg) scale(0.44)" },
             ],
             { duration: ((particleConfig.particleDuration as number) || 760) * 0.8, easing: "ease-out", delay: spec.delay + t * 40 },
-          );
+          ));
         }
       }
     }
+    return combineHandles(handles);
   }
 
   function renderOrbitalParticles(
@@ -443,16 +482,16 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
     actionConfig: Record<string, unknown>,
     runIndex: number,
     actionId?: string,
-  ): void {
+  ): EffectHandle {
     void runIndex; // 原 JS 形参不在轨道粒子算法中使用，保留签名一致
     const particleConfig = configStore.getActionParticleConfig(actionConfig);
-    if (!particleConfig.particle) return;
+    if (!particleConfig.particle) return emptyHandle;
 
     const orbitalDuration = Math.max(0, ((particleConfig.particleDuration as number) || 760));
     const fadeInDuration = Math.min(400, ((particleConfig.particleDuration as number) || 760) * 0.3);
 
     const specs = computeOrbitalParticleSpecs(actionConfig);
-    if (!specs || !specs.length) return;
+    if (!specs || !specs.length) return emptyHandle;
 
     const root = ensureRoot();
     const dots: { dot: HTMLElement; anim: Animation }[] = [];
@@ -505,6 +544,7 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
     // clear previous orbital particles for this actionId before creating new ones
     clearOrbitalParticles(key);
     state.orbitalGroups[key] = dots;
+    return { dispose: () => clearOrbitalParticles(key) };
   }
 
   function clearOrbitalParticles(actionId?: string): void {
@@ -515,10 +555,22 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
       const group = groups[key];
       if (!group) continue;
       for (let d = 0; d < group.length; d++) {
-        group[d].anim.cancel();
+        for (const animation of group[d].dot.getAnimations()) animation.cancel();
         group[d].dot.remove();
       }
       delete groups[key];
+    }
+  }
+
+  function clearEffects(): void {
+    for (const restore of [...cursorRestores]) restore();
+    clearOrbitalParticles();
+    state.activeEffects = 0;
+    const root = document.getElementById(constants.ROOT_ID);
+    if (!root) return;
+    for (const node of root.querySelectorAll<HTMLElement>(".cd-effect")) {
+      for (const animation of node.getAnimations()) animation.cancel();
+      node.remove();
     }
   }
 
@@ -531,6 +583,7 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
     renderParticles,
     renderOrbitalParticles,
     clearOrbitalParticles,
+    clearEffects,
     renderCursorOverride,
     hasCursorOverride,
   };

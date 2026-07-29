@@ -64,6 +64,7 @@ export interface EffectSpec {
   actionConfig: Readonly<Record<string, unknown>>;
   actionId?: string;
   runIndex?: number;
+  particleMode?: "burst" | "orbital";
 }
 
 export interface EffectHandle {

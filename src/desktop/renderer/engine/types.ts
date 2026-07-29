@@ -1,5 +1,8 @@
 import type { KeyFeedbackConfig } from "./key-feedback-types";
 import type {
+  AudioOutput,
+  EffectHandle,
+  EffectSurface,
   KeyboardEventPayload,
   RuntimeCursorEvent,
 } from "@/shared/effect-runtime/contracts";
@@ -168,14 +171,15 @@ export interface EngineDeps {
  */
 export interface VisualEffectsModule {
   ensureRoot(): HTMLElement;
-  renderText(x: number, y: number, actionConfig: Record<string, unknown>, actionId: string, runIndex: number): void;
-  renderRipple(x: number, y: number, actionConfig: Record<string, unknown>): void;
-  renderAnimationEffect(x: number, y: number, actionConfig: Record<string, unknown>): void;
-  renderImageEffect(x: number, y: number, actionConfig: Record<string, unknown>): void;
-  renderParticles(x: number, y: number, actionConfig: Record<string, unknown>, runIndex: number): void;
-  renderOrbitalParticles(x: number, y: number, actionConfig: Record<string, unknown>, runIndex: number, actionId?: string): void;
+  renderText(x: number, y: number, actionConfig: Record<string, unknown>, actionId: string, runIndex: number): EffectHandle;
+  renderRipple(x: number, y: number, actionConfig: Record<string, unknown>): EffectHandle;
+  renderAnimationEffect(x: number, y: number, actionConfig: Record<string, unknown>): EffectHandle;
+  renderImageEffect(x: number, y: number, actionConfig: Record<string, unknown>): EffectHandle;
+  renderParticles(x: number, y: number, actionConfig: Record<string, unknown>, runIndex: number): EffectHandle;
+  renderOrbitalParticles(x: number, y: number, actionConfig: Record<string, unknown>, runIndex: number, actionId?: string): EffectHandle;
   clearOrbitalParticles(actionId?: string): void;
-  renderCursorOverride(x: number, y: number, actionConfig: Record<string, unknown>): void;
+  clearEffects(): void;
+  renderCursorOverride(x: number, y: number, actionConfig: Record<string, unknown>): EffectHandle;
   hasCursorOverride(actionConfig: Record<string, unknown>): boolean;
 }
 
@@ -243,8 +247,10 @@ export interface KeyFeedbackModule {
 
 export interface EffectEngine {
   visualEffects: VisualEffectsModule;
+  effectSurface: EffectSurface;
   cursorOverlay: CursorOverlayModule;
   audioRuntime: AudioRuntimeModule;
+  audioOutput: AudioOutput;
   triggerHandlers: TriggerHandlersModule;
   keyFeedback: KeyFeedbackModule;
 }
