@@ -34,7 +34,7 @@
 
 - `npm run typecheck` 通过。
 - `npm run lint` 通过（0 error；共享旧代码的 24 条显式 `any` 暂作为 warning 逐步收紧）。
-- Vitest 60 个测试文件、319 个测试通过；删除的数量来自 legacy/parity 镜像用例收敛为共享实现的直接行为测试，不再重复比较两份实现。
+- Vitest 61 个测试文件、324 个测试通过；删除的数量来自 legacy/parity 镜像用例收敛为共享实现的直接行为测试，不再重复比较两份实现。
 - API 177 个测试通过。
 - 根 Web、landing、Electron main/preload/renderer 构建通过。
 - 根项目、landing、Electron Vite、Vitest 均复用 Vite 7.3.6。
@@ -749,9 +749,10 @@ interface AudioOutput {
 - 新增独立扩展 Vite 配置，产出稳定路径 `dist/content-runtime/content.js`；根构建会自动生成并校验 manifest 中全部 content script 产物。
 - manifest 的 content scripts 已由 12 个有序脚本收敛为一个构建产物，dist 不再复制未打包的 content-runtime 文件。
 - 扩展、Web 本地预览和桌面共用同一份 action timing、throttle、run/combo 与 output plan；扩展 trigger handler 删除对应重复决策代码。
+- double-click 与 long-press 已收敛为共享 gesture state machine，两端只负责事件坐标适配；同时修复桌面端长按提前松开时可能吞掉单击回退的问题。
 - 删除三份 config-runtime IIFE、镜像测试和失去意义的 parity 测试，改为共享模块直接行为测试；本段净减少约 1,209 行。
 - 最终 content bundle 已在系统 Chrome 中直接注入验证：共享 core/runtime 全局可用、效果根节点正常创建，真实点击可生成效果节点。
-- 待完成：迁移 double click/long press、visual effects 等剩余 IIFE，并补真实 Chrome 扩展加载、CSP 与启动性能验收。
+- 待完成：迁移 visual effects 等剩余 IIFE，并补真实 Chrome 扩展加载、CSP 与启动性能验收。
 
 ### R4-4：按模块删除旧引擎
 
@@ -770,6 +771,12 @@ interface AudioOutput {
 - 两端切换到共享实现。
 - parity 测试变为共享实现的单元测试和两个 adapter 测试。
 - 删除 extension 或 desktop 中对应的重复文件。
+
+当前进度：
+
+- `text-semantics`、action config、compute specs 的扩展镜像已删除。
+- double-click 与 long-press 已由两端共同使用 `src/shared/effect-runtime/gesture-state.ts`，桌面重复模块已删除。
+- 下一段迁移 visual effects，重点统一 animation handle、轨道粒子、pointer override 和整体 clear 生命周期。
 
 ### Phase 4 完成条件
 

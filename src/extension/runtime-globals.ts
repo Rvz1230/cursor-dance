@@ -6,6 +6,10 @@ import {
   getActionTimingMs,
   getComboWindowMs,
 } from "@/shared/effect-runtime/action-state";
+import {
+  createDoubleClickDetector,
+  createLongPressTracker,
+} from "@/shared/effect-runtime/gesture-state";
 
 export const configHelpers = Object.assign(
   globalThis.CursorDanceConfigHelpers || {},
@@ -18,6 +22,8 @@ export const effectRuntime = Object.assign(
   globalThis.CursorDanceEffectRuntime || {},
   {
     decideActionExecution,
+    createDoubleClickDetector,
+    createLongPressTracker,
     getActionTimingMs,
     getComboWindowMs,
   },

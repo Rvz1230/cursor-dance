@@ -7,6 +7,7 @@ import type {
   RuntimeCursorEvent,
 } from "@/shared/effect-runtime/contracts";
 import type { ActionRuntimeState } from "@/shared/effect-runtime/action-state";
+import type { GestureRuntimeState } from "@/shared/effect-runtime/gesture-state";
 
 // CursorDance 效果引擎共享类型
 //
@@ -35,30 +36,10 @@ export interface EngineConstants {
 }
 
 /**
- * 长按状态机切片。trigger-handlers 在 leftPointerDown 后启动定时器，
- * pointerUp / pointerCancel 时收尾。pointerId 仅做记录，不参与匹配。
- */
-export interface LongPressState {
-  startedAt: number;
-  pointerId?: number;
-  x: number;
-  y: number;
-  /** 桌面端没有 DOM 目标，扩展端是 EventTarget */
-  target: unknown;
-  scheme: unknown;
-  triggered: boolean;
-  /** 防双重触发守卫：超时路径和 release 路径互斥依赖 releaseMode，fired 作为 belt-and-suspenders 保护 */
-  fired: boolean;
-  releaseMode: boolean;
-  thresholdMs: number;
-  timeoutId?: number;
-}
-
-/**
  * 引擎共享的可变状态切片。
  * 各子模块按需读写自己的字段；非自己的字段保持只读心态，避免互相踩。
  */
-export interface EngineState extends ActionRuntimeState {
+export interface EngineState extends ActionRuntimeState, GestureRuntimeState {
   /** visual-effects.animateNode 的并发计数 */
   activeEffects: number;
   /** 轨道粒子分组缓存，按 actionId 隔离，供 clearOrbitalParticles 清理 */
@@ -72,13 +53,8 @@ export interface EngineState extends ActionRuntimeState {
   audioContext?: AudioContext | null;
   /** trigger-handlers：是否已就绪，未就绪则吞掉所有触发 */
   ready?: boolean;
-  /** trigger-handlers：双击检测的「上次按下/抬起时间」 */
-  lastLeftPointerDownAt?: number;
-  lastLeftPointerUpAt?: number;
   /** trigger-handlers：滚轮 burst 检测的「上次滚轮事件时间」 */
   lastWheelEventAt?: number;
-  /** trigger-handlers：长按状态机 */
-  longPressState?: LongPressState | null;
   /** key-feedback：per-keycode 冷却计时器 */
   lastKeydownAtByKeycode?: Map<number, number>;
   /** key-feedback：活动键盘效果计数 */

@@ -84,4 +84,50 @@ describe("trigger handlers runtime adapters", () => {
       comboIndex: 1,
     }));
   });
+
+  it("falls back to a click when an armed long press is released early", () => {
+    const actionConfigs = {
+      leftClick: { triggerTiming: "按下时", holdMs: 0, textEnabled: true },
+      longPress: { triggerTiming: "按住达到时长", holdMs: 420, textEnabled: true },
+      doubleClick: { triggerTiming: "第二次松开时", holdMs: 320, textEnabled: true },
+    };
+    const configStore = {
+      getActionTextConfig: (config) => config || {},
+      getActionRippleConfig: (config) => config || {},
+      getActionParticleConfig: (config) => config || {},
+      getActionAnimationConfig: (config) => config || {},
+      getActionImageConfig: (config) => config || {},
+      getActionCursorFeedbackConfig: (config) => config || {},
+      getActionAudioConfig: (config) => config || {},
+      getActionTriggerConfig: (config) => config || {},
+      getMaxActiveEffects: () => 48,
+      getKeyFeedbackConfig: () => defaultKeyFeedbackConfig,
+      getActiveScheme: () => ({}),
+      isCurrentSiteEnabled: () => true,
+      getActionConfig: (_scheme, actionId) => actionConfigs[actionId],
+      getCursorStateBinding: (_scheme, stateId, actionId) => ({ stateId, actionId, cursorStateId: stateId }),
+      resolveCursorStateId: () => "default",
+      matchesTriggerZone: () => true,
+    } as ConfigStore;
+    const createNode = vi.fn((_spec: EffectSpec): EffectHandle => ({ dispose() {} }));
+    const handlers = createTriggerHandlers({
+      window: { setTimeout, clearTimeout } as unknown as Window,
+      document: {} as Document,
+      state: { activeEffects: 0, ready: true },
+      configStore,
+      effectSurface: { createNode, clear: vi.fn() },
+      audioOutput: { play: vi.fn(async () => {}) },
+      cursorOverlay: {
+        syncStateCursorOverlay: vi.fn(),
+        clearStateCursorOverlay: vi.fn(),
+      },
+    });
+
+    handlers.handleLeftPointerDown({ type: "mousedown", x: 10, y: 20, button: 0, timestamp: 1 });
+    expect(createNode).not.toHaveBeenCalled();
+    handlers.handlePointerUp({ type: "mouseup", x: 10, y: 20, button: 0, timestamp: 2 });
+
+    expect(createNode).toHaveBeenCalledOnce();
+    expect(createNode).toHaveBeenCalledWith(expect.objectContaining({ kind: "text", actionId: "leftClick" }));
+  });
 });

@@ -1,9 +1,19 @@
 (function registerContentTriggerHandlers(globalThis) {
   const modules = globalThis.CursorDanceContentModules || (globalThis.CursorDanceContentModules = {});
   const effectRuntime = globalThis.CursorDanceEffectRuntime || {};
-  const { decideActionExecution, getActionTimingMs } = effectRuntime;
+  const {
+    createDoubleClickDetector,
+    createLongPressTracker,
+    decideActionExecution,
+    getActionTimingMs,
+  } = effectRuntime;
 
-  if (typeof decideActionExecution !== "function" || typeof getActionTimingMs !== "function") {
+  if (
+    typeof createDoubleClickDetector !== "function"
+    || typeof createLongPressTracker !== "function"
+    || typeof decideActionExecution !== "function"
+    || typeof getActionTimingMs !== "function"
+  ) {
     throw new Error("CursorDance shared effect runtime is not loaded.");
   }
 
@@ -25,6 +35,16 @@
         y: event.clientY,
         target: event.target,
         event,
+      };
+    }
+
+    function makeGestureEvent(event) {
+      return {
+        x: event.clientX,
+        y: event.clientY,
+        pointerId: event.pointerId,
+        target: event.target,
+        rawEvent: event,
       };
     }
 
@@ -168,6 +188,24 @@
       window.setTimeout(run, delayMs);
     }
 
+    const doubleClickDetector = createDoubleClickDetector({
+      state,
+      log: (scope, payload) => diagnostics?.log(scope, payload),
+    });
+
+    const longPressTracker = createLongPressTracker({
+      state,
+      timers: {
+        setTimeout: (callback, delayMs) => window.setTimeout(callback, delayMs),
+        clearTimeout: (timeoutId) => window.clearTimeout(timeoutId),
+      },
+      log: (scope, payload) => diagnostics?.log(scope, payload),
+      fireAction(x, y, target, event, scheme, throttleMs, triggerSource) {
+        triggerAction("longPress", { x, y, target, event }, scheme, { throttleMs, triggerSource });
+      },
+      resetDoubleClick: () => doubleClickDetector.reset(),
+    });
+
     function handleLeftPointerDown(event) {
       if (event.button !== 0) return;
       const scheme = configStore.getActiveScheme();
@@ -190,141 +228,69 @@
       const doubleClickConfig = configStore.getActionConfig(scheme, "doubleClick");
       const doubleClickTriggerConfig = configStore.getActionTriggerConfig(doubleClickConfig);
       const doubleClickInterval = getActionTimingMs("doubleClick", doubleClickConfig);
-      const now = Date.now();
       if (doubleClickTriggerConfig.triggerTiming === "第二次按下时") {
-        if (now - state.lastLeftPointerDownAt <= doubleClickInterval) {
+        if (doubleClickDetector.checkDown(doubleClickInterval).isDouble) {
           triggerAction("doubleClick", makeCoordsFromEvent(event), scheme, {
             throttleMs: doubleClickInterval,
             triggerSource: "double-click-down",
           });
-          state.lastLeftPointerDownAt = 0;
+          doubleClickDetector.reset();
         } else {
-          state.lastLeftPointerDownAt = now;
-          diagnostics?.log("action.arm", {
-            actionId: "doubleClick",
-            triggerSource: "double-click-down",
-            windowMs: doubleClickInterval,
-          });
+          doubleClickDetector.recordDown();
         }
       } else {
-        state.lastLeftPointerDownAt = now;
+        doubleClickDetector.recordDown();
       }
 
       if (!longPressArmed) return;
-
-      state.longPressState = {
-        startedAt: Date.now(),
-        pointerId: event.pointerId,
-        x: event.clientX,
-        y: event.clientY,
-        target: event.target,
+      longPressTracker.arm(makeGestureEvent(event), {
         scheme,
-        triggered: false,
-        fired: false,
         releaseMode: longPressTriggerConfig.triggerTiming === "松开后触发",
         thresholdMs: getActionTimingMs("longPress", longPressConfig),
-      };
-      diagnostics?.log("action.arm", {
-        actionId: "longPress",
-        triggerSource: "longpress-arm",
-        thresholdMs: state.longPressState.thresholdMs,
       });
-
-      state.longPressState.timeoutId = window.setTimeout(() => {
-        if (!state.longPressState) return;
-        state.longPressState.triggered = true;
-        if (!state.longPressState.releaseMode && !state.longPressState.fired) {
-          state.longPressState.fired = true;
-          triggerAction("longPress", { x: state.longPressState.x, y: state.longPressState.y, target: state.longPressState.target }, state.longPressState.scheme, {
-            throttleMs: state.longPressState.thresholdMs,
-            triggerSource: "longpress-timeout",
-          });
-        }
-      }, state.longPressState.thresholdMs);
-    }
-
-    function finishLongPress(event) {
-      if (!state.longPressState) return;
-      window.clearTimeout(state.longPressState.timeoutId);
-      const duration = Date.now() - state.longPressState.startedAt;
-      if (state.longPressState.releaseMode && duration >= state.longPressState.thresholdMs && !state.longPressState.fired) {
-        state.longPressState.fired = true;
-        triggerAction(
-          "longPress",
-          {
-            x: event?.clientX ?? state.longPressState.x,
-            y: event?.clientY ?? state.longPressState.y,
-            target: event?.target ?? state.longPressState.target,
-            event,
-          },
-          state.longPressState.scheme,
-          {
-            throttleMs: state.longPressState.thresholdMs,
-            triggerSource: "longpress-release",
-          }
-        );
-      }
-      state.longPressState = null;
-    }
-
-    function cancelLongPress() {
-      if (!state.longPressState) return;
-      window.clearTimeout(state.longPressState.timeoutId);
-      diagnostics?.log("action.skip", {
-        actionId: "longPress",
-        reason: "longpress-cancelled",
-      });
-      state.longPressState = null;
     }
 
     function handlePointerUp(event) {
-      if (event.button === 0) {
-        const scheme = configStore.getActiveScheme();
-        const lpState = state.longPressState;
-        const longPressFired = lpState && (
-          lpState.triggered ||
-          (lpState.releaseMode && (Date.now() - lpState.startedAt) >= lpState.thresholdMs)
-        );
+      if (event.button !== 0) {
+        if (longPressTracker.isArmed) longPressTracker.cancel();
+        return;
+      }
 
-        finishLongPress(event);
+      const scheme = configStore.getActiveScheme();
+      const longPressWasArmed = longPressTracker.isArmed;
+      const longPressFired = longPressTracker.isFiredOrTriggered();
+      longPressTracker.finish(makeGestureEvent(event));
 
-        if (!longPressFired) {
-          const leftClickConfig = configStore.getActionConfig(scheme, "leftClick");
-          const leftClickTriggerConfig = configStore.getActionTriggerConfig(leftClickConfig);
-          if (leftClickTriggerConfig.triggerTiming !== "按下时" || lpState) {
-            scheduleActionTrigger("leftClick", makeCoordsFromEvent(event), scheme, getActionTimingMs("leftClick", leftClickConfig), {
-              triggerSource: "left-pointer-up",
-            });
-          }
+      if (!longPressFired) {
+        const leftClickConfig = configStore.getActionConfig(scheme, "leftClick");
+        const leftClickTriggerConfig = configStore.getActionTriggerConfig(leftClickConfig);
+        if (leftClickTriggerConfig.triggerTiming !== "按下时" || longPressWasArmed) {
+          scheduleActionTrigger("leftClick", makeCoordsFromEvent(event), scheme, getActionTimingMs("leftClick", leftClickConfig), {
+            triggerSource: "left-pointer-up",
+          });
         }
+      }
 
-        const doubleClickConfig = configStore.getActionConfig(scheme, "doubleClick");
-        const doubleClickTriggerConfig = configStore.getActionTriggerConfig(doubleClickConfig);
-        const doubleClickInterval = getActionTimingMs("doubleClick", doubleClickConfig);
-        const now = Date.now();
-        if (doubleClickTriggerConfig.triggerTiming !== "第二次按下时") {
-        if (now - state.lastLeftPointerUpAt <= doubleClickInterval) {
+      const doubleClickConfig = configStore.getActionConfig(scheme, "doubleClick");
+      const doubleClickTriggerConfig = configStore.getActionTriggerConfig(doubleClickConfig);
+      const doubleClickInterval = getActionTimingMs("doubleClick", doubleClickConfig);
+      if (doubleClickTriggerConfig.triggerTiming !== "第二次按下时") {
+        if (doubleClickDetector.checkUp(doubleClickInterval).isDouble) {
           triggerAction("doubleClick", makeCoordsFromEvent(event), scheme, {
             throttleMs: doubleClickInterval,
             triggerSource: "double-click-up",
           });
-          state.lastLeftPointerUpAt = 0;
+          doubleClickDetector.reset();
         } else {
-          state.lastLeftPointerUpAt = now;
-          diagnostics?.log("action.arm", {
-            actionId: "doubleClick",
-            triggerSource: "double-click-up",
-            windowMs: doubleClickInterval,
-          });
+          doubleClickDetector.recordUp();
         }
       } else {
-        state.lastLeftPointerUpAt = now;
-        }
+        doubleClickDetector.recordUp();
       }
     }
 
     function handlePointerCancel() {
-      cancelLongPress();
+      longPressTracker.cancel();
     }
 
     function handleRightPointerDown(event) {

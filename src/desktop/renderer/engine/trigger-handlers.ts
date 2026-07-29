@@ -17,8 +17,7 @@
 // 调用方在桌面端是 src/renderer/overlay；扩展端继续由 trigger-handlers.js 注册。
 //
 // 重构说明：
-//   长按状态机 → long-press-state.ts
-//   双击检测   → double-click-detector.ts
+//   长按/双击状态机 → shared/effect-runtime/gesture-state.ts
 //   预览模拟   → preview-simulation.ts
 
 import type {
@@ -34,9 +33,13 @@ import {
   decideActionExecution,
   getActionTimingMs,
 } from "@/shared/effect-runtime/action-state";
-
-import { createLongPressTracker, type LongPressTracker } from "./long-press-state";
-import { createDoubleClickDetector, type DoubleClickDetector } from "./double-click-detector";
+import {
+  createDoubleClickDetector,
+  createLongPressTracker,
+  type DoubleClickDetector,
+  type GesturePointerEvent,
+  type LongPressTracker,
+} from "@/shared/effect-runtime/gesture-state";
 import { createPreviewSimulation } from "./preview-simulation";
 
 export interface TriggerHandlersDeps {
@@ -90,6 +93,16 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
       // 桌面 CursorEvent 没有 target；扩展端调用方可在外层包装时塞入。
       target: (event as unknown as { target?: unknown }).target,
       event,
+    };
+  }
+
+  function makeGestureEvent(event: CursorEvent): GesturePointerEvent {
+    return {
+      x: event.x,
+      y: event.y,
+      pointerId: (event as unknown as { pointerId?: number }).pointerId,
+      target: (event as unknown as { target?: unknown }).target,
+      rawEvent: event,
     };
   }
 
@@ -245,15 +258,18 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
 
   const doubleClickDetector: DoubleClickDetector = createDoubleClickDetector({
     state,
-    diagnostics,
+    log: (scope, payload) => diagnostics?.log(scope, payload),
   });
 
   const longPressTracker: LongPressTracker = createLongPressTracker({
-    window,
     state,
-    diagnostics,
+    timers: {
+      setTimeout: (callback, delayMs) => window.setTimeout(callback, delayMs),
+      clearTimeout: (timeoutId) => window.clearTimeout(timeoutId as number),
+    },
+    log: (scope, payload) => diagnostics?.log(scope, payload),
     fireAction(x, y, target, event, scheme, throttleMs, triggerSource) {
-      triggerAction("longPress", { x, y, target, event }, scheme, {
+      triggerAction("longPress", { x, y, target, event: event as CursorEvent | null }, scheme, {
         throttleMs,
         triggerSource,
       });
@@ -305,7 +321,7 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
 
     // 长按 arm
     if (!longPressArmed) return;
-    longPressTracker.arm(event, {
+    longPressTracker.arm(makeGestureEvent(event), {
       scheme,
       target: coords.target,
       releaseMode: longPressTriggerConfig.triggerTiming === "松开后触发",
@@ -323,15 +339,16 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
     }
 
     const scheme = configStore.getActiveScheme?.();
-    const longPressFired = longPressTracker.isFiredOrTriggered(event);
+    const longPressWasArmed = longPressTracker.isArmed;
+    const longPressFired = longPressTracker.isFiredOrTriggered();
 
-    longPressTracker.finish(event);
+    longPressTracker.finish(makeGestureEvent(event));
 
     const coords = makeCoordsFromEvent(event);
     if (!longPressFired) {
       const leftClickConfig = configStore.getActionConfig?.(scheme, "leftClick");
       const leftClickTriggerConfig = configStore.getActionTriggerConfig(leftClickConfig);
-      if (leftClickTriggerConfig.triggerTiming !== "按下时" || longPressTracker.isArmed) {
+      if (leftClickTriggerConfig.triggerTiming !== "按下时" || longPressWasArmed) {
         scheduleActionTrigger("leftClick", coords, scheme, getActionTimingMs("leftClick", leftClickConfig), {
           triggerSource: "left-pointer-up",
         });

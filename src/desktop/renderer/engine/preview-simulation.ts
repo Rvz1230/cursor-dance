@@ -8,8 +8,10 @@
 // previewAt / previewAtViewportCenter 是上层入口。
 
 import type { ConfigStore, CursorEvent, EngineState } from "./types";
-import type { LongPressTracker } from "./long-press-state";
-import type { DoubleClickDetector } from "./double-click-detector";
+import type {
+  DoubleClickDetector,
+  LongPressTracker,
+} from "@/shared/effect-runtime/gesture-state";
 
 export interface PreviewSimulationDeps {
   window: Window;
