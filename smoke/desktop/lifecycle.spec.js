@@ -139,13 +139,15 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
 
     await workbenchPage.evaluate(async () => {
       if (!window.cursorDanceStorage) throw new Error("cursorDanceStorage bridge is unavailable");
-      await window.cursorDanceStorage.setConfig({ enabled: false });
+      const current = await window.cursorDanceStorage.getConfig();
+      await window.cursorDanceStorage.setConfig({ ...(current || {}), enabled: false });
     });
     await expect.poll(async () => (await readWindowState(electronApp)).overlay.visibleCount).toBe(0);
 
     await workbenchPage.evaluate(async () => {
       if (!window.cursorDanceStorage) throw new Error("cursorDanceStorage bridge is unavailable");
-      await window.cursorDanceStorage.setConfig({ enabled: true });
+      const current = await window.cursorDanceStorage.getConfig();
+      await window.cursorDanceStorage.setConfig({ ...(current || {}), enabled: true });
     });
     await expect.poll(async () => {
       const state = await readWindowState(electronApp);

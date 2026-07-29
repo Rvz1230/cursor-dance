@@ -15,10 +15,10 @@ import {
   AI_GET_USER_SETTINGS,
   AI_SET_USER_SETTINGS,
 } from "../../shared/ipc-channels";
+import type { AiRuntimeConfig } from "../../shared/desktop-ipc-contracts";
 import {
   readSettingsView,
   writeSettings,
-  type AiUserSettings,
   type AiUserSettingsView,
 } from "./ai-config";
 import {
@@ -27,14 +27,8 @@ import {
   getEmbeddedAiServerStreamEndpoint,
   startEmbeddedAiServer,
 } from "./api-server";
-
-export type AiRuntimeConfig = {
-  endpoint: string | null;
-  streamEndpoint: string | null;
-  agentEndpoint: string | null;
-  // 嵌入服务跑在本机回环，accessToken 在内嵌场景没有意义；保留字段方便以后接入远程后端。
-  accessToken: string;
-};
+import { validateAiSettingsPatch } from "./ipc-contracts";
+import { assertIpcSender } from "./ipc-security";
 
 async function getRuntimeConfig(): Promise<AiRuntimeConfig> {
   await startEmbeddedAiServer();
@@ -47,21 +41,19 @@ async function getRuntimeConfig(): Promise<AiRuntimeConfig> {
 }
 
 export function registerAiIpc(): void {
-  ipcMain.handle(AI_GET_RUNTIME_CONFIG, (): Promise<AiRuntimeConfig> => getRuntimeConfig());
+  ipcMain.handle(AI_GET_RUNTIME_CONFIG, (event): Promise<AiRuntimeConfig> => {
+    assertIpcSender(event, AI_GET_RUNTIME_CONFIG);
+    return getRuntimeConfig();
+  });
 
-  ipcMain.handle(AI_GET_USER_SETTINGS, (): AiUserSettingsView => readSettingsView());
+  ipcMain.handle(AI_GET_USER_SETTINGS, (event): AiUserSettingsView => {
+    assertIpcSender(event, AI_GET_USER_SETTINGS);
+    return readSettingsView();
+  });
 
-  ipcMain.handle(AI_SET_USER_SETTINGS, (_event, payload: unknown): AiUserSettingsView => {
-    const patch: Partial<AiUserSettings> = {};
-    if (payload && typeof payload === "object") {
-      const p = payload as Record<string, unknown>;
-      if (typeof p.apiKey === "string") patch.apiKey = p.apiKey;
-      if (typeof p.baseUrl === "string") patch.baseUrl = p.baseUrl;
-      if (typeof p.model === "string") patch.model = p.model;
-      if (typeof p.apiMode === "string") patch.apiMode = p.apiMode;
-      if (typeof p.accessToken === "string") patch.accessToken = p.accessToken;
-    }
-    return writeSettings(patch);
+  ipcMain.handle(AI_SET_USER_SETTINGS, (event, payload: unknown): AiUserSettingsView => {
+    assertIpcSender(event, AI_SET_USER_SETTINGS);
+    return writeSettings(validateAiSettingsPatch(payload));
   });
 }
 

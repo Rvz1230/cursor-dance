@@ -16,12 +16,11 @@ import {
   WINDOW_STATE_CHANGED,
   WINDOW_TOGGLE_MAXIMIZE,
 } from "../../shared/ipc-channels";
+import type { WindowStateSnapshot } from "../../shared/desktop-ipc-contracts";
 import { broadcastToWindows } from "./broadcast";
+import { assertIpcSender } from "./ipc-security";
 
-export interface WindowState {
-  isMaximized: boolean;
-  isFullScreen: boolean;
-}
+export type WindowState = WindowStateSnapshot;
 
 function senderWindow(event: IpcMainInvokeEvent): BrowserWindow | null {
   const win = BrowserWindow.fromWebContents(event.sender);
@@ -61,12 +60,14 @@ export function bindWindowStateBroadcast(win: BrowserWindow): () => void {
 
 export function registerWindowControlsIpc(): void {
   ipcMain.handle(WINDOW_MINIMIZE, (event) => {
+    assertIpcSender(event, WINDOW_MINIMIZE);
     const win = senderWindow(event);
     if (!win) return;
     win.minimize();
   });
 
   ipcMain.handle(WINDOW_TOGGLE_MAXIMIZE, (event) => {
+    assertIpcSender(event, WINDOW_TOGGLE_MAXIMIZE);
     const win = senderWindow(event);
     if (!win) return;
     if (win.isMaximized()) {
@@ -77,12 +78,14 @@ export function registerWindowControlsIpc(): void {
   });
 
   ipcMain.handle(WINDOW_CLOSE, (event) => {
+    assertIpcSender(event, WINDOW_CLOSE);
     const win = senderWindow(event);
     if (!win) return;
     win.close();
   });
 
   ipcMain.handle(WINDOW_GET_STATE, (event): WindowState => {
+    assertIpcSender(event, WINDOW_GET_STATE);
     const win = senderWindow(event);
     if (!win) return { isMaximized: false, isFullScreen: false };
     return snapshot(win);

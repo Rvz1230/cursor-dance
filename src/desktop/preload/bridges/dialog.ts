@@ -1,31 +1,21 @@
-import { ipcRenderer } from "electron";
 import {
   DIALOG_OPEN_THEME_FILE,
   DIALOG_SAVE_THEME_FILE,
 } from "../../../shared/ipc-channels";
-
-type SaveThemeFileRequest = {
-  defaultFileName: string;
-  contents: string;
-};
-
-type SaveThemeFileResult =
-  | { ok: true; canceled: false; filePath: string }
-  | { ok: true; canceled: true }
-  | { ok: false; canceled: false; error: string };
-
-type OpenThemeFileResult =
-  | { ok: true; canceled: false; filePath: string; contents: string }
-  | { ok: true; canceled: true }
-  | { ok: false; canceled: false; error: string };
+import type {
+  OpenThemeFileResult,
+  SaveThemeFileRequest,
+  SaveThemeFileResult,
+} from "../../../shared/desktop-ipc-contracts";
+import { invokeDesktop } from "./typed-invoke";
 
 export function createDialogBridge() {
   return {
     async saveThemeFile(request: SaveThemeFileRequest): Promise<SaveThemeFileResult> {
-      return ipcRenderer.invoke(DIALOG_SAVE_THEME_FILE, request);
+      return invokeDesktop(DIALOG_SAVE_THEME_FILE, request);
     },
     async openThemeFile(): Promise<OpenThemeFileResult> {
-      return ipcRenderer.invoke(DIALOG_OPEN_THEME_FILE);
+      return invokeDesktop(DIALOG_OPEN_THEME_FILE);
     },
   };
 }

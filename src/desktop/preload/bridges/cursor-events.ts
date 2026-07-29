@@ -1,10 +1,10 @@
-import { ipcRenderer } from "electron";
 import {
   CURSOR_EVENT,
   CURSOR_VISIBILITY_SET_HIDDEN,
   KEYBOARD_EVENT,
 } from "../../../shared/ipc-channels";
 import { createIpcSubscription } from "./ipc-subscription";
+import { invokeDesktop } from "./typed-invoke";
 
 export type CursorEventPayload = {
   type: "mousemove" | "mousedown" | "mouseup" | "wheel" | "leave";
@@ -34,7 +34,7 @@ export function createCursorEventsBridge() {
     onCursorEvent: cursorEvents.on,
     offCursorEvent: cursorEvents.off,
     async setNativeCursorHidden(hidden: boolean): Promise<void> {
-      await ipcRenderer.invoke(CURSOR_VISIBILITY_SET_HIDDEN, hidden);
+      await invokeDesktop(CURSOR_VISIBILITY_SET_HIDDEN, hidden);
     },
     onKeyboardEvent: keyboardEvents.on,
     offKeyboardEvent: keyboardEvents.off,

@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import { join } from "node:path";
 import { CURSOR_VISIBILITY_SET_HIDDEN } from "../../shared/ipc-channels";
 import { createCursorVisibilityController, type CursorVisibilityController } from "./cursor-visibility-controller";
+import { assertIpcSender } from "./ipc-security";
 
 let cursorVisibilityController: CursorVisibilityController | null = null;
 const hiddenRequesters = new Set<number>();
@@ -48,6 +49,8 @@ export function restoreNativeCursor(): void {
 
 export function registerCursorVisibilityIpc(): void {
   ipcMain.handle(CURSOR_VISIBILITY_SET_HIDDEN, (event, nextHidden: unknown) => {
+    assertIpcSender(event, CURSOR_VISIBILITY_SET_HIDDEN);
+    if (typeof nextHidden !== "boolean") throw new Error("cursor visibility payload must be a boolean");
     const webContentsId = event.sender.id;
     if (nextHidden === true) hiddenRequesters.add(webContentsId);
     else hiddenRequesters.delete(webContentsId);

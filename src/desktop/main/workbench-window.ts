@@ -14,6 +14,7 @@
 import { BrowserWindow } from "electron";
 import { join } from "path";
 import { fileURLToPath } from "url";
+import { registerIpcSender } from "./ipc-security";
 import { bindWindowStateBroadcast } from "./window-controls";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
@@ -37,11 +38,13 @@ export function createWorkbenchWindow(): BrowserWindow {
       sandbox: false,
     },
   });
+  const unregisterIpcSender = registerIpcSender(win.webContents, "workbench");
 
   win.on("ready-to-show", () => win.show());
 
   const unbindStateBroadcast = bindWindowStateBroadcast(win);
   win.once("closed", () => {
+    unregisterIpcSender();
     unbindStateBroadcast();
   });
 

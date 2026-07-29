@@ -10,26 +10,21 @@ import {
   DIALOG_SAVE_THEME_FILE,
   DIALOG_OPEN_THEME_FILE,
 } from "../../shared/ipc-channels";
+import type {
+  OpenThemeFileResult,
+  SaveThemeFileResult,
+} from "../../shared/desktop-ipc-contracts";
+import {
+  MAX_THEME_FILE_BYTES,
+  validateSaveThemeFileRequest,
+  validateThemeFileContents,
+} from "./ipc-contracts";
+import { assertIpcSender } from "./ipc-security";
 
 const THEME_FILE_FILTERS = [
   { name: "CursorDance Theme", extensions: ["cursordance-theme.json", "json"] },
   { name: "All Files", extensions: ["*"] },
 ];
-
-export type SaveThemeFileRequest = {
-  defaultFileName: string;
-  contents: string;
-};
-
-export type SaveThemeFileResult =
-  | { ok: true; canceled: false; filePath: string }
-  | { ok: true; canceled: true }
-  | { ok: false; canceled: false; error: string };
-
-export type OpenThemeFileResult =
-  | { ok: true; canceled: false; filePath: string; contents: string }
-  | { ok: true; canceled: true }
-  | { ok: false; canceled: false; error: string };
 
 function resolveOwnerWindow(event: Electron.IpcMainInvokeEvent): BrowserWindow | null {
   const sender = event.sender;
@@ -40,26 +35,25 @@ function resolveOwnerWindow(event: Electron.IpcMainInvokeEvent): BrowserWindow |
 export function registerDialogIpc(): void {
   ipcMain.handle(DIALOG_SAVE_THEME_FILE, async (
     event,
-    payload: SaveThemeFileRequest
+    payload: unknown,
   ): Promise<SaveThemeFileResult> => {
-    if (!payload || typeof payload.contents !== "string") {
-      return { ok: false, canceled: false, error: "导出主题失败：缺少文件内容。" };
-    }
+    assertIpcSender(event, DIALOG_SAVE_THEME_FILE);
     const owner = resolveOwnerWindow(event);
     try {
+      const request = validateSaveThemeFileRequest(payload);
       const result = owner
         ? await dialog.showSaveDialog(owner, {
-            defaultPath: payload.defaultFileName,
+            defaultPath: request.defaultFileName,
             filters: THEME_FILE_FILTERS,
           })
         : await dialog.showSaveDialog({
-            defaultPath: payload.defaultFileName,
+            defaultPath: request.defaultFileName,
             filters: THEME_FILE_FILTERS,
           });
       if (result.canceled || !result.filePath) {
         return { ok: true, canceled: true };
       }
-      await fs.writeFile(result.filePath, payload.contents, "utf8");
+      await fs.writeFile(result.filePath, request.contents, "utf8");
       return { ok: true, canceled: false, filePath: result.filePath };
     } catch (error) {
       const message = error instanceof Error ? error.message : "保存主题文件失败。";
@@ -68,6 +62,7 @@ export function registerDialogIpc(): void {
   });
 
   ipcMain.handle(DIALOG_OPEN_THEME_FILE, async (event): Promise<OpenThemeFileResult> => {
+    assertIpcSender(event, DIALOG_OPEN_THEME_FILE);
     const owner = resolveOwnerWindow(event);
     try {
       const result = owner
@@ -83,7 +78,12 @@ export function registerDialogIpc(): void {
         return { ok: true, canceled: true };
       }
       const filePath = result.filePaths[0];
+      const fileStats = await fs.stat(filePath);
+      if (fileStats.size > MAX_THEME_FILE_BYTES) {
+        throw new Error(`主题文件超过 ${MAX_THEME_FILE_BYTES} bytes 限制。`);
+      }
       const contents = await fs.readFile(filePath, "utf8");
+      validateThemeFileContents(contents);
       return { ok: true, canceled: false, filePath, contents };
     } catch (error) {
       const message = error instanceof Error ? error.message : "读取主题文件失败。";

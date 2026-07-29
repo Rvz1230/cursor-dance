@@ -14,6 +14,8 @@ import {
   APP_MARK_FIRST_RUN_COMPLETE,
   APP_OPEN_EXTERNAL,
 } from "../../shared/ipc-channels";
+import { validateExternalTarget } from "./ipc-contracts";
+import { assertIpcSender } from "./ipc-security";
 
 const FIRST_RUN_KEY = "firstRun";
 
@@ -60,13 +62,21 @@ export async function openExternalSafe(target: string): Promise<{ ok: boolean; e
 }
 
 export function registerFirstRunIpc(): void {
-  ipcMain.handle(APP_GET_FIRST_RUN, () => isFirstRun());
-  ipcMain.handle(APP_MARK_FIRST_RUN_COMPLETE, () => {
+  ipcMain.handle(APP_GET_FIRST_RUN, (event) => {
+    assertIpcSender(event, APP_GET_FIRST_RUN);
+    return isFirstRun();
+  });
+  ipcMain.handle(APP_MARK_FIRST_RUN_COMPLETE, (event) => {
+    assertIpcSender(event, APP_MARK_FIRST_RUN_COMPLETE);
     markFirstRunComplete();
   });
-  ipcMain.handle(APP_OPEN_EXTERNAL, (_event, target: unknown) => {
-    if (typeof target !== "string") return { ok: false, error: "target must be a string" };
-    return openExternalSafe(target);
+  ipcMain.handle(APP_OPEN_EXTERNAL, (event, target: unknown) => {
+    assertIpcSender(event, APP_OPEN_EXTERNAL);
+    try {
+      return openExternalSafe(validateExternalTarget(target));
+    } catch (error) {
+      return { ok: false, error: error instanceof Error ? error.message : String(error) };
+    }
   });
 }
 

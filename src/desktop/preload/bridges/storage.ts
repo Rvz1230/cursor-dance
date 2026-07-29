@@ -1,10 +1,10 @@
-import { ipcRenderer } from "electron";
 import {
   LIVE_PREVIEW_CHANGED,
   STORE_CHANGED,
   STORE_GET,
 } from "../../../shared/ipc-channels";
 import { createIpcSubscription } from "./ipc-subscription";
+import { invokeDesktop } from "./typed-invoke";
 
 function createStorageSubscriptions() {
   const configChanges = createIpcSubscription<unknown>(STORE_CHANGED);
@@ -18,7 +18,7 @@ function createStorageSubscriptions() {
 export function createOverlayStorageBridge() {
   return {
     async getConfig(): Promise<unknown | null> {
-      return ipcRenderer.invoke(STORE_GET);
+      return invokeDesktop(STORE_GET);
     },
     ...createStorageSubscriptions(),
   };

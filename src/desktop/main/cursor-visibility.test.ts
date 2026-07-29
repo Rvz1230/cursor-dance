@@ -28,6 +28,10 @@ import {
   setNativeCursorHidden,
   unregisterCursorVisibilityIpc,
 } from "./cursor-visibility";
+import {
+  __testing__ as ipcSecurityTesting,
+  registerIpcSender,
+} from "./ipc-security";
 
 function createHelper() {
   const helper = new EventEmitter() as EventEmitter & {
@@ -53,6 +57,7 @@ describe("cursor visibility helper", () => {
     ipcHandle.mockReset();
     ipcRemoveHandler.mockReset();
     spawnMock.mockReset();
+    ipcSecurityTesting.reset();
   });
 
   afterEach(() => {
@@ -89,6 +94,8 @@ describe("cursor visibility helper", () => {
     const handler = ipcHandle.mock.calls[0]?.[1];
     const senderOne = Object.assign(new EventEmitter(), { id: 1 });
     const senderTwo = Object.assign(new EventEmitter(), { id: 2 });
+    registerIpcSender(senderOne, "overlay");
+    registerIpcSender(senderTwo, "overlay");
 
     handler({ sender: senderOne }, true);
     helper.stdout.emit("data", "ready\n");
@@ -108,12 +115,23 @@ describe("cursor visibility helper", () => {
     registerCursorVisibilityIpc();
     const handler = ipcHandle.mock.calls[0]?.[1];
     const sender = Object.assign(new EventEmitter(), { id: 7 });
+    registerIpcSender(sender, "overlay");
 
     handler({ sender }, true);
     helper.stdout.emit("data", "ready\n");
     sender.emit("destroyed");
 
     expect(helper.stdin.write.mock.calls.map(([command]) => command)).toEqual(["hide\n", "show\n"]);
+    unregisterCursorVisibilityIpc();
+  });
+
+  it("rejects cursor visibility requests from Workbench", () => {
+    registerCursorVisibilityIpc();
+    const handler = ipcHandle.mock.calls[0]?.[1];
+    const sender = Object.assign(new EventEmitter(), { id: 9 });
+    registerIpcSender(sender, "workbench");
+
+    expect(() => handler({ sender }, true)).toThrow(/access denied/);
     unregisterCursorVisibilityIpc();
   });
 });

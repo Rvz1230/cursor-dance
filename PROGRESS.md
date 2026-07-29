@@ -74,7 +74,9 @@
 - **R1-5/R1-6 验证**：41 个测试文件共 311 项、Web smoke 5/5、桌面 smoke 1/1、typecheck、lint 和 Electron build 均通过；renderer 输出减少 65,126 bytes（约 3.1%）
 - [x] R2-1：按窗口拆分 preload——Workbench 保留编辑能力，Overlay 只暴露输入、配置/前台应用只读订阅和光标显隐
 - **R2-1 验证**：typecheck、lint、Electron build 和桌面 smoke 通过；smoke 已对白名单能力面做真实窗口断言
-- **下一步**：进入 R2-2，建立 typed IPC contract、主进程 sender/window kind 限制和 payload 大小/结构校验；Windows 同步执行 R1-4 真机验收。
+- [x] R2-2：typed IPC contract——共享 request/response 类型、主进程 sender/window kind 白名单，以及配置/主题/AI/外链 payload 校验已接入
+- **R2-2 验证**：44 个测试文件共 328 项通过；覆盖未知 sender、Overlay 越权写配置、Workbench 越权控制光标、schema/大小/字段校验
+- **下一步**：进入 R2-3，阻断任意导航和新窗口并补 CSP；Windows 同步执行 R1-4 真机验收。
 
 ### 分支状态
 

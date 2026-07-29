@@ -14,6 +14,7 @@
 import { BrowserWindow, type Display } from "electron";
 import { join } from "path";
 import { fileURLToPath } from "url";
+import { registerIpcSender } from "./ipc-security";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
@@ -59,6 +60,7 @@ export function createOverlayWindow(display: Display): BrowserWindow {
       backgroundThrottling: false,
     },
   });
+  const unregisterIpcSender = registerIpcSender(win.webContents, "overlay");
 
   // 鼠标穿透：forward:true 在 macOS 仍能让 hover 事件传递出去——但我们走的是
   // uiohook 全局抓事件，主要诉求只是「不要把点击吃掉」。
@@ -88,6 +90,7 @@ export function createOverlayWindow(display: Display): BrowserWindow {
 
   overlayWindows.set(display.id, win);
   win.once("closed", () => {
+    unregisterIpcSender();
     overlayWindows.delete(display.id);
   });
 

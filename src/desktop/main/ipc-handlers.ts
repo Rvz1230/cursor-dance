@@ -21,25 +21,38 @@ import {
   clearLivePreview,
 } from "./electron-store";
 import { broadcastToWindows, type GetAllWindows } from "./broadcast";
+import { validateConfigPayload } from "./ipc-contracts";
+import { assertIpcSender } from "./ipc-security";
 
 export function registerStoreIpc(getAllWindows: GetAllWindows): void {
-  ipcMain.handle(STORE_GET, () => readConfig());
+  ipcMain.handle(STORE_GET, (event) => {
+    assertIpcSender(event, STORE_GET);
+    return readConfig();
+  });
 
-  ipcMain.handle(STORE_SET, (_event, payload: unknown) => {
-    writeConfig(payload);
+  ipcMain.handle(STORE_SET, (event, payload: unknown) => {
+    assertIpcSender(event, STORE_SET);
+    const validated = validateConfigPayload(payload);
+    writeConfig(validated);
     // 写后广播，包括 writer 自己——renderer 那边的 onChange 是幂等订阅，
     // 收到自己刚写的值时会用 normalizeStoredConfig 比对/重新 set，效果上无副作用。
-    broadcastToWindows(getAllWindows, STORE_CHANGED, payload);
+    broadcastToWindows(getAllWindows, STORE_CHANGED, validated);
   });
 
-  ipcMain.handle(STORE_GET_LIVE_PREVIEW, () => readLivePreview());
-
-  ipcMain.handle(STORE_SET_LIVE_PREVIEW, (_event, payload: unknown) => {
-    writeLivePreview(payload);
-    broadcastToWindows(getAllWindows, LIVE_PREVIEW_CHANGED, payload);
+  ipcMain.handle(STORE_GET_LIVE_PREVIEW, (event) => {
+    assertIpcSender(event, STORE_GET_LIVE_PREVIEW);
+    return readLivePreview();
   });
 
-  ipcMain.handle(STORE_CLEAR_LIVE_PREVIEW, () => {
+  ipcMain.handle(STORE_SET_LIVE_PREVIEW, (event, payload: unknown) => {
+    assertIpcSender(event, STORE_SET_LIVE_PREVIEW);
+    const validated = validateConfigPayload(payload);
+    writeLivePreview(validated);
+    broadcastToWindows(getAllWindows, LIVE_PREVIEW_CHANGED, validated);
+  });
+
+  ipcMain.handle(STORE_CLEAR_LIVE_PREVIEW, (event) => {
+    assertIpcSender(event, STORE_CLEAR_LIVE_PREVIEW);
     clearLivePreview();
     broadcastToWindows(getAllWindows, LIVE_PREVIEW_CHANGED, null);
   });

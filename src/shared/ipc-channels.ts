@@ -1,6 +1,7 @@
 // CursorDance IPC 通道常量
 //
-// main / preload / renderer 三方共享。新增通道时同步更新这里 + preload 暴露 + 文档。
+// main / preload / renderer 三方共享。invoke 请求/响应类型见 desktop-ipc-contracts.ts；
+// 新增 invoke 通道时还必须登记主进程 ipc-security sender policy。
 
 /** 主进程 → overlay/workbench：全局鼠标事件投递 */
 export const CURSOR_EVENT = "cursordance:cursor-event";

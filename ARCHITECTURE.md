@@ -13,9 +13,12 @@ src/
   components/            Shared UI component library (Radix + Tailwind)
   shared/                Shared utilities + runtime detection
     ipc-channels.ts        Desktop IPC channel constants
+    desktop-ipc-contracts.ts Typed invoke request/response contracts
     runtime.ts             PLATFORM / isDesktop() / isExtension()
   desktop/               Desktop app (Electron) — all desktop-only code
     main/                  Electron main process
+      ipc-security.ts      Per-window sender allowlist
+      ipc-contracts.ts     Runtime payload and size validation
     preload/               Per-window context bridges
       bridges/             Cohesive IPC bridge factories
       workbench.ts         Config writes, dialogs, AI, window controls

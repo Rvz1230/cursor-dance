@@ -19,6 +19,7 @@
 | R1-5 氛围运行时 | 已完成 | 桌面端明确暂不支持，Workbench 隐藏配置和预览，桌面导出不再写入该字段，并删除无调用方 runtime |
 | R1-6 桌面 Popup | 已完成 | 采用取消方案，删除孤立 renderer 与构建入口，托盘继续承担快速开关和打开 Workbench |
 | R2-1 拆分 preload | 已完成 | Workbench 与 Overlay 使用独立 preload；Overlay 仅保留输入、配置只读订阅、前台应用只读订阅和光标显隐 |
+| R2-2 IPC contract | 已完成 | 共享 invoke 类型契约、窗口身份白名单、默认拒绝 sender policy，以及配置/主题/AI/外链运行时校验已接入 |
 | R0-2 Electron smoke | 已完成 | Playwright Electron 已覆盖启动、首次引导、窗口数量、二次启动重开和配置驱动 overlay 显隐，并已在 macOS 实跑通过 |
 | R0-3 性能与代码量基线 | 已完成 | 已记录代码量、bundle、配置载荷、启动、CPU、内存和 1,000 Hz IPC 压力基线 |
 
@@ -26,7 +27,7 @@
 
 - `npm run typecheck` 通过。
 - `npm run lint` 通过（0 error；共享旧代码的 29 条显式 `any` 暂作为 warning 逐步收紧）。
-- Vitest 41 个测试文件、311 个测试通过。
+- Vitest 44 个测试文件、328 个测试通过。
 - API 177 个测试通过。
 - 根 Web、landing、Electron main/preload/renderer 构建通过。
 - 根项目、landing、Electron Vite、Vitest 均复用 Vite 7.3.6。
@@ -476,6 +477,16 @@ overlay preload:
 可以使用轻量 schema 库，也可以先用项目内类型守卫；关键是运行时验证不能只依赖 TypeScript。
 
 配置写入必须先 normalize/validate，再进入 store。主题导入需要限制文件大小、格式和 schemaVersion。
+
+实现结果：
+
+- 新增共享 `DesktopIpcInvokeContract`，preload 的所有 `invoke` 统一通过泛型 helper，编译期约束 request/response。
+- Workbench 与 Overlay 创建时登记不可伪造的 `webContents.id -> window kind`；主进程中央策略表对未登记 sender 和未知通道默认拒绝。
+- 配置读允许 Workbench/Overlay，配置写、主题文件、首次启动、外链、窗口控制和 AI 仅允许 Workbench；系统光标显隐仅允许 Overlay。
+- 配置写入要求完整 schema v3、有效 active theme，并限制为 8 MiB、最多 256 个主题和 1,000 条规则。
+- 主题导入导出限制为 8 MiB，校验 JSON 和主题结构，导出文件名禁止路径；AI 设置限制字段、长度、URL protocol 和 apiMode；外链先限制长度再走协议白名单。
+- invoke 非业务错误统一通过 rejected Promise 返回；文件对话框和外链继续使用显式 result envelope，用户取消不视为异常。
+- 新增 sender policy、payload contract、store handler 和光标越权回归测试。
 
 ### R2-3：阻断任意导航和新窗口
 

@@ -21,6 +21,7 @@
 import { ipcMain } from "electron";
 import { activeWindowSync, type Result as ActiveWindowResult } from "get-windows";
 import { APP_GET_ACTIVE_WINDOW } from "../../shared/ipc-channels";
+import { assertIpcSender } from "./ipc-security";
 import type { ActiveWindowSnapshot } from "../../shared/app-rules";
 
 export type { ActiveWindowSnapshot } from "../../shared/app-rules";
@@ -152,7 +153,10 @@ export function createActiveWindowMonitor({
 }
 
 export function registerActiveWindowIpc(getSnapshot: () => ActiveWindowSnapshot = getActiveWindowSnapshot): void {
-  ipcMain.handle(APP_GET_ACTIVE_WINDOW, getSnapshot);
+  ipcMain.handle(APP_GET_ACTIVE_WINDOW, (event) => {
+    assertIpcSender(event, APP_GET_ACTIVE_WINDOW);
+    return getSnapshot();
+  });
 }
 
 export function unregisterActiveWindowIpc(): void {
