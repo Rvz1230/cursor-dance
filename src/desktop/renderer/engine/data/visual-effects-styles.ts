@@ -1,12 +1,12 @@
 /**
  * Visual-effects CSS stylesheet — extracted from visual-effects.ts.
  *
- * The overlay root ID and hide-cursor class name are injected at runtime
- * (they come from `constants.ROOT_ID` / `constants.HIDE_CURSOR_CLASS`),
- * so this module exports a builder function rather than a plain string.
+ * The overlay root ID is injected at runtime, so this module exports a
+ * builder function rather than a plain string. Desktop native-cursor hiding
+ * is owned by the main-process helper instead of renderer CSS.
  */
 
-export function buildVisualEffectsCSS(rootId: string, hideCursorClass: string): string {
+export function buildVisualEffectsCSS(rootId: string): string {
   return `
         #${rootId} {
           position: fixed;
@@ -62,10 +62,6 @@ export function buildVisualEffectsCSS(rootId: string, hideCursorClass: string): 
           font: 700 13px/1 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
           letter-spacing: 0.04em;
           backdrop-filter: blur(6px);
-        }
-        html.${hideCursorClass},
-        html.${hideCursorClass} * {
-          cursor: none !important;
         }
         .cd-state-cursor {
           position: fixed;

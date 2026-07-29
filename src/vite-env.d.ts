@@ -63,6 +63,7 @@ interface Window {
   CursorDanceConfigRuntime?: CursorDanceConfigRuntime
   electronAPI?: {
     platform: NodeJS.Platform
+    capabilities: import("./shared/desktop-capabilities").DesktopCapabilities
   }
 }
 

@@ -27,6 +27,7 @@ import {
   CURSOR_VISIBILITY_SET_HIDDEN,
 } from "../../shared/ipc-channels";
 import type { ActiveWindowSnapshot } from "../../shared/app-rules";
+import { resolveDesktopCapabilities } from "../../shared/desktop-capabilities";
 
 type CursorEventPayload = {
   type: "mousemove" | "mousedown" | "mouseup" | "wheel" | "leave";
@@ -57,6 +58,7 @@ const keyboardEventListeners = new WeakMap<KeyboardEventListener, (_e: unknown, 
 
 contextBridge.exposeInMainWorld("electronAPI", {
   platform: process.platform,
+  capabilities: resolveDesktopCapabilities(process.platform),
 });
 
 contextBridge.exposeInMainWorld("cursorDanceAPI", {

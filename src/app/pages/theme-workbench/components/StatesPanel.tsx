@@ -400,6 +400,7 @@ export function StatesPanel({
   const currentMeta = CURSOR_STATES.find((state) => state.id === stateId) || CURSOR_STATES[0];
   const currentSkinState = cursorSkin?.states?.[stateId] || null;
   const resolvedSkinState = getResolvedSkinState(cursorSkin, stateId);
+  const systemCursorCapability = window.electronAPI?.capabilities.systemCursorReplacement;
   const stateCards = useMemo(() => {
     const defaultState = cursorSkin?.states?.default || null;
     return CURSOR_STATES.map((state) => {
@@ -509,6 +510,12 @@ export function StatesPanel({
             </Button>
           </div>
         </header>
+
+        {systemCursorCapability && systemCursorCapability.status !== "supported" ? (
+          <div className="rounded-[24px] border border-amber-200 bg-amber-50/90 px-5 py-3 text-sm text-amber-800 shadow-sm">
+            {systemCursorCapability.message}
+          </div>
+        ) : null}
 
         <StateRail stateCards={stateCards} stateId={stateId} setStateId={setStateId} />
 

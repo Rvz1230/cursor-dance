@@ -8,6 +8,10 @@ const { ipcHandle, ipcRemoveHandler, spawnMock } = vi.hoisted(() => ({
 }));
 
 vi.mock("electron", () => ({
+  app: {
+    isPackaged: false,
+    getAppPath: () => "/project",
+  },
   ipcMain: {
     handle: ipcHandle,
     removeHandler: ipcRemoveHandler,
@@ -18,7 +22,12 @@ vi.mock("node:child_process", () => ({
   spawn: spawnMock,
 }));
 
-import { restoreNativeCursor, setNativeCursorHidden } from "./cursor-visibility";
+import {
+  registerCursorVisibilityIpc,
+  restoreNativeCursor,
+  setNativeCursorHidden,
+  unregisterCursorVisibilityIpc,
+} from "./cursor-visibility";
 
 function createHelper() {
   const helper = new EventEmitter() as EventEmitter & {
@@ -39,6 +48,8 @@ function createHelper() {
 
 describe("cursor visibility helper", () => {
   beforeEach(() => {
+    ipcHandle.mockReset();
+    ipcRemoveHandler.mockReset();
     spawnMock.mockReset();
   });
 
@@ -47,7 +58,7 @@ describe("cursor visibility helper", () => {
     vi.restoreAllMocks();
   });
 
-  it("handles an asynchronous python3 spawn error without an unhandled error event", () => {
+  it("starts the bundled native helper and handles an asynchronous spawn error", () => {
     vi.spyOn(process, "platform", "get").mockReturnValue("darwin");
     const helper = createHelper();
     spawnMock.mockReturnValue(helper);
@@ -61,6 +72,44 @@ describe("cursor visibility helper", () => {
       expect.objectContaining({ code: "ENOENT" })
     );
 
-    expect(spawnMock).toHaveBeenCalledTimes(1);
+    expect(spawnMock).toHaveBeenCalledWith(
+      `/project/build/native/${process.arch}/cursordance-cursor-helper`,
+      [],
+      { stdio: ["pipe", "ignore", "pipe"] },
+    );
+  });
+
+  it("keeps the cursor hidden until every renderer requester releases it", () => {
+    vi.spyOn(process, "platform", "get").mockReturnValue("darwin");
+    const helper = createHelper();
+    spawnMock.mockReturnValue(helper);
+    registerCursorVisibilityIpc();
+    const handler = ipcHandle.mock.calls[0]?.[1];
+    const senderOne = Object.assign(new EventEmitter(), { id: 1 });
+    const senderTwo = Object.assign(new EventEmitter(), { id: 2 });
+
+    handler({ sender: senderOne }, true);
+    handler({ sender: senderTwo }, true);
+    handler({ sender: senderOne }, false);
+    expect(helper.stdin.write.mock.calls.map(([command]) => command)).toEqual(["hide\n"]);
+
+    handler({ sender: senderTwo }, false);
+    expect(helper.stdin.write.mock.calls.map(([command]) => command)).toEqual(["hide\n", "show\n"]);
+    unregisterCursorVisibilityIpc();
+  });
+
+  it("releases a hidden-cursor request when its renderer is destroyed", () => {
+    vi.spyOn(process, "platform", "get").mockReturnValue("darwin");
+    const helper = createHelper();
+    spawnMock.mockReturnValue(helper);
+    registerCursorVisibilityIpc();
+    const handler = ipcHandle.mock.calls[0]?.[1];
+    const sender = Object.assign(new EventEmitter(), { id: 7 });
+
+    handler({ sender }, true);
+    sender.emit("destroyed");
+
+    expect(helper.stdin.write.mock.calls.map(([command]) => command)).toEqual(["hide\n", "show\n"]);
+    unregisterCursorVisibilityIpc();
   });
 });

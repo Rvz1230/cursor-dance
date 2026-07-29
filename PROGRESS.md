@@ -67,7 +67,9 @@
 - **R1-2 验证**：38 个测试文件共 295 项通过；Electron smoke 覆盖规则禁用和清空规则后即时恢复
 - [x] R1-3：多屏事件路由与坐标转换——目标 display 单播、mousemove 按帧合并、Windows DIP 转换和跨屏/拔屏清理已完成
 - **R1-3 验证**：39 个测试文件共 301 项通过；Electron build、Web smoke 5/5、桌面 smoke 1/1 通过；双屏 1,000 个源 mousemove 的 IPC 从 2,000 条降至 62 条（约 96.9%）
-- **下一步**：进入 Phase 1 的 R1-4，明确自定义光标的平台支持范围，并收敛原生 helper、故障恢复和 UI 能力声明。
+- [ ] R1-4：自定义光标平台能力——已选择正式支持 macOS/Windows；macOS 已从运行时 Python 切换为随包 C/CoreGraphics helper，并新增平台能力契约和未支持提示
+- **R1-4 当前验证**：40 个测试文件共 305 项、Electron build、Web smoke 5/5、桌面 smoke 1/1 通过；macOS arm64/x86_64 helper 编译通过，arm64 `--dir` 安装包已确认包含并可执行 helper
+- **下一步**：继续 R1-4，落地 Windows 原生 helper 与异常退出 watchdog；macOS 正式签名/公证随发布链路验收。
 
 ### 分支状态
 

@@ -17,11 +17,6 @@ import { fileURLToPath } from "url";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
-const HIDE_NATIVE_CURSOR_CSS = `
-  *, *::before, *::after { cursor: none !important; }
-  html, body { background: transparent !important; }
-`;
-
 const overlayWindows = new Map<number, BrowserWindow>();
 
 export function getOverlayWindows(): ReadonlyMap<number, BrowserWindow> {
@@ -81,7 +76,6 @@ export function createOverlayWindow(display: Display): BrowserWindow {
   }
 
   win.webContents.on("did-finish-load", () => {
-    win.webContents.insertCSS(HIDE_NATIVE_CURSOR_CSS).catch(() => {});
     win.showInactive(); // 不抢焦点
   });
 

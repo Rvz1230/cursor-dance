@@ -45,7 +45,7 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
 
     const style = document.createElement("style");
     style.id = constants.STYLE_ID;
-    style.textContent = buildVisualEffectsCSS(constants.ROOT_ID, constants.HIDE_CURSOR_CLASS);
+    style.textContent = buildVisualEffectsCSS(constants.ROOT_ID);
     document.head.append(style);
   }
 

@@ -44,6 +44,12 @@ mac:
   entitlementsInherit: build/entitlements.mac.plist
   # 暂不签名 —— CI 接入再开启 identity / notarize
   identity: null
+  extraResources:
+    - from: build/native/${arch}/cursordance-cursor-helper
+      to: native/cursordance-cursor-helper
+  # 正式签名启用后，将原生 helper 与主应用使用同一身份签名。
+  binaries:
+    - Contents/Resources/native/cursordance-cursor-helper
   target:
     - target: dmg
       arch:

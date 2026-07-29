@@ -41,14 +41,15 @@
     "test:desktop": "playwright test --config=playwright.desktop.config.js",
     "measure:desktop-baseline": "npm run build:electron && node scripts/measure-desktop-baseline.mjs",
     "measure:desktop-baseline:static": "npm run build:electron && node scripts/measure-desktop-baseline.mjs --static-only",
-    "dev:electron": "electron-vite dev",
-    "build:electron": "electron-vite build",
+    "build:native:cursor-helper": "node scripts/build-cursor-helper.mjs",
+    "dev:electron": "npm run build:native:cursor-helper && electron-vite dev",
+    "build:electron": "npm run build:native:cursor-helper && electron-vite build",
     "start:electron": "electron-vite preview",
-    "package:mac": "electron-vite build && electron-builder --mac",
-    "package:mac:arm64": "electron-vite build && electron-builder --mac --arm64",
-    "package:mac:x64": "electron-vite build && electron-builder --mac --x64",
-    "package:win": "electron-vite build && electron-builder --win",
-    "package:dir": "electron-vite build && electron-builder --dir"
+    "package:mac": "node scripts/build-cursor-helper.mjs --arch=arm64 --arch=x64 && electron-vite build && electron-builder --mac",
+    "package:mac:arm64": "node scripts/build-cursor-helper.mjs --arch=arm64 && electron-vite build && electron-builder --mac --arm64",
+    "package:mac:x64": "node scripts/build-cursor-helper.mjs --arch=x64 && electron-vite build && electron-builder --mac --x64",
+    "package:win": "npm run build:electron && electron-builder --win",
+    "package:dir": "npm run build:electron && electron-builder --dir"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
