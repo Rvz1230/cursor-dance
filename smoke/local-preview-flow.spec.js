@@ -63,7 +63,9 @@ async function waitForStoredAudioBlendMode(page, expectedMode) {
       const raw = window.localStorage.getItem(configKey);
       if (!raw) return false;
       const parsed = JSON.parse(raw);
-      const leftClickConfig = parsed.themePacks?.find((themePack) => themePack.id === "woodfish")?.workbenchDraft?.actionConfigs?.leftClick;
+      const leftClickConfig = parsed.themePacks?.find(
+        (themePack) => themePack.id === parsed.activeThemePackId,
+      )?.workbenchDraft?.actionConfigs?.leftClick;
       return leftClickConfig?.soundBlendMode === mode;
     },
     {
@@ -79,7 +81,7 @@ async function selectRadixOption(page, scope, index, optionName) {
 }
 
 function panelByName(page, name) {
-  return page.getByRole("button", { name }).locator("xpath=ancestor::*[contains(@class,'rounded-2xl')][1]");
+  return page.getByRole("button", { name }).locator("xpath=ancestor::*[@data-state][1]");
 }
 
 test("popup theme selection, live preview override, and fallback to saved config stay in sync", async ({ context, page }) => {
@@ -87,21 +89,24 @@ test("popup theme selection, live preview override, and fallback to saved config
 
   const popupPage = await context.newPage();
   await popupPage.goto("/popup.html");
-  await popupPage.getByRole("button", { name: /Demo Highlight/ }).click();
-  await waitForStoredTheme(popupPage, "demo-highlight");
+  await popupPage.getByRole("button", { name: /熔金/ }).click();
+  await waitForStoredTheme(popupPage, "molten");
 
   await page.reload();
-  await clickAndExpectText(page, "Nice!");
+  await clickAndExpectText(page, "+1");
 
   await page.reload();
-  await clickAndExpectText(page, "Nice!");
+  await clickAndExpectText(page, "+1");
 
   const workbenchPage = await context.newPage();
   await workbenchPage.goto("/index.html");
   await expect(workbenchPage.getByRole("button", { name: "保存" })).toBeVisible();
 
   const textPanel = panelByName(workbenchPage, /飘字反馈/);
-  await textPanel.getByRole("button", { name: "删除标签 Nice!" }).click();
+  await selectRadixOption(workbenchPage, textPanel, 0, "文本飘字");
+  for (const tag of ["+1", "+2", "+3"]) {
+    await textPanel.getByRole("button", { name: `删除标签 ${tag}` }).click();
+  }
   await textPanel.getByPlaceholder("输入一个文本标签，例如：已命中").fill("临时预览");
   await textPanel.getByRole("button", { name: "添加" }).click();
 
@@ -111,7 +116,7 @@ test("popup theme selection, live preview override, and fallback to saved config
     const parsed = JSON.parse(raw);
     return parsed.themePacks?.some(
       (themePack) =>
-        themePack.id === "demo-highlight"
+        themePack.id === "molten"
         && themePack.workbenchDraft?.actionConfigs?.leftClick?.textContent === "临时预览"
     );
   }, LIVE_PREVIEW_CONFIG_STORAGE_KEY);
@@ -124,7 +129,7 @@ test("popup theme selection, live preview override, and fallback to saved config
 
   await page.waitForTimeout(1200);
   await page.reload();
-  await clickAndExpectText(page, "Nice!");
+  await clickAndExpectText(page, "+1");
 });
 
 test("image effect can preview live, save into config, and render in content runtime", async ({ context, page }) => {
@@ -137,14 +142,15 @@ test("image effect can preview live, save into config, and render in content run
   const imagePanel = panelByName(workbenchPage, /图片贴纸反馈/);
 
   await imagePanel.getByRole("switch", { name: "图片反馈开关" }).click();
-  await workbenchPage.getByRole("button", { name: /图片贴纸反馈/ }).click();
   await imagePanel.getByRole("button", { name: /落章印记/ }).click();
 
   await page.waitForFunction((previewKey) => {
     const raw = window.localStorage.getItem(previewKey);
     if (!raw) return false;
     const parsed = JSON.parse(raw);
-    const leftClickConfig = parsed.themePacks?.find((themePack) => themePack.id === "woodfish")?.workbenchDraft?.actionConfigs?.leftClick;
+    const leftClickConfig = parsed.themePacks?.find(
+      (themePack) => themePack.id === parsed.activeThemePackId,
+    )?.workbenchDraft?.actionConfigs?.leftClick;
     return Boolean(leftClickConfig?.imageEnabled && leftClickConfig?.imageDataUrl);
   }, LIVE_PREVIEW_CONFIG_STORAGE_KEY);
 
@@ -156,7 +162,9 @@ test("image effect can preview live, save into config, and render in content run
     const raw = window.localStorage.getItem(configKey);
     if (!raw) return false;
     const parsed = JSON.parse(raw);
-    const leftClickConfig = parsed.themePacks?.find((themePack) => themePack.id === "woodfish")?.workbenchDraft?.actionConfigs?.leftClick;
+    const leftClickConfig = parsed.themePacks?.find(
+      (themePack) => themePack.id === parsed.activeThemePackId,
+    )?.workbenchDraft?.actionConfigs?.leftClick;
     return Boolean(leftClickConfig?.imageEnabled && leftClickConfig?.imageDataUrl);
   }, CONFIG_STORAGE_KEY);
 
@@ -174,14 +182,15 @@ test("animation effect can preview live, save into config, and render in content
   const animationPanel = panelByName(workbenchPage, /基础动画反馈/);
 
   await animationPanel.getByRole("switch", { name: "动画反馈开关" }).click();
-  await workbenchPage.getByRole("button", { name: /基础动画反馈/ }).click();
   await selectRadixOption(workbenchPage, animationPanel, 0, "弹跳徽记");
 
   await page.waitForFunction((previewKey) => {
     const raw = window.localStorage.getItem(previewKey);
     if (!raw) return false;
     const parsed = JSON.parse(raw);
-    const leftClickConfig = parsed.themePacks?.find((themePack) => themePack.id === "woodfish")?.workbenchDraft?.actionConfigs?.leftClick;
+    const leftClickConfig = parsed.themePacks?.find(
+      (themePack) => themePack.id === parsed.activeThemePackId,
+    )?.workbenchDraft?.actionConfigs?.leftClick;
     return Boolean(leftClickConfig?.animationEnabled && leftClickConfig?.animationStyle === "弹跳徽记");
   }, LIVE_PREVIEW_CONFIG_STORAGE_KEY);
 
@@ -193,7 +202,9 @@ test("animation effect can preview live, save into config, and render in content
     const raw = window.localStorage.getItem(configKey);
     if (!raw) return false;
     const parsed = JSON.parse(raw);
-    const leftClickConfig = parsed.themePacks?.find((themePack) => themePack.id === "woodfish")?.workbenchDraft?.actionConfigs?.leftClick;
+    const leftClickConfig = parsed.themePacks?.find(
+      (themePack) => themePack.id === parsed.activeThemePackId,
+    )?.workbenchDraft?.actionConfigs?.leftClick;
     return Boolean(leftClickConfig?.animationEnabled && leftClickConfig?.animationStyle === "弹跳徽记");
   }, CONFIG_STORAGE_KEY);
 
@@ -273,44 +284,48 @@ test("workbench dialogs, save toast, color picker, and slider controls are usabl
   await expect(workbenchPage.getByRole("button", { name: "保存" })).toBeVisible();
 
   await workbenchPage.getByRole("button", { name: "新建" }).click();
-  await expect(workbenchPage.getByRole("dialog", { name: "主题管理" })).toBeVisible();
+  await expect(workbenchPage.getByRole("dialog", { name: "新建主题" })).toBeVisible();
   await workbenchPage.keyboard.press("Escape");
-  await expect(workbenchPage.getByRole("dialog", { name: "主题管理" })).toBeHidden();
+  await expect(workbenchPage.getByRole("dialog", { name: "新建主题" })).toBeHidden();
 
   await workbenchPage.getByRole("button", { name: "新建" }).click();
   await workbenchPage.getByLabel("主题名称").fill("Smoke UX Theme");
   await workbenchPage.getByRole("button", { name: "创建主题" }).click();
-  await expect(workbenchPage.getByText("已创建主题")).toBeVisible();
+  await expect(workbenchPage.getByText("已创建主题", { exact: true })).toBeVisible();
 
+  await workbenchPage.getByRole("button", { name: "展开主题库" }).click();
+  await workbenchPage.getByRole("button", { name: "Smoke UX Theme 更多操作" }).click();
   await workbenchPage.getByRole("button", { name: "复制" }).click();
-  await expect(workbenchPage.getByText("已复制主题")).toBeVisible();
+  await expect(workbenchPage.getByText("已复制主题", { exact: true })).toBeVisible();
   await expect(workbenchPage.getByText(/^已复制为/)).toHaveCount(0);
 
-  await workbenchPage.getByRole("button", { name: "删除" }).first().click();
+  await workbenchPage.getByRole("button", { name: /Smoke UX Theme.*更多操作/ }).last().click();
+  await workbenchPage.getByRole("button", { name: "删除" }).click();
   await expect(workbenchPage.getByRole("alertdialog", { name: "删除主题？" })).toBeVisible();
   await workbenchPage.getByRole("button", { name: "取消" }).click();
   await expect(workbenchPage.getByRole("alertdialog", { name: "删除主题？" })).toBeHidden();
 
-  await workbenchPage.getByRole("button", { name: "删除" }).first().click();
+  await workbenchPage.getByRole("button", { name: /Smoke UX Theme.*更多操作/ }).last().click();
+  await workbenchPage.getByRole("button", { name: "删除" }).click();
   await workbenchPage.getByRole("button", { name: "删除主题" }).click();
-  await expect(workbenchPage.getByText("已移除主题")).toBeVisible();
+  await expect(workbenchPage.getByText("已移除主题", { exact: true })).toBeVisible();
 
-  const textPanel = workbenchPage.getByRole("button", { name: /飘字反馈/ }).locator("xpath=ancestor::*[contains(@class,'rounded-2xl')][1]");
+  const textPanel = panelByName(workbenchPage, /飘字反馈/);
 
   await workbenchPage.getByRole("button", { name: /飘字反馈/ }).click();
   await workbenchPage.getByRole("button", { name: /飘字反馈/ }).click();
-  await textPanel.getByRole("button", { name: /#B45309/i }).click();
+  await textPanel.getByRole("button", { name: /^#[0-9A-F]{6}$/i }).click();
   const colorHexInput = workbenchPage.getByLabel("输入飘字颜色十六进制值");
   await colorHexInput.fill("#0284C7");
   await colorHexInput.press("Enter");
-  await expect(workbenchPage.getByText("已更新飘字颜色")).toBeVisible();
+  await expect(workbenchPage.getByText("已更新飘字颜色", { exact: true })).toBeVisible();
 
   const fontSizeInput = textPanel.getByRole("spinbutton", { name: "飘字大小" });
   await fontSizeInput.fill("26");
   await fontSizeInput.blur();
 
   await workbenchPage.getByRole("button", { name: "保存" }).click();
-  await expect(workbenchPage.getByText("已保存到扩展配置")).toBeVisible();
+  await expect(workbenchPage.getByText("已保存到扩展配置", { exact: true })).toBeVisible();
 
   await workbenchPage.waitForFunction((configKey) => {
     const raw = window.localStorage.getItem(configKey);

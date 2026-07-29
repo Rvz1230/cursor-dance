@@ -1,24 +1,24 @@
 /** @platform desktop-only — built-in theme pack definitions */
 
-import type { ThemePack } from "../default-config";
+import type { CursorStateConfig, ThemePack } from "../default-config";
 
 let _definitions: ThemePack[] | undefined;
 
-export function getDefaultThemePackDefinitions(cursorStates: Record<string, unknown>): ThemePack[] {
+export function getDefaultThemePackDefinitions(cursorStates: Record<string, CursorStateConfig>): ThemePack[] {
   if (!_definitions) {
     _definitions = buildDefinitions(cursorStates);
   }
   return _definitions;
 }
 
-function buildDefinitions(cursorStates: Record<string, unknown>): ThemePack[] {
+function buildDefinitions(cursorStates: Record<string, CursorStateConfig>): ThemePack[] {
   return [
   {
     id: "mono-geo",
     name: "几何",
     description: "黑白灰配色、方块粒子和几何波纹，极简克制的反馈风格。",
     kind: "builtin",
-    cursorStates: cursorStates as Record<string, any>,
+    cursorStates,
     workbenchDraft: {
       actionConfigs: {
         leftClick: {
@@ -177,7 +177,7 @@ function buildDefinitions(cursorStates: Record<string, unknown>): ThemePack[] {
     name: "流光",
     description: "轨道粒子环绕光标、涟漪扩散，沉静青绿调，适合专注工作场景。",
     kind: "builtin",
-    cursorStates: cursorStates as Record<string, any>,
+    cursorStates,
     workbenchDraft: {
       actionConfigs: {
         leftClick: {
@@ -322,7 +322,7 @@ function buildDefinitions(cursorStates: Record<string, unknown>): ThemePack[] {
     name: "熔金",
     description: "火花向上喷发如熔岩飞溅、能量脉冲涟漪，温暖有力的橙金调。",
     kind: "builtin",
-    cursorStates: cursorStates as Record<string, any>,
+    cursorStates,
     workbenchDraft: {
       actionConfigs: {
         leftClick: {
@@ -508,7 +508,7 @@ function buildDefinitions(cursorStates: Record<string, unknown>): ThemePack[] {
     name: "夕霞",
     description: "钻石粒子缓缓飘落、回声涟漪荡漾，落日粉橙暖调，温柔优雅。",
     kind: "builtin",
-    cursorStates: cursorStates as Record<string, any>,
+    cursorStates,
     workbenchDraft: {
       actionConfigs: {
         leftClick: {

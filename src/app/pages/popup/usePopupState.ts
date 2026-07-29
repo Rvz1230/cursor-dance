@@ -139,7 +139,7 @@ export function usePopupState() {
       setSite(nextSite);
       setRuntimeErrors(errors);
       if (errors.length > 0) {
-        clearRuntimeErrors();
+        void clearRuntimeErrors();
         setNotice({
           tone: "amber",
           message: `检测到 ${errors.length} 个运行时问题：${errors.map((e) => e.type).join("、")}`,
@@ -149,7 +149,7 @@ export function usePopupState() {
       }
     }
 
-    hydrate();
+    void hydrate();
 
     const unsubscribe = subscribeExtensionConfig(async (nextConfigOrUpdater) => {
       const nextSite = await readActiveSiteContext();

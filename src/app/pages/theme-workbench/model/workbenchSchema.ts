@@ -15,7 +15,6 @@ import {
   Globe,
   Hand,
   Heart,
-  HelpCircle,
   ImagePlus,
   Keyboard,
   Link2,

@@ -28,19 +28,3 @@ export function Slider({ className, value, onValueChange, min = 0, max = 100, st
     </SliderPrimitive.Root>
   )
 }
-
-function NativeRangeInput({ className, value, onChange, min = 0, max = 100, step = 1, disabled = false, ...props }) {
-  return (
-    <input
-      type="range"
-      min={min}
-      max={max}
-      step={step}
-      value={value}
-      onChange={onChange}
-      disabled={disabled}
-      className={cn('w-full accent-emerald-700 disabled:cursor-not-allowed disabled:opacity-60', className)}
-      {...props}
-    />
-  )
-}

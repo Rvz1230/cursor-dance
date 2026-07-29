@@ -137,28 +137,6 @@ function getWoodfishPreset(stateId) {
   };
 }
 
-const CURSOR_BUILTIN_PRESET_OPTIONS = [
-  { value: "system", label: "系统样例" },
-  { value: "woodfish", label: "木鱼样例" },
-];
-
-function getBuiltinCursorPresetCards(stateId) {
-  return [
-    {
-      id: "system",
-      label: "系统样例",
-      hint: stateId === "default" ? "标准箭头 / I-beam" : "常见 cursor 语义",
-      asset: getSystemPreset(stateId),
-    },
-    {
-      id: "woodfish",
-      label: "木鱼样例",
-      hint: "演示 / 录屏",
-      asset: getWoodfishPreset(stateId),
-    },
-  ];
-}
-
 export function createBuiltinCursorAsset(stateId, presetId) {
   if (presetId === "woodfish") {
     return getWoodfishPreset(stateId);

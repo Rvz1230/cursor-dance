@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useRef } from "react";
+import { useMemo, useReducer, useRef } from "react";
 import {
   PLATFORM_ACTIONS,
   CURSOR_STATES,

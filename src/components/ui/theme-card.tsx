@@ -41,6 +41,7 @@ export function ThemeCard({
   const tones = toneClasses(theme.tone);
   const [editingName, setEditingName] = useState("");
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
+  const [actionMenuOpen, setActionMenuOpen] = useState(false);
 
   const ThemeIcon = ICON_OPTIONS.find((opt) => opt.name === theme.icon)?.Icon || Wand2;
 
@@ -165,7 +166,7 @@ export function ThemeCard({
           </div>
         </div>
       </button>
-      <Popover>
+      <Popover open={actionMenuOpen} onOpenChange={setActionMenuOpen}>
         <PopoverTrigger asChild>
           <Button
             variant="ghost"
@@ -178,18 +179,35 @@ export function ThemeCard({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-36 p-1" align="end">
-          <button type="button" className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" onClick={onDuplicate}>
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+            onClick={() => {
+              setActionMenuOpen(false);
+              onDuplicate?.();
+            }}
+          >
             <Copy className="size-4" />
             复制
           </button>
-          <button type="button" className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs text-slate-700 hover:bg-slate-50" onClick={onExport}>
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+            onClick={() => {
+              setActionMenuOpen(false);
+              onExport?.();
+            }}
+          >
             <Download className="size-4" />
             导出
           </button>
           <button
             type="button"
             className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:bg-transparent"
-            onClick={onDelete}
+            onClick={() => {
+              setActionMenuOpen(false);
+              onDelete?.();
+            }}
             disabled={!canDelete}
           >
             <Trash2 className="size-4" />

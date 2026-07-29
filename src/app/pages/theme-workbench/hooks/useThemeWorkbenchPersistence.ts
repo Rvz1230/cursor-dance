@@ -66,7 +66,7 @@ export function useThemeWorkbenchPersistence({ state, dispatch, configRef }) {
       dispatch({ type: "hydrate", payload: { ...hydratedState, recentCursorAssets } });
     }
 
-    hydrate();
+    void hydrate();
     window.addEventListener("pagehide", clearPreviewOnPageHide);
 
     const unsubscribe = subscribeExtensionConfig(async (nextConfigOrUpdater) => {
@@ -146,7 +146,7 @@ export function useThemeWorkbenchPersistence({ state, dispatch, configRef }) {
 
     if (editorStateDebounceRef.current) clearTimeout(editorStateDebounceRef.current);
     editorStateDebounceRef.current = setTimeout(() => {
-      writeEditorState({
+      void writeEditorState({
         workspaceId: stateRef.current.workspaceId,
         themeId: stateRef.current.selection.themeId,
         actionId: stateRef.current.selection.actionId,

@@ -47,16 +47,6 @@ function particleDirLabel(dir) {
 
 // ── effect chips (grouped: Motion / Feedback) ────────────────
 
-const PARTICLE_ICONS = {
-  "点状粒子": "●", 火花: "✦", "碎屑粒子": "◆",
-  星光: "★", 钻石: "◇", 心形: "♡", 方块: "▣", 三角: "▲",
-};
-
-const RIPPLE_ICONS = {
-  "单环": "○", 双环: "◎", "柔和面波": "◉",
-  "脉冲波纹": "⦿", "回声环": "☯", "能量脉冲": "⚡",
-};
-
 function ParticleBlock({ ac, accent }) {
   if (!ac?.particle) return null;
   const style = ac.particleStyle || "点状粒子";
@@ -232,7 +222,7 @@ function BubbleBackground({ accent }) {
 
 // ── IdentityCard ─────────────────────────────────────────────
 
-function IdentityCard({ actionConfig, accent, name, Icon: ThemeIcon, enabled, siteAction }) {
+function IdentityCard({ actionConfig, accent, name, Icon: ThemeIcon, siteAction }) {
   const tags = effectSummary(actionConfig);
   const hasEffects = tags.length > 0;
   const hasSiteRule = siteAction?.enable;
@@ -543,7 +533,7 @@ export default function PopupPage() {
   const switchTo = useCallback(
     (themeId) => {
       if (themeId === activeId) return;
-      setThemeId(themeId);
+      void setThemeId(themeId);
     },
     [activeId, setThemeId]
   );
@@ -605,7 +595,6 @@ export default function PopupPage() {
                 accent={accent}
                 name={current.theme.name}
                 Icon={themeIcon(current.theme)}
-                enabled={enabled}
                 siteAction={siteAction}
               />
             ) : (

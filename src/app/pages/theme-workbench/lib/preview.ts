@@ -3,8 +3,6 @@ import {
   getActionAnimationConfig,
   getActionCursorFeedbackConfig,
   getActionImageConfig,
-  getActionParticleConfig,
-  getActionRippleConfig,
   getActionTextConfig,
   getActionTriggerConfig,
 } from "../model/workbenchSchema";

@@ -47,9 +47,9 @@ export function createWorkbenchWindow(): BrowserWindow {
 
   const devUrl = process.env["ELECTRON_RENDERER_URL"];
   if (devUrl) {
-    win.loadURL(`${devUrl}/workbench/index.html`);
+    void win.loadURL(`${devUrl}/workbench/index.html`);
   } else {
-    win.loadFile(join(__dirname, "../renderer/workbench/index.html"));
+    void win.loadFile(join(__dirname, "../renderer/workbench/index.html"));
   }
 
   return win;

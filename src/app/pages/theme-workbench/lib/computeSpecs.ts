@@ -12,8 +12,6 @@ import {
   getActionRippleConfig,
   getActionTextConfig,
   getActionAnimationConfig,
-  getActionImageConfig,
-  getActionCursorFeedbackConfig,
   getOrderedActionTextTags,
 } from "../model/actionConfigSchema";
 

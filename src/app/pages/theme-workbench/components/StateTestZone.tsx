@@ -5,8 +5,6 @@ import { cn } from "@/components/ui/utils";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 
-const TARGET_CURSOR_SIZE = 48;
-
 function resolveStateId(cursorValue) {
   if (cursorValue === "pointer" || cursorValue === "grab" || cursorValue === "grabbing") return "pointer";
   if (cursorValue === "text" || cursorValue === "vertical-text") return "text";

@@ -10,18 +10,23 @@
 
 | 工作项 | 状态 | 当前结果 |
 |---|---|---|
-| R0-1 类型与版本基线 | 部分完成 | TypeScript 5.9.3、Vite 7.3.6 已统一；`typecheck` 已进入 CI；基础 lint 尚待接入 |
+| R0-1 类型与版本基线 | 已完成 | TypeScript 5.9.3、Vite 7.3.6 已统一；类型检查与基础 lint 已接入 CI，桌面端显式 `any` 和 IPC 字符串通道作为阻断规则 |
 | R1-1 Workbench 生命周期 | 已完成 | Dock 激活、托盘点击、二次启动统一复用窗口控制器，并有单元测试覆盖 |
 | R0-2 Electron smoke | 已完成 | Playwright Electron 已覆盖启动、首次引导、窗口数量、二次启动重开和配置驱动 overlay 显隐，并已在 macOS 实跑通过 |
+| R0-3 性能与代码量基线 | 已完成 | 已记录代码量、bundle、配置载荷、启动、CPU、内存和 1,000 Hz IPC 压力基线 |
 
 当前验证基线：
 
 - `npm run typecheck` 通过。
-- Vitest 37 个测试文件、283 个测试通过。
+- `npm run lint` 通过（0 error；共享旧代码的 29 条显式 `any` 暂作为 warning 逐步收紧）。
+- Vitest 37 个测试文件、285 个测试通过。
+- API 177 个测试通过。
 - 根 Web、landing、Electron main/preload/renderer 构建通过。
 - 根项目、landing、Electron Vite、Vitest 均复用 Vite 7.3.6。
 - Electron smoke 已在 macOS 实跑通过并接入 Linux CI；测试使用隔离 userData，并禁用全局输入、托盘、AI 服务和更新器等真机副作用。
-- npm audit 当前报告 25 个依赖漏洞，需单独分类生产依赖与开发/打包依赖；不得直接运行 `npm audit fix --force`。
+- 静态重构基线已记录在 [`docs/desktop-refactor-baseline.md`](./desktop-refactor-baseline.md)：生产代码 25,237 有效行，renderer 输出约 2.01 MiB，默认配置 JSON 约 43.9 KiB。
+- 动态基线已在双显示器 Mac 上实测：Workbench ready 1,127.2 ms，空闲主进程 CPU 0.198%，总工作集约 832.9 MiB，1,000 Hz 目标实际达到 998.997 Hz。
+- npm audit 当前报告 27 个依赖漏洞，需单独分类生产依赖与开发/打包依赖；不得直接运行 `npm audit fix --force`。
 
 ## 1. 背景与结论
 
@@ -242,9 +247,11 @@ desktop main -> React UI
 
 ### Phase 0 完成条件
 
-- 类型、单测、桌面 smoke、构建四条 CI 检查可运行。
-- 当前已知失败被记录为显式 skipped test，而不是口头待办。
-- 后续阶段可以用指标判断优化是否有效。
+- [x] 类型、lint、单测、桌面 smoke、构建检查均可在 CI 运行。
+- [x] 当前没有被口头忽略或以 skipped test 隐藏的已知基线失败。
+- [x] 性能、代码量、bundle 与配置载荷已有可复测基线。
+
+Phase 0 已于 2026-07-28 完成；后续工作进入 Phase 1，优先完成 R1-2 应用规则运行时闭环。
 
 ## Phase 1：修复桌面端用户可见断链
 
@@ -870,7 +877,7 @@ AiSchemePanel              # 组合层
 
 ### 工程与发布
 
-- [ ] typecheck、lint、unit、desktop smoke 全部进入 CI。
+- [x] typecheck、lint、unit、desktop smoke 全部进入 CI。
 - [ ] macOS 与 Windows 安装包通过启动 smoke。
 - [ ] 原生依赖架构和 asar unpack 已验证。
 - [ ] macOS 完成签名和公证。

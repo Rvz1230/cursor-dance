@@ -87,9 +87,9 @@ export function createOverlayWindow(display: Display): BrowserWindow {
 
   const devUrl = process.env["ELECTRON_RENDERER_URL"];
   if (devUrl) {
-    win.loadURL(`${devUrl}/overlay/index.html`);
+    void win.loadURL(`${devUrl}/overlay/index.html`);
   } else {
-    win.loadFile(join(__dirname, "../renderer/overlay/index.html"));
+    void win.loadFile(join(__dirname, "../renderer/overlay/index.html"));
   }
 
   overlayWindows.set(display.id, win);

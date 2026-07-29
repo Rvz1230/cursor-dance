@@ -43,7 +43,6 @@ export function createPreviewSimulation(deps: PreviewSimulationDeps): PreviewSim
   const {
     window,
     document,
-    state,
     configStore,
     longPressTracker,
     doubleClickDetector,

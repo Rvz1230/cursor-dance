@@ -2,7 +2,6 @@ import { CURSOR_STATES } from "../../model/workbenchSchema";
 import { getDefaultConfig, normalizeStoredConfig } from "../runtimeConfig";
 import {
   CONFIG_STORAGE_KEY,
-  CURSOR_ASSET_STORAGE_KEY_PREFIX,
   EDITOR_STATE_STORAGE_KEY,
   LEGACY_ENABLED_STORAGE_KEY,
   LIVE_PREVIEW_CONFIG_STORAGE_KEY,

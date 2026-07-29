@@ -12,7 +12,7 @@
 //     不可用时（headless / 没有 keyring）退化为明文存储但记日志，避免主进程崩溃。
 //   - apiKey 永远不返回给 renderer，只暴露 hasApiKey: boolean。需要重置就再写一次空串。
 
-import { app, safeStorage } from "electron";
+import { safeStorage } from "electron";
 import ElectronStore from "electron-store";
 
 const STORE_NAME = "cursordance-ai";

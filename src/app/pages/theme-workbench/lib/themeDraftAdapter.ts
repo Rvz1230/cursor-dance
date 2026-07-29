@@ -19,14 +19,6 @@ const LEGACY_CURSOR_STATE_TO_SKIN_STATE = {
   notAllowed: "notAllowed",
 };
 
-const SKIN_STATE_TO_LEGACY_CURSOR_STATE = {
-  default: "default",
-  pointer: "pointer",
-  text: "text",
-  busy: "wait",
-  notAllowed: "notAllowed",
-};
-
 const LEGACY_CURSOR_STATE_IDS = ["default", "pointer", "text", "help", "wait", "notAllowed"];
 
 function inferCursorSkinMimeType(dataUrl) {

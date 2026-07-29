@@ -63,8 +63,3 @@ export function TabsTrigger({ className, value: _value, selected, onSelect, ...p
     />
   )
 }
-
-function TabsContent({ className, value: _value, selected, children }: TabsTriggerProps) {
-  if (!selected) return null
-  return <div className={cn('mt-2', className)}>{children}</div>
-}

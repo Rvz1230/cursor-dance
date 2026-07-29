@@ -49,7 +49,7 @@ export async function startEmbeddedAiServer(): Promise<{ port: number }> {
   if (server) {
     return { port: resolvedPort! };
   }
-  if (startPromise) return startPromise;
+  if (startPromise !== null) return startPromise;
 
   startPromise = (async () => {
     syncEnvFromSettings();

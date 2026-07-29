@@ -6,6 +6,7 @@ const useExternalServer = process.env.CURSORDANCE_SMOKE_EXTERNAL_SERVER === "1";
 
 export default defineConfig({
   testDir: "./smoke",
+  testIgnore: ["desktop/**"],
   timeout: 30_000,
   expect: {
     timeout: 5_000,

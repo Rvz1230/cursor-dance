@@ -6,7 +6,7 @@
 // 调用方需注入 fireAction（触发长按效果）和 resetDoubleClick（重置双击检测时间戳）
 // 两个回调，使状态机与上层 triggerAction / 双击检测解耦。
 
-import type { CursorEvent, EngineState, LongPressState, DiagnosticsModule } from "./types";
+import type { CursorEvent, EngineState, DiagnosticsModule } from "./types";
 
 export interface LongPressTrackerDeps {
   window: Window;
@@ -154,7 +154,7 @@ export function createLongPressTracker(deps: LongPressTrackerDeps): LongPressTra
     get isArmed(): boolean {
       return state.longPressState != null;
     },
-    isFiredOrTriggered(event: CursorEvent | null): boolean {
+    isFiredOrTriggered(_event: CursorEvent | null): boolean {
       const lpState = state.longPressState;
       if (!lpState) return false;
       return (

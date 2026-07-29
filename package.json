@@ -30,6 +30,7 @@
     "ai:dev": "node cursor-dance-api/scripts/dev-server.mjs",
     "ai:check": "node cursor-dance-api/scripts/check-api.mjs",
     "build": "vite build",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "extension:prepare-manifest": "node scripts/prepare-extension-manifest.mjs",
     "preview": "vite preview",
@@ -38,6 +39,8 @@
     "test:smoke": "playwright test",
     "test:smoke:attached": "CURSORDANCE_SMOKE_EXTERNAL_SERVER=1 playwright test",
     "test:desktop": "playwright test --config=playwright.desktop.config.js",
+    "measure:desktop-baseline": "npm run build:electron && node scripts/measure-desktop-baseline.mjs",
+    "measure:desktop-baseline:static": "npm run build:electron && node scripts/measure-desktop-baseline.mjs --static-only",
     "dev:electron": "electron-vite dev",
     "build:electron": "electron-vite build",
     "start:electron": "electron-vite preview",
@@ -70,6 +73,7 @@
     "uiohook-napi": "^1.5.5"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
     "@playwright/test": "^1.60.0",
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
@@ -78,9 +82,13 @@
     "electron": "^42.4.0",
     "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.8.0",
     "postcss": "^8.4.31",
     "tailwindcss": "^3.3.5",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.65.0",
     "vite": "^7.3.6",
     "vitest": "^4.1.6"
   }

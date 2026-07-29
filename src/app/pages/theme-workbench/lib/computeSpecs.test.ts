@@ -10,7 +10,6 @@ import {
   computeRippleLayers as tsComputeRippleLayers,
   computeOrbitalParticleSpecs as tsComputeOrbitalParticleSpecs,
   getParticleShapeStyle as tsGetParticleShapeStyle,
-  getParticleTint as tsGetParticleTint,
   getAnimationVisualStyle as tsGetAnimationVisualStyle,
   getTextContent as tsGetTextContent,
   hexToRgba as tsHexToRgba,
@@ -32,18 +31,7 @@ const ACTION_CONFIG_PATH = path.resolve(
 
 /** Install the compute-specs.js IIFE with minimal stubs for its dependencies. */
 function installRuntimeHelpers() {
-  const hexToRgba = (hex, alpha) => {
-    const normalized = (hex || "#f59e0b").replace("#", "");
-    const value =
-      normalized.length === 3
-        ? normalized.split("").map((c) => c + c).join("")
-        : normalized;
-    const int = Number.parseInt(value, 16);
-    return `rgba(${(int >> 16) & 255}, ${(int >> 8) & 255}, ${int & 255}, ${alpha})`;
-  };
-
   // Field lists matching action-config.js – used for config picking
-  const ACTION_TRIGGER_FIELDS = ["triggerTiming", "triggerZone", "holdMs"];
   const ACTION_TEXT_FIELDS = [
     "textKind", "textStyle", "textMode", "textTemplate", "textEnabled",
     "textContent", "textTags", "textTagPlayMode", "textColor", "textDuration",

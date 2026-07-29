@@ -10,7 +10,7 @@ import {
   getChromeApi,
   getElectronStorageBridge,
 } from "./chrome-api";
-import { readExtensionConfig, readLivePreviewConfig } from "./config-io";
+import { readExtensionConfig } from "./config-io";
 
 function readLocalStorageFallback() {
   if (!canUseLocalStorage()) return null;
@@ -56,7 +56,7 @@ export function subscribeExtensionConfig(onChange) {
     return () => window.removeEventListener("storage", handleStorage);
   }
 
-  async function handleChanges(changes, areaName) {
+  async function processChanges(changes, areaName) {
     if (areaName !== "local") return;
     const changedKeys = Object.keys(changes);
     if (changedKeys.some((key) => key === CONFIG_STORAGE_KEY || key.startsWith(CURSOR_ASSET_STORAGE_KEY_PREFIX))) {
@@ -71,6 +71,10 @@ export function subscribeExtensionConfig(onChange) {
         })
       );
     }
+  }
+
+  function handleChanges(changes, areaName) {
+    void processChanges(changes, areaName);
   }
 
   chromeApi.storage.onChanged.addListener(handleChanges);
@@ -120,7 +124,7 @@ export function subscribeLivePreviewConfig(onChange) {
     };
   }
 
-  async function handleChanges(changes, areaName) {
+  function handleChanges(changes, areaName) {
     if (areaName !== "session" || !changes[LIVE_PREVIEW_CONFIG_STORAGE_KEY]) return;
     const nextValue = changes[LIVE_PREVIEW_CONFIG_STORAGE_KEY].newValue;
     onChange(nextValue ? normalizeStoredConfig(nextValue) : null);
@@ -148,7 +152,7 @@ export function subscribeRuntimeDiagnostics(onChange) {
   // Primary: chrome.storage.local onChanged (works cross-origin in extensions).
   const chromeApi = getChromeApi();
   if (chromeApi?.storage?.onChanged) {
-    async function handleChanges(changes, areaName) {
+    function handleChanges(changes, areaName) {
       if (areaName !== "local" || !changes["cursordance.diagnosticEvents"]) return;
       const nextValue = changes["cursordance.diagnosticEvents"].newValue;
       if (Array.isArray(nextValue)) {

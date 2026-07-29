@@ -341,9 +341,6 @@ export function ThemeLibrarySidebar({
     setPendingSwitchThemeId(null);
   }
 
-  const pendingSwitchTheme = pendingSwitchThemeId
-    ? themes.find((t) => t.id === pendingSwitchThemeId)
-    : null;
   const currentThemeName = themes.find((t) => t.id === themeId)?.name || "当前主题";
 
   return (

@@ -49,11 +49,21 @@
 
 ### MVP 收尾技术债
 
-- [ ] 增加显式的 TypeScript `typecheck` 脚本并接入 CI；当前 electron-vite/Vite 构建只负责转译
-- [ ] 收敛 Vite/Vitest 版本：Vitest 4 要求 Vite 6–8，而根项目仍固定在 Vite 5
+- [x] 增加显式的 TypeScript `typecheck` 脚本并接入 CI
+- [x] 收敛 Vite/Vitest 版本：根项目、landing、Electron Vite 与 Vitest 统一复用 Vite 7.3.6
+- [x] 接入基础 lint 并进入 CI；阻断未使用代码、浮动 Promise、Hooks 顺序问题、桌面端显式 `any` 和 Electron IPC 字符串通道
 - [ ] 持续增加 `extension/` 与 `src/desktop/renderer/engine/` 的行为一致性测试，避免双实现漂移
 - [ ] macOS 正式发布前完成签名与公证；当前 `mac.identity: null` 仅适合 dogfood
 - [ ] 按职责拆分 `AiSchemePanel.tsx`、`WorkbenchPreviewRail.tsx` 和两端 `config-store` 热点文件
+
+### 桌面重构 Phase 0（已完成）
+
+- [x] R0-1：TypeScript、Vite、`typecheck` 与 ESLint 基线；类型检查和 lint 均已进入 CI
+- [x] R0-2：Electron 生命周期 smoke，覆盖首次引导、窗口数量、二次启动和 overlay 显隐
+- [x] R0-3：性能与代码量基线——已记录代码量、bundle、配置载荷、启动、CPU、内存和 1,000 Hz IPC 压力数据
+- **基线文档**：[`docs/desktop-refactor-baseline.md`](./docs/desktop-refactor-baseline.md)
+- **当前重点结论**：Workbench 直接引用约 1.97 MiB 资源；默认配置约 43.9 KiB，加入 256 KiB 图片 data 后因 `themePacks` / `schemes` 双字段序列化放大到约 556.2 KiB。
+- **下一步**：进入 Phase 1 的 R1-2，打通应用规则从 Workbench 配置到主进程窗口匹配、overlay 决策与诊断反馈的运行时闭环。
 
 ### 分支状态
 

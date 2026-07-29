@@ -472,12 +472,7 @@ function InteractiveTimeline({ tracks, totalMs, disabled, canEditEmptyState, upd
 }
 
 function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, actionConfigsMap, outputs, triggerInterval, previewMode, updateActionConfig, atmosphere }) {
-  const textConfig = useMemo(() => getActionTextConfig(config), [config]);
-  const particleConfig = useMemo(() => getActionParticleConfig(config), [config]);
-  const rippleConfig = useMemo(() => getActionRippleConfig(config), [config]);
   const audioConfig = useMemo(() => getActionAudioConfig(config), [config]);
-  const animationConfig = useMemo(() => getActionAnimationConfig(config), [config]);
-  const imageConfig = useMemo(() => getActionImageConfig(config), [config]);
   const timeline = useMemo(() => buildTimelineModel(config), [config]);
 
   const soundDelay = audioConfig.soundDelay || 0;
@@ -486,7 +481,6 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, act
   const [pointer, setPointer] = useState({ x: 0, y: 0, inside: false });
   const stageRef = useRef(null);
   const effectsHostRef = useRef(null);
-  const [stageSize, setStageSize] = useState({ w: 0, h: 0 });
   const cursorEnabled = atmosphere?.mode === "creative-mouse";
 
   // 引擎实例与最新 config / actionId 引用 ——
@@ -664,18 +658,6 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, act
     setSimState({ type: "idle" });
   }, [actionId]);
 
-  useEffect(() => {
-    const el = stageRef.current;
-    if (!el) return;
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setStageSize({ w: entry.contentRect.width, h: entry.contentRect.height });
-      }
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
   function onPointerMove(e) {
     const rect = stageRef.current?.getBoundingClientRect();
     if (!rect) return;
@@ -781,8 +763,6 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, act
           pointerX={pointer.x}
           pointerY={pointer.y}
           isPointerInside={pointer.inside}
-          stageWidth={stageSize.w}
-          stageHeight={stageSize.h}
         />
 
         {audioConfig.sound && !disabled ? (

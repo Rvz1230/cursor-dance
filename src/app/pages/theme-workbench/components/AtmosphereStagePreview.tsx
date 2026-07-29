@@ -1,7 +1,7 @@
 /**
  * 氛围动效预览层 — 工作台预览区域中展示 Creative Mouse 等效果
  */
-export function AtmosphereStagePreview({ atmosphere, pointerX, pointerY, isPointerInside, stageWidth, stageHeight }) {
+export function AtmosphereStagePreview({ atmosphere, pointerX, pointerY, isPointerInside }) {
   const mode = atmosphere?.mode;
 
   if (mode !== "creative-mouse" || !isPointerInside) return null;

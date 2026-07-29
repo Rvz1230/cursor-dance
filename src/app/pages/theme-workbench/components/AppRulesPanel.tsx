@@ -12,7 +12,7 @@ import { useEffect, useState } from "react";
 import { GripVertical, Plus, Trash2, ToggleLeft, ToggleRight, Crosshair, AppWindow, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/utils";
-import { Panel, SectionTitle, DataPill } from "./WorkbenchControls";
+import { SectionTitle, DataPill } from "./WorkbenchControls";
 
 type PatternType = "exact" | "glob";
 type PatternTarget = "process" | "title";

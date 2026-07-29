@@ -11,7 +11,13 @@ import { InlineStatus } from "@/components/ui/inline-status";
 import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/components/ui/utils";
 import { getAiRequestErrorMessage, requestAiSchemeEditStreaming, requestAiAgentRun } from "../lib/aiSchemeAssistant";
-import { saveConversation, loadConversation, deleteConversation, sweepExpiredConversations } from "../lib/storage/ai-conversation";
+import {
+  saveConversation,
+  loadConversation,
+  deleteConversation,
+  sweepExpiredConversations,
+  type ConversationData,
+} from "../lib/storage/ai-conversation";
 import { saveFeedback } from "../lib/storage/ai-feedback";
 import { Panel } from "./WorkbenchControls";
 
@@ -235,7 +241,9 @@ function MessageBubble({ message, onEdit, actionId, notify }) {
             placeholder="哪里不对？(选填)"
             className="w-full min-w-0 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none placeholder:text-slate-400 focus:border-slate-300"
             onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.nativeEvent.isComposing && e.keyCode !== 229) handleSubmitComment();
+              if (e.key === "Enter" && !e.nativeEvent.isComposing && e.keyCode !== 229) {
+                void handleSubmitComment();
+              }
             }}
           />
           <button
@@ -337,8 +345,13 @@ function TargetSummary({ targets }) {
 }
 
 function ProposalCard({ result, previewActive }) {
-  const diffItems = result?.diffItems || [];
   if (!result) return null;
+
+  return <ProposalCardContent result={result} previewActive={previewActive} />;
+}
+
+function ProposalCardContent({ result, previewActive }) {
+  const diffItems = result.diffItems || [];
   const riskLabel = result.riskLevel === "high" ? "高风险" : result.riskLevel === "medium" ? "中风险" : "低风险";
   const riskTone = result.riskLevel === "high"
     ? "border-rose-100 bg-rose-50 text-rose-700"
@@ -714,7 +727,7 @@ export function AiSchemePanel({
     async function syncConversation() {
       if (isSwitch) {
         // Save previous action's conversation
-        await saveConversation(prevId, stateRef.current as any);
+        await saveConversation(prevId, stateRef.current as Omit<ConversationData, "updatedAt">);
       }
       // Load new action's conversation (or start fresh)
       const saved = await loadConversation(actionId);
@@ -735,7 +748,7 @@ export function AiSchemePanel({
     }
 
     if (isSwitch || prevId === undefined) {
-      syncConversation();
+      void syncConversation();
     }
 
     // Always reset transient state on action switch
@@ -755,7 +768,7 @@ export function AiSchemePanel({
 
   // Sweep expired conversations on mount
   useEffect(() => {
-    sweepExpiredConversations();
+    void sweepExpiredConversations();
   }, []);
 
   // Cleanup cooldown timer on unmount
@@ -768,7 +781,7 @@ export function AiSchemePanel({
   useEffect(() => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
-      saveConversation(actionId, stateRef.current as any);
+      void saveConversation(actionId, stateRef.current as Omit<ConversationData, "updatedAt">);
     }, 500);
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -1000,13 +1013,13 @@ export function AiSchemePanel({
   function handleKeyDown(event) {
     if (event.key === "Enter" && !event.shiftKey && !event.isComposing && event.keyCode !== 229) {
       event.preventDefault();
-      submitPrompt();
+      void submitPrompt();
     }
   }
 
   function handleSubmit(event) {
     event.preventDefault();
-    submitPrompt();
+    void submitPrompt();
   }
 
   function applyPendingResult() {
@@ -1054,7 +1067,7 @@ export function AiSchemePanel({
     setIsGenerating(false);
     setStreamingReply("");
     setMessages(getInitialMessages());
-    deleteConversation(actionId);
+    void deleteConversation(actionId);
     onClearPreview?.();
     notify?.({
       tone: "info",
@@ -1231,7 +1244,7 @@ export function AiSchemePanel({
                   type="button"
                   className="rounded-full border border-sky-100 bg-sky-50 px-3 py-1.5 text-xs font-medium text-sky-700 transition-[transform,color,background-color,border-color,box-shadow] hover:bg-white active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
                   onClick={() => {
-                    submitPrompt(option, "tune_proposal");
+                    void submitPrompt(option, "tune_proposal");
                   }}
                   disabled={isGenerating || cooldownActive}
                 >
@@ -1246,7 +1259,7 @@ export function AiSchemePanel({
                   key={example}
                   type="button"
                   className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600 transition-[transform,color,background-color,border-color,box-shadow] hover:border-slate-300 hover:bg-white active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
-                  onClick={() => submitPrompt(example)}
+                  onClick={() => void submitPrompt(example)}
                   disabled={isGenerating || cooldownActive}
                 >
                   {example}
@@ -1350,7 +1363,7 @@ export function AiSchemePanel({
                   className="ml-2 shrink-0 rounded-lg border border-rose-200 bg-white px-2 py-1 text-xs font-medium text-rose-600 transition-colors hover:bg-rose-100 active:scale-[0.97]"
                   onClick={() => {
                     setError("");
-                    submitPrompt(lastPrompt);
+                    void submitPrompt(lastPrompt);
                   }}
                 >
                   重试

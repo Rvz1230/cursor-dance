@@ -34,7 +34,7 @@ import type {
 
 import { createLongPressTracker, type LongPressTracker } from "./long-press-state";
 import { createDoubleClickDetector, type DoubleClickDetector } from "./double-click-detector";
-import { createPreviewSimulation, type PreviewSimulation } from "./preview-simulation";
+import { createPreviewSimulation } from "./preview-simulation";
 
 export interface TriggerHandlersDeps {
   window: Window;

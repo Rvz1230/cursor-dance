@@ -46,9 +46,12 @@
       if (!isLocalPreviewHost() || !canUseWindowLocalStorage()) return null;
 
       try {
-        const raw = window.localStorage.getItem(constants.CONFIG_STORAGE_KEY);
+        const previewRaw = window.localStorage.getItem(constants.LIVE_PREVIEW_CONFIG_STORAGE_KEY);
+        const storedRaw = window.localStorage.getItem(constants.CONFIG_STORAGE_KEY);
         const legacyEnabledRaw = window.localStorage.getItem(constants.LEGACY_ENABLED_STORAGE_KEY);
-        const parsed = raw ? JSON.parse(raw) : null;
+        const parsed = previewRaw
+          ? JSON.parse(previewRaw)
+          : (storedRaw ? JSON.parse(storedRaw) : null);
         return normalizeConfig(
           parsed || {
             ...defaultConfig,

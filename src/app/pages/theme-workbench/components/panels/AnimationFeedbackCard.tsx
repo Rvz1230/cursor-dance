@@ -1,6 +1,5 @@
 import { Switch } from "@/components/ui/switch";
 import {
-  ACTION_ANIMATION_FIELDS,
   ANIMATION_EASING_OPTIONS,
   ANIMATION_STYLE_OPTIONS,
   PANEL_META,

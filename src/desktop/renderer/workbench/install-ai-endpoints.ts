@@ -9,13 +9,9 @@
 // 默认的远程 endpoint，让客户端走「未配置后端」错误路径，不阻塞 UI 启动。
 
 declare global {
-  // eslint-disable-next-line no-var
   var VITE_CURSORDANCE_AI_API_ENDPOINT: string | undefined;
-  // eslint-disable-next-line no-var
   var VITE_CURSORDANCE_AI_API_STREAM_ENDPOINT: string | undefined;
-  // eslint-disable-next-line no-var
   var VITE_CURSORDANCE_AI_AGENT_ENDPOINT: string | undefined;
-  // eslint-disable-next-line no-var
   var VITE_CURSORDANCE_AI_API_ACCESS_TOKEN: string | undefined;
 }
 

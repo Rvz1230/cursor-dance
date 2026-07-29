@@ -6,9 +6,9 @@
 
 import type { EngineDeps, KeyFeedbackModule, NativeKeyboardEvent } from "./types";
 import type { KeyFeedbackConfig } from "./key-feedback-types";
-import { defaultKeyFeedbackConfig, normalizeKeyFeedbackConfig } from "./key-feedback-types";
+import { normalizeKeyFeedbackConfig } from "./key-feedback-types";
 import { keyLayoutNormalizedX, keyDisplayLabel, isModifierKeycode, isSpecialKeycode } from "./key-layout-map";
-import { hexToRgba, getAnimationEasing, getTextWeightValue } from "./action-config";
+import { hexToRgba, getAnimationEasing } from "./action-config";
 
 const FONT_WEIGHT_MAP: Record<string, number> = {
   "特细": 100, "细体": 200, "标准": 400, "中等": 500,

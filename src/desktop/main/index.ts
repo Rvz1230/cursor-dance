@@ -110,7 +110,7 @@ function openWorkbench(): void {
   workbenchWindowController.open();
 }
 
-app.whenReady().then(async () => {
+void app.whenReady().then(async () => {
   if (process.platform === "darwin" && !app.isPackaged && app.dock) {
     const iconPath = join(app.getAppPath(), "build/icon.png");
     const icon = nativeImage.createFromPath(iconPath);

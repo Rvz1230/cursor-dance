@@ -167,7 +167,7 @@ export function DiagnosticsPanel({ selectedThemeId }) {
   // Load runtime errors on mount.
   useEffect(() => {
     let cancelled = false;
-    readRuntimeErrors().then((errors) => {
+    void readRuntimeErrors().then((errors) => {
       if (!cancelled) setRuntimeErrors(errors);
     });
     return () => { cancelled = true; };
@@ -196,12 +196,12 @@ export function DiagnosticsPanel({ selectedThemeId }) {
 
   function toggleDebug() {
     const nextEnabled = !debugEnabled;
-    writeDiagnosticDebugFlag(nextEnabled);
+    void writeDiagnosticDebugFlag(nextEnabled);
     setDebugEnabled(nextEnabled);
   }
 
   function handleClearRuntimeErrors() {
-    clearRuntimeErrors().then(() => setRuntimeErrors([]));
+    void clearRuntimeErrors().then(() => setRuntimeErrors([]));
   }
 
   function handleResume() {

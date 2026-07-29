@@ -113,6 +113,8 @@
       const audioConfig = configStore.getActionAudioConfig(actionConfig);
       const blendMode = audioConfig.soundBlendMode || "保持原音量";
       const duckProfile = resolveAudioDuckProfile({
+        hostname: window.location.hostname,
+        siteKey: window.__CURSORDANCE_AUDIO_SITE_KEY__ || null,
         audioConfig,
         blendMode,
       });

@@ -34,7 +34,7 @@ export function TitleBar() {
   useEffect(() => {
     if (!bridge) return;
     let alive = true;
-    bridge.getState().then((state) => {
+    void bridge.getState().then((state) => {
       if (alive) setIsMaximized(state.isMaximized);
     });
     const unsubscribe = bridge.onStateChanged((state) => {

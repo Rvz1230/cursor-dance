@@ -13,7 +13,7 @@ export function Panel({
   collapsible = false,
   defaultOpen = true,
   summary,
-  enabled,
+  enabled: _enabled,
   id,
 }: {
   title: string

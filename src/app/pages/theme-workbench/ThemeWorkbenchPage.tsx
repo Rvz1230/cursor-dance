@@ -278,7 +278,6 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
     keyFeedbackConfig,
     updateKeyFeedbackConfig,
   } = useThemeWorkbenchState();
-  const currentWorkspace = workspaceItems.find((item) => item.id === state.workspaceId);
   const previewActionConfigsMap = useMemo(() => {
     if (!previewProposal || !draft?.actionConfigs) return draft?.actionConfigs;
     return (previewProposal.targets || []).reduce((configs, target) => {
@@ -317,7 +316,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
       return;
     }
     let cancelled = false;
-    Promise.allSettled([
+    void Promise.allSettled([
       bridge.getFirstRun(),
       bridge.getActiveWindow(),
     ]).then(([firstRunResult, activeWindowResult]) => {
@@ -431,7 +430,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
     unsaved: state.ui.unsaved,
     isSaving: state.ui.isSaving,
     saveError: state.ui.saveError,
-    saveChanges: handleSaveChanges,
+    saveChanges: () => { void handleSaveChanges(); },
     resetCurrentTheme: handleResetCurrentTheme,
     aiPanelOpen,
     setAiPanelOpen,
