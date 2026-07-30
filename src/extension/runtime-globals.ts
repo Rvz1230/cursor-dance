@@ -15,6 +15,7 @@ import {
   createEffectGroupRegistry,
   createTimedOverride,
 } from "@/shared/effect-runtime/effect-lifecycle";
+import { createAudioRuntime } from "@/shared/effect-runtime/audio-runtime";
 
 export const configHelpers = Object.assign(
   globalThis.CursorDanceConfigHelpers || {},
@@ -27,6 +28,7 @@ export const effectRuntime = Object.assign(
   globalThis.CursorDanceEffectRuntime || {},
   {
     decideActionExecution,
+    createAudioRuntime,
     createDoubleClickDetector,
     createEffectLifecycle,
     createEffectGroupRegistry,
