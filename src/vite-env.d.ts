@@ -150,6 +150,13 @@ interface CursorDanceAppBridge {
   getFirstRun: () => Promise<boolean>
   markFirstRunComplete: () => Promise<void>
   openExternal: (target: string) => Promise<{ ok: boolean; error?: string }>
+  getUpdateState: () => Promise<import("./shared/desktop-update").DesktopUpdateState>
+  checkForUpdates: () => Promise<import("./shared/desktop-update").DesktopUpdateState>
+  downloadUpdate: () => Promise<import("./shared/desktop-update").DesktopUpdateState>
+  installUpdate: () => Promise<void>
+  onUpdateStateChanged: (
+    callback: (state: import("./shared/desktop-update").DesktopUpdateState) => void
+  ) => () => void
 }
 
 interface CursorDanceAiSettingsView {

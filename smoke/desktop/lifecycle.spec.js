@@ -11,32 +11,41 @@ function isWindowType(url, type) {
 }
 
 async function readWindowState(electronApp) {
-  return electronApp.evaluate(({ BrowserWindow, screen }) => {
-    const windows = BrowserWindow.getAllWindows();
-    const summarize = (segment) => {
-      const matching = windows.filter((win) => {
-        try {
-          return !win.isDestroyed()
-            && !win.webContents.isDestroyed()
-            && win.webContents.getURL().includes(segment);
-        } catch {
-          return false;
-        }
-      });
-      return {
-        count: matching.length,
-        visibleCount: matching.filter((win) => {
-          try { return !win.isDestroyed() && win.isVisible(); } catch { return false; }
-        }).length,
-      };
-    };
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      return await electronApp.evaluate(({ BrowserWindow, screen }) => {
+        const windows = BrowserWindow.getAllWindows();
+        const summarize = (segment) => {
+          const matching = windows.filter((win) => {
+            try {
+              return !win.isDestroyed()
+                && !win.webContents.isDestroyed()
+                && win.webContents.getURL().includes(segment);
+            } catch {
+              return false;
+            }
+          });
+          return {
+            count: matching.length,
+            visibleCount: matching.filter((win) => {
+              try { return !win.isDestroyed() && win.isVisible(); } catch { return false; }
+            }).length,
+          };
+        };
 
-    return {
-      displayCount: screen.getAllDisplays().length,
-      workbench: summarize("/renderer/workbench/index.html"),
-      overlay: summarize("/renderer/overlay/index.html"),
-    };
-  });
+        return {
+          displayCount: screen.getAllDisplays().length,
+          workbench: summarize("/renderer/workbench/index.html"),
+          overlay: summarize("/renderer/overlay/index.html"),
+        };
+      });
+    } catch (error) {
+      const isTransientContextReset = String(error).includes("Execution context was destroyed");
+      if (!isTransientContextReset || attempt === 2) throw error;
+      await new Promise((resolveRetry) => setTimeout(resolveRetry, 50));
+    }
+  }
+  throw new Error("Unable to read desktop window state");
 }
 
 async function getWorkbenchPage(electronApp) {
@@ -181,11 +190,12 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
     })).resolves.toEqual({ navigate: 1, redirect: 1, webview: 1 });
     await expect(workbenchPage.evaluate(() => window.open("https://example.com/blocked-window") === null)).resolves.toBe(true);
     await expect(workbenchPage.getByText("氛围动效", { exact: true })).toHaveCount(0);
-    await expect.poll(() => workbenchPage.evaluate(() => ({
+    await expect.poll(() => workbenchPage.evaluate(async () => ({
       cursorEvents: "cursorDanceAPI" in window,
       storage: "cursorDanceStorage" in window,
       dialog: "cursorDanceDialog" in window,
-      app: "cursorDanceApp" in window,
+      appMethods: Object.keys(window.cursorDanceApp || {}).sort(),
+      updateState: await window.cursorDanceApp?.getUpdateState(),
       windowControls: "cursorDanceWindow" in window,
       aiMethods: Object.keys(window.cursorDanceAi || {}).sort(),
       platform: "electronAPI" in window,
@@ -193,7 +203,19 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
       cursorEvents: false,
       storage: true,
       dialog: true,
-      app: true,
+      appMethods: [
+        "checkForUpdates",
+        "downloadUpdate",
+        "getActiveWindow",
+        "getFirstRun",
+        "getUpdateState",
+        "installUpdate",
+        "markFirstRunComplete",
+        "onActiveWindowChanged",
+        "onUpdateStateChanged",
+        "openExternal",
+      ],
+      updateState: { status: "unsupported" },
       windowControls: true,
       aiMethods: [
         "cancelRequest",

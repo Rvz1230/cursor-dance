@@ -131,7 +131,11 @@
 - **R6-3 打包矩阵**：macOS arm64 生成 ZIP，Windows x64 生成 NSIS；两端均保留 unpacked 应用用于结构检查和启动 smoke，并将安装包、blockmap、更新元数据作为 7 天 CI artifact 上传。旧的 Windows helper-only job 已由完整打包链路取代。
 - **R6-3 产物门禁**：检查 app.asar 主入口、preload/renderer、外置 extension/tray 图标、`app-update.yml`、latest 元数据、blockmap、`uiohook-napi`/`get-windows`/cursor helper 架构与 asar unpack；直接执行打包内 helper 协议，并以隔离 userData 启动最终可执行文件，确认 v4 配置桥和每屏 overlay。
 - **R6-3 本机验证**：macOS arm64 ZIP、更新元数据和 unpacked `.app` 生成成功；产物结构/架构/helper 协议检查通过，最终 `.app` 启动 smoke 通过（双屏 2 个 overlay、1 个 Workbench、`app.isPackaged=true`）。NSIS 明确保留 userData；签名状态当前按预期为 unsigned。
-- **下一步**：确认 Windows x64 CI 首跑结果并收口 R6-3，然后进入 R6-4；Developer ID、公证与 Windows code signing 仍需要外部证书环境。
+- [ ] R6-4：签名、公证与更新策略——完成首轮用户可见更新控制面；签名证书、发布 workflow 和回滚说明仍待完成。
+- **R6-4 更新链路**：自动检查保留 4 小时间隔，但关闭 `autoDownload` 和 `autoInstallOnAppQuit`；主进程状态机统一管理检查、可下载、下载进度、等待重启和错误状态。Workbench 标题栏提供检查、下载、重试和重启安装入口，overlay 不具备更新权限。
+- **R6-4 安全与容错**：更新 IPC 纳入 sender policy，开发态和 smoke 返回 `unsupported` 且不联网；检查/下载失败转换为有长度上限的 UI 状态，不再向应用生命周期抛出。停止时清理 interval 与 updater listeners，并用 lifecycle token 隔离已停止实例的异步结果。
+- **R6-4 当前验证**：79 个根测试文件共 380 项、typecheck、Knip、lint（0 error，保留既有 15 warning）、Electron build/bundle budget、desktop smoke、macOS arm64 真实 ZIP 结构验证和最终 `.app` 启动 smoke 通过。
+- **下一步**：确认 Windows x64 CI 首跑结果；随后新增由 tag 驱动、同一 workflow 生成签名产物/更新元数据/checksums 的 release 流程。Developer ID、公证与 Windows code signing 需要外部证书环境。
 
 ### 分支状态
 

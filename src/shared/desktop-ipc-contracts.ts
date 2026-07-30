@@ -9,6 +9,10 @@ import {
   APP_GET_FIRST_RUN,
   APP_MARK_FIRST_RUN_COMPLETE,
   APP_OPEN_EXTERNAL,
+  APP_UPDATE_CHECK,
+  APP_UPDATE_DOWNLOAD,
+  APP_UPDATE_GET_STATE,
+  APP_UPDATE_INSTALL,
   CURSOR_VISIBILITY_SET_HIDDEN,
   DIALOG_OPEN_THEME_FILE,
   DIALOG_SAVE_THEME_FILE,
@@ -22,6 +26,7 @@ import {
   WINDOW_MINIMIZE,
   WINDOW_TOGGLE_MAXIMIZE,
 } from "./ipc-channels";
+import type { DesktopUpdateState } from "./desktop-update";
 
 export type SaveThemeFileRequest = {
   defaultFileName: string;
@@ -96,6 +101,10 @@ interface DesktopIpcInvokeContract {
   [APP_GET_FIRST_RUN]: InvokeContract<void, boolean>;
   [APP_MARK_FIRST_RUN_COMPLETE]: InvokeContract<void, void>;
   [APP_OPEN_EXTERNAL]: InvokeContract<string, { ok: boolean; error?: string }>;
+  [APP_UPDATE_GET_STATE]: InvokeContract<void, DesktopUpdateState>;
+  [APP_UPDATE_CHECK]: InvokeContract<void, DesktopUpdateState>;
+  [APP_UPDATE_DOWNLOAD]: InvokeContract<void, DesktopUpdateState>;
+  [APP_UPDATE_INSTALL]: InvokeContract<void, void>;
   [WINDOW_MINIMIZE]: InvokeContract<void, void>;
   [WINDOW_TOGGLE_MAXIMIZE]: InvokeContract<void, void>;
   [WINDOW_CLOSE]: InvokeContract<void, void>;

@@ -54,8 +54,14 @@ try {
     hasAppBridge: Boolean(window.cursorDanceApp),
     hasStorageBridge: Boolean(window.cursorDanceStorage),
     configVersion: (await window.cursorDanceStorage?.getConfig())?.schemaVersion,
+    updateState: await window.cursorDanceApp?.getUpdateState(),
   }));
-  if (!rendererState.hasAppBridge || !rendererState.hasStorageBridge || rendererState.configVersion !== 4) {
+  if (
+    !rendererState.hasAppBridge
+    || !rendererState.hasStorageBridge
+    || rendererState.configVersion !== 4
+    || rendererState.updateState?.status !== "unsupported"
+  ) {
     throw new Error(`Packaged renderer bridge/config check failed: ${JSON.stringify(rendererState)}`);
   }
 

@@ -23,6 +23,7 @@ import { registerAiIpc, unregisterAiIpc } from "./ai-ipc";
 import { registerCursorVisibilityIpc, restoreNativeCursor, unregisterCursorVisibilityIpc } from "./cursor-visibility";
 import { shouldKeepOverlaysVisible } from "./overlay-visibility";
 import { registerAutoUpdater } from "./auto-updater";
+import { registerUpdateIpc } from "./update-ipc";
 import { createTray, destroyTray } from "./tray";
 import {
   onConfigChange,
@@ -31,7 +32,7 @@ import {
   readLivePreview,
   writeConfig,
 } from "./electron-store";
-import { APP_ACTIVE_WINDOW_CHANGED, CURSOR_EVENT, KEYBOARD_EVENT } from "../../shared/ipc-channels";
+import { APP_ACTIVE_WINDOW_CHANGED, APP_UPDATE_STATE_CHANGED, CURSOR_EVENT, KEYBOARD_EVENT } from "../../shared/ipc-channels";
 import {
   registerAssetProtocol,
   registerAssetSchemePrivileges,
@@ -165,6 +166,17 @@ void app.whenReady().then(async () => {
   registerFirstRunIpc();
   registerAiIpc();
   registerCursorVisibilityIpc();
+  const updateController = registerAutoUpdater({
+    isPackaged: app.isPackaged && !isDesktopSmokeTest,
+    publish: (state) => {
+      broadcastToWindows(() => BrowserWindow.getAllWindows(), APP_UPDATE_STATE_CHANGED, state);
+    },
+  });
+  const unregisterUpdateIpc = registerUpdateIpc(updateController);
+  stopAutoUpdater = () => {
+    unregisterUpdateIpc();
+    updateController.stop();
+  };
 
   // 1) Workbench 配置窗口
   openWorkbench();
@@ -243,12 +255,6 @@ void app.whenReady().then(async () => {
       toggleEnabled,
       onEnabledChange: (cb) => onConfigChange(() => cb(getEnabledFromStore())),
     });
-  }
-
-  // 5) 自动更新：仅在 packaged 模式下启用，dev 跳过。
-  //    立即检查一次，之后 4h 轮询；下载完成等到下次正常退出再安装。
-  if (!isDesktopSmokeTest) {
-    stopAutoUpdater = registerAutoUpdater();
   }
 
   app.on("activate", () => {

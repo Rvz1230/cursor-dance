@@ -47,6 +47,14 @@ export const APP_MARK_FIRST_RUN_COMPLETE = "cursordance:app-mark-first-run-compl
  *  WelcomeDialog 与应用规则面板的「打开辅助功能设置」按钮使用。 */
 export const APP_OPEN_EXTERNAL = "cursordance:app-open-external";
 
+/** Workbench → 主进程：读取更新状态、手动检查/下载，以及确认重启安装。
+ *  主进程通过 APP_UPDATE_STATE_CHANGED 将状态机变化推回 Workbench。 */
+export const APP_UPDATE_GET_STATE = "cursordance:app-update-get-state";
+export const APP_UPDATE_CHECK = "cursordance:app-update-check";
+export const APP_UPDATE_DOWNLOAD = "cursordance:app-update-download";
+export const APP_UPDATE_INSTALL = "cursordance:app-update-install";
+export const APP_UPDATE_STATE_CHANGED = "cursordance:app-update-state-changed";
+
 /** renderer → 主进程：macOS overlay 自绘光标时隐藏 / 恢复系统原生 cursor。 */
 export const CURSOR_VISIBILITY_SET_HIDDEN = "cursordance:cursor-visibility-set-hidden";
 

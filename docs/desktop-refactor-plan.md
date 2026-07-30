@@ -1024,6 +1024,14 @@ AiSchemePanel              # 组合层
 - updater 只消费同一 workflow 生成的元数据。
 - 更新失败不能影响主应用启动。
 
+当前进度（2026-07-30）：
+
+- 自动更新已改为“自动检查、用户确认下载、用户确认重启安装”：`autoDownload=false`、`autoInstallOnAppQuit=false`，不再后台静默下载或在退出时静默替换。
+- 主进程维护 `unsupported/idle/checking/available/downloading/downloaded/up-to-date/error` 状态机；Workbench 标题栏显示检查、版本、进度、失败重试和重启安装，overlay preload 不暴露更新能力。
+- 检查、下载和安装均通过 Workbench-only typed IPC；错误被截断为有限长度的可见状态，Promise rejection 不进入应用生命周期。stop 会清理 interval/listener，lifecycle token 阻止旧异步任务污染新实例。
+- 开发态与两类 smoke 显式返回 `unsupported`，不会访问更新网络；desktop smoke 同时验证 preload 方法集合和权限边界。
+- 剩余工作：tag release workflow、macOS Developer ID + notarization、Windows code signing、checksums 与回滚文档。证书未提供前保持 CI 产物明确 unsigned。
+
 ### Phase 6 完成条件
 
 - CI 产出的安装包可以启动并完成核心 smoke。

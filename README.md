@@ -220,6 +220,8 @@ npm run verify:package          # 检查安装包结构、架构和更新元数�
 npm run test:package            # 启动打包后的最终可执行文件做 smoke
 ```
 
+桌面打包版会自动检查更新，但不会静默下载或退出时自动安装。发现新版本后，可在工作台标题栏确认下载，并在下载完成后主动重启安装。
+
 ## 贡献
 
 欢迎提交 Issue 和 Pull Request。

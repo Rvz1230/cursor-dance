@@ -1,107 +1,219 @@
-// electron-updater 集成
-//
-// 职责：
-//   - 在 packaged 模式下定时检查 GitHub Releases（默认 4 小时一次）
-//   - 启动时立即触发一次 checkForUpdatesAndNotify
-//   - dev 模式 / non-packaged 跳过 —— 否则 electron-updater 会读 app-update.yml
-//     抛 ENOENT，污染 console
-//
-// 不在本模块职责：
-//   - 更新提示 UI（dialog / toast）—— 当前只 console.log，dogfood 阶段排查用
-//   - 强制重启 —— autoInstallOnAppQuit 默认 true，正常退出时自动应用
-//
-// 单测策略：
-//   - vi.mock 替换 electron 与 electron-updater，避免引入真包
-//   - 验证 dev (skipped) / packaged (调度 + interval) / stop 清理三条路径
-
 import { app } from "electron";
 import pkg from "electron-updater";
-const { autoUpdater } = pkg;
+import type { DesktopUpdateState } from "../../shared/desktop-update";
 
+const { autoUpdater } = pkg;
 const FOUR_HOURS_MS = 4 * 60 * 60 * 1000;
+const MAX_ERROR_MESSAGE_LENGTH = 500;
+
+type UpdatePublisher = (state: DesktopUpdateState) => void;
+type UpdaterListener = (payload?: unknown) => void;
+type UpdaterEventName =
+  | "error"
+  | "checking-for-update"
+  | "update-available"
+  | "update-not-available"
+  | "download-progress"
+  | "update-downloaded";
+
+export interface AutoUpdateController {
+  getState(): DesktopUpdateState;
+  checkForUpdates(): Promise<DesktopUpdateState>;
+  downloadUpdate(): Promise<DesktopUpdateState>;
+  installUpdate(): void;
+  stop(): void;
+}
+
+interface RegisterOptions {
+  intervalMs?: number;
+  isPackaged?: boolean;
+  publish?: UpdatePublisher;
+}
 
 let intervalHandle: NodeJS.Timeout | null = null;
 let registered = false;
+let publisher: UpdatePublisher | null = null;
+let currentState: DesktopUpdateState = { status: "unsupported" };
+let checkPromise: Promise<DesktopUpdateState> | null = null;
+let lifecycleToken = 0;
+const updaterListeners: Array<[event: UpdaterEventName, listener: UpdaterListener]> = [];
 
-interface RegisterOptions {
-  /** 测试用 —— 主流程不必传，默认 4h。 */
-  intervalMs?: number;
-  /** 测试用 —— 默认读 app.isPackaged。 */
-  isPackaged?: boolean;
+function getCurrentState(): DesktopUpdateState {
+  return currentState;
 }
 
-export function registerAutoUpdater(options: RegisterOptions = {}): () => void {
-  if (registered) {
-    // 双重注册无害但会拉两个 interval —— 直接拒绝，让调用方意识到生命周期问题。
-    console.warn("[auto-updater] already registered; ignoring repeat call");
-    return stopAutoUpdater;
+function publishState(nextState: DesktopUpdateState): DesktopUpdateState {
+  currentState = nextState;
+  publisher?.(nextState);
+  return nextState;
+}
+
+function errorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.slice(0, MAX_ERROR_MESSAGE_LENGTH) || "更新操作失败";
+}
+
+function readVersion(payload: unknown): string | undefined {
+  if (!payload || typeof payload !== "object" || !("version" in payload)) return undefined;
+  const version = (payload as { version?: unknown }).version;
+  return typeof version === "string" && version.length <= 128 ? version : undefined;
+}
+
+function readProgress(payload: unknown): number | undefined {
+  if (!payload || typeof payload !== "object" || !("percent" in payload)) return undefined;
+  const percent = (payload as { percent?: unknown }).percent;
+  if (typeof percent !== "number" || !Number.isFinite(percent)) return undefined;
+  return Math.max(0, Math.min(100, Math.round(percent)));
+}
+
+function listen(event: UpdaterEventName, listener: UpdaterListener): void {
+  autoUpdater.on(event, listener);
+  updaterListeners.push([event, listener]);
+}
+
+async function checkForUpdates(): Promise<DesktopUpdateState> {
+  if (!registered) return currentState;
+  if (currentState.status === "downloading" || currentState.status === "downloaded") {
+    return currentState;
   }
+  if (checkPromise !== null) return checkPromise;
 
-  const isPackaged = options.isPackaged ?? app.isPackaged;
-  if (!isPackaged) {
-    console.log("[auto-updater] skipped in dev (app not packaged)");
-    return () => undefined;
+  const operationToken = lifecycleToken;
+  publishState({ status: "checking" });
+  const pendingCheck = Promise.resolve(autoUpdater.checkForUpdates())
+    .then(() => {
+      if (registered && operationToken === lifecycleToken && currentState.status === "checking") {
+        return publishState({ status: "idle", checkedAt: Date.now() });
+      }
+      return currentState;
+    })
+    .catch((error: unknown) => {
+      if (!registered || operationToken !== lifecycleToken) return currentState;
+      console.error("[auto-updater] check failed:", error);
+      return publishState({ status: "error", message: errorMessage(error) });
+    })
+    .finally(() => {
+      if (checkPromise === pendingCheck) checkPromise = null;
+    });
+  checkPromise = pendingCheck;
+  return pendingCheck;
+}
+
+async function downloadUpdate(): Promise<DesktopUpdateState> {
+  if (!registered || currentState.status !== "available") return currentState;
+  const operationToken = lifecycleToken;
+  const version = currentState.version;
+  publishState({ status: "downloading", version, percent: 0 });
+  try {
+    await autoUpdater.downloadUpdate();
+    if (registered && operationToken === lifecycleToken && getCurrentState().status === "downloading") {
+      return publishState({ status: "downloaded", version });
+    }
+  } catch (error) {
+    if (registered && operationToken === lifecycleToken) {
+      console.error("[auto-updater] download failed:", error);
+      return publishState({ status: "error", version, message: errorMessage(error) });
+    }
   }
+  return currentState;
+}
 
-  registered = true;
-
-  // 显式写出默认值，方便审计行为：下载完成会等到下次正常退出时安装。
-  autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
-
-  autoUpdater.on("error", (error) => {
-    console.error("[auto-updater] error:", error);
-  });
-  autoUpdater.on("checking-for-update", () => {
-    console.log("[auto-updater] checking for update");
-  });
-  autoUpdater.on("update-available", (info) => {
-    console.log("[auto-updater] update available:", info.version);
-  });
-  autoUpdater.on("update-not-available", () => {
-    console.log("[auto-updater] no update available");
-  });
-  autoUpdater.on("download-progress", (progress) => {
-    console.log(
-      `[auto-updater] download progress: ${Math.round(progress.percent)}%`,
-    );
-  });
-  autoUpdater.on("update-downloaded", (info) => {
-    console.log("[auto-updater] update downloaded:", info.version);
-  });
-
-  // 立即触发一次；后续按 interval 轮询。failure 已被上面的 error handler 捕获。
-  void autoUpdater.checkForUpdatesAndNotify();
-
-  const intervalMs = options.intervalMs ?? FOUR_HOURS_MS;
-  intervalHandle = setInterval(() => {
-    void autoUpdater.checkForUpdatesAndNotify();
-  }, intervalMs);
-
-  return stopAutoUpdater;
+function installUpdate(): void {
+  if (!registered || currentState.status !== "downloaded") return;
+  try {
+    autoUpdater.quitAndInstall(false, true);
+  } catch (error) {
+    console.error("[auto-updater] install failed:", error);
+    publishState({
+      status: "error",
+      version: currentState.version,
+      message: errorMessage(error),
+    });
+  }
 }
 
 function stopAutoUpdater(): void {
+  lifecycleToken += 1;
   if (intervalHandle) {
     clearInterval(intervalHandle);
     intervalHandle = null;
   }
+  for (const [event, listener] of updaterListeners.splice(0)) {
+    autoUpdater.off(event, listener);
+  }
   registered = false;
+  publisher = null;
+  checkPromise = null;
 }
 
-// 仅给单测用 —— 重置内部状态，下一轮 register 才会真正执行。
+const controller: AutoUpdateController = {
+  getState: getCurrentState,
+  checkForUpdates,
+  downloadUpdate,
+  installUpdate,
+  stop: stopAutoUpdater,
+};
+
+export function registerAutoUpdater(options: RegisterOptions = {}): AutoUpdateController {
+  if (registered) {
+    console.warn("[auto-updater] already registered; ignoring repeat call");
+    return controller;
+  }
+
+  publisher = options.publish ?? null;
+  const isPackaged = options.isPackaged ?? app.isPackaged;
+  if (!isPackaged) {
+    publishState({ status: "unsupported" });
+    console.log("[auto-updater] skipped (app not packaged)");
+    return controller;
+  }
+
+  registered = true;
+  lifecycleToken += 1;
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = false;
+  publishState({ status: "idle" });
+
+  listen("error", (error) => {
+    console.error("[auto-updater] error:", error);
+    publishState({
+      status: "error",
+      version: currentState.version,
+      message: errorMessage(error),
+    });
+  });
+  listen("checking-for-update", () => {
+    publishState({ status: "checking" });
+  });
+  listen("update-available", (info) => {
+    publishState({ status: "available", version: readVersion(info), checkedAt: Date.now() });
+  });
+  listen("update-not-available", (info) => {
+    publishState({ status: "up-to-date", version: readVersion(info), checkedAt: Date.now() });
+  });
+  listen("download-progress", (progress) => {
+    publishState({
+      status: "downloading",
+      version: currentState.version,
+      percent: readProgress(progress),
+    });
+  });
+  listen("update-downloaded", (info) => {
+    publishState({ status: "downloaded", version: readVersion(info) ?? currentState.version });
+  });
+
+  void checkForUpdates();
+  intervalHandle = setInterval(() => {
+    void checkForUpdates();
+  }, options.intervalMs ?? FOUR_HOURS_MS);
+  return controller;
+}
+
 export const __testing__ = {
   reset(): void {
-    if (intervalHandle) {
-      clearInterval(intervalHandle);
-      intervalHandle = null;
-    }
-    registered = false;
+    stopAutoUpdater();
+    currentState = { status: "unsupported" };
   },
-  isRegistered(): boolean {
-    return registered;
-  },
-  hasInterval(): boolean {
-    return intervalHandle !== null;
-  },
+  isRegistered: () => registered,
+  hasInterval: () => intervalHandle !== null,
 };

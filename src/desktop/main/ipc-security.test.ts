@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   AI_CREATE_PROPOSAL_STREAM,
   APP_GET_ACTIVE_WINDOW,
+  APP_UPDATE_CHECK,
   CURSOR_VISIBILITY_SET_HIDDEN,
   STORE_GET,
   STORE_SET,
@@ -65,6 +66,7 @@ describe("IPC sender policy", () => {
     expect(IPC_SENDER_POLICY[STORE_GET]).toEqual(["workbench", "overlay"]);
     expect(IPC_SENDER_POLICY[STORE_SET]).toEqual(["workbench"]);
     expect(IPC_SENDER_POLICY[AI_CREATE_PROPOSAL_STREAM]).toEqual(["workbench"]);
+    expect(IPC_SENDER_POLICY[APP_UPDATE_CHECK]).toEqual(["workbench"]);
     expect(IPC_SENDER_POLICY[CURSOR_VISIBILITY_SET_HIDDEN]).toEqual(["overlay"]);
   });
 });

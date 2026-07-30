@@ -17,9 +17,11 @@
 // 切换最大化按钮的图标（最大化 ↔ 还原）。
 
 import { useEffect, useState } from "react";
-import { Maximize2, Minimize2, Minus, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Download, Loader2, Maximize2, Minimize2, Minus, RefreshCw, X } from "lucide-react";
 import { BrandMark } from "@/components/ui/brand-mark";
 import { cn } from "@/components/ui/utils";
+import type { DesktopUpdateState } from "../../../shared/desktop-update";
+import { useDesktopUpdate } from "./useDesktopUpdate";
 
 const NO_DRAG_STYLE: React.CSSProperties = { WebkitAppRegion: "no-drag" } as React.CSSProperties;
 const DRAG_STYLE: React.CSSProperties = { WebkitAppRegion: "drag" } as React.CSSProperties;
@@ -28,6 +30,7 @@ export function TitleBar() {
   const bridge = typeof window !== "undefined" ? window.cursorDanceWindow : undefined;
   const isMac = bridge?.platform === "darwin";
   const [isMaximized, setIsMaximized] = useState(false);
+  const update = useDesktopUpdate();
 
   // 初始状态 + 订阅。useEffect 而非 useLayoutEffect:图标切换非关键路径，
   // 避免阻塞首屏渲染。
@@ -65,6 +68,8 @@ export function TitleBar() {
 
         <div className="min-w-0 flex-1" />
 
+        <UpdateControl state={update.state} onAction={update.runPrimaryAction} />
+
         {!isMac && bridge ? (
           <div className="flex shrink-0 items-stretch">
             <WindowControlButton
@@ -94,6 +99,59 @@ export function TitleBar() {
         ) : null}
       </div>
     </header>
+  );
+}
+
+function UpdateControl({
+  state,
+  onAction,
+}: {
+  state: DesktopUpdateState;
+  onAction: () => Promise<void>;
+}) {
+  if (state.status === "unsupported") return null;
+
+  const isBusy = state.status === "checking" || state.status === "downloading";
+  const content = (() => {
+    switch (state.status) {
+      case "checking":
+        return { icon: Loader2, label: "检查更新中", spin: true };
+      case "available":
+        return { icon: Download, label: state.version ? `下载 v${state.version}` : "下载更新" };
+      case "downloading":
+        return { icon: Loader2, label: `下载中 ${state.percent ?? 0}%`, spin: true };
+      case "downloaded":
+        return { icon: RefreshCw, label: "重启更新" };
+      case "up-to-date":
+        return { icon: CheckCircle2, label: "已是最新" };
+      case "error":
+        return { icon: AlertTriangle, label: "更新失败，重试" };
+      default:
+        return { icon: RefreshCw, label: "检查更新" };
+    }
+  })();
+  const Icon = content.icon;
+
+  return (
+    <button
+      type="button"
+      onClick={() => { void onAction(); }}
+      disabled={isBusy}
+      title={state.message || content.label}
+      style={NO_DRAG_STYLE}
+      className={cn(
+        "mr-2 inline-flex h-6 shrink-0 items-center gap-1.5 self-center rounded-lg px-2 text-[11px] font-medium transition-colors",
+        state.status === "error"
+          ? "bg-rose-50 text-rose-700 hover:bg-rose-100"
+          : state.status === "available" || state.status === "downloaded"
+            ? "bg-blue-50 text-blue-700 hover:bg-blue-100"
+            : "text-slate-500 hover:bg-slate-100 hover:text-slate-700",
+        isBusy && "cursor-default opacity-80",
+      )}
+    >
+      <Icon className={cn("size-3", content.spin && "animate-spin")} aria-hidden="true" />
+      <span>{content.label}</span>
+    </button>
   );
 }
 
