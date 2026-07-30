@@ -42,8 +42,6 @@ export interface EngineConstants {
 export interface EngineState extends ActionRuntimeState, GestureRuntimeState {
   /** visual-effects.animateNode 的并发计数 */
   activeEffects: number;
-  /** 轨道粒子分组缓存，按 actionId 隔离，供 clearOrbitalParticles 清理 */
-  orbitalGroups?: Record<string, { dot: HTMLElement; anim: Animation }[]>;
   /** cursor-overlay 复用的软件光标节点（首次同步时创建） */
   stateCursorNode?: HTMLElement | null;
   stateCursorImg?: HTMLImageElement | null;

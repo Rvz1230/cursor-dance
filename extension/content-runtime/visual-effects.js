@@ -1,5 +1,15 @@
 (function registerContentVisualEffects(globalThis) {
   const modules = globalThis.CursorDanceContentModules || (globalThis.CursorDanceContentModules = {});
+  const effectRuntime = globalThis.CursorDanceEffectRuntime || {};
+  const { createEffectGroupRegistry, createEffectLifecycle, createTimedOverride } = effectRuntime;
+
+  if (
+    typeof createEffectGroupRegistry !== "function"
+    || typeof createEffectLifecycle !== "function"
+    || typeof createTimedOverride !== "function"
+  ) {
+    throw new Error("CursorDance shared effect lifecycle is not loaded.");
+  }
 
   modules.createVisualEffects = function createVisualEffects(runtime) {
     const {
@@ -173,34 +183,21 @@
       return root;
     }
 
-    function animateNode(node, keyframes, options) {
-      if (state.activeEffects >= configStore.getMaxActiveEffects()) return;
-
-      const animationOptions = typeof options === "number"
-        ? { duration: options, easing: "ease-out", delay: 0 }
-        : {
-            duration: options?.duration || 0,
-            easing: options?.easing || "ease-out",
-            delay: options?.delay || 0,
-          };
-
-      state.activeEffects += 1;
-      ensureRoot().append(node);
-      const animation = node.animate(keyframes, {
-        duration: animationOptions.duration,
-        easing: animationOptions.easing,
-        delay: animationOptions.delay,
-        fill: "forwards",
-      });
-
-      const cleanup = () => {
-        node.remove();
-        state.activeEffects = Math.max(0, state.activeEffects - 1);
-      };
-
-      animation.addEventListener("finish", cleanup, { once: true });
-      animation.addEventListener("cancel", cleanup, { once: true });
-    }
+    const effectLifecycle = createEffectLifecycle({
+      state,
+      getMaxActiveEffects: () => configStore.getMaxActiveEffects(),
+      appendNode: (node) => ensureRoot().append(node),
+    });
+    const orbitalGroups = createEffectGroupRegistry();
+    const animateNode = effectLifecycle.animateNode;
+    const pointerOverride = createTimedOverride({
+      timers: {
+        setTimeout: (callback, delayMs) => window.setTimeout(callback, delayMs),
+        clearTimeout: (timeoutId) => window.clearTimeout(timeoutId),
+      },
+      read: () => document.body.style.cursor,
+      write: (value) => { document.body.style.cursor = value; },
+    });
 
     function getCursorOverrideKind(cursorOverride) {
       if (cursorOverride === "木鱼（增强态）") return "boost";
@@ -221,13 +218,7 @@
       if (!cursorKind) return;
 
       if (cursorKind === "pointer") {
-        const target = document.body;
-        const previousCursor = target.style.cursor;
-        target.style.cursor = "pointer";
-        window.setTimeout(() => {
-          target.style.cursor = previousCursor;
-        }, 360);
-        return;
+        return pointerOverride.apply("pointer", 360);
       }
 
       const node = document.createElement("div");
@@ -580,7 +571,7 @@
         ];
 
         var iterations = orbitalDuration > 0 ? Math.ceil(orbitalDuration / (spec.speed * 1000)) : Infinity;
-        var anim = dot.animate(oscFrames, {
+        dot.animate(oscFrames, {
           duration: spec.speed * 1000,
           iterations: iterations,
           delay: spec.delay,
@@ -595,29 +586,38 @@
         );
 
         root.append(dot);
-        dots.push({ dot: dot, anim: anim });
+        dots.push(dot);
       }
 
       // store for external cleanup, keyed by actionId for isolation
       var key = actionId || "__unknown__";
-      state.orbitalGroups = state.orbitalGroups || {};
-      // clear previous orbital particles for this actionId before creating new ones
-      clearOrbitalParticles(key);
-      state.orbitalGroups[key] = dots;
+      return orbitalGroups.replace(key, {
+        dispose: function disposeOrbitalGroup() {
+          for (var d = 0; d < dots.length; d++) {
+            var animations = dots[d].getAnimations();
+            for (var ai = 0; ai < animations.length; ai++) animations[ai].cancel();
+            dots[d].remove();
+          }
+        },
+      });
     }
 
     function clearOrbitalParticles(actionId) {
-      var groups = state.orbitalGroups;
-      if (!groups) return;
-      var keysToClear = actionId ? [actionId] : Object.keys(groups);
-      for (var ki = 0; ki < keysToClear.length; ki++) {
-        var group = groups[keysToClear[ki]];
-        if (!group) continue;
-        for (var d = 0; d < group.length; d++) {
-          group[d].anim.cancel();
-          group[d].dot.remove();
-        }
-        delete groups[keysToClear[ki]];
+      orbitalGroups.clear(actionId);
+    }
+
+    function clearEffects() {
+      pointerOverride.clear();
+      effectLifecycle.clear();
+      clearOrbitalParticles();
+      state.activeEffects = 0;
+      var root = document.getElementById(constants.ROOT_ID);
+      if (!root) return;
+      var nodes = root.querySelectorAll(".cd-effect");
+      for (var i = 0; i < nodes.length; i++) {
+        var animations = nodes[i].getAnimations();
+        for (var ai = 0; ai < animations.length; ai++) animations[ai].cancel();
+        nodes[i].remove();
       }
     }
 
@@ -630,6 +630,7 @@
       renderParticles,
       renderOrbitalParticles,
       clearOrbitalParticles,
+      clearEffects,
       renderCursorOverride,
       hasCursorOverride,
     };

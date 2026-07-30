@@ -9,7 +9,10 @@ describe("extension shared runtime globals", () => {
     expect(typeof configHelpers.resolveActionTextConfigFromEffect).toBe("function");
     expect(typeof effectRuntime.decideActionExecution).toBe("function");
     expect(typeof effectRuntime.createDoubleClickDetector).toBe("function");
+    expect(typeof effectRuntime.createEffectLifecycle).toBe("function");
+    expect(typeof effectRuntime.createEffectGroupRegistry).toBe("function");
     expect(typeof effectRuntime.createLongPressTracker).toBe("function");
+    expect(typeof effectRuntime.createTimedOverride).toBe("function");
     expect(effectRuntime.getActionTimingMs("hover", { holdMs: 420 })).toBe(220);
   });
 });

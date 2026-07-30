@@ -28,26 +28,16 @@ import {
 } from "@/shared/effect-core/compute-specs";
 import { buildVisualEffectsCSS } from "./data/visual-effects-styles";
 import type { EffectHandle } from "@/shared/effect-runtime/contracts";
-
-type AnimateOptions = number | { duration?: number; easing?: string; delay?: number };
+import {
+  combineEffectHandles,
+  createEffectGroupRegistry,
+  createEffectLifecycle,
+  createTimedOverride,
+  emptyEffectHandle,
+} from "@/shared/effect-runtime/effect-lifecycle";
 
 export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
   const { window, document, constants, state, configStore } = deps;
-  const emptyHandle: EffectHandle = { dispose() {} };
-  const cursorRestores = new Set<() => void>();
-  let pointerOverrideCount = 0;
-  let pointerOverrideBase = "";
-
-  function combineHandles(handles: EffectHandle[]): EffectHandle {
-    let disposed = false;
-    return {
-      dispose() {
-        if (disposed) return;
-        disposed = true;
-        for (const handle of handles) handle.dispose();
-      },
-    };
-  }
 
   const getTextWeight = (config: Record<string, unknown>): number =>
     getTextWeightValue((config?.textWeight as string) || "常规");
@@ -76,43 +66,21 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
     return root;
   }
 
-  function animateNode(node: HTMLElement, keyframes: Keyframe[], options: AnimateOptions): EffectHandle {
-    if (state.activeEffects >= configStore.getMaxActiveEffects()) return emptyHandle;
-
-    const animationOptions = typeof options === "number"
-      ? { duration: options, easing: "ease-out", delay: 0 }
-      : {
-          duration: options?.duration || 0,
-          easing: options?.easing || "ease-out",
-          delay: options?.delay || 0,
-        };
-
-    state.activeEffects += 1;
-    ensureRoot().append(node);
-    const animation = node.animate(keyframes, {
-      duration: animationOptions.duration,
-      easing: animationOptions.easing,
-      delay: animationOptions.delay,
-      fill: "forwards",
-    });
-
-    let cleaned = false;
-    const cleanup = (): void => {
-      if (cleaned) return;
-      cleaned = true;
-      node.remove();
-      state.activeEffects = Math.max(0, state.activeEffects - 1);
-    };
-
-    animation.addEventListener("finish", cleanup, { once: true });
-    animation.addEventListener("cancel", cleanup, { once: true });
-    return {
-      dispose() {
-        animation.cancel();
-        cleanup();
-      },
-    };
-  }
+  const effectLifecycle = createEffectLifecycle({
+    state,
+    getMaxActiveEffects: () => configStore.getMaxActiveEffects(),
+    appendNode: (node) => ensureRoot().append(node),
+  });
+  const orbitalGroups = createEffectGroupRegistry();
+  const animateNode = effectLifecycle.animateNode;
+  const pointerOverride = createTimedOverride({
+    timers: {
+      setTimeout: (callback, delayMs) => window.setTimeout(callback, delayMs),
+      clearTimeout: (timeoutId) => window.clearTimeout(timeoutId as number),
+    },
+    read: () => document.body.style.cursor,
+    write: (value) => { document.body.style.cursor = value; },
+  });
 
   function getCursorOverrideKind(cursorOverride: unknown): "boost" | "press" | "woodfish" | "pointer" | null {
     if (cursorOverride === "木鱼（增强态）") return "boost";
@@ -130,26 +98,10 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
   function renderCursorOverride(x: number, y: number, actionConfig: Record<string, unknown>): EffectHandle {
     const cursorFeedbackConfig = configStore.getActionCursorFeedbackConfig(actionConfig);
     const cursorKind = getCursorOverrideKind(cursorFeedbackConfig.cursorOverride);
-    if (!cursorKind) return emptyHandle;
+    if (!cursorKind) return emptyEffectHandle;
 
     if (cursorKind === "pointer") {
-      const target = document.body;
-      if (pointerOverrideCount === 0) pointerOverrideBase = target.style.cursor;
-      pointerOverrideCount += 1;
-      target.style.cursor = "pointer";
-      let restored = false;
-      let timeoutId = 0;
-      const restore = (): void => {
-        if (restored) return;
-        restored = true;
-        window.clearTimeout(timeoutId);
-        pointerOverrideCount = Math.max(0, pointerOverrideCount - 1);
-        if (pointerOverrideCount === 0) target.style.cursor = pointerOverrideBase;
-        cursorRestores.delete(restore);
-      };
-      cursorRestores.add(restore);
-      timeoutId = window.setTimeout(restore, 360);
-      return { dispose: restore };
+      return pointerOverride.apply("pointer", 360);
     }
 
     const node = document.createElement("div");
@@ -194,10 +146,10 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
     runIndex: number,
   ): EffectHandle {
     const textConfig = configStore.getActionTextConfig(actionConfig);
-    if (!textConfig.textEnabled) return emptyHandle;
+    if (!textConfig.textEnabled) return emptyEffectHandle;
 
     const content = getActionText(actionConfig, actionId, runIndex);
-    if (!content) return emptyHandle;
+    if (!content) return emptyEffectHandle;
 
     const node = document.createElement("div");
     node.className = "cd-effect cd-text";
@@ -233,7 +185,7 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
 
   function renderRipple(x: number, y: number, actionConfig: Record<string, unknown>): EffectHandle {
     const rippleConfig = configStore.getActionRippleConfig(actionConfig);
-    if (!rippleConfig.ripple) return emptyHandle;
+    if (!rippleConfig.ripple) return emptyEffectHandle;
 
     const easing = getAnimationEasing(rippleConfig.rippleEasing as string);
     const lineWidth = (rippleConfig.rippleLineWidth as number) || 2;
@@ -241,7 +193,7 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
     const rippleColor = (rippleConfig.rippleColor as string) || "#34D399";
 
     const layers = computeRippleLayers(actionConfig);
-    if (!layers || !layers.length) return emptyHandle;
+    if (!layers || !layers.length) return emptyEffectHandle;
 
     const handles: EffectHandle[] = [];
     for (let li = 0; li < layers.length; li++) {
@@ -273,12 +225,12 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
         },
       ));
     }
-    return combineHandles(handles);
+    return combineEffectHandles(handles);
   }
 
   function renderAnimationEffect(x: number, y: number, actionConfig: Record<string, unknown>): EffectHandle {
     const animationConfig = configStore.getActionAnimationConfig(actionConfig);
-    if (!animationConfig.animationEnabled) return emptyHandle;
+    if (!animationConfig.animationEnabled) return emptyEffectHandle;
 
     const node = document.createElement("div");
     const scale = Math.max(0.6, ((animationConfig.animationScale as number) || 100) / 100);
@@ -357,7 +309,7 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
 
   function renderImageEffect(x: number, y: number, actionConfig: Record<string, unknown>): EffectHandle {
     const imageConfig = configStore.getActionImageConfig(actionConfig);
-    if (!imageConfig.imageEnabled || !imageConfig.imageDataUrl) return emptyHandle;
+    if (!imageConfig.imageEnabled || !imageConfig.imageDataUrl) return emptyEffectHandle;
 
     const node = document.createElement("div");
     node.className = "cd-effect cd-image-effect";
@@ -388,15 +340,15 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
 
   function renderParticles(x: number, y: number, actionConfig: Record<string, unknown>, runIndex: number): EffectHandle {
     const particleConfig = configStore.getActionParticleConfig(actionConfig);
-    if (!particleConfig.particle) return emptyHandle;
+    if (!particleConfig.particle) return emptyEffectHandle;
 
     const count = Math.min((particleConfig.particleCount as number) || 0, 40);
-    if (!count) return emptyHandle;
+    if (!count) return emptyEffectHandle;
 
     const hasTrail = particleConfig.particleTrail;
 
     const specs = computeParticleSpecs(actionConfig, runIndex);
-    if (!specs || !specs.length) return emptyHandle;
+    if (!specs || !specs.length) return emptyEffectHandle;
 
     const handles: EffectHandle[] = [];
     for (let index = 0; index < specs.length; index++) {
@@ -473,7 +425,7 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
         }
       }
     }
-    return combineHandles(handles);
+    return combineEffectHandles(handles);
   }
 
   function renderOrbitalParticles(
@@ -485,16 +437,16 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
   ): EffectHandle {
     void runIndex; // 原 JS 形参不在轨道粒子算法中使用，保留签名一致
     const particleConfig = configStore.getActionParticleConfig(actionConfig);
-    if (!particleConfig.particle) return emptyHandle;
+    if (!particleConfig.particle) return emptyEffectHandle;
 
     const orbitalDuration = Math.max(0, ((particleConfig.particleDuration as number) || 760));
     const fadeInDuration = Math.min(400, ((particleConfig.particleDuration as number) || 760) * 0.3);
 
     const specs = computeOrbitalParticleSpecs(actionConfig);
-    if (!specs || !specs.length) return emptyHandle;
+    if (!specs || !specs.length) return emptyEffectHandle;
 
     const root = ensureRoot();
-    const dots: { dot: HTMLElement; anim: Animation }[] = [];
+    const dots: HTMLElement[] = [];
 
     for (let i = 0; i < specs.length; i++) {
       const spec = specs[i];
@@ -520,7 +472,7 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
       ];
 
       const iterations = orbitalDuration > 0 ? Math.ceil(orbitalDuration / (spec.speed * 1000)) : Infinity;
-      const anim = dot.animate(oscFrames, {
+      dot.animate(oscFrames, {
         duration: spec.speed * 1000,
         iterations,
         delay: spec.delay,
@@ -535,35 +487,26 @@ export function createVisualEffects(deps: EngineDeps): VisualEffectsModule {
       );
 
       root.append(dot);
-      dots.push({ dot, anim });
+      dots.push(dot);
     }
 
     // store for external cleanup, keyed by actionId for isolation
     const key = actionId || "__unknown__";
-    state.orbitalGroups = state.orbitalGroups || {};
-    // clear previous orbital particles for this actionId before creating new ones
-    clearOrbitalParticles(key);
-    state.orbitalGroups[key] = dots;
-    return { dispose: () => clearOrbitalParticles(key) };
+    return orbitalGroups.replace(key, combineEffectHandles(dots.map((dot) => ({
+      dispose() {
+        for (const animation of dot.getAnimations()) animation.cancel();
+        dot.remove();
+      },
+    }))));
   }
 
   function clearOrbitalParticles(actionId?: string): void {
-    const groups = state.orbitalGroups;
-    if (!groups) return;
-    const keysToClear = actionId ? [actionId] : Object.keys(groups);
-    for (const key of keysToClear) {
-      const group = groups[key];
-      if (!group) continue;
-      for (let d = 0; d < group.length; d++) {
-        for (const animation of group[d].dot.getAnimations()) animation.cancel();
-        group[d].dot.remove();
-      }
-      delete groups[key];
-    }
+    orbitalGroups.clear(actionId);
   }
 
   function clearEffects(): void {
-    for (const restore of [...cursorRestores]) restore();
+    pointerOverride.clear();
+    effectLifecycle.clear();
     clearOrbitalParticles();
     state.activeEffects = 0;
     const root = document.getElementById(constants.ROOT_ID);

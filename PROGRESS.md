@@ -94,8 +94,9 @@
 - [x] R4-2：建立 EffectRuntime adapters——桌面 InputSource、ContextResolver、EffectSurface 与 AudioOutput 均已接入生产链路；timing、throttle、run/combo 状态推进与 output plan 已收敛到共享 action state machine
 - **R4-2 验证**：61 个根测试文件共 336 项通过；typecheck、lint（0 error，保留既有 24 warning）、Web/Electron build、Web smoke 5/5 和 desktop smoke 1/1 通过
 - [ ] R4-3：扩展正式构建——Vite 已把共享 effect core/runtime 与剩余 legacy 模块打成单一 MV3 content bundle，manifest 不再维护 12 个脚本的加载顺序；扩展 trigger 已接入共享 action 与 gesture state machine，三份 config-runtime 镜像及 parity 测试已删除
-- **R4-3 当前验证**：61 个根测试文件共 324 项通过；typecheck、lint（0 error，保留既有 24 warning）、Web/扩展/Electron build、扩展产物完整性校验、最终 content bundle 系统 Chrome 注入点击验证、Web smoke 5/5 和 desktop smoke 1/1 通过
-- **下一步**：继续 R4-4 迁移 visual effects，统一两端效果生命周期与 DOM surface；随后补真实 Chrome 扩展加载/CSP 验收。Windows 同步执行 R1-4 真机验收。
+- **R4-3 当前验证**：62 个根测试文件共 330 项通过；typecheck、lint（0 error，保留既有 24 warning）、Web/扩展/Electron build、扩展产物完整性校验、最终 content bundle 系统 Chrome 注入点击验证、Web smoke 5/5 和 desktop smoke 1/1 通过
+- **R4-4 当前进度**：两端 animation handle、并发计数、幂等清理、临时 pointer override 与轨道粒子分组已接入共享 effect lifecycle；扩展端新增整体 clear 能力，并修复动画重复清理、重叠 pointer 提前恢复及旧轨道 handle 误清新分组问题
+- **下一步**：继续 R4-4 收敛 visual effects DOM surface 与渲染入口，逐步删除扩展端 `visual-effects.js` 镜像；随后补真实 Chrome 扩展加载/CSP 验收。Windows 同步执行 R1-4 真机验收。
 
 ### 分支状态
 

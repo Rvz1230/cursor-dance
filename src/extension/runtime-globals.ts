@@ -10,6 +10,11 @@ import {
   createDoubleClickDetector,
   createLongPressTracker,
 } from "@/shared/effect-runtime/gesture-state";
+import {
+  createEffectLifecycle,
+  createEffectGroupRegistry,
+  createTimedOverride,
+} from "@/shared/effect-runtime/effect-lifecycle";
 
 export const configHelpers = Object.assign(
   globalThis.CursorDanceConfigHelpers || {},
@@ -23,7 +28,10 @@ export const effectRuntime = Object.assign(
   {
     decideActionExecution,
     createDoubleClickDetector,
+    createEffectLifecycle,
+    createEffectGroupRegistry,
     createLongPressTracker,
+    createTimedOverride,
     getActionTimingMs,
     getComboWindowMs,
   },
