@@ -1,6 +1,6 @@
 import { formatActionLabel } from "./model/workbenchSchema";
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useThemeWorkbenchState } from "./hooks/useThemeWorkbenchState";
 import { BindingsPanel } from "./components/BindingsPanel";
@@ -11,7 +11,6 @@ import { StatesPanel } from "./components/StatesPanel";
 import { KeyboardPanel } from "./components/KeyboardPanel";
 import { WorkbenchHeader } from "./components/WorkbenchHeader";
 import { AiSchemePanel } from "./components/AiSchemePanel";
-import { mergeActionConfig } from "./lib/aiSchemeAssistant";
 import { ActionTab, ColumnResizeHandle, WorkspaceItem } from "./components/WorkbenchControls";
 import { WorkbenchPanel } from "./components/WorkbenchPanel";
 import { WorkbenchPreviewRail } from "./components/WorkbenchPreviewRail";
@@ -31,6 +30,7 @@ import {
   resolveAppRule,
   type ActiveWindowSnapshot,
 } from "@/shared/app-rules";
+import { useWorkbenchAiPreview } from "./hooks/useWorkbenchAiPreview";
 
 export default function ThemeWorkbenchPage({ renderHeader }: ThemeWorkbenchPageProps = {}) {
   return (
@@ -230,8 +230,6 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
   const [columnWeights, setColumnWeights] = useState({ config: 1.05, preview: 1.25, ai: 1 });
-  const [previewProposal, setPreviewProposal] = useState(null);
-  const [aiSnapshot, setAiSnapshot] = useState(null);
   // 任务 4.3：首次启动引导
   // welcomeState: "loading" → "open" → "closed"。loading 期间不渲染 dialog（避免闪现）；
   // 非桌面环境（cursorDanceApp 不存在）跳过整个流程。
@@ -290,33 +288,29 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
     keyFeedbackConfig,
     updateKeyFeedbackConfig,
   } = useThemeWorkbenchState();
-  const previewActionConfigsMap = useMemo(() => {
-    if (!previewProposal || !draft?.actionConfigs) return draft?.actionConfigs;
-    return (previewProposal.targets || []).reduce((configs, target) => {
-      if (target?.type !== "action" || !target.actionId || !target.patch || !Object.keys(target.patch).length) {
-        return configs;
-      }
-      return {
-        ...configs,
-        [target.actionId]: mergeActionConfig(configs[target.actionId], target.patch),
-      };
-    }, draft.actionConfigs);
-  }, [draft?.actionConfigs, previewProposal]);
+  const {
+    previewProposal,
+    aiSnapshot,
+    previewActionConfigsMap,
+    setPreviewProposal,
+    clearPreview,
+    clearAiSnapshot,
+    isPreviewingAction,
+    applyProposal,
+    revertAiChanges,
+  } = useWorkbenchAiPreview({
+    themeId: selected.themeId,
+    actionConfigs: draft?.actionConfigs,
+    updateActionConfigs,
+    notify: toast,
+  });
   const previewActionConfig = previewActionConfigsMap?.[selected.actionId] || currentActionConfig;
-  const isPreviewingAiProposal = Boolean(
-    previewProposal?.targets?.some(
-      (target) => target?.type === "action" && target.actionId === selected.actionId && Object.keys(target.patch || {}).length,
-    ),
-  );
+  const isPreviewingAiProposal = isPreviewingAction(selected.actionId);
   const activeAppInfo = activeAppInfoFromSnapshot(activeWindowSnapshot);
   const workbenchAtmosphere = isExtension() ? draft?.atmosphere : undefined;
   const contextAction = isDesktop()
     ? (activeAppInfo ? resolveAppRule(state.appRules, activeAppInfo) : null)
     : getRuntimeConfig().resolveSiteRule(state.siteRules, state.site.host);
-
-  useEffect(() => {
-    setPreviewProposal(null);
-  }, [selected.themeId]);
 
   // 任务 4.3：检测首次启动 + 探测辅助功能授权状态。
   // 两个 IPC 都是只读查询，挂载时跑一次即可；用户翻 enable/disable 不影响这里。
@@ -420,32 +414,11 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
   }
 
   function handleUpdateActionConfig(patch) {
-    setPreviewProposal(null);
+    clearPreview();
     updateActionConfig(patch);
     if (patch && Object.prototype.hasOwnProperty.call(patch, "textColor")) {
       toast({ tone: "info", title: "已更新飘字颜色", description: patch.textColor });
     }
-  }
-
-  function handleApplyAiProposal(proposal) {
-    const patchesByActionId = Object.fromEntries(
-      (proposal?.targets || [])
-        .filter((target) => target.type === "action" && target.actionId && Object.keys(target.patch || {}).length)
-        .map((target) => [target.actionId, target.patch])
-    );
-    const snapshot = Object.fromEntries(
-      Object.keys(patchesByActionId).map((actionId) => [actionId, { ...draft.actionConfigs[actionId] }])
-    );
-    setAiSnapshot(snapshot);
-    setPreviewProposal(null);
-    updateActionConfigs(patchesByActionId);
-  }
-
-  function handleRevertAiChanges() {
-    if (!aiSnapshot) return;
-    updateActionConfigs(aiSnapshot);
-    setAiSnapshot(null);
-    toast({ tone: "info", title: "已撤销 AI 改动", description: "配置已恢复到应用 AI 方案之前的状态。" });
   }
 
   const headerProps: WorkbenchHeaderProps = {
@@ -580,14 +553,14 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                             currentConfig={currentActionConfig}
                             actionConfigs={draft.actionConfigs}
                             applyActionConfig={handleUpdateActionConfig}
-                            applyProposal={handleApplyAiProposal}
+                            applyProposal={applyProposal}
                             previewProposal={previewProposal}
                             onPreviewProposal={setPreviewProposal}
-                            onClearPreview={() => setPreviewProposal(null)}
+                            onClearPreview={clearPreview}
                             notify={toast}
                             aiSnapshot={aiSnapshot}
-                            onRevertAiChanges={handleRevertAiChanges}
-                            onClearAiSnapshot={() => setAiSnapshot(null)}
+                            onRevertAiChanges={revertAiChanges}
+                            onClearAiSnapshot={clearAiSnapshot}
                             onOpenAiSettings={headerProps.openAiSettings}
                             variant="full"
                           />
