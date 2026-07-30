@@ -1034,6 +1034,13 @@ AiSchemePanel              # 组合层
 - 正式 workflow 强制验证 Developer ID Application、stapled notarization ticket 和 Authenticode；签名 secret 缺失会在打包前失败，不会回退到 unsigned 发布。普通 CI 仍明确保持 unsigned。
 - 发布失败恢复与回滚说明已写入 `docs/desktop-release.md`。剩余工作是接入真实 macOS/Windows 证书并执行首个 tag 验收；Windows x64 CI 和自定义光标仍需真机确认。
 
+### 收尾：统一运行时配置选择器
+
+- 桌面与扩展的 `config-store` 不再各自维护主题选择、动作配置合并、cursor binding、DOM cursor state 和 trigger zone 判断；这些纯逻辑统一由 `src/shared/effect-runtime/runtime-config.ts` 提供。
+- 平台存储路径保持分离：桌面继续使用 Electron adapter，扩展继续处理 Chrome local/session storage 与素材 data URL 解析，共享层不感知 IPC 或浏览器存储。
+- 两个热点文件由合计 811 行降至 536 行；加入 202 行共享核心后，生产代码净减少 73 行，并新增共享行为测试防止两端再次漂移。
+- 81 个根测试文件共 387 项、typecheck、Knip、lint（0 error，保留既有 15 warning）、Web/扩展/Electron build、双端 bundle budget、Web smoke 6/6、生产扩展侧载 smoke 1/1 和 desktop smoke 1/1 通过。
+
 ### Phase 6 完成条件
 
 - CI 产出的安装包可以启动并完成核心 smoke。

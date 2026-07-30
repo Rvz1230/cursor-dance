@@ -8,10 +8,7 @@
 //     桥接 IPC + electron-store，扩展端可仍由 chrome.storage 包装。
 //   - **resolveSiteRule → resolveAppRule**：站点规则换成应用规则；isCurrentSiteEnabled
 //     和 getActiveScheme 现在向 deps.activeAppInfo 索要 processName/title。
-//   - resolveCursorStateId / matchesTriggerZone 仍走 DOM 路径——桌面端的 trigger-handlers
-//     在没有真实 DOM target 时把 target 传 null，这里返回 "default" / true 即可。
-//   - getWorkbenchDraft / mergeActionConfig 字节级保留——这是两端 actionConfig
-//     合并语义的唯一来源，扩展端 actionConfigSync.test.js 已校验。
+//   - 配置选择、动作合并、光标状态和触发区域判断与扩展复用 shared runtime core。
 //   - debouncedSyncConfigFromStorage 保留为 thin wrapper；live-preview / chrome
 //     session 通道在桌面端不存在，由 storeAdapter 实现自行决定如何映射。
 
@@ -29,7 +26,7 @@ import {
   type CursorDanceConfig,
   type ThemePack,
 } from "@/shared/config/default-config";
-import { getDefaultActionConfigs } from "@/shared/effect-core/default-action-configs";
+import { createRuntimeConfigCore } from "@/shared/effect-runtime/runtime-config";
 import {
   getActionTriggerConfig,
   getActionTextConfig,
@@ -42,17 +39,6 @@ import {
 } from "./action-config";
 import { resolveDesktopContextAction, type ActiveAppInfo } from "../../../shared/app-rules";
 import type { ContextRuleActionV4 } from "../../../shared/config-schema-v4";
-
-const baseActionConfigsByThemeId = new Map<string | null, Record<string, Record<string, unknown>>>();
-
-function getCachedDefaultActionConfigs(themeId: string | null): Record<string, Record<string, unknown>> {
-  let configs = baseActionConfigsByThemeId.get(themeId);
-  if (!configs) {
-    configs = getDefaultActionConfigs(themeId) as Record<string, Record<string, unknown>>;
-    baseActionConfigsByThemeId.set(themeId, configs);
-  }
-  return configs;
-}
 
 interface ConfigStoreConstants {
   CONFIG_STORAGE_KEY: string;
@@ -107,7 +93,6 @@ export interface ConfigStoreApi extends ConfigStore {
   ): boolean;
   getMaxActiveEffects(): number;
   getKeyFeedbackConfig(): KeyFeedbackConfig;
-  getBaseActionConfigs(): Record<string, Record<string, unknown>>;
   syncConfigFromStorage(opts: { clearStateCursorOverlay: () => void }): Promise<void>;
   debouncedSyncConfigFromStorage(opts: { clearStateCursorOverlay: () => void }): void;
   setOnSyncComplete(cb: (() => void) | null): void;
@@ -145,171 +130,32 @@ export function createConfigStore(deps: ConfigStoreDeps): ConfigStoreApi {
     return hostname === "localhost" || hostname === "127.0.0.1";
   }
 
-  function getSchemeById(schemeId: string | undefined | null): ThemePack {
-    const cfg = getConfig();
-    return cfg.themes.find((theme) => theme.id === schemeId) || cfg.themes[0];
-  }
-
   function getResolvedAppRule(): ContextRuleActionV4 | null {
     return resolveDesktopContextAction(getConfig().contextRules, getActiveAppInfo?.());
   }
 
-  function getActiveScheme(): ThemePack {
-    const appAction = getResolvedAppRule();
-    const themeFromRule = appAction?.type === "enable" ? appAction.themeId : undefined;
-    return getSchemeById(themeFromRule || getConfig().activeThemeId);
-  }
-
-  function isCurrentSiteEnabled(): boolean {
-    const appAction = getResolvedAppRule();
-    if (appAction?.type === "disable") return false;
-    if (appAction?.type === "enable") return true;
-    return getConfig().enabled;
-  }
-
-  function getMaxActiveEffects(): number {
-    return getConfig().performance?.maxActiveEffects || 48;
-  }
+  const runtimeConfigCore = createRuntimeConfigCore({
+    window,
+    getConfig,
+    resolveContextAction: getResolvedAppRule,
+    interactiveSelector: constants.INTERACTIVE_SELECTOR,
+    textEditableSelector: constants.TEXT_EDITABLE_SELECTOR,
+    diagnostics,
+  });
+  const {
+    getActiveTheme: getActiveScheme,
+    isCurrentContextEnabled: isCurrentSiteEnabled,
+    getMaxActiveEffects,
+    getActionConfig,
+    getCursorStateBinding,
+    getEffectiveCursorStateConfig,
+    resolveCursorStateId,
+    matchesTriggerZone,
+  } = runtimeConfigCore;
 
   function getKeyFeedbackConfig(): KeyFeedbackConfig {
     const activeScheme = getActiveScheme();
     return normalizeKeyFeedbackConfig(activeScheme.keyFeedbackConfig);
-  }
-
-  function getBaseActionConfigs(): Record<string, Record<string, unknown>> {
-    return getCachedDefaultActionConfigs(null);
-  }
-
-  function mergeActionConfig(
-    baseConfig: Record<string, unknown>,
-    ...overlays: (Record<string, unknown> | undefined)[]
-  ): Record<string, unknown> {
-    return overlays.reduce(
-      (mergedConfig, overlay) => {
-        const safeOverlay = overlay
-          ? Object.fromEntries(Object.entries(overlay).filter(([, v]) => v !== undefined))
-          : {};
-        const overlayTextTags = (overlay as { textTags?: unknown })?.textTags;
-        return {
-          ...mergedConfig,
-          ...safeOverlay,
-          textTags: Array.isArray(overlayTextTags)
-            ? [...(overlayTextTags as unknown[])]
-            : (mergedConfig as { textTags?: unknown[] }).textTags,
-        };
-      },
-      {
-        ...baseConfig,
-        textTags: Array.isArray((baseConfig as { textTags?: unknown }).textTags)
-          ? [...((baseConfig as { textTags: unknown[] }).textTags)]
-          : [],
-      } as Record<string, unknown>,
-    );
-  }
-
-  function getActionConfig(scheme: ThemePack | null | undefined, actionId: string): Record<string, unknown> | null {
-    if (!scheme) return null;
-    const stored = scheme.actionConfigs[actionId];
-    const defaults = getCachedDefaultActionConfigs(scheme.id || null);
-    const base = defaults[actionId] ?? defaults.leftClick;
-    return stored ? mergeActionConfig(base, stored as Record<string, unknown>) : base ?? null;
-  }
-
-  function getCursorStateBinding(
-    scheme: ThemePack | null | undefined,
-    stateId: string,
-    sourceActionId: string,
-  ): { cursorStateId: string; actionId: string; inheritedFromDefault: boolean } {
-    if (sourceActionId !== "leftClick") {
-      return { cursorStateId: stateId, actionId: sourceActionId, inheritedFromDefault: false };
-    }
-
-    const defaultBinding = scheme?.cursorBindings.default;
-    const stateBinding = scheme?.cursorBindings[stateId];
-    const defaultActionId = defaultBinding?.actionId || "leftClick";
-    const inheritedFromDefault = stateId !== "default" && stateBinding?.mode !== "override";
-    const actionId = inheritedFromDefault
-      ? defaultActionId
-      : (stateBinding?.actionId || defaultActionId || sourceActionId);
-
-    return { cursorStateId: stateId, actionId, inheritedFromDefault };
-  }
-
-  function getEffectiveCursorStateConfig(scheme: ThemePack | null | undefined, stateId: string): unknown {
-    return scheme?.cursorSkin.states[stateId] ?? scheme?.cursorSkin.states.default ?? null;
-  }
-
-  const cursorStateIdCache: { target: unknown; stateId: string } = { target: null, stateId: "default" };
-
-  function resolveCursorStateId(target: unknown): string {
-    if (!(target instanceof Element)) return "default";
-    if (target === cursorStateIdCache.target) return cursorStateIdCache.stateId;
-
-    const cursorValue = window.getComputedStyle(target).cursor || "";
-    let stateId: string;
-
-    if (cursorValue === "pointer" || cursorValue === "grab" || cursorValue === "grabbing") stateId = "pointer";
-    else if (cursorValue === "text" || cursorValue === "vertical-text") stateId = "text";
-    else if (cursorValue === "help") stateId = "help";
-    else if (cursorValue === "wait" || cursorValue === "progress") stateId = "wait";
-    else if (cursorValue === "not-allowed" || cursorValue === "no-drop") stateId = "notAllowed";
-    else if (cursorValue === "none") stateId = "default";
-    else if (
-      cursorValue === "move" || cursorValue === "copy" || cursorValue === "alias"
-      || cursorValue === "cell" || cursorValue === "all-scroll" || cursorValue === "crosshair"
-      || cursorValue === "context-menu"
-    ) stateId = "pointer";
-    else if (cursorValue === "zoom-in" || cursorValue === "zoom-out") stateId = "pointer";
-    else if (typeof cursorValue.endsWith === "function" && cursorValue.endsWith("-resize")) stateId = "pointer";
-    else if (target.closest(constants.TEXT_EDITABLE_SELECTOR)) stateId = "text";
-    else if (target.closest(":disabled,[aria-disabled='true']")) stateId = "notAllowed";
-    else if (target.closest(constants.INTERACTIVE_SELECTOR)) stateId = "pointer";
-    else stateId = "default";
-
-    cursorStateIdCache.target = target;
-    cursorStateIdCache.stateId = stateId;
-    return stateId;
-  }
-
-  function isInteractiveTarget(target: unknown): boolean {
-    return target instanceof Element ? Boolean(target.closest(constants.INTERACTIVE_SELECTOR)) : false;
-  }
-
-  function isButtonOrLinkTarget(target: unknown): boolean {
-    return target instanceof Element ? Boolean(target.closest("a,button,[role='button']")) : false;
-  }
-
-  function matchesTriggerZone(
-    target: unknown,
-    triggerZone: unknown,
-    event: unknown,
-    meta: { actionId: string; triggerSource: string },
-  ): boolean {
-    let matched = true;
-    const zone = typeof triggerZone === "string" ? triggerZone : "";
-    const wheelEvent = event as { deltaY?: number; pointerType?: string } | null | undefined;
-
-    if (!zone) matched = true;
-    else if (zone.includes("按钮和链接")) matched = isButtonOrLinkTarget(target);
-    else if (zone.includes("可交互元素")) matched = isInteractiveTarget(target);
-    else if (zone.includes("空白区域")) matched = !isInteractiveTarget(target);
-    else if (zone.includes("内容卡片")) {
-      matched = target instanceof Element ? Boolean(target.closest("article,section,li,div")) : false;
-    }
-    else if (zone.includes("仅向上滚动")) matched = (wheelEvent?.deltaY ?? 0) < 0;
-    else if (zone.includes("仅向下滚动")) matched = (wheelEvent?.deltaY ?? 0) > 0;
-
-    diagnostics?.log("trigger-zone.check", {
-      actionId: meta.actionId || null,
-      triggerSource: meta.triggerSource || null,
-      triggerZone: zone || "任意区域",
-      matched,
-      pointerType: wheelEvent?.pointerType || null,
-      deltaY: Number.isFinite(wheelEvent?.deltaY) ? wheelEvent?.deltaY : null,
-      target: diagnostics?.describeTarget?.(target) ?? null,
-    });
-
-    return matched;
   }
 
   let onSyncComplete: (() => void) | null = null;
@@ -395,7 +241,6 @@ export function createConfigStore(deps: ConfigStoreDeps): ConfigStoreApi {
     matchesTriggerZone,
     getMaxActiveEffects,
     getKeyFeedbackConfig,
-    getBaseActionConfigs,
     syncConfigFromStorage,
     debouncedSyncConfigFromStorage,
     setOnSyncComplete,

@@ -8,7 +8,7 @@ import {
   getActionTextConfig,
   getActionTriggerConfig,
 } from "@/shared/effect-core/action-config";
-import { getDefaultActionConfigs } from "@/shared/effect-core/default-action-configs";
+import { createRuntimeConfigCore } from "@/shared/effect-runtime/runtime-config";
 import { resolveWebContextRule } from "./site-matcher";
 import type {
   CursorDanceConfigV4,
@@ -82,30 +82,6 @@ export interface ContentConfigStore {
   destroy(): void;
 }
 
-const defaultActionConfigsByThemeId = new Map<string | null, Record<string, ActionConfig>>();
-
-function getCachedDefaultActionConfigs(themeId: string | null): Record<string, ActionConfig> {
-  let configs = defaultActionConfigsByThemeId.get(themeId);
-  if (!configs) {
-    configs = getDefaultActionConfigs(themeId) as Record<string, ActionConfig>;
-    defaultActionConfigsByThemeId.set(themeId, configs);
-  }
-  return configs;
-}
-
-function mergeActionConfig(base: ActionConfig, overlay?: ActionConfig): ActionConfig {
-  const safeOverlay = overlay
-    ? Object.fromEntries(Object.entries(overlay).filter(([, value]) => value !== undefined))
-    : {};
-  return {
-    ...base,
-    ...safeOverlay,
-    textTags: Array.isArray(overlay?.textTags)
-      ? [...overlay.textTags]
-      : (Array.isArray(base.textTags) ? [...base.textTags] : []),
-  };
-}
-
 export function createContentConfigStore(runtime: ContentConfigStoreRuntime): ContentConfigStore {
   const {
     window,
@@ -119,8 +95,6 @@ export function createContentConfigStore(runtime: ContentConfigStoreRuntime): Co
   } = runtime;
   let onSyncComplete: (() => void) | null = null;
   let syncTimer: number | null = null;
-  const cursorStateIdCache: { target: unknown; stateId: string } = { target: null, stateId: "default" };
-  const ElementCtor = (window as Window & { Element?: typeof Element }).Element;
 
   function normalizeConfig(value: unknown): ContentConfig {
     return runtimeConfig?.normalizeConfig?.(value, defaultConfig) || defaultConfig;
@@ -162,11 +136,6 @@ export function createContentConfigStore(runtime: ContentConfigStoreRuntime): Co
     }
   }
 
-  function getSchemeById(schemeId: string | undefined): ContentTheme {
-    const config = getConfig();
-    return config.themes.find((theme) => theme.id === schemeId) || config.themes[0];
-  }
-
   function getResolvedWebRule() {
     return resolveWebContextRule(
       getConfig().contextRules,
@@ -175,113 +144,24 @@ export function createContentConfigStore(runtime: ContentConfigStoreRuntime): Co
     );
   }
 
-  function getActiveScheme(): ContentTheme {
-    const action = getResolvedWebRule();
-    const themeId = action?.type === "enable" ? action.themeId : undefined;
-    return getSchemeById(themeId || getConfig().activeThemeId);
-  }
-
-  function isCurrentSiteEnabled(): boolean {
-    const action = getResolvedWebRule();
-    if (action?.type === "disable") return false;
-    if (action?.type === "enable") return true;
-    return getConfig().enabled;
-  }
-
-  function getMaxActiveEffects(): number {
-    return getConfig().performance?.maxActiveEffects || 48;
-  }
-
-  function getActionConfig(
-    scheme: ContentTheme | null | undefined,
-    actionId: string,
-  ): ActionConfig | null {
-    if (!scheme) return null;
-    const defaults = getCachedDefaultActionConfigs(scheme.id || null);
-    const base = defaults[actionId] || defaults.leftClick;
-    const stored = scheme.actionConfigs?.[actionId];
-    return base ? mergeActionConfig(base, stored) : stored || null;
-  }
-
-  function getCursorStateBinding(
-    scheme: ContentTheme | null | undefined,
-    stateId: string,
-    sourceActionId: string,
-  ) {
-    if (sourceActionId !== "leftClick") {
-      return { cursorStateId: stateId, actionId: sourceActionId, inheritedFromDefault: false };
-    }
-    const defaultBinding = scheme?.cursorBindings?.default;
-    const stateBinding = scheme?.cursorBindings?.[stateId];
-    const defaultActionId = defaultBinding?.actionId || "leftClick";
-    const inheritedFromDefault = stateId !== "default" && stateBinding?.mode !== "override";
-    const actionId = inheritedFromDefault
-      ? defaultActionId
-      : (stateBinding?.actionId || defaultActionId || sourceActionId);
-    return { cursorStateId: stateId, actionId, inheritedFromDefault };
-  }
-
-  function getEffectiveCursorStateConfig(
-    scheme: ContentTheme | null | undefined,
-    stateId: string,
-  ): unknown {
-    return scheme?.cursorSkin?.states?.[stateId] || scheme?.cursorSkin?.states?.default || null;
-  }
-
-  function asElement(target: unknown): Element | null {
-    return ElementCtor && target instanceof ElementCtor ? target : null;
-  }
-
-  function resolveCursorStateId(target: unknown): string {
-    const element = asElement(target);
-    if (!element) return "default";
-    if (element === cursorStateIdCache.target) return cursorStateIdCache.stateId;
-    const cursor = window.getComputedStyle(element).cursor || "";
-    let stateId = "default";
-    if (["pointer", "grab", "grabbing", "move", "copy", "alias", "cell", "all-scroll", "crosshair", "context-menu", "zoom-in", "zoom-out"].includes(cursor) || cursor.endsWith("-resize")) {
-      stateId = "pointer";
-    } else if (cursor === "text" || cursor === "vertical-text") stateId = "text";
-    else if (cursor === "help") stateId = "help";
-    else if (cursor === "wait" || cursor === "progress") stateId = "wait";
-    else if (cursor === "not-allowed" || cursor === "no-drop") stateId = "notAllowed";
-    else if (element.closest(constants.TEXT_EDITABLE_SELECTOR)) stateId = "text";
-    else if (element.closest(":disabled,[aria-disabled='true']")) stateId = "notAllowed";
-    else if (element.closest(constants.INTERACTIVE_SELECTOR)) stateId = "pointer";
-    cursorStateIdCache.target = element;
-    cursorStateIdCache.stateId = stateId;
-    return stateId;
-  }
-
-  function isInteractiveTarget(target: unknown): boolean {
-    return Boolean(asElement(target)?.closest(constants.INTERACTIVE_SELECTOR));
-  }
-
-  function matchesTriggerZone(
-    target: unknown,
-    triggerZone: unknown,
-    event: unknown,
-    meta: Record<string, unknown> = {},
-  ): boolean {
-    const zone = typeof triggerZone === "string" ? triggerZone : "";
-    const pointerEvent = event as { pointerType?: string; deltaY?: number } | null;
-    let matched = true;
-    if (zone.includes("按钮和链接")) matched = Boolean(asElement(target)?.closest("a,button,[role='button']"));
-    else if (zone.includes("可交互元素")) matched = isInteractiveTarget(target);
-    else if (zone.includes("空白区域")) matched = !isInteractiveTarget(target);
-    else if (zone.includes("内容卡片")) matched = Boolean(asElement(target)?.closest("article,section,li,div"));
-    else if (zone.includes("仅向上滚动")) matched = Number(pointerEvent?.deltaY) < 0;
-    else if (zone.includes("仅向下滚动")) matched = Number(pointerEvent?.deltaY) > 0;
-    diagnostics?.log("trigger-zone.check", {
-      actionId: meta.actionId || null,
-      triggerSource: meta.triggerSource || null,
-      triggerZone: zone || "任意区域",
-      matched,
-      pointerType: pointerEvent?.pointerType || null,
-      deltaY: Number.isFinite(pointerEvent?.deltaY) ? pointerEvent?.deltaY : null,
-      target: diagnostics.describeTarget?.(target),
-    });
-    return matched;
-  }
+  const runtimeConfigCore = createRuntimeConfigCore({
+    window,
+    getConfig,
+    resolveContextAction: getResolvedWebRule,
+    interactiveSelector: constants.INTERACTIVE_SELECTOR,
+    textEditableSelector: constants.TEXT_EDITABLE_SELECTOR,
+    diagnostics,
+  });
+  const {
+    getActiveTheme: getActiveScheme,
+    isCurrentContextEnabled: isCurrentSiteEnabled,
+    getMaxActiveEffects,
+    getActionConfig,
+    getCursorStateBinding,
+    getEffectiveCursorStateConfig,
+    resolveCursorStateId,
+    matchesTriggerZone,
+  } = runtimeConfigCore;
 
   function withResolvedCursorAssets(
     config: ContentConfig,

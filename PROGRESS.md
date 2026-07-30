@@ -54,7 +54,7 @@
 - [x] 接入基础 lint 并进入 CI；阻断未使用代码、浮动 Promise、Hooks 顺序问题、桌面端显式 `any` 和 Electron IPC 字符串通道
 - [x] 扩展与桌面效果核心收敛为共享实现，并由 adapter 单测、桌面 smoke 和真实 Chromium 扩展 smoke 覆盖平台差异
 - [ ] macOS 正式发布前完成签名与公证；当前 `mac.identity: null` 仅适合 dogfood
-- [ ] 按职责拆分 `AiSchemePanel.tsx`、`WorkbenchPreviewRail.tsx` 和两端 `config-store` 热点文件
+- [x] 按职责拆分 `AiSchemePanel.tsx`、`WorkbenchPreviewRail.tsx`，并将两端 `config-store` 的共享纯逻辑收敛到 runtime core
 
 ### 桌面重构 Phase 0（已完成）
 
@@ -136,6 +136,8 @@
 - **R6-4 安全与容错**：更新 IPC 纳入 sender policy，开发态和 smoke 返回 `unsupported` 且不联网；检查/下载失败转换为有长度上限的 UI 状态，不再向应用生命周期抛出。停止时清理 interval 与 updater listeners，并用 lifecycle token 隔离已停止实例的异步结果。
 - **R6-4 当前验证**：80 个根测试文件共 384 项、typecheck、Knip、lint（0 error，保留既有 15 warning）、Electron build/bundle budget、desktop smoke、macOS arm64 真实 ZIP 结构验证和最终 `.app` 启动 smoke 通过；发布脚本单测、workflow YAML 结构解析及现有 unsigned 产物回归验证通过。
 - **R6-4 发布门禁**：新增 tag/workflow-dispatch 发布流程，版本与 tag 必须精确匹配；macOS Developer ID + stapled notarization、Windows 应用/helper/安装器 Authenticode 均强制验证。两平台成功后才由单一 job 汇总安装包、更新元数据和 blockmap，生成 `SHA256SUMS.txt`，draft 上传完整后再公开；不会发布 unsigned 或半成品版本。
+- **收尾代码清理**：桌面与扩展 `config-store` 的主题选择、动作默认值合并、光标状态和触发区域判断已统一到 shared runtime core；两端文件由合计 811 行降至 536 行，计入 202 行共享实现后生产代码净减少 73 行。Chrome storage 与 Electron adapter 继续独立，避免把平台 I/O 混入共享层。
+- **收尾当前验证**：81 个根测试文件共 387 项、typecheck、Knip、lint（0 error，保留既有 15 warning）、Web/扩展/Electron build、双端 bundle budget、Web smoke 6/6、生产扩展侧载 smoke 1/1 与 desktop smoke 1/1 通过。
 - **下一步**：配置 GitHub 签名 secrets 并执行首个 tag；同时确认 Windows x64 CI/真机结果。发布失败恢复与“只前进、不自动降级”的回滚策略已记录在 `docs/desktop-release.md`。
 
 ### 分支状态
