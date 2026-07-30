@@ -974,6 +974,16 @@ AiSchemePanel              # 组合层
 - Popup 若保留，避免打入完整 Workbench 引擎。
 - 设置 bundle budget，超过阈值 CI 告警。
 
+当前进度：
+
+- AI 助手、AI 设置和诊断面板已改为 `React.lazy` 按需加载；ReactMarkdown、AI 会话/提案链路不再进入 Workbench 首屏。
+- Workbench HTML 初始引用从 1,994,491 bytes（gzip 418,432）降至 1,256,699 bytes（gzip 262,579），raw 减少 37.0%，gzip 减少 37.2%；AI + Framer 主链路被隔离为约 714 kB 的异步 chunk。
+- 父页面原有 AI 栏 Framer 包装位于 `aiPanelOpen` 条件内部，无法完整执行退出动画，却会让整套 Framer 进入首屏；现已删除这层无效包装，动画依赖仅在打开 AI 助手时加载。
+- 新增 `npm run check:desktop-bundle`，对 Workbench/overlay 初始 raw 与 gzip、最大 JS chunk、renderer 总产物设预算，并接入 `build-desktop` CI。
+- Workbench 欢迎状态与活动窗口查询改为独立结算，活动窗口 IPC 变慢或失败时不再阻塞首次启动弹窗。
+- 当前通过 78 个根测试文件共 375 项、typecheck、Knip、lint（0 error，保留既有 15 warning）、扩展与 Electron build、bundle budget、Web smoke 6/6、desktop smoke 1/1 和完整动态测量；Electron smoke 直接打开 AI 与诊断异步 chunk，覆盖生产构建路径和 CSP。
+- 下一轮继续分析当前约 1.08 MB 的 Workbench 主 JS，重点核对默认配置、Lucide、Radix 与编辑器控件；没有明确首屏收益的拆分不实施。
+
 ### R6-3：真实打包 CI
 
 矩阵至少包含：

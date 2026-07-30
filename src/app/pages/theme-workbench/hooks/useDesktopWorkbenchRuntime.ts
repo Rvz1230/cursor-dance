@@ -3,7 +3,7 @@ import type { ActiveWindowSnapshot } from "@/shared/app-rules";
 
 type WelcomeState = "loading" | "open" | "closed";
 
-export interface DesktopWorkbenchRuntimeState {
+interface DesktopWorkbenchRuntimeState {
   welcomeState: WelcomeState;
   accessibilityAuthorized: boolean | null;
   activeWindowSnapshot: ActiveWindowSnapshot | null;
@@ -15,19 +15,16 @@ const INITIAL_RUNTIME_STATE: DesktopWorkbenchRuntimeState = {
   activeWindowSnapshot: null,
 };
 
-export function resolveDesktopWorkbenchBootstrap(
-  firstRunResult: PromiseSettledResult<boolean>,
-  activeWindowResult: PromiseSettledResult<ActiveWindowSnapshot>,
-): DesktopWorkbenchRuntimeState {
-  const activeWindowSnapshot = activeWindowResult.status === "fulfilled"
-    ? activeWindowResult.value
-    : null;
+export function loadDesktopWorkbenchBootstrap(deps: {
+  getFirstRun(): Promise<boolean>;
+  getActiveWindow(): Promise<ActiveWindowSnapshot>;
+}): {
+  welcomeState: Promise<WelcomeState>;
+  activeWindowSnapshot: Promise<ActiveWindowSnapshot | null>;
+} {
   return {
-    welcomeState: firstRunResult.status === "fulfilled" && firstRunResult.value === true
-      ? "open"
-      : "closed",
-    accessibilityAuthorized: activeWindowSnapshot?.authorized === true,
-    activeWindowSnapshot,
+    welcomeState: deps.getFirstRun().then((firstRun) => firstRun ? "open" : "closed", () => "closed"),
+    activeWindowSnapshot: deps.getActiveWindow().catch(() => null),
   };
 }
 
@@ -52,15 +49,21 @@ export function useDesktopWorkbenchRuntime() {
         accessibilityAuthorized: snapshot.authorized,
       }));
     });
-    void Promise.allSettled([
-      bridge.getFirstRun(),
-      bridge.getActiveWindow(),
-    ]).then(([firstRunResult, activeWindowResult]) => {
+    const bootstrap = loadDesktopWorkbenchBootstrap(bridge);
+    void bootstrap.welcomeState.then((welcomeState) => {
       if (cancelled) return;
-      const bootstrapState = resolveDesktopWorkbenchBootstrap(firstRunResult, activeWindowResult);
-      setRuntimeState((current) => receivedActiveWindowEvent
-        ? { ...current, welcomeState: bootstrapState.welcomeState }
-        : bootstrapState);
+      setRuntimeState((current) => ({
+        ...current,
+        welcomeState,
+      }));
+    });
+    void bootstrap.activeWindowSnapshot.then((snapshot) => {
+      if (cancelled || receivedActiveWindowEvent || !snapshot) return;
+      setRuntimeState((current) => ({
+        ...current,
+        activeWindowSnapshot: snapshot,
+        accessibilityAuthorized: snapshot.authorized,
+      }));
     });
 
     return () => {

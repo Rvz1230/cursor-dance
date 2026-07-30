@@ -1,23 +1,19 @@
 import { formatActionLabel } from "./model/workbenchSchema";
 import type { ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useThemeWorkbenchState } from "./hooks/useThemeWorkbenchState";
 import { BindingsPanel } from "./components/BindingsPanel";
-import { DiagnosticsPanel } from "./components/DiagnosticsPanel";
 import { SiteRulesPanel } from "./components/SiteRulesPanel";
 import { AppRulesPanel } from "./components/AppRulesPanel";
 import { StatesPanel } from "./components/StatesPanel";
 import { KeyboardPanel } from "./components/KeyboardPanel";
 import { WorkbenchHeader } from "./components/WorkbenchHeader";
-import { AiSchemePanel } from "./components/AiSchemePanel";
 import { ActionTab, ColumnResizeHandle, WorkspaceItem } from "./components/WorkbenchControls";
 import { WorkbenchPanel } from "./components/WorkbenchPanel";
 import { WorkbenchPreviewRail } from "./components/WorkbenchPreviewRail";
 import { getRuntimeConfig } from "./lib/runtimeConfig";
 import { ThemeLibrarySidebar } from "./components/ThemeLibrarySidebar";
 import { WelcomeDialog } from "./components/WelcomeDialog";
-import { AiSettingsDialog } from "./components/AiSettingsDialog";
 import { cn } from "@/components/ui/utils";
 import { Bot, ChevronLeft, ChevronRight, Loader2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -32,6 +28,25 @@ import {
 import { useWorkbenchAiPreview } from "./hooks/useWorkbenchAiPreview";
 import { useWorkbenchColumnLayout } from "./hooks/useWorkbenchColumnLayout";
 import { useDesktopWorkbenchRuntime } from "./hooks/useDesktopWorkbenchRuntime";
+
+const AiSchemePanel = lazy(() => import("./components/AiSchemePanel").then((module) => ({
+  default: module.AiSchemePanel,
+})));
+const AiSettingsDialog = lazy(() => import("./components/AiSettingsDialog").then((module) => ({
+  default: module.AiSettingsDialog,
+})));
+const DiagnosticsPanel = lazy(() => import("./components/DiagnosticsPanel").then((module) => ({
+  default: module.DiagnosticsPanel,
+})));
+
+function DeferredPanelFallback({ label }: { label: string }) {
+  return (
+    <div className="flex h-full min-h-32 items-center justify-center text-xs text-slate-500" role="status">
+      <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
+      {label}
+    </div>
+  );
+}
 
 export default function ThemeWorkbenchPage({ renderHeader }: ThemeWorkbenchPageProps = {}) {
   return (
@@ -456,14 +471,8 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                         onResize={(event) => startResizeColumns(event, "ai")}
                       />
 
-                      <AnimatePresence>
-                        <motion.div
-                          className="relative flex min-w-0 h-full min-h-0"
-                          initial={{ width: 0, opacity: 0 }}
-                          animate={{ width: "auto", opacity: 1 }}
-                          exit={{ width: 0, opacity: 0 }}
-                          transition={{ duration: 0.2, ease: "easeOut" }}
-                        >
+                      <div className="relative flex min-w-0 h-full min-h-0">
+                        <Suspense fallback={<DeferredPanelFallback label="正在加载 AI 助手…" />}>
                           <AiSchemePanel
                             actionId={selected.actionId}
                             actionLabel={formatActionLabel(selected.actionId)}
@@ -481,8 +490,8 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                             onOpenAiSettings={headerProps.openAiSettings}
                             variant="full"
                           />
-                        </motion.div>
-                      </AnimatePresence>
+                        </Suspense>
+                      </div>
                     </>
                   ) : null}
 
@@ -551,9 +560,9 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
 
               {state.workspaceId === "diagnostics" ? (
                 <div className="h-full overflow-y-auto pr-1">
-                  <DiagnosticsPanel
-                    selectedThemeId={selected.themeId}
-                  />
+                  <Suspense fallback={<DeferredPanelFallback label="正在加载诊断面板…" />}>
+                    <DiagnosticsPanel selectedThemeId={selected.themeId} />
+                  </Suspense>
                 </div>
               ) : null}
 
@@ -578,7 +587,9 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
         />
       ) : null}
       {aiSettingsOpen && typeof window !== "undefined" && window.cursorDanceAi ? (
-        <AiSettingsDialog open onClose={() => setAiSettingsOpen(false)} />
+        <Suspense fallback={null}>
+          <AiSettingsDialog open onClose={() => setAiSettingsOpen(false)} />
+        </Suspense>
       ) : null}
     </div>
   );

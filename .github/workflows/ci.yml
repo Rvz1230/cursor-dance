@@ -62,6 +62,7 @@ jobs:
       # uiohook-napi / get-windows 在编译期被 externalize，不会触发原生 dlopen，
       # 所以 ubuntu 足够拦截 src/desktop/main/** 与 src/desktop/renderer/engine/** 的编译退化。
       - run: npm run build:electron
+      - run: npm run check:desktop-bundle
 
   build-windows-cursor-helper:
     runs-on: windows-latest

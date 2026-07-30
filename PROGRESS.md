@@ -120,7 +120,11 @@
 - **R6-1 收敛结果**：禁用时同步取消长按及延迟 action、重置点击/滚轮/键盘/音频节流状态、清除已存在效果和软件光标，并暂停已创建的 AudioContext；恢复后由下一次输入干净重启。延迟任务现有统一 registry，不会跨配置禁用边界补触发。
 - **R6-1 最终测量**：双屏 1,000 Hz、1,000 个源 mousemove 在启用态合并为 60 条目标 IPC；禁用上下文下 overlay 可见数 0、两个 renderer 全部节流、IPC 为 0；冷启动约 0.81 秒。配置仅 6,358 bytes，未引入缺乏收益证据的 revision/patch 或效果对象池。
 - **R6-1 当前验证**：78 个根测试文件共 375 项、typecheck、Knip、lint（0 error，保留既有 15 warning）、Electron build、Web smoke 6/6、desktop smoke 1/1 与完整动态测量通过。
-- **下一步**：进入 R6-2，先建立各 renderer chunk 的职责和预算，再按收益拆分 Workbench 重依赖。
+- [ ] R6-2：前端 bundle 优化——已完成首轮 Workbench 按需加载与预算门禁，继续检查剩余主 chunk 构成。
+- **R6-2 首轮结果**：AI 助手、AI 设置和诊断面板改为动态加载，父页面无效的 AI 栏 Framer 动画同步删除；Workbench 初始引用由 1,994,491 bytes / gzip 418,432 bytes 降至 1,256,699 / 262,579 bytes，分别减少 37.0% / 37.2%。AI + Framer 主链路独立为约 714 kB chunk，未打开时不再下载和解析。
+- **R6-2 预算门禁**：新增 `check:desktop-bundle`，约束 Workbench/overlay 初始 raw+gzip、最大 JS chunk 和 renderer 总产物，并接入 `build-desktop` CI。欢迎弹窗启动同时解除对活动窗口查询的等待，慢查询不再阻塞首次启动引导。
+- **R6-2 当前验证**：78 个根测试文件共 375 项、typecheck、Knip、lint（0 error，保留既有 15 warning）、扩展与 Electron build、bundle budget、Web smoke 6/6、desktop smoke 1/1 和完整动态测量通过；桌面 smoke 已覆盖构建产物中的 AI/诊断异步 chunk。
+- **下一步**：继续 R6-2，分析剩余 1.08 MB Workbench 主 chunk 中的默认配置、Lucide、Radix 与编辑器控件占比，再决定下一处拆分。
 
 ### 分支状态
 

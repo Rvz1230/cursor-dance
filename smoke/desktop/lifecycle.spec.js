@@ -110,6 +110,13 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
     await expect.poll(() => workbenchPage.evaluate(() =>
       document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.getAttribute("content"),
     )).toContain("default-src 'self'");
+    const aiToggle = workbenchPage.getByRole("button", { name: "AI 助手", exact: true });
+    await aiToggle.click();
+    await expect(workbenchPage.getByLabel("描述想要的鼠标效果")).toBeVisible();
+    await aiToggle.click();
+    await workbenchPage.getByRole("button", { name: "诊断面板", exact: true }).click();
+    await expect(workbenchPage.getByRole("button", { name: /开启诊断|关闭诊断/ })).toBeVisible();
+    await workbenchPage.getByRole("button", { name: "主题工作台", exact: true }).click();
     const assetResult = await workbenchPage.evaluate(async () => {
       const bridge = window.cursorDanceStorage;
       if (!bridge) throw new Error("cursorDanceStorage bridge is unavailable");

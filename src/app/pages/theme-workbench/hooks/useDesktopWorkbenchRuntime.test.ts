@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ActiveWindowSnapshot } from "@/shared/app-rules";
-import { resolveDesktopWorkbenchBootstrap } from "./useDesktopWorkbenchRuntime";
+import { loadDesktopWorkbenchBootstrap } from "./useDesktopWorkbenchRuntime";
 
 const activeWindow: ActiveWindowSnapshot = {
   authorized: true,
@@ -10,26 +10,23 @@ const activeWindow: ActiveWindowSnapshot = {
 };
 
 describe("desktop Workbench bootstrap", () => {
-  it("opens the welcome dialog and exposes the active window snapshot", () => {
-    expect(resolveDesktopWorkbenchBootstrap(
-      { status: "fulfilled", value: true },
-      { status: "fulfilled", value: activeWindow },
-    )).toEqual({
-      welcomeState: "open",
-      accessibilityAuthorized: true,
-      activeWindowSnapshot: activeWindow,
+  it("resolves the welcome state without waiting for the active-window query", async () => {
+    const neverSettles = new Promise<ActiveWindowSnapshot>(() => {});
+    const bootstrap = loadDesktopWorkbenchBootstrap({
+      getFirstRun: async () => true,
+      getActiveWindow: () => neverSettles,
     });
+
+    await expect(bootstrap.welcomeState).resolves.toBe("open");
   });
 
-  it("fails closed when desktop bootstrap queries fail", () => {
-    const reason = new Error("IPC unavailable");
-    expect(resolveDesktopWorkbenchBootstrap(
-      { status: "rejected", reason },
-      { status: "rejected", reason },
-    )).toEqual({
-      welcomeState: "closed",
-      accessibilityAuthorized: false,
-      activeWindowSnapshot: null,
+  it("fails each independent query closed without blocking the other", async () => {
+    const bootstrap = loadDesktopWorkbenchBootstrap({
+      getFirstRun: async () => { throw new Error("first-run unavailable"); },
+      getActiveWindow: async () => activeWindow,
     });
+
+    await expect(bootstrap.welcomeState).resolves.toBe("closed");
+    await expect(bootstrap.activeWindowSnapshot).resolves.toBe(activeWindow);
   });
 });
