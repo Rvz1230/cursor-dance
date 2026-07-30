@@ -2,7 +2,7 @@ import "./runtime-globals";
 import "../../extension/config.js";
 import "./site-matcher";
 import "./diagnostics";
-import "../../extension/content-runtime/config-store.js";
+import "./config-store";
 import "./visual-effects";
 import "./audio";
 import "./cursor-overlay";

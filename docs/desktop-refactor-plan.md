@@ -785,7 +785,8 @@ interface AudioOutput {
 - Web 规则匹配器已直接迁为 TypeScript 并复用 v4 context rule 类型，删除通过源码字符串执行的旧测试方式。
 - diagnostics 的开关解析、事件缓冲、DOM/媒体描述和广播已下沉共享 runtime；桌面直接复用，扩展仅保留 Chrome storage 开关及批量持久化 adapter，原 IIFE 已删除。
 - 动作解析、trigger-zone、cursor state 绑定、节流、输出计划与诊断已收敛为共享 action trigger pipeline；扩展 DOM 手势/hover adapter 已迁为 TypeScript，旧 trigger IIFE 与失去调用方的 effect runtime 全局注册已删除。
-- 下一段继续收敛 config store 与 content 装配入口。
+- 默认动作配置已从 Workbench、桌面和扩展三份镜像收敛为 shared effect-core 单一来源；扩展 config store 已迁为 TypeScript，并删除 937 行 IIFE 及读取源码动态执行的同步测试。
+- 下一段继续收敛最终 content 装配入口。
 
 ### Phase 4 完成条件
 

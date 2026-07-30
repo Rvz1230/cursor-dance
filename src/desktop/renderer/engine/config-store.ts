@@ -2,9 +2,8 @@
 //
 // 从 extension/content-runtime/config-store.js 迁移而来（任务 2.5）。关键调整：
 //   - 去 IIFE，改为 createConfigStore(deps)，依赖通过参数注入。
-//   - **删除 hover BASE_ACTION_CONFIG 条目**：桌面端不支持 hover 触发（CLAUDE.md
-//     no-go）。BASE_ACTION_CONFIGS 现有 5 条：leftClick / rightClick /
-//     doubleClick / longPress / wheel。
+//   - 默认动作配置与 Workbench / 扩展共用 shared effect-core 单一来源；桌面虽不
+//     监听 hover，仍可安全保留其配置以便主题跨平台导入导出。
 //   - **chrome.storage 替换为 storeAdapter**：调用方注入异步 read/write，桌面端
 //     桥接 IPC + electron-store，扩展端可仍由 chrome.storage 包装。
 //   - **resolveSiteRule → resolveAppRule**：站点规则换成应用规则；isCurrentSiteEnabled
@@ -30,7 +29,7 @@ import {
   type CursorDanceConfig,
   type ThemePack,
 } from "./default-config";
-import { BASE_ACTION_CONFIGS } from "./data/base-action-configs";
+import { getDefaultActionConfigs } from "@/shared/effect-core/default-action-configs";
 import {
   getActionTriggerConfig,
   getActionTextConfig,
@@ -43,6 +42,17 @@ import {
 } from "./action-config";
 import { matchAppPattern, type ActiveAppInfo } from "../../../shared/app-rules";
 import type { ContextRuleActionV4 } from "../../../shared/config-schema-v4";
+
+const baseActionConfigsByThemeId = new Map<string | null, Record<string, Record<string, unknown>>>();
+
+function getCachedDefaultActionConfigs(themeId: string | null): Record<string, Record<string, unknown>> {
+  let configs = baseActionConfigsByThemeId.get(themeId);
+  if (!configs) {
+    configs = getDefaultActionConfigs(themeId) as Record<string, Record<string, unknown>>;
+    baseActionConfigsByThemeId.set(themeId, configs);
+  }
+  return configs;
+}
 
 export interface ConfigStoreConstants {
   CONFIG_STORAGE_KEY: string;
@@ -178,7 +188,7 @@ export function createConfigStore(deps: ConfigStoreDeps): ConfigStoreApi {
   }
 
   function getBaseActionConfigs(): Record<string, Record<string, unknown>> {
-    return BASE_ACTION_CONFIGS;
+    return getCachedDefaultActionConfigs(null);
   }
 
   function mergeActionConfig(
@@ -210,8 +220,9 @@ export function createConfigStore(deps: ConfigStoreDeps): ConfigStoreApi {
 
   function getActionConfig(scheme: ThemePack | null | undefined, actionId: string): Record<string, unknown> | null {
     if (!scheme) return null;
-    const stored = scheme.actionConfigs[actionId] ?? scheme.actionConfigs.leftClick;
-    const base = BASE_ACTION_CONFIGS[actionId] ?? BASE_ACTION_CONFIGS.leftClick;
+    const stored = scheme.actionConfigs[actionId];
+    const defaults = getCachedDefaultActionConfigs(scheme.id || null);
+    const base = defaults[actionId] ?? defaults.leftClick;
     return stored ? mergeActionConfig(base, stored as Record<string, unknown>) : base ?? null;
   }
 
