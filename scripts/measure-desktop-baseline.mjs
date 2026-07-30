@@ -282,7 +282,102 @@ async function measureRuntime() {
       };
     });
 
-    return { coldStartToWorkbenchReadyMs, windowCounts, idle, cursorIpc };
+    await workbenchPage.evaluate(async () => {
+      const bridge = window.cursorDanceStorage;
+      if (!bridge) throw new Error("Workbench storage bridge is unavailable");
+      const current = await bridge.getConfig();
+      await bridge.setConfig({
+        ...current,
+        enabled: true,
+        contextRules: [{
+          id: "measure-disable-code",
+          context: "desktop",
+          enabled: true,
+          match: { type: "exact", target: "process", value: "Code" },
+          action: { type: "disable" },
+        }],
+      });
+    });
+    await electronApp.evaluate(() => {
+      const testing = globalThis.__cursorDanceMainTesting;
+      if (!testing) throw new Error("Desktop routing measurement bridge is unavailable");
+      testing.publishActiveWindowSnapshot({
+        authorized: true,
+        owner: { name: "Code", bundleId: "com.microsoft.VSCode" },
+        processName: "Code",
+        title: "CursorDance performance measurement",
+      });
+    });
+
+    const disabledVisibility = await waitFor(async () => {
+      const state = await electronApp.evaluate(({ BrowserWindow }) => {
+        const overlays = BrowserWindow.getAllWindows().filter((win) =>
+          !win.isDestroyed() && win.webContents.getURL().includes("/renderer/overlay/index.html"),
+        );
+        return {
+          overlayCount: overlays.length,
+          visibleOverlayCount: overlays.filter((win) => win.isVisible()).length,
+          backgroundThrottledOverlayCount: overlays.filter(
+            (win) => win.webContents.getBackgroundThrottling(),
+          ).length,
+        };
+      });
+      return state.visibleOverlayCount === 0
+        && state.backgroundThrottledOverlayCount === state.overlayCount
+        ? state
+        : null;
+    });
+
+    const disabledContext = await electronApp.evaluate(async ({ BrowserWindow }) => {
+      const testing = globalThis.__cursorDanceMainTesting;
+      if (!testing) throw new Error("Desktop routing measurement bridge is unavailable");
+      const target = BrowserWindow.getAllWindows().find((win) =>
+        !win.isDestroyed() && win.webContents.getURL().includes("/renderer/overlay/index.html"),
+      );
+      const targetBounds = target?.getBounds();
+      if (!targetBounds) throw new Error("No overlay is available for disabled-context measurement");
+      const eventCount = 1_000;
+      const targetSourceHz = 1_000;
+      const targetIntervalMs = 1_000 / targetSourceHz;
+      testing.resetCursorIpcCount();
+      const before = process.getCPUUsage();
+      const startedAt = performance.now();
+      let sent = 0;
+      while (sent < eventCount) {
+        const elapsedMs = performance.now() - startedAt;
+        const expectedCount = Math.min(eventCount, Math.floor(elapsedMs / targetIntervalMs));
+        while (sent < expectedCount) {
+          testing.routeCursorEvent({
+            type: "mousemove",
+            x: targetBounds.x + 100,
+            y: targetBounds.y + 100,
+            buttons: 0,
+            timestamp: performance.now(),
+          });
+          sent += 1;
+        }
+        if (sent < eventCount) await new Promise((resolveWait) => setTimeout(resolveWait, 0));
+      }
+      testing.flushPendingMove();
+      const durationMs = performance.now() - startedAt;
+      const usage = process.getCPUUsage(before);
+      return {
+        sourceEvents: eventCount,
+        targetSourceHz,
+        ipcMessages: testing.getCursorIpcCount(),
+        durationMs,
+        achievedSourceHz: eventCount / (durationMs / 1_000),
+        mainCpuPercent: usage.percentCPUUsage,
+      };
+    });
+
+    return {
+      coldStartToWorkbenchReadyMs,
+      windowCounts,
+      idle,
+      cursorIpc,
+      disabledContext: { ...disabledVisibility, ...disabledContext },
+    };
   } finally {
     await electronApp?.close();
     await rm(userDataPath, { recursive: true, force: true });

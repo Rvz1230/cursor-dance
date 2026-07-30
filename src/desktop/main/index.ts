@@ -7,6 +7,7 @@ import {
   destroyAllOverlays,
   destroyOverlayWindow,
   getOverlayWindows,
+  setOverlayWindowVisibility,
   syncOverlayBounds,
 } from "./overlay-window";
 import { createWorkbenchWindow } from "./workbench-window";
@@ -21,7 +22,6 @@ import { registerFirstRunIpc, unregisterFirstRunIpc } from "./first-run";
 import { registerAiIpc, unregisterAiIpc } from "./ai-ipc";
 import { registerCursorVisibilityIpc, restoreNativeCursor, unregisterCursorVisibilityIpc } from "./cursor-visibility";
 import { shouldKeepOverlaysVisible } from "./overlay-visibility";
-import { applyOverlaySpacePolicy } from "./overlay-space-policy";
 import { registerAutoUpdater } from "./auto-updater";
 import { createTray, destroyTray } from "./tray";
 import {
@@ -37,6 +37,7 @@ import {
   registerAssetSchemePrivileges,
   unregisterAssetProtocol,
 } from "./asset-protocol";
+import type { ActiveWindowSnapshot } from "../../shared/app-rules";
 
 let stopMouseCapture: (() => void) | null = null;
 let stopDisplayWatcher: (() => void) | null = null;
@@ -45,6 +46,7 @@ let stopAutoUpdater: (() => void) | null = null;
 let stopActiveWindowMonitor: (() => void) | null = null;
 let cursorEventRouter: CursorEventRouter | null = null;
 let cursorIpcMessageCount = 0;
+let activeWindowSnapshot: ActiveWindowSnapshot | null = null;
 
 const isDesktopSmokeTest = process.env.CURSORDANCE_DESKTOP_SMOKE === "1";
 const smokeUserDataPath = process.env.CURSORDANCE_DESKTOP_SMOKE_USER_DATA;
@@ -106,24 +108,20 @@ function getEnabledFromStore(): boolean {
 }
 
 function shouldShowOverlays(): boolean {
-  return shouldKeepOverlaysVisible(readLivePreview() ?? readConfig());
+  return shouldKeepOverlaysVisible(readLivePreview() ?? readConfig(), activeWindowSnapshot);
 }
 
 function setOverlayVisibility(visible: boolean): void {
   for (const win of getOverlayWindows().values()) {
-    if (win.isDestroyed()) continue;
-    if (visible) {
-      // Live Preview can update several times per second. The panel's Space
-      // membership is persistent, so only touch native window state after hide.
-      if (!win.isVisible()) {
-        applyOverlaySpacePolicy(win);
-        win.showInactive();
-      }
-    } else if (win.isVisible()) {
-      win.hide();
-    }
+    setOverlayWindowVisibility(win, visible);
   }
   if (!visible) restoreNativeCursor();
+}
+
+function publishActiveWindowSnapshot(snapshot: ActiveWindowSnapshot): void {
+  activeWindowSnapshot = snapshot;
+  broadcastToWindows(() => BrowserWindow.getAllWindows(), APP_ACTIVE_WINDOW_CHANGED, snapshot);
+  setOverlayVisibility(shouldShowOverlays());
 }
 
 function toggleEnabled(): void {
@@ -155,9 +153,7 @@ void app.whenReady().then(async () => {
   registerStoreIpc(() => BrowserWindow.getAllWindows());
   registerDialogIpc();
   const activeWindowMonitor = createActiveWindowMonitor({
-    publish: (snapshot) => {
-      broadcastToWindows(() => BrowserWindow.getAllWindows(), APP_ACTIVE_WINDOW_CHANGED, snapshot);
-    },
+    publish: publishActiveWindowSnapshot,
   });
   registerActiveWindowIpc(() => activeWindowMonitor.getCurrent());
   if (isDesktopSmokeTest) {
@@ -188,6 +184,7 @@ void app.whenReady().then(async () => {
         getActiveDisplayId: () => number | null;
         resetCursorIpcCount: () => void;
         getCursorIpcCount: () => number;
+        publishActiveWindowSnapshot: (snapshot: ActiveWindowSnapshot) => void;
       };
     };
     testingGlobal.__cursorDanceMainTesting = {
@@ -198,6 +195,7 @@ void app.whenReady().then(async () => {
       getActiveDisplayId: () => cursorEventRouter?.getActiveDisplayId() ?? null,
       resetCursorIpcCount: () => { cursorIpcMessageCount = 0; },
       getCursorIpcCount: () => cursorIpcMessageCount,
+      publishActiveWindowSnapshot,
     };
   }
   stopDisplayWatcher = onDisplayChanges(({ added, removed, changed }) => {

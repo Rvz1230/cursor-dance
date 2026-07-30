@@ -5,7 +5,7 @@
 //   - 鼠标穿透（setIgnoreMouseEvents true + forward true，让鼠标位置仍能 forward
 //     给主进程；实际的全局鼠标已经由 uiohook 抓，forward 主要是为了 cursor 不被吞）
 //   - 全 workspace 可见 + 全屏可见
-//   - backgroundThrottling 关闭，避免 alwaysOnTop 在不可见 workspace 时降帧
+//   - 显示时关闭 backgroundThrottling，隐藏时恢复节流，避免禁用上下文空转
 //   - macOS 使用 NSPanel；普通 NSWindow 在多显示器同时全屏时可能只加入普通
 //     Space，panel + canJoinAllSpaces/fullScreenAuxiliary 才能稳定覆盖每块屏幕
 //
@@ -28,6 +28,20 @@ export function getOverlayWindows(): ReadonlyMap<number, BrowserWindow> {
   return overlayWindows;
 }
 
+export function setOverlayWindowVisibility(win: BrowserWindow, visible: boolean): void {
+  if (win.isDestroyed() || win.webContents.isDestroyed()) return;
+  if (visible) {
+    win.webContents.setBackgroundThrottling(false);
+    if (!win.isVisible()) {
+      applyOverlaySpacePolicy(win);
+      win.showInactive();
+    }
+    return;
+  }
+  if (win.isVisible()) win.hide();
+  win.webContents.setBackgroundThrottling(true);
+}
+
 /**
  * 为指定 display 创建 overlay 窗口。已存在时返回现有实例（不重建）。
  */
@@ -39,15 +53,12 @@ export function createOverlayWindow(
   if (existing && !existing.isDestroyed()) {
     existing.setBounds(display.bounds);
     applyOverlaySpacePolicy(existing);
-    if (shouldShow()) {
-      if (!existing.isVisible()) existing.showInactive();
-    } else if (existing.isVisible()) {
-      existing.hide();
-    }
+    setOverlayWindowVisibility(existing, shouldShow());
     return existing;
   }
 
   const { x, y, width, height } = display.bounds;
+  const visibleOnLoad = shouldShow();
 
   const win = new BrowserWindow({
     x,
@@ -74,7 +85,7 @@ export function createOverlayWindow(
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      backgroundThrottling: false,
+      backgroundThrottling: !visibleOnLoad,
     },
   });
   const unregisterIpcSender = registerIpcSender(win.webContents, "overlay");
@@ -94,10 +105,7 @@ export function createOverlayWindow(
     // Renderer load/reload can recreate native compositor state. Consult the
     // latest config here so a disabled overlay is not accidentally shown by a
     // late load after startup or display hot-plug.
-    if (shouldShow()) {
-      applyOverlaySpacePolicy(win);
-      win.showInactive(); // 不抢焦点
-    }
+    setOverlayWindowVisibility(win, shouldShow());
   });
 
   void win.loadURL(entryUrl);

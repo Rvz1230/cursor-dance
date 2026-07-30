@@ -305,11 +305,13 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
         }],
       });
     });
-    await electronApp.evaluate(({ BrowserWindow }, snapshot) => {
-      for (const win of BrowserWindow.getAllWindows()) {
-        win.webContents.send("cursordance:app-active-window-changed", snapshot);
-      }
+    await electronApp.evaluate((_electron, snapshot) => {
+      const testing = globalThis.__cursorDanceMainTesting;
+      if (!testing) throw new Error("Desktop smoke testing bridge is unavailable");
+      testing.publishActiveWindowSnapshot(snapshot);
     }, activeCodeSnapshot);
+
+    await expect.poll(async () => (await readWindowState(electronApp)).overlay.visibleCount).toBe(0);
 
     const overlayOrigin = await overlayPage.evaluate(() => ({ x: window.screenX, y: window.screenY }));
     const sendClick = () => electronApp.evaluate((_electron, point) => {
@@ -336,6 +338,10 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
       const current = await window.cursorDanceStorage.getConfig();
       await window.cursorDanceStorage.setConfig({ ...(current || {}), contextRules: [] });
     });
+    await expect.poll(async () => {
+      const state = await readWindowState(electronApp);
+      return state.overlay.visibleCount === state.displayCount;
+    }).toBe(true);
     await sendClick();
     await expect(overlayPage.locator(".cd-effect").first()).toBeAttached();
     for (const otherOverlay of electronApp.windows().filter(

@@ -1,5 +1,7 @@
 /** @platform shared — desktop application rule schema and pure matching helpers. */
 
+import type { ContextRuleActionV4, ContextRuleV4 } from "./config-schema-v4";
+
 export type AppRuleTarget = "process" | "title";
 export type AppRulePatternType = "exact" | "glob";
 
@@ -91,4 +93,21 @@ export function activeAppInfoFromSnapshot(snapshot: ActiveWindowSnapshot | null 
   return snapshot?.authorized
     ? { processName: snapshot.processName, title: snapshot.title }
     : null;
+}
+
+export function resolveDesktopContextAction(
+  rules: readonly ContextRuleV4[] | null | undefined,
+  info: ActiveAppInfo | null | undefined,
+): ContextRuleActionV4 | null {
+  if (!Array.isArray(rules) || !info) return null;
+  for (const rule of rules) {
+    if (
+      rule.context === "desktop"
+      && rule.enabled
+      && matchAppPattern(info, rule.match)
+    ) {
+      return rule.action;
+    }
+  }
+  return null;
 }

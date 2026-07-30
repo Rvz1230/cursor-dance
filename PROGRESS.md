@@ -115,7 +115,11 @@
 - [x] R5-5：多入口死代码检查——Knip 覆盖根 Web、扩展、Electron main/preload/renderer、维护脚本、测试、API 与 landing workspace，并进入 CI。
 - **R5-5 收敛结果**：删除 2 个孤立文件及 10 组仅由虚假导出维持的预设/预览/模型代码，收窄无消费者导出；补齐 Radix 直接依赖，`pm2` 按服务器全局工具精确白名单，源码净删除约 600 行。
 - **R5-5 当前验证**：Knip 零报告；78 个根测试文件共 370 项通过；typecheck、lint 0 error（保留既有 15 warning）、Web smoke 6/6 与 desktop smoke 1/1 通过。
-- **下一步**：Phase 5 已完成，进入 R6-1；先复测当前运行时基线，再只针对有数据收益的热路径优化。
+- [ ] R6-1：运行时性能优化——已完成首轮基线复测和禁用上下文休眠；其余优化继续以测量结果为准。
+- **R6-1 首轮结果**：桌面规则解析由 main/renderer 共享；前台应用命中禁用规则时主进程直接隐藏 overlay、恢复 Chromium 后台节流并停止输入 IPC，规则清空或命中启用规则后即时恢复。
+- **R6-1 首轮测量**：双屏 1,000 Hz、1,000 个源 mousemove 在启用态合并为 61 条 IPC；禁用上下文下 overlay 可见数 0、两个 renderer 全部节流、IPC 为 0。测量脚本已固定该场景。
+- **R6-1 当前验证**：78 个根测试文件共 372 项、typecheck、Knip、lint（0 error，保留既有 15 warning）、Web smoke 6/6、desktop smoke 1/1 与完整动态测量通过。
+- **下一步**：继续 R6-1，评估配置广播和效果资源清理；配置当前仅 6,358 bytes，若测量收益不足则不引入 revision/patch 复杂度。
 
 ### 分支状态
 

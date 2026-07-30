@@ -40,7 +40,7 @@ import {
   getActionImageConfig,
   getActionCursorFeedbackConfig,
 } from "./action-config";
-import { matchAppPattern, type ActiveAppInfo } from "../../../shared/app-rules";
+import { resolveDesktopContextAction, type ActiveAppInfo } from "../../../shared/app-rules";
 import type { ContextRuleActionV4 } from "../../../shared/config-schema-v4";
 
 const baseActionConfigsByThemeId = new Map<string | null, Record<string, Record<string, unknown>>>();
@@ -151,18 +151,7 @@ export function createConfigStore(deps: ConfigStoreDeps): ConfigStoreApi {
   }
 
   function getResolvedAppRule(): ContextRuleActionV4 | null {
-    const info = getActiveAppInfo?.();
-    if (!info) return null;
-    for (const rule of getConfig().contextRules) {
-      if (
-        rule.context === "desktop"
-        && rule.enabled
-        && matchAppPattern(info, rule.match)
-      ) {
-        return rule.action;
-      }
-    }
-    return null;
+    return resolveDesktopContextAction(getConfig().contextRules, getActiveAppInfo?.());
   }
 
   function getActiveScheme(): ThemePack {
