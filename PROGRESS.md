@@ -127,13 +127,17 @@
 - **R6-2 第二轮结果**：光标皮肤、应用/站点规则、键盘动效改为工作区级按需加载；删除没有任何可达入口、仅靠条件分支维持引用的 `BindingsPanel`。Workbench 初始引用进一步降至 1,167,090 bytes / gzip 246,972 bytes，较 R6-2 前累计减少 41.5% / 41.0%，主 JS 降至约 988 kB。
 - **R6-2 第三轮结果**：Popup 的气泡、轮播、开关、提示和预览装饰动画改用 CSS transition/keyframes，Framer Motion 只随 AI 异步 chunk 加载；Popup 初始引用由约 441.5 kB / gzip 135.4 kB 降至 340,382 / 101,181 bytes，分别减少约 22.9% / 25.3%。
 - **R6-2 扩展预算**：新增 `check:extension-bundle`，约束 Popup、Options、最大 JS chunk 和 content runtime，并接入扩展构建 CI。默认配置仅 6,358 bytes，Lucide 已按 ESM 图标摇树，剩余首屏 React/Radix/编辑器核心均有直接消费者，不再为拆分而拆分。
-- **下一步**：进入 R6-3，补齐 macOS/Windows 真实 package CI、安装包内容检查和可执行产物启动 smoke；签名、公证仍取决于外部证书环境。
+- [ ] R6-3：真实打包 CI——实现已完成，本机 macOS arm64 已验证；等待 GitHub Actions 首次确认 Windows x64 路径后收口。
+- **R6-3 打包矩阵**：macOS arm64 生成 ZIP，Windows x64 生成 NSIS；两端均保留 unpacked 应用用于结构检查和启动 smoke，并将安装包、blockmap、更新元数据作为 7 天 CI artifact 上传。旧的 Windows helper-only job 已由完整打包链路取代。
+- **R6-3 产物门禁**：检查 app.asar 主入口、preload/renderer、外置 extension/tray 图标、`app-update.yml`、latest 元数据、blockmap、`uiohook-napi`/`get-windows`/cursor helper 架构与 asar unpack；直接执行打包内 helper 协议，并以隔离 userData 启动最终可执行文件，确认 v4 配置桥和每屏 overlay。
+- **R6-3 本机验证**：macOS arm64 ZIP、更新元数据和 unpacked `.app` 生成成功；产物结构/架构/helper 协议检查通过，最终 `.app` 启动 smoke 通过（双屏 2 个 overlay、1 个 Workbench、`app.isPackaged=true`）。NSIS 明确保留 userData；签名状态当前按预期为 unsigned。
+- **下一步**：确认 Windows x64 CI 首跑结果并收口 R6-3，然后进入 R6-4；Developer ID、公证与 Windows code signing 仍需要外部证书环境。
 
 ### 分支状态
 
 - **分支**：desktop/phase-0
 - **整理前基线**：`9dcfada refactor(workbench): StatesPanel 迁移至 cursorSkin 数据模型`
-- **阻塞项**：无
+- **阻塞项**：R6-4 的 macOS Developer ID/公证与 Windows code signing 需要外部证书环境；R6-3 Windows x64 路径等待 CI 首跑确认
 - **验证基线**：以 CI 的 `npm run test`、`npm run test:smoke`、`npm run build`、`npm run build:electron` 为准，不再硬编码容易过期的测试数量
 - **运行环境**：Node.js `>=22.12.0`（与 Electron 42 及 CI 对齐，见 `.nvmrc`）
-- **备注**：任务 6.1 完成 —— 自动更新 + CI 双步打通。新增 `src/desktop/main/auto-updater.ts`：依赖 `electron-updater@6.8.9`，`registerAutoUpdater(opts?)` 在 `app.isPackaged === true` 时立即触发 `checkForUpdatesAndNotify()` 并以 4h 间隔轮询；dev 模式打 `[auto-updater] skipped in dev` 日志后返回 noop。`autoDownload` / `autoInstallOnAppQuit` 显式置 true（默认值，便于审计）；事件监听 `error` / `checking-for-update` / `update-available` / `update-not-available` / `download-progress` / `update-downloaded` 全部 console.log，**暂不弹 dialog UI**（dogfood 阶段排查用，留待后续迭代）。`stopAutoUpdater()` 清 interval；`__testing__.reset()` 给单测复位用。配套 `src/desktop/main/auto-updater.test.ts` 用 `vi.hoisted` 导出共享 spy（vi.mock 工厂会被 hoist，普通 const 在 mock 阶段 ReferenceError），覆盖 dev skip / packaged 调度 + interval / 事件监听集 / stop 清理 / 重复 register 警告 5 条路径。`src/desktop/main/index.ts` 顶部 import + `whenReady` 第 6 步 `stopAutoUpdater = registerAutoUpdater()`，与 `stopMouseCapture` / `stopEnableWatcher` 等并列在 `before-quit` 调一次。`electron-builder.yml` 末尾 `publish: null` 替换为 `provider: github` + `owner: Rvz1230` + `repo: cursor-dance` + `releaseType: release`，首次发布手动跑 `electron-builder build --publish always`（需 `GH_TOKEN`），上传 dmg/zip/blockmap/`latest-mac.yml`/`latest.yml` 到 GitHub Release 即可让 updater 客户端拉到。`mac.identity: null` 保持未签名 —— 公证留待后续。`.github/workflows/ci.yml` 新增 `build-desktop` job：ubuntu-latest 跑 `npm ci` + `npm run build:electron`，与现有 `test-root` / `test-api` / `build` 并行（无 needs），uiohook-napi/get-windows 在 build 阶段被 `externalizeDepsPlugin` 标记为 external 不触发 dlopen，所以 ubuntu 足以拦截 `src/desktop/main/**` 与 `src/desktop/renderer/engine/**` 的编译退化。**坑点 1**：`vi.mock("electron-updater", ...)` 工厂里引用的局部 const 会在 hoist 后未初始化报 ReferenceError —— 必须用 `vi.hoisted(() => ({ ... }))` 在同一阶段就绪。**坑点 2**：本机 npm install electron-updater 时 npm 会顺手 prune 掉 514 个 sibling 依赖再补回（lockfile 状态干扰），跑完要 `rm -rf node_modules && npm install` 才稳；CI 上不会有这个问题（cold install）。**坑点 3**：electron postinstall 在受限网络下卡死，`ELECTRON_MIRROR=https://cdn.npmmirror.com/binaries/electron/ node node_modules/electron/install.js` 走镜像才能完成。下一步：阶段六全部完成，桌面版 MVP 收尾。后续可独立追加 release.yml workflow（tag push 自动 publish）+ macOS 签名公证。
+- **历史说明**：任务 6.1 已完成自动更新基础设施、GitHub publish 配置和开发态/打包态测试；当前仍保持 `mac.identity: null`，发布签名、公证、用户可见更新状态与 release workflow 统一归入 R6-4。

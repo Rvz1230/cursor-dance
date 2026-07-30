@@ -33,7 +33,8 @@
       "vite": false,
       "vitest": false,
       "playwright": false,
-      "electron-vite": false
+      "electron-vite": false,
+      "ignoreBinaries": ["lipo"]
     },
     "cursor-dance-api": {
       "entry": [

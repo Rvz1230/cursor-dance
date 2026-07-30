@@ -65,15 +65,42 @@ jobs:
       - run: npm run build:electron
       - run: npm run check:desktop-bundle
 
-  build-windows-cursor-helper:
-    runs-on: windows-latest
+  package-desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-15
+            platform: darwin
+            arch: arm64
+          - os: windows-latest
+            platform: win32
+            arch: x64
+    runs-on: ${{ matrix.os }}
+    env:
+      CURSORDANCE_PACKAGE_PLATFORM: ${{ matrix.platform }}
+      CURSORDANCE_PACKAGE_ARCH: ${{ matrix.arch }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22.12.0
+          cache: npm
       - uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
         with:
           arch: x64
-      - run: npm run build:native:cursor-helper
-      - run: npm run test:native:cursor-helper
+      - run: npm ci
+      - run: npm run package:ci
+      - run: npm run verify:package
+      - run: npm run test:package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CursorDance-${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            release/ci-${{ matrix.platform }}-${{ matrix.arch }}/*.zip
+            release/ci-${{ matrix.platform }}-${{ matrix.arch }}/*.exe
+            release/ci-${{ matrix.platform }}-${{ matrix.arch }}/*.blockmap
+            release/ci-${{ matrix.platform }}-${{ matrix.arch }}/latest*.yml
+          if-no-files-found: error
+          retention-days: 7

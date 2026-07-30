@@ -1005,6 +1005,16 @@ AiSchemePanel              # 组合层
 - app-update.yml 和更新元数据。
 - 安装、升级、卸载后的 userData 策略。
 
+当前进度（2026-07-30）：
+
+- 新增原生平台 `package:ci`：macOS arm64 生成真实 ZIP 与 blockmap，Windows x64 生成真实 NSIS 与 blockmap，不再用 `electron-vite build` 代替打包验证。
+- CI 在产物上传前执行 `verify:package`，核对 app.asar 的 main/preload/renderer、外置 extension/tray 图标、`app-update.yml`/latest 元数据、helper 协议，以及 `uiohook-napi`、`get-windows`、自定义 helper 和主程序的目标架构。
+- CI 直接通过 Playwright 启动 unpacked 最终可执行文件；使用隔离 userData，验证 `app.isPackaged`、v4 配置桥、单 Workbench 和每屏一个 overlay。
+- Windows 原 helper-only job 已删除，其职责被完整 Windows package + 结构检查 + 启动 smoke 覆盖；打包结果作为 7 天 CI artifact 上传。
+- `nsis.deleteAppDataOnUninstall=false` 显式固定数据策略：升级和卸载保留 electron-store 配置与素材，清理必须由应用内显式操作触发；macOS 删除 `.app` 同样不触碰 userData。
+- 本机 macOS arm64 的 ZIP、结构/架构/helper 协议和最终 `.app` 启动均已通过；Windows x64 需由 GitHub Actions 首跑确认后勾选 R6-3。
+- 产物验证已支持 `CURSORDANCE_REQUIRE_SIGNATURE=1` 强制验签；当前 `identity: null` 会明确报告 unsigned，证书签名与公证归 R6-4，不伪装为已完成。
+
 ### R6-4：签名、公证与更新策略
 
 - macOS Developer ID 签名和 notarization。

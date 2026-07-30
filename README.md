@@ -215,6 +215,9 @@ npm run ai:dev                  # AI API 服务
 npm run dev:electron            # Electron 桌面端开发
 npm run build:electron          # 构建 main / preload / renderer
 npm run package:mac             # 生成 macOS 安装包（发布前需签名公证）
+npm run package:ci              # 当前原生平台生成 CI 真实安装包
+npm run verify:package          # 检查安装包结构、架构和更新元数据
+npm run test:package            # 启动打包后的最终可执行文件做 smoke
 ```
 
 ## 贡献
