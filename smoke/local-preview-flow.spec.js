@@ -346,7 +346,9 @@ test("AI assistant conversation panel opens and renders its message surface", as
 
   await expect(aiPanel.getByText("描述你想要的鼠标反馈，我会直接生成或修改当前动作配置。", { exact: true })).toBeVisible();
   await expect(aiPanel.getByLabel("描述想要的鼠标效果")).toBeVisible();
-  await expect(aiPanel.getByRole("button", { name: "快速", exact: true })).toBeVisible();
+  await aiPanel.getByRole("button", { name: "快速", exact: true }).click();
+  await aiPanel.getByRole("option", { name: /Agent 模式/ }).click();
+  await expect(aiPanel.getByRole("button", { name: "Agent", exact: true })).toBeVisible();
 
   await toggle.click();
   await expect(page.getByLabel("描述想要的鼠标效果")).toBeHidden();
