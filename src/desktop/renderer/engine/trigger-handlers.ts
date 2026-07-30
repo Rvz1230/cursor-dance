@@ -29,10 +29,12 @@ import type {
   TriggerHandlersModule,
 } from "./types";
 import type { AudioOutput, EffectSurface } from "@/shared/effect-runtime/contracts";
+import { getActionTimingMs } from "@/shared/effect-runtime/action-state";
 import {
-  decideActionExecution,
-  getActionTimingMs,
-} from "@/shared/effect-runtime/action-state";
+  createActionTriggerPipeline,
+  type ActionTriggerCoords as TriggerCoords,
+  type ActionTriggerOptions as TriggerOptions,
+} from "@/shared/effect-runtime/action-trigger-pipeline";
 import {
   createDoubleClickDetector,
   createLongPressTracker,
@@ -51,22 +53,6 @@ export interface TriggerHandlersDeps {
   effectSurface: EffectSurface;
   audioOutput: AudioOutput;
   cursorOverlay: CursorOverlayModule;
-}
-
-interface TriggerCoords {
-  x: number;
-  y: number;
-  /** 桌面端无 DOM target，扩展端是 EventTarget；仅透传给 configStore.* 与 diagnostics.describeTarget */
-  target: unknown;
-  /** 原始事件，仅 matchesTriggerZone 需要；桌面端为 CursorEvent */
-  event: unknown;
-}
-
-interface TriggerOptions {
-  triggerSource?: string;
-  resolvedActionId?: string;
-  throttleMs?: number;
-  force?: boolean;
 }
 
 export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandlersModule {
@@ -106,153 +92,35 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
     };
   }
 
-  function getTriggerSource(options: TriggerOptions): string {
-    return options.triggerSource || "unknown";
-  }
-
   // ── triggerAction (核心触发管线) ─────────────────────────────────
 
-  // 桌面端不支持 hover 触发器
-  const DESKTOP_UNSUPPORTED_ACTIONS = new Set(["hover"]);
-
-  function triggerAction(
-    sourceActionId: string,
-    coords: TriggerCoords,
-    scheme: unknown,
-    options: TriggerOptions = {},
-  ): void {
-    const triggerSource = getTriggerSource(options);
-    if (!state.ready) {
-      diagnostics?.log("action.skip", {
-        reason: "not-ready",
-        sourceActionId,
-        triggerSource,
-      });
-      return;
-    }
-    if (DESKTOP_UNSUPPORTED_ACTIONS.has(sourceActionId)) {
-      diagnostics?.log("action.skip", {
-        reason: "unsupported-on-desktop",
-        sourceActionId,
-        triggerSource,
-      });
-      return;
-    }
-    if (!configStore.isCurrentSiteEnabled?.()) {
-      diagnostics?.log("action.skip", {
-        reason: "site-disabled",
-        sourceActionId,
-        triggerSource,
-      });
-      return;
-    }
-
-    const targetScheme = scheme || configStore.getActiveScheme?.();
-    const sourceActionConfig = configStore.getActionConfig?.(targetScheme, sourceActionId);
-    if (!sourceActionConfig) {
-      diagnostics?.log("action.skip", {
-        reason: "missing-source-action-config",
-        sourceActionId,
-        triggerSource,
-      });
-      return;
-    }
-    const sourceTriggerConfig = configStore.getActionTriggerConfig(sourceActionConfig);
-    if (!configStore.matchesTriggerZone?.(coords.target, sourceTriggerConfig.triggerZone, coords.event, { actionId: sourceActionId, triggerSource })) {
-      diagnostics?.log("action.skip", {
-        reason: "trigger-zone-filtered",
-        sourceActionId,
-        triggerSource,
-        triggerZone: sourceTriggerConfig.triggerZone || "任意区域",
-        target: diagnostics?.describeTarget?.(coords.target),
-      });
-      return;
-    }
-
-    const cursorStateId = configStore.resolveCursorStateId?.(coords.target) || "";
-    const binding = configStore.getCursorStateBinding?.(targetScheme, cursorStateId, sourceActionId)
-      || { actionId: sourceActionId, cursorStateId };
-    const resolvedActionId = options.resolvedActionId || binding.actionId;
-    diagnostics?.log("action.resolve", {
-      sourceActionId,
-      resolvedActionId,
-      triggerSource,
-      cursorStateId: binding.cursorStateId,
-      inheritedFromDefault: binding.inheritedFromDefault,
-      target: diagnostics?.describeTarget?.(coords.target),
-    });
-    const actionConfig = configStore.getActionConfig?.(targetScheme, resolvedActionId);
-    if (!actionConfig) {
-      diagnostics?.log("action.skip", {
-        reason: "missing-resolved-action-config",
-        sourceActionId,
-        resolvedActionId,
-        triggerSource,
-      });
-      return;
-    }
-    const decision = decideActionExecution(state, {
-      sourceActionId,
-      resolvedActionId,
-      x: coords.x,
-      y: coords.y,
-      actionConfig,
-      sourceTriggerConfig,
-      now: Date.now(),
-      throttleMs: options.throttleMs,
-      force: options.force,
-    });
-    if (decision.status === "skip") {
-      diagnostics?.log("action.skip", {
-        reason: decision.reason,
-        sourceActionId,
-        resolvedActionId,
-        triggerSource,
-        outputs: decision.outputs,
-        ...(decision.reason === "throttled"
-          ? { elapsedMs: decision.elapsedMs, throttleMs: decision.throttleMs }
-          : {}),
-      });
-      return;
-    }
-    diagnostics?.log("action.fire", {
-      sourceActionId,
-      resolvedActionId,
-      triggerSource,
-      runIndex: decision.runIndex,
-      comboIndex: decision.comboIndex,
-      comboWindowMs: decision.comboWindowMs,
-      force: Boolean(options.force),
-      outputs: decision.outputs,
-      target: diagnostics?.describeTarget?.(coords.target),
-    });
-    for (const effect of decision.outputPlan.effects) effectSurface.createNode(effect);
-    if (decision.outputPlan.audio) {
-      void audioOutput.play(decision.outputPlan.audio).catch(() => {
+  const { triggerAction, scheduleActionTrigger } = createActionTriggerPipeline({
+    state,
+    diagnostics,
+    unsupportedActions: new Set(["hover"]),
+    unsupportedReason: "unsupported-on-desktop",
+    configStore: {
+      isCurrentContextEnabled: () => Boolean(configStore.isCurrentSiteEnabled?.()),
+      getActiveScheme: () => configStore.getActiveScheme?.(),
+      getActionConfig: (scheme, actionId) => configStore.getActionConfig?.(scheme, actionId),
+      getActionTriggerConfig: (config) => configStore.getActionTriggerConfig(config),
+      matchesTriggerZone: (target, triggerZone, event, options) => Boolean(
+        configStore.matchesTriggerZone?.(target, triggerZone, event, options),
+      ),
+      resolveCursorStateId: (target) => configStore.resolveCursorStateId?.(target) || "",
+      getCursorStateBinding: (scheme, cursorStateId, actionId) => (
+        configStore.getCursorStateBinding?.(scheme, cursorStateId, actionId)
+        || { actionId, cursorStateId }
+      ),
+    },
+    setTimeout: (callback, delayMs) => window.setTimeout(callback, delayMs),
+    renderEffect: (effect) => { effectSurface.createNode(effect); },
+    playAudio(audio, resolvedActionId) {
+      void audioOutput.play(audio).catch(() => {
         diagnostics?.log("audio.skip", { actionId: resolvedActionId, reason: "output-adapter-error" });
       });
-    }
-  }
-
-  function scheduleActionTrigger(
-    actionId: string,
-    coords: TriggerCoords,
-    scheme: unknown,
-    delayMs: number,
-    options: TriggerOptions = {},
-  ): void {
-    const run = (): void => triggerAction(actionId, coords, scheme, options);
-    if (!delayMs) {
-      run();
-      return;
-    }
-    diagnostics?.log("action.schedule", {
-      actionId,
-      triggerSource: getTriggerSource(options),
-      delayMs,
-    });
-    window.setTimeout(run, delayMs);
-  }
+    },
+  });
 
   // ── 子模块：长按状态机 + 双击检测 ────────────────────────────────
 

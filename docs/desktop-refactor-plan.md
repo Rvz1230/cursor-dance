@@ -784,7 +784,8 @@ interface AudioOutput {
 - 网页 atmosphere 已迁为扩展专属 TypeScript 模块；生命周期改为按需启停，磁吸目标增量对账，清理时保留页面原有内联样式，并覆盖创建、幂等同步、完整清理和页面可见性测试。
 - Web 规则匹配器已直接迁为 TypeScript 并复用 v4 context rule 类型，删除通过源码字符串执行的旧测试方式。
 - diagnostics 的开关解析、事件缓冲、DOM/媒体描述和广播已下沉共享 runtime；桌面直接复用，扩展仅保留 Chrome storage 开关及批量持久化 adapter，原 IIFE 已删除。
-- 下一段继续收敛 trigger handlers、config store 与 content 装配入口。
+- 动作解析、trigger-zone、cursor state 绑定、节流、输出计划与诊断已收敛为共享 action trigger pipeline；扩展 DOM 手势/hover adapter 已迁为 TypeScript，旧 trigger IIFE 与失去调用方的 effect runtime 全局注册已删除。
+- 下一段继续收敛 config store 与 content 装配入口。
 
 ### Phase 4 完成条件
 

@@ -95,9 +95,9 @@
 - **R4-2 验证**：61 个根测试文件共 336 项通过；typecheck、lint（0 error，保留既有 24 warning）、Web/Electron build、Web smoke 5/5 和 desktop smoke 1/1 通过
 - [ ] R4-3：扩展正式构建——Vite 已把共享 effect core/runtime 与剩余 legacy 模块打成单一 MV3 content bundle，manifest 不再维护 12 个脚本的加载顺序；扩展 trigger 已接入共享 action 与 gesture state machine，三份 config-runtime 镜像及 parity 测试已删除
 - **R4-3 当前验证**：67 个根测试文件共 338 项通过；typecheck、lint（0 error，保留既有 24 warning）、Web/扩展/Electron build、扩展产物完整性校验、最终 content bundle 系统 Chrome 注入点击验证、Web smoke 5/5 和 desktop smoke 1/1 通过
-- **R4-4 当前进度**：effect lifecycle、DOM effect surface、cursor overlay、Web Audio 播放核心、diagnostics、扩展页面媒体 duck/profile、网页 atmosphere 与 Web 规则匹配器均已迁为 TypeScript；对应 IIFE 镜像已删除
-- **R4-4 当前验证**：70 个根测试文件共 348 项通过；typecheck、lint（0 error，保留既有 24 warning）、Web/扩展构建、扩展产物完整性校验和 Web smoke 5/5 通过
-- **下一步**：继续 R4-4 收敛 trigger handlers、config store 与 content 装配入口；随后补真实 Chrome 扩展加载/CSP 验收。Windows 同步执行 R1-4 真机验收。
+- **R4-4 当前进度**：effect lifecycle、DOM effect surface、cursor overlay、Web Audio、diagnostics、action trigger pipeline、扩展页面媒体 duck/profile、网页 atmosphere 与 Web 规则匹配器均已迁为 TypeScript；对应 IIFE 镜像已删除
+- **R4-4 当前验证**：72 个根测试文件共 352 项通过；typecheck、lint（0 error，保留既有 24 warning）、Web/扩展构建、扩展产物完整性校验和 Web smoke 5/5 通过
+- **下一步**：继续 R4-4 收敛 config store 与 content 装配入口；随后补真实 Chrome 扩展加载/CSP 验收。Windows 同步执行 R1-4 真机验收。
 
 ### 分支状态
 

@@ -91,8 +91,9 @@ src/
 
 ### Content script module system (extension only)
 The extension is built from `src/extension/content-entry.ts` into one MV3-compatible
-IIFE bundle. Shared effect core/runtime, visual effects, cursor overlay and diagnostics are
-regular TypeScript modules; audio, page atmosphere and web rule adapters are also TypeScript modules.
+IIFE bundle. Shared effect core/runtime, action trigger pipeline, visual effects, cursor overlay and
+diagnostics are regular TypeScript modules; audio, page atmosphere and web rule adapters are also
+TypeScript modules.
 Remaining legacy config and assembly modules temporarily register through
 `window.CursorDanceContentModules`. `content.js` is still the DI container until the
 remaining config adapters are migrated.

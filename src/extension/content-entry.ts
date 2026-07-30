@@ -7,5 +7,5 @@ import "./visual-effects";
 import "./audio";
 import "./cursor-overlay";
 import "./atmosphere";
-import "../../extension/content-runtime/trigger-handlers.js";
+import "./trigger-handlers";
 import "../../extension/content.js";
