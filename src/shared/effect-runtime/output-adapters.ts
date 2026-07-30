@@ -1,15 +1,17 @@
+import type { AudioRuntimeModule } from "./audio-runtime";
+import type { VisualEffectsModule } from "./dom-effect-surface";
 import type {
+  AudioOutput,
   EffectHandle,
   EffectSpec,
   EffectSurface,
-} from "@/shared/effect-runtime/contracts";
-import type { VisualEffectsModule } from "../engine/types";
+} from "./contracts";
 
 function mutableConfig(spec: EffectSpec): Record<string, unknown> {
   return spec.actionConfig as Record<string, unknown>;
 }
 
-export function createDesktopEffectSurface(visualEffects: VisualEffectsModule): EffectSurface {
+export function createDomEffectSurface(visualEffects: VisualEffectsModule): EffectSurface {
   return {
     createNode(spec): EffectHandle {
       const config = mutableConfig(spec);
@@ -28,6 +30,18 @@ export function createDesktopEffectSurface(visualEffects: VisualEffectsModule): 
     },
     clear() {
       visualEffects.clearEffects();
+    },
+  };
+}
+
+export function createWebAudioOutput(audioRuntime: AudioRuntimeModule): AudioOutput {
+  return {
+    async play(spec) {
+      audioRuntime.playSound(
+        spec.actionConfig as Record<string, unknown>,
+        spec.actionId,
+        { comboIndex: spec.comboIndex },
+      );
     },
   };
 }

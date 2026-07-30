@@ -52,8 +52,6 @@ describe("createEffectEngine (skeleton)", () => {
     expect(typeof engine.triggerHandlers.handleRightPointerDown).toBe("function");
     expect(typeof engine.triggerHandlers.handleContextMenu).toBe("function");
     expect(typeof engine.triggerHandlers.handleWheel).toBe("function");
-    expect(typeof engine.triggerHandlers.previewAtViewportCenter).toBe("function");
-    expect(typeof engine.triggerHandlers.previewAt).toBe("function");
-    expect(typeof engine.triggerHandlers.simulateAction).toBe("function");
+    expect("previewAtViewportCenter" in engine.triggerHandlers).toBe(false);
   });
 });

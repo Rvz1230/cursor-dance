@@ -18,12 +18,10 @@
 //
 // 重构说明：
 //   长按/双击状态机 → shared/effect-runtime/gesture-state.ts
-//   预览模拟   → preview-simulation.ts
 
 import type {
   ConfigStore,
   CursorEvent,
-  CursorOverlayModule,
   DiagnosticsModule,
   EngineState,
   TriggerHandlersModule,
@@ -33,7 +31,6 @@ import { getActionTimingMs } from "@/shared/effect-runtime/action-state";
 import {
   createActionTriggerPipeline,
   type ActionTriggerCoords as TriggerCoords,
-  type ActionTriggerOptions as TriggerOptions,
 } from "@/shared/effect-runtime/action-trigger-pipeline";
 import {
   createDoubleClickDetector,
@@ -42,33 +39,25 @@ import {
   type GesturePointerEvent,
   type LongPressTracker,
 } from "@/shared/effect-runtime/gesture-state";
-import { createPreviewSimulation } from "./preview-simulation";
 
 export interface TriggerHandlersDeps {
   window: Window;
-  document: Document;
   state: EngineState;
   diagnostics?: DiagnosticsModule;
   configStore: ConfigStore;
   effectSurface: EffectSurface;
   audioOutput: AudioOutput;
-  cursorOverlay: CursorOverlayModule;
 }
 
 export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandlersModule {
   const {
     window,
-    document,
     state,
     diagnostics,
     configStore,
     effectSurface,
     audioOutput,
-    cursorOverlay: _cursorOverlay,
   } = deps;
-  // cursorOverlay 在扩展端由 handlePointerOver/Out 调用；桌面端 hover 已裁剪，
-  // overlay 同步光标的责任移到上层（src/renderer/overlay 直接监听 IPC mousemove）。
-  void _cursorOverlay;
 
   // ── helpers ──────────────────────────────────────────────────────
 
@@ -297,40 +286,6 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
     });
   }
 
-  // ── 预览模拟 ────────────────────────────────────────────────────
-
-  // preview-simulation 需要 handleLeftPointerDown / handlePointerUp，
-  // 但这两个函数在上面才定义。通过可变引用桥接，避免循环依赖。
-  const handlerRefs: {
-    handleLeftPointerDown: ((event: CursorEvent) => void) | null;
-    handlePointerUp: ((event: CursorEvent) => void) | null;
-  } = {
-    handleLeftPointerDown: null,
-    handlePointerUp: null,
-  };
-  handlerRefs.handleLeftPointerDown = handleLeftPointerDown;
-  handlerRefs.handlePointerUp = handlePointerUp;
-
-  const previewSim = createPreviewSimulation({
-    window,
-    document,
-    state,
-    configStore,
-    longPressTracker,
-    doubleClickDetector,
-    getActionTimingMs,
-    triggerAction(sourceActionId, coords, scheme, options) {
-      triggerAction(sourceActionId, coords as TriggerCoords, scheme, options as TriggerOptions);
-    },
-    handleLeftPointerDown: (event) => handlerRefs.handleLeftPointerDown!(event),
-    handlePointerUp: (event) => handlerRefs.handlePointerUp!(event),
-  });
-
-  // 公共 API 包装：保留 simulateAction 的 options 参数签名
-  function simulateAction(actionId: string, x: number, y: number, scheme: unknown, _options?: { holdMs?: number }): () => void {
-    return previewSim.simulateAction(actionId, x, y, scheme);
-  }
-
   return {
     handleLeftPointerDown,
     handleRightPointerDown,
@@ -338,8 +293,5 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
     handlePointerCancel,
     handleContextMenu,
     handleWheel,
-    previewAtViewportCenter: previewSim.previewAtViewportCenter,
-    previewAt: previewSim.previewAt,
-    simulateAction,
   };
 }

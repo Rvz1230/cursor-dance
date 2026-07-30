@@ -1,16 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { createEffectEngine, type EngineConstants, type EngineState } from "@/desktop/renderer/engine/entry";
 import {
-  getActionAnimationConfig,
-  getActionAudioConfig,
-  getActionCursorFeedbackConfig,
-  getActionImageConfig,
-  getActionParticleConfig,
-  getActionRippleConfig,
-  getActionTextConfig,
-  getActionTriggerConfig,
-} from "@/desktop/renderer/engine/action-config";
-import { defaultKeyFeedbackConfig } from "@/shared/config/key-feedback";
+  createPreviewEffectEngine,
+  type PreviewEffectEngineState,
+} from "@/shared/effect-runtime/preview-engine";
+import { toDesktopAssetUrl } from "@/shared/asset-reference";
 
 interface PreviewEngineConfig {
   holdMs?: number;
@@ -68,8 +61,7 @@ export function usePreviewEngineHost({
   const actionConfigsMapRef = useRef(actionConfigsMap);
   actionConfigsMapRef.current = actionConfigsMap;
   const engineRef = useRef<{
-    engine: ReturnType<typeof createEffectEngine>;
-    state: EngineState;
+    engine: ReturnType<typeof createPreviewEffectEngine>;
     root: HTMLElement;
   } | null>(null);
   const doubleClickIdleTimeoutRef = useRef<number | null>(null);
@@ -80,66 +72,31 @@ export function usePreviewEngineHost({
     const host = effectsHostRef.current;
     if (!host) return undefined;
     const uid = Math.random().toString(36).slice(2, 8);
-    const constants: EngineConstants = {
+    const constants = {
       ROOT_ID: `cursordance-preview-root-${uid}`,
       STYLE_ID: `cursordance-preview-style-${uid}`,
-      HIDE_CURSOR_CLASS: `cd-preview-hide-${uid}`,
     };
-    const engineState: EngineState = { activeEffects: 0, ready: true };
-    const previewScheme = { id: "preview" };
-    // Preview adapts the current draft to the runtime ConfigStore boundary. It
-    // intentionally bypasses site and target filtering inside the isolated stage.
-    const configStore = {
-      getActionTriggerConfig,
-      getActionTextConfig,
-      getActionRippleConfig,
-      getActionParticleConfig,
-      getActionAnimationConfig,
-      getActionImageConfig,
-      getActionAudioConfig,
-      getActionCursorFeedbackConfig: (actionConfig) => {
-        const feedback = getActionCursorFeedbackConfig(actionConfig);
-        // A runtime pointer override would otherwise leak onto the Workbench body.
-        return feedback.cursorOverride === "切换到 pointer"
-          ? { ...feedback, cursorOverride: "跟随当前状态" }
-          : feedback;
-      },
-      getMaxActiveEffects: () => 200,
-      getKeyFeedbackConfig: () => defaultKeyFeedbackConfig,
-      getConfig: () => ({ themes: [previewScheme], activeThemeId: previewScheme.id }),
-      getActiveScheme: () => previewScheme,
-      isCurrentSiteEnabled: () => true,
-      getActionConfig: (_scheme, requestedActionId) => {
-        const map = actionConfigsMapRef.current;
-        return map?.[requestedActionId] || configRef.current;
-      },
-      getCursorStateBinding: (_scheme, _stateId, sourceActionId) => ({
-        actionId: sourceActionId,
-        cursorStateId: "",
-      }),
-      resolveCursorStateId: () => "",
-      matchesTriggerZone: (_target, _zone, _event, options) => (
-        options?.actionId !== "longPress" || actionIdRef.current === "longPress"
-      ),
-    };
-    const engine = createEffectEngine({
+    const engineState: PreviewEffectEngineState = { activeEffects: 0, ready: true };
+    const engine = createPreviewEffectEngine({
       window,
       document,
       constants,
       state: engineState,
-      configStore,
+      resolveAssetUrl: toDesktopAssetUrl,
+      getActionConfig: (requestedActionId) => {
+        const map = actionConfigsMapRef.current;
+        return map?.[requestedActionId] || configRef.current;
+      },
     });
     const root = engine.visualEffects.ensureRoot();
     // Reparent the runtime root into the stage's transformed containing block.
     if (root.parentElement !== host) host.appendChild(root);
     root.style.position = "absolute";
     root.style.inset = "0";
-    engineRef.current = { engine, state: engineState, root };
+    engineRef.current = { engine, root };
 
     return () => {
-      try { engine.cursorOverlay.clearStateCursorOverlay(); } catch {}
-      try { engine.effectSurface.clear(); } catch {}
-      try { engineState.audioContext?.close().catch(() => {}); } catch {}
+      engine.dispose();
       if (doubleClickIdleTimeoutRef.current !== null) {
         window.clearTimeout(doubleClickIdleTimeoutRef.current);
         doubleClickIdleTimeoutRef.current = null;
@@ -151,8 +108,12 @@ export function usePreviewEngineHost({
   }, []);
 
   useEffect(() => {
-    if (disabled) return;
     const handle = engineRef.current;
+    if (disabled) {
+      handle?.engine.cancelPending();
+      setSimulationState({ type: "idle" });
+      return;
+    }
     const host = effectsHostRef.current;
     if (!handle || !host) return;
     const rect = host.getBoundingClientRect();
@@ -176,16 +137,14 @@ export function usePreviewEngineHost({
       }, 300);
     }
 
-    handle.engine.triggerHandlers.previewAt(
+    handle.engine.triggerAt(
       Math.round(rect.width / 2),
       Math.round(rect.height / 2),
-      undefined,
-      undefined,
       actionIdRef.current,
     );
     void triggerInterval;
     void comboIndex;
-  }, [comboIndex, config.holdMs, disabled, runId, triggerInterval]);
+  }, [actionId, comboIndex, config.holdMs, disabled, runId, triggerInterval]);
 
   useEffect(() => {
     if (simulationState.type !== "longPress-holding") {
@@ -202,21 +161,6 @@ export function usePreviewEngineHost({
     frame = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(frame);
   }, [simulationState]);
-
-  useEffect(() => {
-    const handle = engineRef.current;
-    if (!handle) return;
-    handle.state.lastLeftPointerDownAt = 0;
-    handle.state.lastLeftPointerUpAt = 0;
-    const longPressTimeoutId = handle.state.longPressState?.timeoutId;
-    if (typeof longPressTimeoutId === "number") window.clearTimeout(longPressTimeoutId);
-    if (doubleClickIdleTimeoutRef.current !== null) {
-      window.clearTimeout(doubleClickIdleTimeoutRef.current);
-      doubleClickIdleTimeoutRef.current = null;
-    }
-    handle.state.longPressState = null;
-    setSimulationState({ type: "idle" });
-  }, [actionId]);
 
   return {
     effectsHostRef,

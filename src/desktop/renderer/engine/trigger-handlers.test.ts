@@ -8,7 +8,7 @@ import type {
 } from "@/shared/effect-runtime/contracts";
 import { defaultKeyFeedbackConfig } from "@/shared/config/key-feedback";
 import { createTriggerHandlers } from "./trigger-handlers";
-import type { ConfigStore, CursorOverlayModule, EngineState } from "./types";
+import type { ConfigStore, EngineState } from "./types";
 
 describe("trigger handlers runtime adapters", () => {
   it("emits ordered effect specs and one audio spec for an action", async () => {
@@ -49,18 +49,12 @@ describe("trigger handlers runtime adapters", () => {
     const effectSurface: EffectSurface = { createNode, clear: vi.fn() };
     const audioOutput: AudioOutput = { play };
     const state: EngineState = { activeEffects: 0, ready: true };
-    const cursorOverlay: CursorOverlayModule = {
-      syncStateCursorOverlay: vi.fn(),
-      clearStateCursorOverlay: vi.fn(),
-    };
     const handlers = createTriggerHandlers({
       window: { setTimeout, clearTimeout } as unknown as Window,
-      document: {} as Document,
       state,
       configStore,
       effectSurface,
       audioOutput,
-      cursorOverlay,
     });
 
     handlers.handleWheel({ type: "wheel", x: 10, y: 20, deltaY: 100, timestamp: 1 });
@@ -112,15 +106,10 @@ describe("trigger handlers runtime adapters", () => {
     const createNode = vi.fn((_spec: EffectSpec): EffectHandle => ({ dispose() {} }));
     const handlers = createTriggerHandlers({
       window: { setTimeout, clearTimeout } as unknown as Window,
-      document: {} as Document,
       state: { activeEffects: 0, ready: true },
       configStore,
       effectSurface: { createNode, clear: vi.fn() },
       audioOutput: { play: vi.fn(async () => {}) },
-      cursorOverlay: {
-        syncStateCursorOverlay: vi.fn(),
-        clearStateCursorOverlay: vi.fn(),
-      },
     });
 
     handlers.handleLeftPointerDown({ type: "mousedown", x: 10, y: 20, button: 0, timestamp: 1 });

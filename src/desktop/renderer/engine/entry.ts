@@ -1,7 +1,7 @@
 // CursorDance 效果引擎入口
 //
-// 调用方（src/renderer/overlay、Workbench 预览面板）通过 createEffectEngine(deps)
-// 拿到 { visualEffects, cursorOverlay, audioRuntime, triggerHandlers } 四个子模块。
+// 桌面 overlay 通过 createEffectEngine(deps)
+// 拿到各桌面运行时子模块；Workbench 预览使用 shared preview engine。
 //
 // 任务 2.1 / 2.2 / 2.3 / 2.4：四个引擎子模块全部就位。
 
@@ -11,8 +11,7 @@ import { createCursorOverlay } from "./cursor-overlay";
 import { createAudioRuntime } from "./audio";
 import { createTriggerHandlers } from "./trigger-handlers";
 import { createKeyFeedback } from "./key-feedback";
-import { createDesktopEffectSurface } from "../adapters/effect-surface";
-import { createDesktopAudioOutput } from "../adapters/audio-output";
+import { createDomEffectSurface, createWebAudioOutput } from "@/shared/effect-runtime/output-adapters";
 
 export function createEffectEngine(deps: EngineDeps): EffectEngine {
   const visualEffects = createVisualEffects(deps);
@@ -29,17 +28,15 @@ export function createEffectEngine(deps: EngineDeps): EffectEngine {
     diagnostics: deps.diagnostics,
     reportRuntimeError: deps.reportRuntimeError,
   });
-  const effectSurface = createDesktopEffectSurface(visualEffects);
-  const audioOutput = createDesktopAudioOutput(audioRuntime);
+  const effectSurface = createDomEffectSurface(visualEffects);
+  const audioOutput = createWebAudioOutput(audioRuntime);
   const triggerHandlers = createTriggerHandlers({
     window: deps.window,
-    document: deps.document,
     state: deps.state,
     diagnostics: deps.diagnostics,
     configStore: deps.configStore,
     effectSurface,
     audioOutput,
-    cursorOverlay,
   });
   const keyFeedback = createKeyFeedback(deps);
 

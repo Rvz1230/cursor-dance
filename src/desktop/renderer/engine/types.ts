@@ -85,8 +85,6 @@ export interface ConfigStore {
   getKeyFeedbackConfig(): KeyFeedbackConfig;
   /** trigger-handlers：当前 scheme（用户选中的方案） */
   getActiveScheme?(): unknown;
-  /** trigger-handlers：完整 schema v4 config，仅 previewAtViewportCenter 用到 */
-  getConfig?(): { themes: readonly { id: string }[]; activeThemeId: string };
   /** trigger-handlers：站点/应用是否启用。桌面端由共享 app-rules 匹配器实现 */
   isCurrentSiteEnabled?(): boolean;
   /** trigger-handlers：根据 scheme + actionId 取动作配置 */
@@ -174,14 +172,6 @@ export interface TriggerHandlersModule {
   handleRightPointerDown(event: CursorEvent): void;
   handleContextMenu(event: CursorEvent): void;
   handleWheel(event: CursorEvent): void;
-  previewAtViewportCenter(schemeId?: string, previewScheme?: unknown, actionId?: string): void;
-  /**
-   * 在指定坐标触发一次预览。Workbench 预览面板用它在 stage 中心触发，
-   * 桌面 overlay 仍用 previewAtViewportCenter（其内部转调本方法）。
-   */
-  previewAt(x: number, y: number, schemeId?: string, previewScheme?: unknown, actionId?: string): void;
-  /** 模拟多步动作（doubleClick / longPress），通过真实状态机触发。返回清理函数可取消待执行的 timeout。 */
-  simulateAction(actionId: string, x: number, y: number, scheme: unknown, options?: { holdMs?: number }): () => void;
 }
 
 /**

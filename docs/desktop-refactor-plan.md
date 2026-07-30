@@ -31,13 +31,13 @@
 | R4-3 扩展正式构建 | 已完成 | manifest 已收敛到单一 Vite content bundle；真实 Chromium smoke 覆盖注入、效果触发、扩展页面与 CSP |
 | R4-4 删除旧引擎 | 已完成 | 扩展 runtime、config store、composition root 与共享默认配置均已迁为 TypeScript；legacy IIFE 和动态注册链清零 |
 | R5-1 拆分 `AiSchemePanel` | 已完成 | 展示、请求、会话持久化与提案审阅已拆分；主文件由 1,388 行降至 458 行，并删除无消费者的非流式桌面 AI transport |
-| R5-2 拆分 `WorkbenchPreviewRail` | 进行中 | 播放、引擎 host、timeline、舞台与 pointer interaction 已拆分；主文件由 933 行降至 83 行，待消除 app → desktop 引擎依赖 |
+| R5-2 拆分 `WorkbenchPreviewRail` | 已完成 | 播放、timeline、舞台与 pointer interaction 已拆分；预览直接使用 shared runtime，app → desktop 依赖归零，主文件由 933 行降至 83 行 |
 
 当前验证基线：
 
 - `npm run typecheck` 通过。
 - `npm run lint` 通过（0 error；共享旧代码的 22 条显式 `any` 暂作为 warning 逐步收紧）。
-- Vitest 75 个测试文件、358 个测试通过；删除的数量来自 legacy/parity 镜像用例收敛为共享实现的直接行为测试，不再重复比较两份实现。
+- Vitest 76 个测试文件、362 个测试通过；删除的数量来自 legacy/parity 镜像用例收敛为共享实现的直接行为测试，不再重复比较两份实现。
 - API 177 个测试通过。
 - 根 Web、landing、Electron main/preload/renderer 构建通过。
 - 根项目、landing、Electron Vite、Vitest 均复用 Vite 7.3.6。
@@ -856,11 +856,12 @@ AiSchemePanel              # 组合层
 - `usePreviewPlayback` 统一 run id、连击计数、自动播放、重播和多步动作最小播放间隔；纯函数测试覆盖间隔、连击窗口与动作输入指纹。
 - `PreviewPlaybackControls` 独立承载重播、暂停/播放、预设速度和循环间隔展示，容器不再维护工具栏细节。
 - 输入指纹同时包含 `actionId` 与配置，并在 disabled 时清空；切换到相同配置的另一动作或恢复启用后会立即刷新，不再等待下一次定时播放。
-- `usePreviewEngineHost` 统一引擎实例、draft ConfigStore adapter、效果根节点、音频/样式/定时器清理，以及长按/双击模拟状态；舞台组件只消费 host ref 和展示状态。
+- `usePreviewEngineHost` 统一 shared preview engine 实例、效果根节点、音频/样式/定时器清理，以及长按/双击展示状态；舞台组件只消费 host ref 和展示状态。
 - `PreviewTimeline` 独立承载标尺、playhead、轨道、拖拽/缩放手柄、键盘调整、重置与空状态；继续复用既有 timeline model/controller 和拖拽 hook。
 - `usePreviewPointer` 统一 viewport → stage 局部坐标和离场状态，`PreviewStage` 独立承载舞台布局、输出跳转、模拟状态、音频提示与 timeline 组合。
-- `WorkbenchPreviewRail.tsx` 从 933 行降至 83 行；76 个根测试文件共 359 项、typecheck、lint（0 error，保留既有 22 warning）、Web smoke 6/6 与 desktop smoke 1/1 通过。
-- UI 职责拆分已完成；下一段把 preview composition root 迁出 `src/desktop` 并删除临时 draft ConfigStore 假实现，满足 Phase 5 的依赖方向要求。
+- preview composition root 已迁入 `src/shared/effect-runtime`，素材 URL 通过 resolver 注入；Workbench 不再伪造完整 desktop ConfigStore，也不再加载桌面输入状态机。
+- 桌面端删除无生产消费者的 preview simulation/公开 API，效果与音频输出 adapter 收敛到 shared，`src/app/` 对 `src/desktop/` 的 import 数量归零。
+- `WorkbenchPreviewRail.tsx` 从 933 行降至 83 行；76 个根测试文件共 362 项、typecheck、lint（0 error，保留既有 22 warning）、Electron build、Web smoke 6/6 与 desktop smoke 1/1 通过。R5-2 完成，下一段进入 R5-3。
 
 ### R5-3：收敛 Workbench state
 

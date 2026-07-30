@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import type { EffectHandle } from "@/shared/effect-runtime/contracts";
-import type { VisualEffectsModule } from "../engine/types";
-import { createDesktopEffectSurface } from "./effect-surface";
+import type { AudioRuntimeModule } from "./audio-runtime";
+import type { EffectHandle } from "./contracts";
+import type { VisualEffectsModule } from "./dom-effect-surface";
+import { createDomEffectSurface, createWebAudioOutput } from "./output-adapters";
 
-function createHarness() {
+function createEffectHarness() {
   const handle: EffectHandle = { dispose: vi.fn() };
   const visualEffects = {
     renderText: vi.fn(() => handle),
@@ -15,12 +16,12 @@ function createHarness() {
     renderCursorOverride: vi.fn(() => handle),
     clearEffects: vi.fn(),
   } as unknown as VisualEffectsModule;
-  return { handle, visualEffects, surface: createDesktopEffectSurface(visualEffects) };
+  return { handle, visualEffects, surface: createDomEffectSurface(visualEffects) };
 }
 
-describe("desktop effect surface", () => {
-  it("maps shared effect specs to the desktop visual runtime", () => {
-    const { handle, visualEffects, surface } = createHarness();
+describe("runtime output adapters", () => {
+  it("maps effect specs to the DOM visual runtime", () => {
+    const { handle, visualEffects, surface } = createEffectHarness();
     const actionConfig = { particle: true };
 
     expect(surface.createNode({
@@ -49,8 +50,22 @@ describe("desktop effect surface", () => {
   });
 
   it("delegates complete cleanup to the visual runtime", () => {
-    const { visualEffects, surface } = createHarness();
+    const { visualEffects, surface } = createEffectHarness();
     surface.clear();
     expect(visualEffects.clearEffects).toHaveBeenCalledOnce();
+  });
+
+  it("maps audio specs to the Web Audio runtime", async () => {
+    const audioRuntime: AudioRuntimeModule = { playSound: vi.fn() };
+    const output = createWebAudioOutput(audioRuntime);
+    const actionConfig = { sound: true, volume: 80 };
+
+    await output.play({ actionConfig, actionId: "doubleClick", comboIndex: 4 });
+
+    expect(audioRuntime.playSound).toHaveBeenCalledWith(
+      actionConfig,
+      "doubleClick",
+      { comboIndex: 4 },
+    );
   });
 });
