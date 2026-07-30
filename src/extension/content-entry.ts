@@ -1,7 +1,7 @@
 import "./runtime-globals";
 import "../../extension/config.js";
 import "./site-matcher";
-import "../../extension/content-runtime/diagnostics.js";
+import "./diagnostics";
 import "../../extension/content-runtime/config-store.js";
 import "./visual-effects";
 import "./audio";

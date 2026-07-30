@@ -11,6 +11,7 @@ const removedRuntimeFiles = [
   "config-runtime/compute-specs.js",
   "content.js",
   "content-runtime/site-matcher.js",
+  "content-runtime/diagnostics.js",
   "content-runtime/trigger-handlers.js",
   "content-runtime/visual-effects.js",
   "content-runtime/cursor-overlay.js",

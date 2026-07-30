@@ -112,8 +112,8 @@ export interface ConfigStore {
 }
 
 /**
- * diagnostics 子模块对引擎暴露的接口。完整实现见 extension/content-runtime/diagnostics.js
- * （扩展端）和未来的 src/renderer/engine/diagnostics.ts（任务 2.5 之后再迁）。
+ * diagnostics 子模块对引擎暴露的接口。完整实现位于共享 effect runtime，
+ * 桌面与扩展分别注入平台开关和持久化 adapter。
  * describeTarget 桌面端可返回 "no-target" 之类的占位字符串。
  */
 export interface DiagnosticsModule {
