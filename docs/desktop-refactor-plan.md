@@ -31,12 +31,13 @@
 | R4-3 扩展正式构建 | 已完成 | manifest 已收敛到单一 Vite content bundle；真实 Chromium smoke 覆盖注入、效果触发、扩展页面与 CSP |
 | R4-4 删除旧引擎 | 已完成 | 扩展 runtime、config store、composition root 与共享默认配置均已迁为 TypeScript；legacy IIFE 和动态注册链清零 |
 | R5-1 拆分 `AiSchemePanel` | 已完成 | 展示、请求、会话持久化与提案审阅已拆分；主文件由 1,388 行降至 458 行，并删除无消费者的非流式桌面 AI transport |
+| R5-2 拆分 `WorkbenchPreviewRail` | 进行中 | 播放状态机与播放工具栏已拆分；主文件由 933 行降至 837 行，动作切换/恢复启用时会立即刷新预览 |
 
 当前验证基线：
 
 - `npm run typecheck` 通过。
-- `npm run lint` 通过（0 error；共享旧代码的 24 条显式 `any` 暂作为 warning 逐步收紧）。
-- Vitest 67 个测试文件、338 个测试通过；删除的数量来自 legacy/parity 镜像用例收敛为共享实现的直接行为测试，不再重复比较两份实现。
+- `npm run lint` 通过（0 error；共享旧代码的 22 条显式 `any` 暂作为 warning 逐步收紧）。
+- Vitest 74 个测试文件、356 个测试通过；删除的数量来自 legacy/parity 镜像用例收敛为共享实现的直接行为测试，不再重复比较两份实现。
 - API 177 个测试通过。
 - 根 Web、landing、Electron main/preload/renderer 构建通过。
 - 根项目、landing、Electron Vite、Vitest 均复用 Vite 7.3.6。
@@ -849,6 +850,14 @@ AiSchemePanel              # 组合层
 - presentational rail components
 
 共享引擎完成后，预览必须直接使用 core runtime，删除为预览复制的最简 configStore 假实现。
+
+当前进度：
+
+- `usePreviewPlayback` 统一 run id、连击计数、自动播放、重播和多步动作最小播放间隔；纯函数测试覆盖间隔、连击窗口与动作输入指纹。
+- `PreviewPlaybackControls` 独立承载重播、暂停/播放、预设速度和循环间隔展示，容器不再维护工具栏细节。
+- 输入指纹同时包含 `actionId` 与配置，并在 disabled 时清空；切换到相同配置的另一动作或恢复启用后会立即刷新，不再等待下一次定时播放。
+- `WorkbenchPreviewRail.tsx` 从 933 行降至 837 行；74 个根测试文件共 356 项、typecheck、lint（0 error，保留既有 22 warning）、Web smoke 6/6 与 desktop smoke 1/1 通过。
+- 下一段提取 preview engine host 及其生命周期，再拆分 timeline 交互组件。
 
 ### R5-3：收敛 Workbench state
 

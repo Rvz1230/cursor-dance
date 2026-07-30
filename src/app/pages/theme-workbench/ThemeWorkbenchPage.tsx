@@ -549,7 +549,6 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
 
                   <div className="flex min-w-0 h-full min-h-0">
                     <WorkbenchPreviewRail
-                      actionLabel={formatActionLabel(selected.actionId)}
                       actionId={selected.actionId}
                       config={previewActionConfig}
                       actionConfigsMap={previewActionConfigsMap}

@@ -102,7 +102,9 @@
 - **R5-1 稳定性修复**：请求 run id 隔离旧流式回调；会话 load revision 隔离快速切换的迟到读取，且 hydration 完成前禁止自动保存，避免空状态覆盖已有对话。
 - **R5-1 收敛结果**：`useAiProposalReview` 统一预览、应用、放弃和撤销；删除 renderer、preload 与主进程中无消费者的非流式桌面提案 contract，快速模式只保留可取消的流式 transport。
 - **R5-1 验证**：73 个根测试文件共 353 项通过；typecheck、lint（0 error，保留既有 22 warning）、Web/扩展/Electron build、Web smoke 6/6 与 desktop smoke 1/1 通过。
-- **下一步**：进入 R5-2，拆分 `WorkbenchPreviewRail` 的 preview engine host、缩放/录制工具栏与状态展示。Windows 同步执行 R1-4 真机验收。
+- **R5-2 当前进度**：播放控制器和工具栏已从 `WorkbenchPreviewRail` 提取，主文件由 933 行降至 837 行；动作切换或恢复启用时会立即刷新预览，播放间隔、连击窗口和动作输入指纹有直接单测。
+- **R5-2 当前验证**：74 个根测试文件共 356 项通过；typecheck、lint（0 error，保留既有 22 warning）、Web smoke 6/6 与 desktop smoke 1/1 通过。
+- **下一步**：继续 R5-2，提取 preview engine host 及其生命周期，再拆分 timeline 交互组件。Windows 同步执行 R1-4 真机验收。
 
 ### 分支状态
 
