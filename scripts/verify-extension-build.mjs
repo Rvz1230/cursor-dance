@@ -12,6 +12,7 @@ const removedRuntimeFiles = [
   "content.js",
   "content-runtime/trigger-handlers.js",
   "content-runtime/visual-effects.js",
+  "content-runtime/cursor-overlay.js",
 ];
 
 if (scripts.length !== 1 || scripts[0] !== contentBundle) {

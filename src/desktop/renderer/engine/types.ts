@@ -8,6 +8,10 @@ import type {
 import type { ActionRuntimeState } from "@/shared/effect-runtime/action-state";
 import type { GestureRuntimeState } from "@/shared/effect-runtime/gesture-state";
 import type { VisualEffectsModule as SharedVisualEffectsModule } from "@/shared/effect-runtime/dom-effect-surface";
+import type {
+  CursorOverlayModule as SharedCursorOverlayModule,
+  CursorOverlayState as SharedCursorOverlayState,
+} from "@/shared/effect-runtime/cursor-overlay";
 
 // CursorDance 效果引擎共享类型
 //
@@ -144,21 +148,12 @@ export type VisualEffectsModule = SharedVisualEffectsModule;
  * cursor-overlay 子模块的软件光标视觉参数。
  * 上层把站点开关 + cursor-state 解析的责任承担下来，引擎只需要拿到「这次坐标更新里要不要画、画成什么样」。
  */
-export interface CursorOverlayState {
-  imageDataUrl?: string;
-  /** 单位 px，原 JS 钳位到 [24, 96]，缺省 48 */
-  size?: number;
-  hotspotX?: number;
-  hotspotY?: number;
-}
+export type CursorOverlayState = SharedCursorOverlayState;
 
 /**
  * cursor-overlay 子模块对外暴露的 API。
  */
-export interface CursorOverlayModule {
-  syncStateCursorOverlay(x: number, y: number, cursorState?: CursorOverlayState): void;
-  clearStateCursorOverlay(): void;
-}
+export type CursorOverlayModule = SharedCursorOverlayModule;
 
 /**
  * audio 子模块对外暴露的 API。

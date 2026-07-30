@@ -6,7 +6,7 @@ import "../../extension/content-runtime/config-store.js";
 import "./visual-effects";
 import "../../extension/content-runtime/audio-duck-profile.js";
 import "../../extension/content-runtime/audio.js";
-import "../../extension/content-runtime/cursor-overlay.js";
+import "./cursor-overlay";
 import "../../extension/content-runtime/trigger-handlers.js";
 import "../../extension/content-runtime/atmosphere.js";
 import "../../extension/content.js";

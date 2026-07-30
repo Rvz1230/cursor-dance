@@ -34,6 +34,10 @@ import {
 } from "../../../shared/app-rules";
 import type { CursorSkinStateV4, CursorSkinV4 } from "../../../shared/config-schema-v4";
 import { resolveDesktopImageSource } from "../../../shared/asset-reference";
+import {
+  cursorSkinStateToOverlayState,
+  type CursorOverlayState,
+} from "../../../shared/effect-runtime/cursor-overlay";
 import type {
   KeyboardInputEvent,
   PointerInputEvent,
@@ -107,7 +111,7 @@ const configStore = createConfigStore({
 
 // 缓存 cursor skin 解析结果——第一版 overlay 先支持 default 与 dragging/grabbing，
 // 后续 detector 会把浏览器桥接、Accessibility 和应用规则接入 activeStateId。
-let cachedCursorState: { imageDataUrl: string; size: number; hotspotX: number; hotspotY: number } | undefined;
+let cachedCursorState: CursorOverlayState | undefined;
 let cursorStateCacheDirty = true;
 let activeCursorSkinStateId: CursorSkinStateId = "default";
 let leftButtonDown = false;
@@ -134,20 +138,6 @@ function resolveCursorSkinState(cursorSkin: CursorSkinV4 | undefined | null, sta
   return cursorSkin.states?.[stateId] || (stateId !== "default" ? cursorSkin.states?.default : null) || null;
 }
 
-function cursorSkinStateToOverlayState(skinState: CursorSkinStateV4 | null | undefined): typeof cachedCursorState {
-  if (!skinState) return undefined;
-  const imageDataUrl = resolveDesktopImageSource(skinState.image);
-  if (!imageDataUrl) return undefined;
-  const sourceSize = Math.max(skinState.image.width || 48, skinState.image.height || 48);
-  const size = skinState.size?.mode === "fixedBox" ? (skinState.size.boxSize || 48) : sourceSize;
-  return {
-    imageDataUrl,
-    size,
-    hotspotX: skinState.hotspot?.x ?? 0,
-    hotspotY: skinState.hotspot?.y ?? 0,
-  };
-}
-
 function setNativeCursorHidden(hidden: boolean): void {
   if (nativeCursorHidden === hidden) return;
   nativeCursorHidden = hidden;
@@ -163,7 +153,10 @@ function resolveCachedCursorState(): typeof cachedCursorState {
   if (configStore.isCurrentSiteEnabled?.() !== false) {
     const scheme = configStore.getActiveScheme?.();
     const cursorSkin = scheme?.cursorSkin;
-    cachedCursorState = cursorSkinStateToOverlayState(resolveCursorSkinState(cursorSkin, activeCursorSkinStateId));
+    cachedCursorState = cursorSkinStateToOverlayState(
+      resolveCursorSkinState(cursorSkin, activeCursorSkinStateId),
+      resolveDesktopImageSource,
+    );
   }
   setNativeCursorHidden(Boolean(cachedCursorState) && pointerInside);
   return cachedCursorState;

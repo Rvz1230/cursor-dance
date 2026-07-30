@@ -90,14 +90,11 @@ src/
 ```
 
 ### Content script module system (extension only)
-Content scripts can't use ES modules, so `extension/` uses IIFE registration via `window.CursorDanceContentModules`. Load order (defined in `manifest.json`):
-```
-text-semantics.js → action-config.js → config.js
-→ diagnostics.js → config-store.js → visual-effects.js
-→ audio-duck-profile.js → audio.js → cursor-overlay.js
-→ trigger-handlers.js → content.js
-```
-`content.js` is the DI container — it creates each module passing a `runtime` object with only the dependencies that module needs.
+The extension is built from `src/extension/content-entry.ts` into one MV3-compatible
+IIFE bundle. Shared effect core/runtime, visual effects and cursor overlay are regular
+TypeScript modules; remaining legacy content modules temporarily register through
+`window.CursorDanceContentModules`. `content.js` is still the DI container until the
+remaining audio/atmosphere/config adapters are migrated.
 
 ### Workbench component tree
 ```
