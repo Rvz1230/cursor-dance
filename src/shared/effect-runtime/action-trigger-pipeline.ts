@@ -54,6 +54,7 @@ export interface ActionTriggerPipelineDeps {
   unsupportedReason?: string;
   now?: () => number;
   setTimeout(callback: () => void, delayMs: number): unknown;
+  clearTimeout(timeoutId: unknown): void;
   renderEffect(effect: EffectSpec): void;
   playAudio(audio: AudioSpec, resolvedActionId: string): void;
 }
@@ -72,10 +73,12 @@ export interface ActionTriggerPipeline {
     delayMs: number,
     options?: ActionTriggerOptions,
   ): void;
+  clearPendingTriggers(): void;
 }
 
 export function createActionTriggerPipeline(deps: ActionTriggerPipelineDeps): ActionTriggerPipeline {
   const now = deps.now || Date.now;
+  const pendingTimeouts = new Set<unknown>();
 
   function triggerAction(
     sourceActionId: string,
@@ -210,8 +213,18 @@ export function createActionTriggerPipeline(deps: ActionTriggerPipelineDeps): Ac
       triggerSource: options.triggerSource || "unknown",
       delayMs,
     });
-    deps.setTimeout(run, delayMs);
+    let timeoutId: unknown;
+    timeoutId = deps.setTimeout(() => {
+      pendingTimeouts.delete(timeoutId);
+      run();
+    }, delayMs);
+    pendingTimeouts.add(timeoutId);
   }
 
-  return { triggerAction, scheduleActionTrigger };
+  function clearPendingTriggers(): void {
+    for (const timeoutId of pendingTimeouts) deps.clearTimeout(timeoutId);
+    pendingTimeouts.clear();
+  }
+
+  return { triggerAction, scheduleActionTrigger, clearPendingTriggers };
 }

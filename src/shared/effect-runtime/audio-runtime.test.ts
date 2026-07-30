@@ -8,6 +8,7 @@ function createHarness(overrides: Record<string, unknown> = {}) {
     currentTime = 1;
     destination = {};
     resume = vi.fn(async () => {});
+    suspend = vi.fn(async () => {});
     createGain() {
       return {
         connect: vi.fn(),
@@ -80,5 +81,18 @@ describe("shared audio runtime", () => {
     runtime.playSound({}, "wheel");
 
     expect(beforePlay).not.toHaveBeenCalled();
+  });
+
+  it("suspends an existing context without creating one", () => {
+    const { runtime, state } = createHarness();
+
+    runtime.suspend();
+    expect(state.audioContext).toBeUndefined();
+
+    runtime.playSound({}, "leftClick");
+    const context = state.audioContext as AudioContext & { suspend: ReturnType<typeof vi.fn> };
+    runtime.suspend();
+
+    expect(context.suspend).toHaveBeenCalledOnce();
   });
 });

@@ -289,6 +289,24 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
       processName: "Code",
       title: "README — CursorDance smoke",
     };
+    const overlayOrigin = await overlayPage.evaluate(() => ({ x: window.screenX, y: window.screenY }));
+    const sendClick = () => electronApp.evaluate((_electron, point) => {
+      const testing = globalThis.__cursorDanceMainTesting;
+      if (!testing) throw new Error("Desktop smoke routing bridge is unavailable");
+      const timestamp = Date.now();
+      testing.routeCursorEvent({
+        type: "mousedown", x: point.x, y: point.y, button: 0, buttons: 1, timestamp,
+      });
+      testing.routeCursorEvent({
+        type: "mouseup", x: point.x, y: point.y, button: 0, buttons: 0, timestamp: timestamp + 1,
+      });
+    }, {
+      x: overlayOrigin.x + 120,
+      y: overlayOrigin.y + 120,
+    });
+
+    await sendClick();
+    await expect(overlayPage.locator(".cd-effect").first()).toBeAttached();
 
     await workbenchPage.evaluate(async () => {
       if (!window.cursorDanceStorage) throw new Error("cursorDanceStorage bridge is unavailable");
@@ -312,23 +330,7 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
     }, activeCodeSnapshot);
 
     await expect.poll(async () => (await readWindowState(electronApp)).overlay.visibleCount).toBe(0);
-
-    const overlayOrigin = await overlayPage.evaluate(() => ({ x: window.screenX, y: window.screenY }));
-    const sendClick = () => electronApp.evaluate((_electron, point) => {
-      const testing = globalThis.__cursorDanceMainTesting;
-      if (!testing) throw new Error("Desktop smoke routing bridge is unavailable");
-      const timestamp = Date.now();
-      testing.routeCursorEvent({
-        type: "mousedown", x: point.x, y: point.y, button: 0, buttons: 1, timestamp,
-      });
-      testing.routeCursorEvent({
-        type: "mouseup", x: point.x, y: point.y, button: 0, buttons: 0, timestamp: timestamp + 1,
-      });
-    }, {
-      x: overlayOrigin.x + 120,
-      y: overlayOrigin.y + 120,
-    });
-
+    await expect(overlayPage.locator(".cd-effect")).toHaveCount(0);
     await sendClick();
     await overlayPage.waitForTimeout(150);
     await expect(overlayPage.locator(".cd-effect")).toHaveCount(0);

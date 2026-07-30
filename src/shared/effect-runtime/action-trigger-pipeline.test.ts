@@ -20,6 +20,7 @@ function createFixture(overrides: { ready?: boolean; enabled?: boolean } = {}) {
     diagnostics: { log },
     now: () => 1_000,
     setTimeout,
+    clearTimeout,
     renderEffect,
     playAudio,
   });
@@ -48,5 +49,22 @@ describe("shared action trigger pipeline", () => {
     disabled.pipeline.triggerAction("leftClick", { x: 0, y: 0, target: null, event: null });
     expect(disabled.renderEffect).not.toHaveBeenCalled();
     expect(disabled.log).toHaveBeenCalledWith("action.skip", expect.objectContaining({ reason: "site-disabled" }));
+  });
+
+  it("cancels every delayed trigger before it can execute", () => {
+    vi.useFakeTimers();
+    try {
+      const { pipeline, renderEffect } = createFixture();
+      const coords = { x: 10, y: 20, target: null, event: null };
+
+      pipeline.scheduleActionTrigger("leftClick", coords, {}, 100);
+      pipeline.scheduleActionTrigger("rightClick", coords, {}, 200);
+      pipeline.clearPendingTriggers();
+      vi.advanceTimersByTime(500);
+
+      expect(renderEffect).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

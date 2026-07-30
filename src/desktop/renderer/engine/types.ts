@@ -9,6 +9,7 @@ import type { ActionRuntimeState } from "@/shared/effect-runtime/action-state";
 import type { GestureRuntimeState } from "@/shared/effect-runtime/gesture-state";
 import type { VisualEffectsModule as SharedVisualEffectsModule } from "@/shared/effect-runtime/dom-effect-surface";
 import type { CursorOverlayModule as SharedCursorOverlayModule } from "@/shared/effect-runtime/cursor-overlay";
+import type { AudioRuntimeModule } from "@/shared/effect-runtime/audio-runtime";
 
 // CursorDance 效果引擎共享类型
 //
@@ -144,14 +145,6 @@ type VisualEffectsModule = SharedVisualEffectsModule;
 type CursorOverlayModule = SharedCursorOverlayModule;
 
 /**
- * audio 子模块对外暴露的 API。
- * 桌面版没有页面音视频可压制，因此移除了 duckPageMedia 一族；只保留 playSound。
- */
-interface AudioRuntimeModule {
-  playSound(actionConfig: Record<string, unknown>, actionId: string, runContext?: { comboIndex?: number }): void;
-}
-
-/**
  * trigger-handlers 子模块对外暴露的 API。
  * 桌面端裁剪：移除 handlePointerOver / handlePointerOut（hover 不在桌面 5 个 trigger 之内）。
  * 输入从 DOM Event 切换为结构化的 CursorEvent —— 桌面 IPC 不再需要序列化整个 PointerEvent。
@@ -160,6 +153,7 @@ export interface TriggerHandlersModule {
   handleLeftPointerDown(event: CursorEvent): void;
   handlePointerUp(event: CursorEvent): void;
   handlePointerCancel(): void;
+  reset(): void;
   handleRightPointerDown(event: CursorEvent): void;
   handleContextMenu(event: CursorEvent): void;
   handleWheel(event: CursorEvent): void;

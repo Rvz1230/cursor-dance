@@ -114,6 +114,7 @@ export function createContentTriggerHandlers(runtime: ContentTriggerRuntime): Co
       ),
     },
     setTimeout: (callback, delayMs) => window.setTimeout(callback, delayMs),
+    clearTimeout: (timeoutId) => window.clearTimeout(timeoutId as number),
     renderEffect(effect) {
       if (effect.kind === "ripple") visualEffects.renderRipple(effect.x, effect.y, effect.actionConfig);
       else if (effect.kind === "particle" && effect.particleMode === "orbital") {

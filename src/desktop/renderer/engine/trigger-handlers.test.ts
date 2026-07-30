@@ -119,4 +119,59 @@ describe("trigger handlers runtime adapters", () => {
     expect(createNode).toHaveBeenCalledOnce();
     expect(createNode).toHaveBeenCalledWith(expect.objectContaining({ kind: "text", actionId: "leftClick" }));
   });
+
+  it("resets gesture state and cancels delayed actions", () => {
+    vi.useFakeTimers();
+    try {
+      const actionConfigs: Record<string, Record<string, unknown>> = {
+        leftClick: { triggerTiming: "按下时", holdMs: 0, textEnabled: true },
+        rightClick: { triggerTiming: "按下时", holdMs: 120, textEnabled: true },
+        longPress: { triggerTiming: "按住达到时长", holdMs: 420, textEnabled: true },
+        doubleClick: { triggerTiming: "第二次松开时", holdMs: 320, textEnabled: true },
+      };
+      const configStore = {
+        getActionTextConfig: (config) => config || {},
+        getActionRippleConfig: (config) => config || {},
+        getActionParticleConfig: (config) => config || {},
+        getActionAnimationConfig: (config) => config || {},
+        getActionImageConfig: (config) => config || {},
+        getActionCursorFeedbackConfig: (config) => config || {},
+        getActionAudioConfig: (config) => config || {},
+        getActionTriggerConfig: (config) => config || {},
+        getMaxActiveEffects: () => 48,
+        getKeyFeedbackConfig: () => defaultKeyFeedbackConfig,
+        getActiveScheme: () => ({}),
+        isCurrentSiteEnabled: () => true,
+        getActionConfig: (_scheme, actionId) => actionConfigs[actionId],
+        getCursorStateBinding: (_scheme, stateId, actionId) => ({ stateId, actionId, cursorStateId: stateId }),
+        resolveCursorStateId: () => "default",
+        matchesTriggerZone: () => true,
+      } as ConfigStore;
+      const createNode = vi.fn((_spec: EffectSpec): EffectHandle => ({ dispose() {} }));
+      const state: EngineState = { activeEffects: 0, ready: true, lastWheelEventAt: 100 };
+      const handlers = createTriggerHandlers({
+        window: { setTimeout, clearTimeout } as unknown as Window,
+        state,
+        configStore,
+        effectSurface: { createNode, clear: vi.fn() },
+        audioOutput: { play: vi.fn(async () => {}) },
+      });
+
+      handlers.handleRightPointerDown({ type: "mousedown", x: 10, y: 20, button: 2, timestamp: 1 });
+      handlers.handleLeftPointerDown({ type: "mousedown", x: 10, y: 20, button: 0, timestamp: 2 });
+      expect(state.longPressState).toBeTruthy();
+      expect(state.lastLeftPointerDownAt).toBeGreaterThan(0);
+
+      handlers.reset();
+      vi.runAllTimers();
+
+      expect(createNode).not.toHaveBeenCalled();
+      expect(state.longPressState).toBeNull();
+      expect(state.lastLeftPointerDownAt).toBe(0);
+      expect(state.lastLeftPointerUpAt).toBe(0);
+      expect(state.lastWheelEventAt).toBe(0);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });

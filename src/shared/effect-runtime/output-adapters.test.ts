@@ -56,7 +56,7 @@ describe("runtime output adapters", () => {
   });
 
   it("maps audio specs to the Web Audio runtime", async () => {
-    const audioRuntime: AudioRuntimeModule = { playSound: vi.fn() };
+    const audioRuntime: AudioRuntimeModule = { playSound: vi.fn(), suspend: vi.fn() };
     const output = createWebAudioOutput(audioRuntime);
     const actionConfig = { sound: true, volume: 80 };
 

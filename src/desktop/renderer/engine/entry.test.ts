@@ -43,11 +43,13 @@ describe("createEffectEngine (skeleton)", () => {
     expect(typeof engine.cursorOverlay.clearStateCursorOverlay).toBe("function");
     // audioRuntime 暴露 playSound（duckPageMedia 一族在桌面端被裁剪掉）
     expect(typeof engine.audioRuntime.playSound).toBe("function");
+    expect(typeof engine.audioRuntime.suspend).toBe("function");
     expect(typeof engine.audioOutput.play).toBe("function");
-    // triggerHandlers 暴露 7 个 handler（桌面端裁剪 hover：无 handlePointerOver / handlePointerOut）
+    // triggerHandlers 暴露桌面输入 handler 与统一重置入口（无 hover handler）
     expect(typeof engine.triggerHandlers.handleLeftPointerDown).toBe("function");
     expect(typeof engine.triggerHandlers.handlePointerUp).toBe("function");
     expect(typeof engine.triggerHandlers.handlePointerCancel).toBe("function");
+    expect(typeof engine.triggerHandlers.reset).toBe("function");
     expect(typeof engine.triggerHandlers.handleRightPointerDown).toBe("function");
     expect(typeof engine.triggerHandlers.handleContextMenu).toBe("function");
     expect(typeof engine.triggerHandlers.handleWheel).toBe("function");

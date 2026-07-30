@@ -189,10 +189,36 @@ function syncCursorSkinAtLastPosition(): void {
   }
 }
 
+function resetOverlayRuntime(): void {
+  pointerInside = false;
+  leftButtonDown = false;
+  dragStarted = false;
+  state.lastMouseGlobalX = undefined;
+  state.lastMouseGlobalY = undefined;
+  setActiveCursorSkinState("default");
+  engine.triggerHandlers.reset();
+  engine.effectSurface.clear();
+  engine.cursorOverlay.clearStateCursorOverlay();
+  engine.audioRuntime.suspend();
+  state.lastSoundAtByAction = {};
+  state.lastKeydownAtByKeycode?.clear();
+  state.keyFeedbackCombo = undefined;
+  state.activeKeyEffects = 0;
+  setNativeCursorHidden(false);
+}
+
+function syncRuntimeAvailability(): void {
+  if (configStore.isCurrentSiteEnabled?.() === false) {
+    resetOverlayRuntime();
+    return;
+  }
+  syncCursorSkinAtLastPosition();
+}
+
 function applyOverlayConfig(next: unknown, source: "stored" | "live-preview" | "default"): void {
   configStore.setConfig(next || defaultConfig);
   invalidateCursorStateCache();
-  syncCursorSkinAtLastPosition();
+  syncRuntimeAvailability();
   const scheme = configStore.getActiveScheme?.();
   const cursorSkin = scheme?.cursorSkin;
   const resolvedCursorState = resolveCachedCursorState();
@@ -217,7 +243,7 @@ function applyOverlayConfig(next: unknown, source: "stored" | "live-preview" | "
 function applyActiveWindowSnapshot(next: ActiveWindowSnapshot): void {
   activeWindowSnapshot = next;
   invalidateCursorStateCache();
-  syncCursorSkinAtLastPosition();
+  syncRuntimeAvailability();
   diagnostics.log("app-rule.context", {
     source: "active-window",
     authorized: next.authorized,
@@ -374,9 +400,7 @@ const unsubscribeInput = api
 window.addEventListener("beforeunload", () => {
   unsubscribeActiveWindow?.();
   unsubscribeInput();
-  engine.effectSurface.clear();
-  engine.cursorOverlay.clearStateCursorOverlay();
-  setNativeCursorHidden(false);
+  resetOverlayRuntime();
 });
 
 console.info("[cursordance] overlay engine wired");

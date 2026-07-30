@@ -83,7 +83,7 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
 
   // ── triggerAction (核心触发管线) ─────────────────────────────────
 
-  const { triggerAction, scheduleActionTrigger } = createActionTriggerPipeline({
+  const { triggerAction, scheduleActionTrigger, clearPendingTriggers } = createActionTriggerPipeline({
     state,
     diagnostics,
     unsupportedActions: new Set(["hover"]),
@@ -103,6 +103,7 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
       ),
     },
     setTimeout: (callback, delayMs) => window.setTimeout(callback, delayMs),
+    clearTimeout: (timeoutId) => window.clearTimeout(timeoutId as number),
     renderEffect: (effect) => { effectSurface.createNode(effect); },
     playAudio(audio, resolvedActionId) {
       void audioOutput.play(audio).catch(() => {
@@ -236,6 +237,16 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
     longPressTracker.cancel();
   }
 
+  function reset(): void {
+    longPressTracker.forceClear();
+    doubleClickDetector.reset();
+    clearPendingTriggers();
+    state.lastWheelEventAt = 0;
+    state.lastTriggerAtByAction = {};
+    state.actionRunCounts = {};
+    state.actionComboStates = {};
+  }
+
   function handleRightPointerDown(event: CursorEvent): void {
     const scheme = configStore.getActiveScheme?.();
     const actionConfig = configStore.getActionConfig?.(scheme, "rightClick");
@@ -291,6 +302,7 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
     handleRightPointerDown,
     handlePointerUp,
     handlePointerCancel,
+    reset,
     handleContextMenu,
     handleWheel,
   };

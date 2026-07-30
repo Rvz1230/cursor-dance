@@ -3,6 +3,7 @@
 
 export interface AudioRuntimeModule {
   playSound(actionConfig: Record<string, unknown>, actionId: string, runContext?: { comboIndex?: number }): void;
+  suspend(): void;
 }
 
 interface AudioRuntimeState {
@@ -171,5 +172,11 @@ export function createAudioRuntime(deps: AudioRuntimeDeps): AudioRuntimeModule {
     }
   }
 
-  return { playSound };
+  function suspend(): void {
+    const context = state.audioContext;
+    if (!context || context.state !== "running") return;
+    void context.suspend().catch(() => {});
+  }
+
+  return { playSound, suspend };
 }

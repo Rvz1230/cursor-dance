@@ -117,6 +117,7 @@ export function createPreviewEffectEngine(deps: PreviewEffectEngineDeps): Previe
       }),
     },
     setTimeout: (callback, delayMs) => deps.window.setTimeout(callback, delayMs),
+    clearTimeout: (timeoutId) => deps.window.clearTimeout(timeoutId as number),
     renderEffect: (effect) => { effectSurface.createNode(effect); },
     playAudio: (audio) => { void audioOutput.play(audio); },
   });

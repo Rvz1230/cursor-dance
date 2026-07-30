@@ -115,11 +115,12 @@
 - [x] R5-5：多入口死代码检查——Knip 覆盖根 Web、扩展、Electron main/preload/renderer、维护脚本、测试、API 与 landing workspace，并进入 CI。
 - **R5-5 收敛结果**：删除 2 个孤立文件及 10 组仅由虚假导出维持的预设/预览/模型代码，收窄无消费者导出；补齐 Radix 直接依赖，`pm2` 按服务器全局工具精确白名单，源码净删除约 600 行。
 - **R5-5 当前验证**：Knip 零报告；78 个根测试文件共 370 项通过；typecheck、lint 0 error（保留既有 15 warning）、Web smoke 6/6 与 desktop smoke 1/1 通过。
-- [ ] R6-1：运行时性能优化——已完成首轮基线复测和禁用上下文休眠；其余优化继续以测量结果为准。
+- [x] R6-1：运行时性能优化——完成输入合并、目标 overlay 路由、禁用上下文休眠与运行时资源清理；其余候选优化均按测量结果取舍。
 - **R6-1 首轮结果**：桌面规则解析由 main/renderer 共享；前台应用命中禁用规则时主进程直接隐藏 overlay、恢复 Chromium 后台节流并停止输入 IPC，规则清空或命中启用规则后即时恢复。
-- **R6-1 首轮测量**：双屏 1,000 Hz、1,000 个源 mousemove 在启用态合并为 61 条 IPC；禁用上下文下 overlay 可见数 0、两个 renderer 全部节流、IPC 为 0。测量脚本已固定该场景。
-- **R6-1 当前验证**：78 个根测试文件共 372 项、typecheck、Knip、lint（0 error，保留既有 15 warning）、Web smoke 6/6、desktop smoke 1/1 与完整动态测量通过。
-- **下一步**：继续 R6-1，评估配置广播和效果资源清理；配置当前仅 6,358 bytes，若测量收益不足则不引入 revision/patch 复杂度。
+- **R6-1 收敛结果**：禁用时同步取消长按及延迟 action、重置点击/滚轮/键盘/音频节流状态、清除已存在效果和软件光标，并暂停已创建的 AudioContext；恢复后由下一次输入干净重启。延迟任务现有统一 registry，不会跨配置禁用边界补触发。
+- **R6-1 最终测量**：双屏 1,000 Hz、1,000 个源 mousemove 在启用态合并为 60 条目标 IPC；禁用上下文下 overlay 可见数 0、两个 renderer 全部节流、IPC 为 0；冷启动约 0.81 秒。配置仅 6,358 bytes，未引入缺乏收益证据的 revision/patch 或效果对象池。
+- **R6-1 当前验证**：78 个根测试文件共 375 项、typecheck、Knip、lint（0 error，保留既有 15 warning）、Electron build、Web smoke 6/6、desktop smoke 1/1 与完整动态测量通过。
+- **下一步**：进入 R6-2，先建立各 renderer chunk 的职责和预算，再按收益拆分 Workbench 重依赖。
 
 ### 分支状态
 

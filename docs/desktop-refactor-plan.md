@@ -41,7 +41,7 @@
 - `npm run typecheck` 通过。
 - `npm run lint` 通过（0 error；共享旧代码的 15 条显式 `any` 暂作为 warning 逐步收紧）。
 - `npm run check:dead-code` 通过；未引用文件、依赖、导出和导出类型检查已进入 CI。
-- Vitest 78 个测试文件、372 个测试通过；删除的数量来自孤立功能专用测试与 legacy/parity 镜像用例清理，不再为无生产消费者的代码保留测试。
+- Vitest 78 个测试文件、375 个测试通过；删除的数量来自孤立功能专用测试与 legacy/parity 镜像用例清理，不再为无生产消费者的代码保留测试。
 - API 178 个测试通过。
 - 根 Web、landing、Electron main/preload/renderer 构建通过。
 - 根项目、landing、Electron Vite、Vitest 均复用 Vite 7.3.6。
@@ -959,11 +959,12 @@ AiSchemePanel              # 组合层
 
 当前进度：
 
-- 已复测当前双屏基线：冷启动约 1.19 秒；1,000 Hz、1,000 个源 mousemove 合并为 61 条目标 overlay IPC。
+- 已复测当前双屏基线：冷启动约 0.81 秒；1,000 Hz、1,000 个源 mousemove 合并为 60 条目标 overlay IPC。
 - main 与 renderer 现复用同一桌面规则解析器。命中禁用规则时 main 直接隐藏所有 overlay、恢复 Chromium `backgroundThrottling` 并停止输入投递；配置或前台应用变化会即时重新计算。
-- 测量脚本新增禁用上下文场景：双屏 overlay 可见数 0、两个 renderer 均处于后台节流、1,000 个源 mousemove 的 renderer IPC 从启用态 61 条降至 0。
-- 配置 v4 当前默认载荷仅 6,358 bytes；revision/patch 暂不直接实施，需先证明完整广播或 normalize 已成为热点。
-- 当前通过 78 个根测试文件共 372 项、typecheck、Knip、lint（0 error，保留既有 15 warning）、Web smoke 6/6、desktop smoke 1/1 与完整动态测量。
+- 测量脚本新增禁用上下文场景：双屏 overlay 可见数 0、两个 renderer 均处于后台节流、1,000 个源 mousemove 的 renderer IPC 从启用态 60 条降至 0。
+- 禁用上下文时 renderer 同步清空已有 DOM 效果和软件光标，取消长按及所有待执行 action，重置交互节流状态，并暂停已创建的 AudioContext；恢复后不会补触发旧任务。
+- 配置 v4 当前默认载荷仅 6,358 bytes；完整广播和 normalize 尚未成为热点，因此不引入 revision/patch。效果节点已有并发预算和统一清理，暂不引入缺乏测量收益的对象池。
+- 当前通过 78 个根测试文件共 375 项、typecheck、Knip、lint（0 error，保留既有 15 warning）、Electron build、Web smoke 6/6、desktop smoke 1/1 与完整动态测量。R6-1 完成。
 
 ### R6-2：前端 bundle 优化
 
