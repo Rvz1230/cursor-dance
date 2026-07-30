@@ -30,6 +30,7 @@
 | R4-2 EffectRuntime adapters | 已完成 | 桌面四类 adapter 已接入；共享 state machine 统一 timing、throttle、run/combo 状态推进与 output plan |
 | R4-3 扩展正式构建 | 已完成 | manifest 已收敛到单一 Vite content bundle；真实 Chromium smoke 覆盖注入、效果触发、扩展页面与 CSP |
 | R4-4 删除旧引擎 | 已完成 | 扩展 runtime、config store、composition root 与共享默认配置均已迁为 TypeScript；legacy IIFE 和动态注册链清零 |
+| R5-1 拆分 `AiSchemePanel` | 进行中 | 消息/反馈/流式展示已提取并合并重复 Markdown renderer；主文件由 1,388 行降至 1,136 行 |
 
 当前验证基线：
 
@@ -822,6 +823,13 @@ AiSchemePanel              # 组合层
 - 多处相同错误格式化和 loading 分支。
 - renderer 端 endpoint 注入逻辑。
 - 与旧非流式接口重复的请求代码；保留一个 transport contract。
+
+当前进度：
+
+- 消息气泡、复制/反馈交互与流式消息已提取到独立组件，容器不再负责消息内部状态。
+- 静态消息和流式消息共用同一套 Markdown renderer，桌面外链统一经过受限 `openExternal` 桥接；删除原有重复 renderer 配置。
+- `AiSchemePanel.tsx` 从 1,388 行降至 1,136 行；新增 Web smoke 覆盖 AI 面板开关、初始消息与输入面。
+- 下一段拆分提案展示和 Agent 时间线，随后收敛请求、取消、冷却与流式事件状态。
 
 ### R5-2：拆分 `WorkbenchPreviewRail`
 

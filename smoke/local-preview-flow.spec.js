@@ -335,3 +335,19 @@ test("workbench dialogs, save toast, color picker, and slider controls are usabl
     return leftClickConfig?.textColor === "#0284C7" && leftClickConfig?.fontSize === 26;
   }, CONFIG_STORAGE_KEY);
 });
+
+test("AI assistant conversation panel opens and renders its message surface", async ({ page }) => {
+  await clearLocalState(page);
+  await page.goto("/index.html");
+
+  const toggle = page.getByRole("button", { name: "AI 助手", exact: true });
+  await toggle.click();
+  const aiPanel = page.locator("section").filter({ hasText: "AI 方案助手" });
+
+  await expect(aiPanel.getByText("描述你想要的鼠标反馈，我会直接生成或修改当前动作配置。", { exact: true })).toBeVisible();
+  await expect(aiPanel.getByLabel("描述想要的鼠标效果")).toBeVisible();
+  await expect(aiPanel.getByRole("button", { name: "快速", exact: true })).toBeVisible();
+
+  await toggle.click();
+  await expect(page.getByLabel("描述想要的鼠标效果")).toBeHidden();
+});

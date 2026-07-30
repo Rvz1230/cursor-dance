@@ -4,8 +4,14 @@ const STORAGE_KEY_PREFIX = "cursordance.aiConversation.";
 const AI_CONVERSATION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const MAX_MESSAGES_PER_CONVERSATION = 100;
 
+export interface ConversationMessage {
+  role: "user" | "assistant";
+  content: string;
+  kind?: string;
+}
+
 export interface ConversationData {
-  messages: Array<{ role: "user" | "assistant"; content: string; kind?: string }>;
+  messages: ConversationMessage[];
   pendingResult: unknown | null;
   lastPrompt: string;
   agentSteps: unknown[];
@@ -25,8 +31,8 @@ function isOwnKey(key: string): string | null {
 }
 
 function trimMessages(
-  messages: Array<{ role: "user" | "assistant"; content: string }>,
-): Array<{ role: "user" | "assistant"; content: string }> {
+  messages: ConversationMessage[],
+): ConversationMessage[] {
   if (messages.length <= MAX_MESSAGES_PER_CONVERSATION) return messages;
   // Keep the first (greeting) + last N-1 messages
   return [messages[0], ...messages.slice(-(MAX_MESSAGES_PER_CONVERSATION - 1))];

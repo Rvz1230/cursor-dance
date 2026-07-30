@@ -1,10 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Bot, Check, CheckCircle2, ChevronDown, ChevronRight, Copy, Eye, Loader2, PenLine, RotateCcw, Send, Settings, Square, ThumbsDown, ThumbsUp, Trash2, Wrench, X, Zap } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const Markdown = ReactMarkdown as any;
+import { Bot, Check, CheckCircle2, ChevronDown, ChevronRight, Eye, Loader2, RotateCcw, Send, Settings, Square, Trash2, Wrench, X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IconButton } from "@/components/ui/icon-button";
 import { InlineStatus } from "@/components/ui/inline-status";
@@ -17,8 +13,12 @@ import {
   deleteConversation,
   sweepExpiredConversations,
   type ConversationData,
+  type ConversationMessage,
 } from "../lib/storage/ai-conversation";
-import { saveFeedback } from "../lib/storage/ai-feedback";
+import {
+  AiConversationMessage,
+  AiStreamingMessage,
+} from "./ai-scheme/AiConversationMessage";
 import { Panel } from "./WorkbenchControls";
 
 function buildPromptExamples(currentConfig) {
@@ -60,216 +60,7 @@ function buildPromptExamples(currentConfig) {
   return [...examples.slice(0, 3), ...fallbacks].slice(0, 4);
 }
 
-function MessageBubble({ message, onEdit, actionId, notify }) {
-  const isAssistant = message.role === "assistant";
-  const [copied, setCopied] = useState(false);
-  const copyTimerRef = useRef(null);
-  const [feedback, setFeedback] = useState(null);
-  const [feedbackComment, setFeedbackComment] = useState("");
-  const [showCommentInput, setShowCommentInput] = useState(false);
-
-  useEffect(() => {
-    return () => clearTimeout(copyTimerRef.current);
-  }, []);
-
-  function handleCopy() {
-    if (!navigator?.clipboard?.writeText) return;
-    navigator.clipboard.writeText(message.content).then(() => {
-      setCopied(true);
-      clearTimeout(copyTimerRef.current);
-      copyTimerRef.current = setTimeout(() => setCopied(false), 1500);
-    }).catch(() => {
-      // Clipboard write failed — silently ignore
-    });
-  }
-
-  async function handleFeedback(rating) {
-    if (feedback === rating) {
-      // Cancel current vote
-      setFeedback(null);
-      if (rating === "down") {
-        setShowCommentInput(false);
-        setFeedbackComment("");
-      }
-      return;
-    }
-    setFeedback(rating);
-    if (rating === "up") {
-      await saveFeedback({
-        actionId,
-        messageContent: message.content,
-        rating: "up",
-      });
-      notify?.({ tone: "success", title: "感谢反馈！" });
-    } else {
-      // For thumbs-down, wait for optional comment before saving
-      setShowCommentInput(true);
-    }
-  }
-
-  async function handleSubmitComment() {
-    await saveFeedback({
-      actionId,
-      messageContent: message.content,
-      rating: "down",
-      comment: feedbackComment || undefined,
-    });
-    setShowCommentInput(false);
-    setFeedbackComment("");
-    notify?.({ tone: "success", title: "感谢反馈，我们会持续改进" });
-  }
-
-  const kindLabel = isAssistant && message.kind
-    ? { chat: "AI 对话", proposal: "AI 建议", applied: "已应用", discarded: "已放弃" }[message.kind] || null
-    : null;
-  const kindTone = isAssistant && message.kind
-    ? { chat: "border-slate-200 bg-slate-100 text-slate-600", proposal: "border-sky-100 bg-sky-50 text-sky-700", applied: "border-emerald-100 bg-emerald-50 text-emerald-700", discarded: "border-slate-200 bg-slate-100 text-slate-500" }[message.kind] || null
-    : null;
-
-  return (
-    <div className={cn("flex flex-col gap-0.5 group", isAssistant ? "items-start" : "items-end")}>
-      {kindLabel ? (
-        <span className={cn("mb-0.5 rounded-full border px-2 py-0.5 text-2xs font-medium leading-none", kindTone)}>
-          {kindLabel}
-        </span>
-      ) : null}
-      <div
-        className={cn(
-          "max-w-[86%] rounded-2xl px-3 py-2 text-xs leading-5 text-pretty",
-          isAssistant
-            ? "border border-slate-200 bg-slate-50 text-slate-700"
-            : "bg-slate-900 text-white"
-        )}
-      >
-        {isAssistant ? (
-          <div className="prose-cd max-w-none">
-            <Markdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                p: ({ children }) => <p className="mb-1 last:mb-0">{children}</p>,
-                code: ({ className, children, ...props }) => {
-                  const isBlock = /language-/.test(className || "");
-                  if (isBlock) {
-                    return (
-                      <pre className="mt-1 mb-1 overflow-x-auto rounded-lg bg-slate-100 p-2 text-2xs leading-5">
-                        <code className={className} {...props}>{children}</code>
-                      </pre>
-                    );
-                  }
-                  return (
-                    <code className="rounded bg-slate-200/70 px-1 py-0.5 text-2xs font-mono" {...props}>
-                      {children}
-                    </code>
-                  );
-                },
-                ul: ({ children }) => <ul className="mb-1 list-disc pl-4">{children}</ul>,
-                ol: ({ children }) => <ol className="mb-1 list-decimal pl-4">{children}</ol>,
-                li: ({ children }) => <li className="text-xs leading-5">{children}</li>,
-                strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-                a: ({ href, children }) => (
-                  <a
-                    href={href}
-                    className="underline underline-offset-2 hover:text-slate-900"
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={(event) => {
-                      if (!href || !window.cursorDanceApp) return;
-                      event.preventDefault();
-                      void window.cursorDanceApp.openExternal(href);
-                    }}
-                  >
-                    {children}
-                  </a>
-                ),
-              }}
-            >
-              {message.content}
-            </Markdown>
-          </div>
-        ) : (
-          <>{message.content}</>
-        )}
-      </div>
-      <div className={cn(
-        "flex items-center gap-0 px-1",
-        "opacity-0 group-hover:opacity-100 transition-opacity"
-      )}>
-        <IconButton
-          className="rounded-md p-1 text-slate-400 hover:text-slate-600"
-          onClick={handleCopy}
-          label="复制"
-          tooltip="复制"
-        >
-          {copied ? <Check className="size-3.5 text-emerald-500" /> : <Copy className="size-3.5 shrink-0" />}
-        </IconButton>
-        {!isAssistant ? (
-          <IconButton
-            className="rounded-md p-1 text-slate-400 hover:text-slate-600"
-            onClick={() => onEdit?.(message.content)}
-            label="编辑"
-            tooltip="编辑"
-          >
-            <PenLine className="size-3.5 shrink-0" />
-          </IconButton>
-        ) : (
-          <>
-            <IconButton
-              className={cn(
-                "rounded-md p-1",
-                feedback === "up"
-                  ? "text-emerald-500 hover:bg-transparent hover:text-emerald-600"
-                  : "text-slate-400 hover:text-slate-600",
-              )}
-              onClick={() => handleFeedback("up")}
-              label="有帮助"
-              tooltip="有帮助"
-            >
-              <ThumbsUp className={cn("size-3.5", feedback === "up" && "fill-current")} />
-            </IconButton>
-            <IconButton
-              className={cn(
-                "rounded-md p-1",
-                feedback === "down"
-                  ? "text-rose-500 hover:bg-transparent hover:text-rose-600"
-                  : "text-slate-400 hover:text-slate-600",
-              )}
-              onClick={() => handleFeedback("down")}
-              label="没有帮助"
-              tooltip="没有帮助"
-            >
-              <ThumbsDown className={cn("size-3.5", feedback === "down" && "fill-current")} />
-            </IconButton>
-          </>
-        )}
-      </div>
-      {showCommentInput ? (
-        <div className="mt-1 flex w-full max-w-[86%] gap-1.5">
-          <input
-            type="text"
-            value={feedbackComment}
-            onChange={(e) => setFeedbackComment(e.target.value)}
-            placeholder="哪里不对？(选填)"
-            className="w-full min-w-0 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs outline-none placeholder:text-slate-400 focus:border-slate-300"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.nativeEvent.isComposing && e.keyCode !== 229) {
-                void handleSubmitComment();
-              }
-            }}
-          />
-          <button
-            type="button"
-            className="shrink-0 rounded-xl bg-slate-800 px-2.5 py-1.5 text-xs font-medium text-white transition-colors hover:bg-slate-700"
-            onClick={handleSubmitComment}
-          >
-            发送
-          </button>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function getInitialMessages() {
+function getInitialMessages(): ConversationMessage[] {
   return [
     {
       role: "assistant",
@@ -1168,7 +959,7 @@ export function AiSchemePanel({
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
               >
-                <MessageBubble key={`${message.role}-${index}-${message.content}`} message={message} onEdit={setPrompt} actionId={actionId} notify={notify} />
+                <AiConversationMessage message={message} onEdit={setPrompt} actionId={actionId} notify={notify} />
               </motion.div>
             ))}
           </AnimatePresence>
@@ -1178,53 +969,10 @@ export function AiSchemePanel({
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
             >
-              <div className="flex justify-start">
-                <div className="max-w-[86%] rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-700">
-                  {streamingReply ? (
-                    <div className="prose-cd max-w-none">
-                      <Markdown
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          p: ({ children }) => <p className="mb-1 last:mb-0">{children}</p>,
-                          code: ({ className, children, ...props }) => {
-                            const isBlock = /language-/.test(className || "");
-                            if (isBlock) {
-                              return (
-                                <pre className="mt-1 mb-1 overflow-x-auto rounded-lg bg-slate-100 p-2 text-2xs leading-5">
-                                  <code className={className} {...props}>{children}</code>
-                                </pre>
-                              );
-                            }
-                            return (
-                              <code className="rounded bg-slate-200/70 px-1 py-0.5 text-2xs font-mono" {...props}>
-                                {children}
-                              </code>
-                            );
-                          },
-                          ul: ({ children }) => <ul className="mb-1 list-disc pl-4">{children}</ul>,
-                          ol: ({ children }) => <ol className="mb-1 list-decimal pl-4">{children}</ol>,
-                          li: ({ children }) => <li className="text-xs leading-5">{children}</li>,
-                          strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-                        }}
-                      >
-                        {streamingReply}
-                      </Markdown>
-                      <span className="ml-0.5 inline-block h-3.5 w-0.5 animate-pulse bg-sky-400 align-middle" />
-                    </div>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 text-slate-500">
-                      <span className="flex gap-1">
-                        <span className="size-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:0ms]" />
-                        <span className="size-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:150ms]" />
-                        <span className="size-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:300ms]" />
-                      </span>
-                      <span className="text-slate-400">
-                        {useAgent && agentRunning ? "Agent 正在分析需求" : "AI 正在生成"}
-                      </span>
-                    </span>
-                  )}
-                </div>
-              </div>
+              <AiStreamingMessage
+                content={streamingReply}
+                loadingLabel={useAgent && agentRunning ? "Agent 正在分析需求" : "AI 正在生成"}
+              />
             </motion.div>
           ) : null}
 
