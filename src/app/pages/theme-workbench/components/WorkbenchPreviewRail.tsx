@@ -30,19 +30,8 @@ import {
 import { Panel } from "./WorkbenchControls";
 import { AtmosphereStagePreview } from "./AtmosphereStagePreview";
 import { PreviewPlaybackControls } from "./preview-rail/PreviewPlaybackControls";
+import { usePreviewEngineHost } from "./preview-rail/usePreviewEngineHost";
 import { usePreviewPlayback } from "./preview-rail/usePreviewPlayback";
-import { createEffectEngine, type EngineConstants, type EngineState } from "@/desktop/renderer/engine/entry";
-import { defaultKeyFeedbackConfig } from "@/shared/config/key-feedback";
-import {
-  getActionAnimationConfig as engineGetActionAnimationConfig,
-  getActionAudioConfig as engineGetActionAudioConfig,
-  getActionCursorFeedbackConfig as engineGetActionCursorFeedbackConfig,
-  getActionImageConfig as engineGetActionImageConfig,
-  getActionParticleConfig as engineGetActionParticleConfig,
-  getActionRippleConfig as engineGetActionRippleConfig,
-  getActionTextConfig as engineGetActionTextConfig,
-  getActionTriggerConfig as engineGetActionTriggerConfig,
-} from "@/desktop/renderer/engine/action-config";
 
 function buildOutputTags({ textConfig, particleConfig, rippleConfig, audioConfig, animationConfig, imageConfig, config }) {
   const tags = [];
@@ -471,183 +460,20 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, act
   // 鼠标追踪
   const [pointer, setPointer] = useState({ x: 0, y: 0, inside: false });
   const stageRef = useRef(null);
-  const effectsHostRef = useRef(null);
   const cursorEnabled = atmosphere?.mode === "creative-mouse";
-
-  // 引擎实例与最新 config / actionId 引用 ——
-  //   引擎在 mount 时建一次，runId 变化时 triggerHandlers.previewAt 重新触发；
-  //   config 通过 ref 共享，避免每次配置变化重建引擎（重建会丢 audioContext / orbital 缓存）。
-  const configRef = useRef(config);
-  configRef.current = config;
-  const actionIdRef = useRef(actionId);
-  actionIdRef.current = actionId;
-  const actionConfigsMapRef = useRef(actionConfigsMap);
-  actionConfigsMapRef.current = actionConfigsMap;
-  const engineRef = useRef(null);
-  const doubleClickIdleTimeoutRef = useRef<number | null>(null);
-
-  // ── 预览模拟状态 ──
-  const [simState, setSimState] = useState<
-    | { type: "idle" }
-    | { type: "longPress-holding"; startedAt: number; thresholdMs: number }
-    | { type: "doubleClick-waiting" }
-  >({ type: "idle" });
-  const [lpProgress, setLpProgress] = useState(0);
-
-  useEffect(() => {
-    const host = effectsHostRef.current;
-    if (!host) return undefined;
-    // 每个预览面板实例用唯一 ROOT_ID / STYLE_ID，避免和潜在的多实例 / overlay 渲染串。
-    const uid = Math.random().toString(36).slice(2, 8);
-    const constants: EngineConstants = {
-      ROOT_ID: `cursordance-preview-root-${uid}`,
-      STYLE_ID: `cursordance-preview-style-${uid}`,
-      HIDE_CURSOR_CLASS: `cd-preview-hide-${uid}`,
-    };
-    const engineState: EngineState = { activeEffects: 0, ready: true };
-    // 最简内存版 ConfigStore：把 props.config 当唯一 actionConfig 回放，
-    // isCurrentSiteEnabled / matchesTriggerZone 恒 true，绕开 site / hover / target 校验。
-    const previewScheme = { id: "preview" };
-    const configStore = {
-      getActionTriggerConfig: engineGetActionTriggerConfig,
-      getActionTextConfig: engineGetActionTextConfig,
-      getActionRippleConfig: engineGetActionRippleConfig,
-      getActionParticleConfig: engineGetActionParticleConfig,
-      getActionAnimationConfig: engineGetActionAnimationConfig,
-      getActionImageConfig: engineGetActionImageConfig,
-      getActionAudioConfig: engineGetActionAudioConfig,
-      // 预览端遮蔽 "切换到 pointer"，否则引擎会改写 document.body.style.cursor，
-      // 造成预览面板触发后整个 Workbench cursor 短暂被污染。
-      getActionCursorFeedbackConfig: (actionConfig) => {
-        const feedback = engineGetActionCursorFeedbackConfig(actionConfig);
-        if (feedback.cursorOverride === "切换到 pointer") {
-          return { ...feedback, cursorOverride: "跟随当前状态" };
-        }
-        return feedback;
-      },
-      getMaxActiveEffects: () => 200,
-      getKeyFeedbackConfig: () => defaultKeyFeedbackConfig,
-      getConfig: () => ({ themes: [previewScheme], activeThemeId: previewScheme.id }),
-      getActiveScheme: () => previewScheme,
-      isCurrentSiteEnabled: () => true,
-      getActionConfig: (_scheme, actionId) => {
-        const map = actionConfigsMapRef.current;
-        if (map && map[actionId]) return map[actionId];
-        return configRef.current;
-      },
-      getCursorStateBinding: (_scheme, _stateId, sourceActionId) => ({ actionId: sourceActionId, cursorStateId: "" }),
-      resolveCursorStateId: () => "",
-      matchesTriggerZone: (_target, _zone, _event, opts) => {
-        // 预览 doubleClick 时不应触发 longPress
-        if (opts?.actionId === "longPress" && actionIdRef.current !== "longPress") return false;
-        return true;
-      },
-    };
-    const engine = createEffectEngine({
-      window,
-      document,
-      constants,
-      state: engineState,
-      configStore,
-    });
-    // 把效果根节点改挂到 stage 内的 host div，并把 fixed 后代退化为相对 host 定位。
-    // ensureRoot 创建的 div 默认 position:fixed; inset:0; 这里覆盖为 absolute / 全填 host。
-    const root = engine.visualEffects.ensureRoot();
-    if (root.parentElement !== host) host.appendChild(root);
-    root.style.position = "absolute";
-    root.style.inset = "0";
-    // host 自己是 transform 上下文（translateZ(0)），让 .cd-effect 的 position:fixed 在
-    // 现代浏览器里改以 host 为 containing block —— 坐标系即变成 host 局部坐标。
-    engineRef.current = { engine, state: engineState, root };
-    return () => {
-      try { engine.cursorOverlay.clearStateCursorOverlay(); } catch {}
-      try { engine.effectSurface.clear(); } catch {}
-      // close 异步返回 Promise，吞错即可（unmount 阶段对 fail-safe 不敏感）
-      try { engineState.audioContext?.close().catch(() => {}); } catch {}
-      if (doubleClickIdleTimeoutRef.current !== null) {
-        window.clearTimeout(doubleClickIdleTimeoutRef.current);
-        doubleClickIdleTimeoutRef.current = null;
-      }
-      if (root.parentElement) root.parentElement.removeChild(root);
-      // STYLE_ID 用唯一前缀挂在 document.head，一并清理
-      const style = document.getElementById(constants.STYLE_ID);
-      if (style?.parentElement) style.parentElement.removeChild(style);
-      engineRef.current = null;
-    };
-  }, []);
-
-  // runId 变化 → 在 host 中心触发一次效果。disabled 时跳过（保持原 PreviewEffects 语义）。
-  useEffect(() => {
-    if (disabled) return;
-    const handle = engineRef.current;
-    const host = effectsHostRef.current;
-    if (!handle || !host) return;
-    const rect = host.getBoundingClientRect();
-    if (rect.width <= 0 || rect.height <= 0) return;
-    const cx = Math.round(rect.width / 2);
-    const cy = Math.round(rect.height / 2);
-    const aid = actionIdRef.current;
-
-    if (doubleClickIdleTimeoutRef.current !== null) {
-      window.clearTimeout(doubleClickIdleTimeoutRef.current);
-      doubleClickIdleTimeoutRef.current = null;
-    }
-
-    // 模拟多步动作时更新视觉状态
-    if (aid === "longPress") {
-      const holdMs = config.holdMs || 420;
-      setSimState({ type: "longPress-holding", startedAt: Date.now(), thresholdMs: holdMs });
-      setLpProgress(0);
-    } else if (aid === "doubleClick") {
-      setSimState({ type: "doubleClick-waiting" });
-      doubleClickIdleTimeoutRef.current = window.setTimeout(() => {
-        setSimState({ type: "idle" });
-        doubleClickIdleTimeoutRef.current = null;
-      }, 300);
-    } else {
-      setSimState({ type: "idle" });
-    }
-
-    handle.engine.triggerHandlers.previewAt(cx, cy, undefined, undefined, aid);
-    // triggerInterval 仅在 buildTimelineTracks / 触发频率里使用，这里依赖 runId 即可。
-    void triggerInterval;
-    void comboIndex;
-  }, [runId, disabled, comboIndex, triggerInterval, config.holdMs]);
-
-  // longPress 进度环 rAF 驱动
-  useEffect(() => {
-    if (simState.type !== "longPress-holding") {
-      setLpProgress(0);
-      return;
-    }
-    let raf: number;
-    const animate = () => {
-      const elapsed = Date.now() - simState.startedAt;
-      const pct = Math.min(100, (elapsed / simState.thresholdMs) * 100);
-      setLpProgress(pct);
-      if (pct < 100) raf = requestAnimationFrame(animate);
-      else setSimState({ type: "idle" });
-    };
-    raf = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(raf);
-  }, [simState]);
-
-  // actionId 切换时重置引擎状态机
-  useEffect(() => {
-    const handle = engineRef.current;
-    if (!handle) return;
-    handle.state.lastLeftPointerDownAt = 0;
-    handle.state.lastLeftPointerUpAt = 0;
-    if (handle.state.longPressState?.timeoutId !== undefined) {
-      window.clearTimeout(handle.state.longPressState.timeoutId);
-    }
-    if (doubleClickIdleTimeoutRef.current !== null) {
-      window.clearTimeout(doubleClickIdleTimeoutRef.current);
-      doubleClickIdleTimeoutRef.current = null;
-    }
-    handle.state.longPressState = null;
-    setSimState({ type: "idle" });
-  }, [actionId]);
+  const {
+    effectsHostRef,
+    simulationState,
+    longPressProgress,
+  } = usePreviewEngineHost({
+    actionId,
+    actionConfigsMap,
+    comboIndex,
+    config,
+    disabled,
+    runId,
+    triggerInterval,
+  });
 
   function onPointerMove(e) {
     const rect = stageRef.current?.getBoundingClientRect();
@@ -731,17 +557,17 @@ function SimplePreviewStage({ config, disabled, runId, comboIndex, actionId, act
         />
 
         {/* 模拟指示器 */}
-        {simState.type === "longPress-holding" && (
+        {simulationState.type === "longPress-holding" && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <div
               className="size-12 rounded-full border-2 border-slate-300"
               style={{
-                background: `conic-gradient(#7C3AED ${lpProgress}%, transparent ${lpProgress}%)`,
+                background: `conic-gradient(#7C3AED ${longPressProgress}%, transparent ${longPressProgress}%)`,
               }}
             />
           </div>
         )}
-        {simState.type === "doubleClick-waiting" && (
+        {simulationState.type === "doubleClick-waiting" && (
           <div className="pointer-events-none absolute bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-2">
             <span className="size-2.5 rounded-full bg-teal-500 shadow-sm shadow-teal-300" />
             <span className="size-2.5 rounded-full bg-slate-300" />
