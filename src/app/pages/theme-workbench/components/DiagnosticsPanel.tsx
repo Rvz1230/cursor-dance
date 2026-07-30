@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Bug, Eye, Pause, Play, RadioTower, RefreshCcw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { DataPill, Panel } from "./WorkbenchControls";
+import { DataPill } from "@/components/ui/data-pill";
+import { Panel } from "@/components/ui/panel";
 import {
   clearRuntimeErrors,
   readDiagnosticDebugFlag,

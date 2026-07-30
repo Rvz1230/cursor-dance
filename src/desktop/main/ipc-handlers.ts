@@ -1,4 +1,4 @@
-// 任务 3.0：注册 store / live preview 的 ipcMain.handle + 跨窗口广播。
+// 注册 store / live preview 的 ipcMain.handle + 跨窗口广播。
 //
 // 调用时机：必须在 createOverlayWindow / createWorkbenchWindow 之前，
 // 否则首批 renderer 在启动时调 invoke 会拿不到 handler。

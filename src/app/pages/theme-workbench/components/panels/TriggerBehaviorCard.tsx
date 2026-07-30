@@ -1,5 +1,8 @@
 import { getTimingFieldMeta, TRIGGER_OPTIONS, PANEL_META } from "../../model/workbenchSchema";
-import { ControlSlider, FieldRow, Panel, SmallSelect } from "../WorkbenchControls";
+import { ControlSlider } from "@/components/ui/control-slider";
+import { FieldRow } from "@/components/ui/field-row";
+import { Panel } from "@/components/ui/panel";
+import { SmallSelect } from "@/components/ui/small-select";
 import { ResetCardButton } from "./ResetCardButton";
 
 export function TriggerBehaviorCard({ actionId, config, updateActionConfig, panelId, reset }) {

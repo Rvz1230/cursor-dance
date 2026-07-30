@@ -2,7 +2,7 @@
 //
 // 职责：
 //   1. 装配效果引擎（visualEffects / cursorOverlay / audioRuntime / triggerHandlers）
-//   2. 装配 configStore —— 任务 3.0 起从 cursorDanceStorage（IPC + electron-store）拉初始 config，
+//   2. 装配 configStore —— 从 cursorDanceStorage（IPC + electron-store）拉初始 config，
 //      并订阅 STORE_CHANGED / LIVE_PREVIEW_CHANGED 实时刷新
 //   3. 装配 diagnostics
 //   4. 通过 InputSource 接收主进程输入并完成坐标归一化，再分派到 trigger-handlers。
@@ -78,7 +78,7 @@ const state: EngineState = {
 
 const diagnostics = createDiagnostics({ window });
 
-// 任务 3.0：从 preload 注入的 cursorDanceStorage 拉 config。
+// 从 preload 注入的 cursorDanceStorage 拉 config。
 // adapter 内部完全独立于 chrome.storage —— overlay 进程不会回退到 localStorage,
 // 因为 overlay 与 workbench 是不同 BrowserWindow,localStorage 不共享,只有 IPC 通。
 // bridge 缺失时降级为 defaultConfig 兜底,保证引擎能跑起来.

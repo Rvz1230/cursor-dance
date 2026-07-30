@@ -1,9 +1,15 @@
 import { Switch } from "@/components/ui/switch";
+import { ColorOptions } from "@/components/ui/color-options";
+import { ControlSlider } from "@/components/ui/control-slider";
+import { FieldRow } from "@/components/ui/field-row";
+import { Panel } from "@/components/ui/panel";
+import { SectionTitle } from "@/components/ui/section-title";
+import { SmallSelect } from "@/components/ui/small-select";
 import {
   CURSOR_OVERRIDE_OPTIONS,
   PANEL_META,
 } from "../../model/workbenchSchema";
-import { ColorOptions, ControlSlider, FieldRow, Panel, SectionTitle, SettingSection, SmallSelect } from "../WorkbenchControls";
+import { SettingSection } from "../WorkbenchControls";
 import { ResetCardButton } from "./ResetCardButton";
 
 export function CursorFeedbackCard({ config, updateActionConfig, panelId, reset }) {

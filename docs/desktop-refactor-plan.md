@@ -33,7 +33,7 @@
 | R5-1 拆分 `AiSchemePanel` | 已完成 | 展示、请求、会话持久化与提案审阅已拆分；主文件由 1,388 行降至 458 行，并删除无消费者的非流式桌面 AI transport |
 | R5-2 拆分 `WorkbenchPreviewRail` | 已完成 | 播放、timeline、舞台与 pointer interaction 已拆分；预览直接使用 shared runtime，app → desktop 依赖归零，主文件由 933 行降至 83 行 |
 | R5-3 收敛 Workbench state | 已完成 | editor navigation 与 config dirty/live-preview 边界已分离；AI 预览/撤销、列宽拖拽、桌面欢迎/授权 runtime 均已提取为场景 hook |
-| R5-4 无用代码清理 | 进行中 | 已删除 9 个孤立文件、3 个无调用导出和废弃选项常量，首批净删除 729 行；下一批清理通用 UI re-export 与过时注释 |
+| R5-4 无用代码清理 | 已完成 | 删除 9 个孤立文件和 3 个无调用导出，净删除 729 行；通用 UI 转发与过时任务编号已清零 |
 
 当前验证基线：
 
@@ -891,25 +891,26 @@ AiSchemePanel              # 组合层
 - [x] 未被引用的 `ElementMagnetCard.tsx`。
 - [x] 未挂载的 `AssetsPanel`、`StateTestZone`、4 个旧氛围配置卡片及其专用 `assetCenter` 聚合逻辑/测试。
 - [x] 桌面 popup entry、HTML 和 build input。
-- 只服务 localhost 预览、但被误当成桌面正式通道的 fallback 分支。
-- 已由实际实现替代的任务编号注释、过时阶段说明和重复架构注释。
-- 未被使用的导出、测试 hook 和兼容 wrapper。
+- [x] 只服务 localhost 预览、但被误当成桌面正式通道的 fallback 分支；保留的 localhost 判断仅服务明确的开发/静态预览与导航安全测试。
+- [x] 已由实际实现替代的任务编号注释、过时阶段说明和重复架构注释。
+- [x] 未被使用的导出、测试 hook 和兼容 wrapper。
 
 当前进度：
 
 - 首轮真实引用扫描删除 9 个孤立文件、3 个无调用组件导出和两组废弃选项常量，净删除 729 行。
 - 孤立 `assetCenter` 测试随无生产消费者的实现一起删除，因此测试数从 372 调整为 370；其余 78 个根测试文件全部通过。
 - lint warning 从 22 降至 15；typecheck、Web smoke 6/6 与 desktop smoke 1/1 通过。
-- 下一批迁移 `WorkbenchControls` 中通用 UI re-export，并清理已经失效的任务编号/迁移说明。
+- `WorkbenchControls` 的 8 个通用 UI re-export 已删除，消费者直接依赖 `src/components/ui`；桌面与 Workbench 源码中过时的任务编号和迁移说明已清零。
+- R5-4 完成，下一段进入 R5-5 自动死代码检查。
 
 #### 必须在替代实现上线后删除
 
-- `install-runtime-globals.ts`：共享 core 被 UI 直接 import 后删除。
+- [x] `install-runtime-globals.ts`：共享 core 被 UI 直接 import 后删除。
 - [x] 桌面 `api-server.ts` 和 `install-ai-endpoints.ts`：AI IPC transport 上线后删除。
-- `themePacks/schemes` 双写：schema v4 迁移完成后删除。
-- `siteRules` 桌面复用：contextRules 上线后删除。
-- extension/desktop 重复 engine 文件：共享 runtime 切换后逐个删除。
-- cursor Python helper：签名原生 helper 上线或取消系统光标替换后删除。
+- [x] `themePacks/schemes` 双写：schema v4 生产链已删除，仅保留拒绝旧字段的验证 fixture。
+- [x] `siteRules` 桌面复用：桌面使用独立 `appRules`，扩展继续使用 `siteRules`。
+- [x] extension/desktop 重复 engine 文件：共享 runtime 切换后旧镜像已删除。
+- [x] cursor Python helper：已由签名原生 helper 构建链替代，仓库不再包含 Python helper。
 
 #### 不应为了减行数删除
 

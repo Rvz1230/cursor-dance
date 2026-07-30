@@ -1,6 +1,7 @@
 import { cn } from "@/components/ui/utils";
+import { DataPill } from "@/components/ui/data-pill";
+import { Panel } from "@/components/ui/panel";
 import { PLATFORM_ACTIONS, getConflictsForAction } from "../model/workbenchSchema";
-import { DataPill, Panel } from "./WorkbenchControls";
 
 export function BindingsPanel({ actionConfigs, actionId, setActionId, currentConflicts }) {
   return (

@@ -1,14 +1,14 @@
 import { Switch } from "@/components/ui/switch";
+import { ColorOptions } from "@/components/ui/color-options";
+import { ControlSlider } from "@/components/ui/control-slider";
+import { FieldRow } from "@/components/ui/field-row";
+import { Panel } from "@/components/ui/panel";
+import { SectionTitle } from "@/components/ui/section-title";
+import { SmallSelect } from "@/components/ui/small-select";
 import { PANEL_META } from "../model/workbenchSchema";
 import { defaultKeyFeedbackConfig, type KeyFeedbackConfig } from "@/shared/config/key-feedback";
 import {
-  ColorOptions,
-  ControlSlider,
-  FieldRow,
-  Panel,
-  SectionTitle,
   SettingSection,
-  SmallSelect,
 } from "./WorkbenchControls";
 
 const ANIMATION_STYLES = [

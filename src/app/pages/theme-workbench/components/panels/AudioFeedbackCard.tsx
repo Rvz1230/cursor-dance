@@ -1,4 +1,9 @@
 import { Switch } from "@/components/ui/switch";
+import { ControlSlider } from "@/components/ui/control-slider";
+import { FieldRow } from "@/components/ui/field-row";
+import { Panel } from "@/components/ui/panel";
+import { SectionTitle } from "@/components/ui/section-title";
+import { SmallSelect } from "@/components/ui/small-select";
 import {
   AUDIO_BLEND_OPTIONS,
   AUDIO_TRIGGER_OPTIONS,
@@ -6,12 +11,7 @@ import {
   SOUND_FILE_OPTIONS,
 } from "../../model/workbenchSchema";
 import {
-  ControlSlider,
-  FieldRow,
-  Panel,
-  SectionTitle,
   SettingSection,
-  SmallSelect,
 } from "../WorkbenchControls";
 import { ResetCardButton } from "./ResetCardButton";
 

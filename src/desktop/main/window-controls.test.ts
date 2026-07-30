@@ -1,4 +1,4 @@
-// 任务 4.0：window-controls IPC 单元测试
+// window-controls IPC 单元测试
 //
 // 不实例化 BrowserWindow（vitest node 环境无 electron），只验证：
 //   1. snapshot() 把 isMaximized / isFullScreen 透传出来

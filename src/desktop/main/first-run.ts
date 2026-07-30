@@ -1,4 +1,4 @@
-// 任务 4.3：首次启动 flag + 外链跳转
+// 首次启动 flag + 外链跳转
 //
 // 单独的 electron-store key（"firstRun"），不和 cursordance.config 混在一起。
 // 默认认为是首次启动（key 不存在 → true），WelcomeDialog 关闭后写 false。

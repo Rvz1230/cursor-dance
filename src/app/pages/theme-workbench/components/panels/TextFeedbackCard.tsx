@@ -1,5 +1,11 @@
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { ColorOptions } from "@/components/ui/color-options";
+import { ControlSlider } from "@/components/ui/control-slider";
+import { FieldRow } from "@/components/ui/field-row";
+import { Panel } from "@/components/ui/panel";
+import { SectionTitle } from "@/components/ui/section-title";
+import { SmallSelect } from "@/components/ui/small-select";
 import {
   NUMBER_STYLE_OPTIONS,
   PANEL_META,
@@ -12,13 +18,7 @@ import {
   TEXT_WEIGHT_OPTIONS,
 } from "../../model/workbenchSchema";
 import {
-  ColorOptions,
-  ControlSlider,
-  FieldRow,
-  Panel,
-  SectionTitle,
   SettingSection,
-  SmallSelect,
   TextTagEditor,
 } from "../WorkbenchControls";
 import { ResetCardButton } from "./ResetCardButton";

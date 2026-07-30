@@ -3,15 +3,15 @@ import type { CSSProperties } from "react";
 import { ImagePlus, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { ControlSlider } from "@/components/ui/control-slider";
+import { FieldRow } from "@/components/ui/field-row";
+import { Panel } from "@/components/ui/panel";
+import { SectionTitle } from "@/components/ui/section-title";
 import {
   PANEL_META,
 } from "../../model/workbenchSchema";
 import { getImageEffectPresetCards, validateImageEffectFile } from "../../lib/imageEffectAssets";
 import {
-  ControlSlider,
-  FieldRow,
-  Panel,
-  SectionTitle,
   SettingSection,
 } from "../WorkbenchControls";
 import { ResetCardButton } from "./ResetCardButton";

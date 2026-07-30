@@ -1,4 +1,4 @@
-// 任务 5.0：AI 用户设置 + safeStorage 加密 API key
+// AI 用户设置 + safeStorage 加密 API key
 //
 // 职责：
 //   - 持久化用户 AI 配置：apiKey（加密）、baseUrl、model、apiMode

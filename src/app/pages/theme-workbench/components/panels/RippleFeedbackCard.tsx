@@ -1,17 +1,17 @@
 import { Switch } from "@/components/ui/switch";
+import { ColorOptions } from "@/components/ui/color-options";
+import { ControlSlider } from "@/components/ui/control-slider";
+import { FieldRow } from "@/components/ui/field-row";
+import { Panel } from "@/components/ui/panel";
+import { SectionTitle } from "@/components/ui/section-title";
+import { SmallSelect } from "@/components/ui/small-select";
 import {
   PANEL_META,
   RIPPLE_EASING_OPTIONS,
   RIPPLE_STYLE_OPTIONS,
 } from "../../model/workbenchSchema";
 import {
-  ControlSlider,
-  ColorOptions,
-  FieldRow,
-  Panel,
-  SectionTitle,
   SettingSection,
-  SmallSelect,
 } from "../WorkbenchControls";
 import { ResetCardButton } from "./ResetCardButton";
 

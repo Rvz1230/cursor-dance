@@ -2,7 +2,8 @@ import { useState } from "react";
 import { GripVertical, Plus, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/utils";
-import { SectionTitle, DataPill } from "./WorkbenchControls";
+import { DataPill } from "@/components/ui/data-pill";
+import { SectionTitle } from "@/components/ui/section-title";
 
 const PATTERN_TYPE_LABELS = {
   exact: "精确域名",

@@ -1,4 +1,4 @@
-// 任务 4.1：系统托盘
+// 系统托盘
 //
 // 托盘形态：
 //   - 图标：extension/icon-16.png（构建时由 electron-vite 把 extension/ 映射到 out/renderer 与
@@ -91,7 +91,7 @@ function buildMenuTemplate(deps: TrayDeps, enabled: boolean): MenuItemConstructo
  * 创建系统托盘。返回 handle，调用方在 before-quit 时调 destroy。
  *
  * 单进程内只允许一个 tray；重复调用会先 destroy 上一个再建新的——这是为了
- * 兼容热重载场景下 main 进程被复用但 createTray 被再调一次的情形。
+ * 兼容热重载场景下 main 进程被复用但 createTray 被再次调用的情形。
  */
 export function createTray(deps: TrayDeps): TrayHandle {
   if (activeHandle) {
@@ -115,8 +115,8 @@ export function createTray(deps: TrayDeps): TrayHandle {
   // macOS：理论上应该用 setTemplateImage 让系统按状态栏明暗自动反色，
   // 但 template image 要求图标必须含 alpha 通道（透明 = 不显示，黑色 = 显示）。
   // 当前 extension/icon-16.png 是 RGB 无 alpha，标记为 template 后在 macOS 14+
-  // 会被渲染成空——直接看不见。先按非 template 走（彩色图标），等任务 6.0
-  // 重做应用图标资源时再补一份 template-friendly 的单色 icon。
+  // 会被渲染成空——直接看不见，因此暂时按非 template 彩色图标渲染。
+  // 打包资源补齐 template-friendly 单色图标后再启用自动反色。
 
   const tray = new Tray(image);
   tray.setToolTip("CursorDance");

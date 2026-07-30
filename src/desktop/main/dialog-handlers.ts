@@ -1,4 +1,4 @@
-// 任务 3.1：主题导入导出走原生对话框
+// 主题导入导出走原生对话框
 //
 // 把扩展端「Blob + <a download>」/「<input type=file>」这套 web 化路径，
 // 在桌面端替换成 dialog.showSaveDialog / showOpenDialog + Node fs。

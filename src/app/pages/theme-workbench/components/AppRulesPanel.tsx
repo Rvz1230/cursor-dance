@@ -1,4 +1,4 @@
-// 任务 4.2：桌面端应用规则面板
+// 桌面端应用规则面板
 //
 // 使用独立的 appRules 数据流；UI 维度为「进程名 / 窗口标题」+
 // exact / glob 两种 pattern.type，新增 pattern.target 选择匹配维度。
@@ -11,7 +11,8 @@ import { useState } from "react";
 import { GripVertical, Plus, Trash2, ToggleLeft, ToggleRight, Crosshair, AppWindow, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/utils";
-import { SectionTitle, DataPill } from "./WorkbenchControls";
+import { DataPill } from "@/components/ui/data-pill";
+import { SectionTitle } from "@/components/ui/section-title";
 import type {
   ActiveWindowSnapshot,
   AppRule,

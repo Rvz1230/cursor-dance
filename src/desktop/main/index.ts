@@ -88,7 +88,7 @@ function ensureOverlayPerDisplay(): void {
 }
 
 // ----------------------------------------------------------------
-// 任务 4.1：全局 enabled 开关 —— tray / workbench 共用一份
+// 全局 enabled 开关 —— tray / workbench 共用一份
 //
 // 真值来自 electron-store 的 cursordance.config.enabled。tray 不能直接读 store——
 // 通过 isEnabled / toggleEnabled / onEnabledChange 三个回调注入。
@@ -170,7 +170,7 @@ void app.whenReady().then(async () => {
   registerAiIpc();
   registerCursorVisibilityIpc();
 
-  // 1) workbench 配置窗口（系统标题栏，任务 4.0 再改自绘）
+  // 1) Workbench 配置窗口
   openWorkbench();
 
   // 2) 每个 display 一个 overlay
@@ -247,7 +247,7 @@ void app.whenReady().then(async () => {
     });
   }
 
-  // 5) 自动更新（任务 6.1）：仅在 packaged 模式下启用，dev 跳过。
+  // 5) 自动更新：仅在 packaged 模式下启用，dev 跳过。
   //    立即检查一次，之后 4h 轮询；下载完成等到下次正常退出再安装。
   if (!isDesktopSmokeTest) {
     stopAutoUpdater = registerAutoUpdater();

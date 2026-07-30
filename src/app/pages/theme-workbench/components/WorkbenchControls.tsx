@@ -4,16 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/components/ui/utils";
 
-// Re-export 已提取到 src/components/ui/ 的通用组件，保持向后兼容
-export { Panel } from "@/components/ui/panel";
-export { SectionTitle } from "@/components/ui/section-title";
-export { DataPill } from "@/components/ui/data-pill";
-export { SmallSelect } from "@/components/ui/small-select";
-export { FieldRow } from "@/components/ui/field-row";
-export { ControlSlider } from "@/components/ui/control-slider";
-export { ColorOptions } from "@/components/ui/color-options";
-export { ThemeCard } from "@/components/ui/theme-card";
-
 export function TextTagEditor({ tags, onChange, disabled = false }: { tags: string[]; onChange: (tags: string[]) => void; disabled?: boolean }) {
   const [draft, setDraft] = useState("");
   const [draggedTag, setDraggedTag] = useState("");

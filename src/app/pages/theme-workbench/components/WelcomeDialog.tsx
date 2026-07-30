@@ -1,4 +1,4 @@
-// 任务 4.3：首次启动欢迎弹窗
+// 首次启动欢迎弹窗
 //
 // 桌面端首次启动时由 ThemeWorkbenchPage 在挂载后探测 `cursorDanceApp.getFirstRun()`，
 // 返回 true 则展示本组件。用户关闭后写回 markFirstRunComplete()，下次启动直接跳过。

@@ -1,6 +1,6 @@
 // CursorDance 配置存储 / 解析
 //
-// 从 extension/content-runtime/config-store.js 迁移而来（任务 2.5）。关键调整：
+// 桌面配置存储与运行时解析。关键调整：
 //   - 去 IIFE，改为 createConfigStore(deps)，依赖通过参数注入。
 //   - 默认动作配置与 Workbench / 扩展共用 shared effect-core 单一来源；桌面虽不
 //     监听 hover，仍可安全保留其配置以便主题跨平台导入导出。

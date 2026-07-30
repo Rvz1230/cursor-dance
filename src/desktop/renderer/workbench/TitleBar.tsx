@@ -1,4 +1,4 @@
-// 任务 4.0：Workbench 自绘标题栏
+// Workbench 自绘标题栏
 //
 // 标题栏只承载窗口拖拽和品牌；workspace tabs、保存 / 恢复 / AI / 全局启用等
 // 操作放到 Workbench 内容区操作栏，避免 macOS 32px 标题栏被按钮挤压。

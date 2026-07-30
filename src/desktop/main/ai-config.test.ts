@@ -1,4 +1,4 @@
-// 任务 5.0：ai-config 单测
+// ai-config 单测
 //
 // 重点验证 safeStorage 加密 / 退化路径、settings 写入后同步 process.env、
 // readSettingsView 不回流明文 apiKey。

@@ -19,7 +19,7 @@ function getChromeApi() {
   return window.chrome ?? null;
 }
 
-// 任务 3.0：桌面端 preload 注入的存储桥。扩展端、静态预览、单测里
+// 桌面端 preload 注入的存储桥。扩展端、静态预览、单测里
 // 都不存在，返回 null —— 让上层的 chrome / localStorage 分支接管。
 function getElectronStorageBridge() {
   if (typeof window === "undefined") return null;

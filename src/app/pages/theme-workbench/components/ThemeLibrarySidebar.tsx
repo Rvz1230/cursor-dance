@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/components/ui/utils";
 import { Dialog, DialogContent, DialogDescription } from "@/components/ui/dialog";
+import { DataPill } from "@/components/ui/data-pill";
+import { SmallSelect } from "@/components/ui/small-select";
+import { ThemeCard } from "@/components/ui/theme-card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,7 +16,6 @@ import {
   AlertDialogDescription,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { DataPill, SmallSelect, ThemeCard } from "./WorkbenchControls";
 import { pickThemeFile } from "../lib/extensionConfig";
 
 function ThemeComposerModal({

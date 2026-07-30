@@ -1,4 +1,6 @@
-import { FieldRow, SectionTitle, SmallSelect } from "../WorkbenchControls";
+import { FieldRow } from "@/components/ui/field-row";
+import { SectionTitle } from "@/components/ui/section-title";
+import { SmallSelect } from "@/components/ui/small-select";
 import { ATMOSPHERE_PRESET_OPTIONS } from "../../model/atmosphereDefaults";
 
 export function AtmosphereSection({ atmosphere, onChangeModule }) {

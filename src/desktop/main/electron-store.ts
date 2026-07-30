@@ -1,4 +1,4 @@
-// 任务 3.0：electron-store 单例 + 内存 live preview
+// electron-store 单例 + 内存 live preview
 //
 // 职责：
 //   - 持久化 cursordance.config（写盘到 app.getPath("userData")/config.json）

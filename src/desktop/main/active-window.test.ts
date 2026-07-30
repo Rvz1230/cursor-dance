@@ -1,4 +1,4 @@
-// 任务 3.2：active-window IPC 单元测试
+// active-window IPC 单元测试
 //
 // 验证两件事：
 //   1. get-windows 抛 macOS 权限错时，getActiveWindowSnapshot 把英文错误归一化为

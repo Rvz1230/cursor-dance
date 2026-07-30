@@ -1,4 +1,4 @@
-// 任务 4.0：自绘标题栏的窗口控制 IPC
+// 自绘标题栏的窗口控制 IPC
 //
 // 渲染进程的 TitleBar 通过 invoke 触发最小化 / 切换最大化 / 关闭，
 // 主进程根据 event.sender 定位到对应 BrowserWindow。这样 renderer 不需要

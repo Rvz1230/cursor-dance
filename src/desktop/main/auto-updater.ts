@@ -1,4 +1,4 @@
-// 任务 6.1：electron-updater 集成
+// electron-updater 集成
 //
 // 职责：
 //   - 在 packaged 模式下定时检查 GitHub Releases（默认 4 小时一次）

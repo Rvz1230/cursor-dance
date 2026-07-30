@@ -6,6 +6,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { InlineStatus } from "@/components/ui/inline-status";
 import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/components/ui/utils";
+import { Panel } from "@/components/ui/panel";
 import {
   AiConversationMessage,
   AiStreamingMessage,
@@ -15,7 +16,6 @@ import { AiProposalPresentation } from "./ai-scheme/AiProposalPresentation";
 import { useAiConversation } from "./ai-scheme/useAiConversation";
 import { useAiProposalReview } from "./ai-scheme/useAiProposalReview";
 import { useAiProposalRun } from "./ai-scheme/useAiProposalRun";
-import { Panel } from "./WorkbenchControls";
 
 function buildPromptExamples(currentConfig) {
   const examples = [];

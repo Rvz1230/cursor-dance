@@ -1,4 +1,4 @@
-// 任务 3.2：前台应用元数据 IPC
+// 前台应用元数据 IPC
 //
 // 用 get-windows 取当前 active window 的进程名 / Bundle ID / 窗口标题，
 // 投递给 renderer 的共享 app-rules 匹配器做应用规则匹配。

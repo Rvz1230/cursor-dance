@@ -27,7 +27,6 @@ import {
   __testing__,
 } from "./electron-store";
 
-// 任务 3.0 ——
 // 不实际构造 ElectronStore（它需要 electron app 上下文，这里跑在 vitest node 环境下）。
 // 用 injectStore 注入一个 Map-backed stub，验证 read/write 往返 + listener 调度即可。
 

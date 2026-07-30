@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { MousePointerClick } from "lucide-react";
+import { Panel } from "@/components/ui/panel";
 import { PREVIEW_KEYFRAMES } from "../lib/preview";
 import {
   PANEL_META,
@@ -10,7 +11,6 @@ import {
   getActionRippleConfig,
   getActionTextConfig,
 } from "../model/workbenchSchema";
-import { Panel } from "./WorkbenchControls";
 import { PreviewPlaybackControls } from "./preview-rail/PreviewPlaybackControls";
 import { PreviewStage } from "./preview-rail/PreviewStage";
 import { usePreviewPlayback } from "./preview-rail/usePreviewPlayback";

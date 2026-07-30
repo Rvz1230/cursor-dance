@@ -1,4 +1,4 @@
-// 任务 5.0：AI 服务用户设置面板
+// AI 服务用户设置面板
 //
 // 桌面端由主进程直接调用模型 provider，需要一份用户的 API key。
 // 这个 dialog 让用户填 / 改 / 清除 apiKey + baseUrl + model + apiMode。

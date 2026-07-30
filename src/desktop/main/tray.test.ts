@@ -1,4 +1,4 @@
-// 任务 4.1：tray 单元测试
+// tray 单元测试
 //
 // 不构造真实 Tray（vitest node 环境无 electron），只验证：
 //   1. buildMenuTemplate 在 enabled / disabled 两种状态下生成正确的 label

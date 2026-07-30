@@ -3,8 +3,6 @@
 // 桌面 overlay 通过 createEffectEngine(deps)
 // 拿到各桌面运行时子模块；Workbench 预览使用 shared preview engine。
 //
-// 任务 2.1 / 2.2 / 2.3 / 2.4：四个引擎子模块全部就位。
-
 import type { EngineDeps, EffectEngine } from "./types";
 import { createVisualEffects } from "./visual-effects";
 import { createCursorOverlay } from "./cursor-overlay";
