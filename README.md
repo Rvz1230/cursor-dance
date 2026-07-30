@@ -52,7 +52,7 @@ npm ci
 npm run dev:electron
 ```
 
-桌面安装包仍处于 dogfood 阶段；正式分发前需要完成 macOS 签名与公证。
+桌面安装包仍处于 dogfood 阶段；正式发布流程、所需签名凭据与失败回滚策略见 [桌面版发布与回滚](docs/desktop-release.md)。证书接入前不会发布 unsigned 正式版本。
 
 ## 功能
 

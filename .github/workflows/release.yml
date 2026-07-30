@@ -1,0 +1,144 @@
+name: Release desktop
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing v-prefixed tag to release
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+          cache: npm
+      - run: npm ci
+      - run: npm run release:verify-tag -- "$RELEASE_TAG"
+      - run: npm run typecheck
+      - run: npm run test
+
+  package-macos:
+    needs: validate
+    runs-on: macos-15
+    env:
+      CURSORDANCE_PACKAGE_PLATFORM: darwin
+      CURSORDANCE_PACKAGE_ARCH: arm64
+      CURSORDANCE_REQUIRE_SIGNATURE: "1"
+      CURSORDANCE_REQUIRE_NOTARIZATION: "1"
+      CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+      CURSORDANCE_MAC_IDENTITY: ${{ secrets.MAC_CSC_NAME }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+          cache: npm
+      - run: npm ci
+      - run: npm run release:verify-signing -- darwin
+      - run: npm run package:ci
+      - run: npm run verify:package
+      - run: npm run test:package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-darwin-arm64
+          path: |
+            release/ci-darwin-arm64/*.zip
+            release/ci-darwin-arm64/*.blockmap
+            release/ci-darwin-arm64/latest-mac.yml
+          if-no-files-found: error
+          retention-days: 7
+
+  package-windows:
+    needs: validate
+    runs-on: windows-latest
+    env:
+      CURSORDANCE_PACKAGE_PLATFORM: win32
+      CURSORDANCE_PACKAGE_ARCH: x64
+      CURSORDANCE_REQUIRE_SIGNATURE: "1"
+      CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+          cache: npm
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - run: npm ci
+      - run: npm run release:verify-signing -- win32
+      - run: npm run package:ci
+      - run: npm run verify:package
+      - run: npm run test:package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-win32-x64
+          path: |
+            release/ci-win32-x64/*.exe
+            release/ci-win32-x64/*.blockmap
+            release/ci-win32-x64/latest.yml
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: [package-macos, package-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: release-artifacts
+          merge-multiple: true
+      - run: npm run release:checksums -- release-artifacts
+      - name: Create or resume draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if draft=$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft 2>/dev/null); then
+            if [[ "$draft" != "true" ]]; then
+              echo "Release $RELEASE_TAG is already published; refusing to replace it." >&2
+              exit 1
+            fi
+          else
+            gh release create "$RELEASE_TAG" --draft --generate-notes --verify-tag --title "CursorDance $RELEASE_TAG"
+          fi
+          gh release upload "$RELEASE_TAG" release-artifacts/* --clobber
+          gh release edit "$RELEASE_TAG" --draft=false

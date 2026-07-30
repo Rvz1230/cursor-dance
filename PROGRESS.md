@@ -131,17 +131,18 @@
 - **R6-3 打包矩阵**：macOS arm64 生成 ZIP，Windows x64 生成 NSIS；两端均保留 unpacked 应用用于结构检查和启动 smoke，并将安装包、blockmap、更新元数据作为 7 天 CI artifact 上传。旧的 Windows helper-only job 已由完整打包链路取代。
 - **R6-3 产物门禁**：检查 app.asar 主入口、preload/renderer、外置 extension/tray 图标、`app-update.yml`、latest 元数据、blockmap、`uiohook-napi`/`get-windows`/cursor helper 架构与 asar unpack；直接执行打包内 helper 协议，并以隔离 userData 启动最终可执行文件，确认 v4 配置桥和每屏 overlay。
 - **R6-3 本机验证**：macOS arm64 ZIP、更新元数据和 unpacked `.app` 生成成功；产物结构/架构/helper 协议检查通过，最终 `.app` 启动 smoke 通过（双屏 2 个 overlay、1 个 Workbench、`app.isPackaged=true`）。NSIS 明确保留 userData；签名状态当前按预期为 unsigned。
-- [ ] R6-4：签名、公证与更新策略——完成首轮用户可见更新控制面；签名证书、发布 workflow 和回滚说明仍待完成。
+- [ ] R6-4：签名、公证与更新策略——用户可见更新控制面、发布 workflow、校验和与回滚说明已完成；等待签名证书接入和正式发布验收。
 - **R6-4 更新链路**：自动检查保留 4 小时间隔，但关闭 `autoDownload` 和 `autoInstallOnAppQuit`；主进程状态机统一管理检查、可下载、下载进度、等待重启和错误状态。Workbench 标题栏提供检查、下载、重试和重启安装入口，overlay 不具备更新权限。
 - **R6-4 安全与容错**：更新 IPC 纳入 sender policy，开发态和 smoke 返回 `unsupported` 且不联网；检查/下载失败转换为有长度上限的 UI 状态，不再向应用生命周期抛出。停止时清理 interval 与 updater listeners，并用 lifecycle token 隔离已停止实例的异步结果。
-- **R6-4 当前验证**：79 个根测试文件共 380 项、typecheck、Knip、lint（0 error，保留既有 15 warning）、Electron build/bundle budget、desktop smoke、macOS arm64 真实 ZIP 结构验证和最终 `.app` 启动 smoke 通过。
-- **下一步**：确认 Windows x64 CI 首跑结果；随后新增由 tag 驱动、同一 workflow 生成签名产物/更新元数据/checksums 的 release 流程。Developer ID、公证与 Windows code signing 需要外部证书环境。
+- **R6-4 当前验证**：80 个根测试文件共 384 项、typecheck、Knip、lint（0 error，保留既有 15 warning）、Electron build/bundle budget、desktop smoke、macOS arm64 真实 ZIP 结构验证和最终 `.app` 启动 smoke 通过；发布脚本单测、workflow YAML 结构解析及现有 unsigned 产物回归验证通过。
+- **R6-4 发布门禁**：新增 tag/workflow-dispatch 发布流程，版本与 tag 必须精确匹配；macOS Developer ID + stapled notarization、Windows 应用/helper/安装器 Authenticode 均强制验证。两平台成功后才由单一 job 汇总安装包、更新元数据和 blockmap，生成 `SHA256SUMS.txt`，draft 上传完整后再公开；不会发布 unsigned 或半成品版本。
+- **下一步**：配置 GitHub 签名 secrets 并执行首个 tag；同时确认 Windows x64 CI/真机结果。发布失败恢复与“只前进、不自动降级”的回滚策略已记录在 `docs/desktop-release.md`。
 
 ### 分支状态
 
 - **分支**：desktop/phase-0
 - **整理前基线**：`9dcfada refactor(workbench): StatesPanel 迁移至 cursorSkin 数据模型`
-- **阻塞项**：R6-4 的 macOS Developer ID/公证与 Windows code signing 需要外部证书环境；R6-3 Windows x64 路径等待 CI 首跑确认
+- **阻塞项**：R6-4 的 macOS Developer ID/公证与 Windows code signing 需要外部证书环境和首个 tag 验收；R6-3 Windows x64 路径等待 CI 首跑确认
 - **验证基线**：以 CI 的 `npm run test`、`npm run test:smoke`、`npm run build`、`npm run build:electron` 为准，不再硬编码容易过期的测试数量
 - **运行环境**：Node.js `>=22.12.0`（与 Electron 42 及 CI 对齐，见 `.nvmrc`）
 - **历史说明**：任务 6.1 已完成自动更新基础设施、GitHub publish 配置和开发态/打包态测试；当前仍保持 `mac.identity: null`，发布签名、公证、用户可见更新状态与 release workflow 统一归入 R6-4。

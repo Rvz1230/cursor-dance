@@ -42,7 +42,8 @@ mac:
   gatekeeperAssess: false
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
-  # 暂不签名 —— CI 接入再开启 identity / notarize
+  # 普通 CI 明确保持 unsigned；正式 release workflow 通过命令行覆盖 identity / notarize，
+  # 并在发布前强制验签，避免证书缺失时误发 unsigned 产物。
   identity: null
   extraResources:
     - from: build/native/${arch}/cursordance-cursor-helper
@@ -95,9 +96,9 @@ nsis:
   # 升级和卸载均保留 electron-store 配置与素材；用户数据清理必须由应用内显式操作完成。
   deleteAppDataOnUninstall: false
 
-# 任务 6.1：自动更新通过 GitHub Releases 分发。
-# CI 暂不自动 publish；首次手动用 `electron-builder build --publish always`
-# 上传 dmg/zip/blockmap/latest-mac.yml/latest.yml 到 Release 即可。
+# 自动更新通过 GitHub Releases 分发。electron-builder 只生成安装包与更新元数据；
+# `.github/workflows/release.yml` 在两端验签后统一生成 checksums 并创建 Release，
+# 避免平台 job 分别 publish 导致半成品版本可见。
 publish:
   provider: github
   owner: Rvz1230

@@ -1030,7 +1030,9 @@ AiSchemePanel              # 组合层
 - 主进程维护 `unsupported/idle/checking/available/downloading/downloaded/up-to-date/error` 状态机；Workbench 标题栏显示检查、版本、进度、失败重试和重启安装，overlay preload 不暴露更新能力。
 - 检查、下载和安装均通过 Workbench-only typed IPC；错误被截断为有限长度的可见状态，Promise rejection 不进入应用生命周期。stop 会清理 interval/listener，lifecycle token 阻止旧异步任务污染新实例。
 - 开发态与两类 smoke 显式返回 `unsupported`，不会访问更新网络；desktop smoke 同时验证 preload 方法集合和权限边界。
-- 剩余工作：tag release workflow、macOS Developer ID + notarization、Windows code signing、checksums 与回滚文档。证书未提供前保持 CI 产物明确 unsigned。
+- tag release workflow 已完成：版本必须与 tag 精确一致；macOS 和 Windows 分别完成签名、结构检查与最终应用 smoke 后，单一 publish job 才汇总安装包、blockmap 和更新元数据，生成 `SHA256SUMS.txt`，并通过 draft staging 防止半成品 Release 可见。
+- 正式 workflow 强制验证 Developer ID Application、stapled notarization ticket 和 Authenticode；签名 secret 缺失会在打包前失败，不会回退到 unsigned 发布。普通 CI 仍明确保持 unsigned。
+- 发布失败恢复与回滚说明已写入 `docs/desktop-release.md`。剩余工作是接入真实 macOS/Windows 证书并执行首个 tag 验收；Windows x64 CI 和自定义光标仍需真机确认。
 
 ### Phase 6 完成条件
 

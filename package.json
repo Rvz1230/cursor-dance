@@ -59,7 +59,10 @@
     "package:dir": "npm run build:electron && electron-builder --dir",
     "package:ci": "node scripts/package-desktop-ci.mjs",
     "verify:package": "node scripts/verify-packaged-desktop.mjs",
-    "test:package": "node scripts/smoke-packaged-desktop.mjs"
+    "test:package": "node scripts/smoke-packaged-desktop.mjs",
+    "release:verify-tag": "node scripts/release-artifacts.mjs verify-tag",
+    "release:verify-signing": "node scripts/release-artifacts.mjs verify-signing",
+    "release:checksums": "node scripts/release-artifacts.mjs checksums"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",

@@ -47,6 +47,26 @@ async function verifyArchitecture(path) {
   else await verifyWindowsArchitecture(path);
 }
 
+function verifyWindowsSignature(path) {
+  const result = spawnSync(
+    "powershell.exe",
+    [
+      "-NoProfile",
+      "-NonInteractive",
+      "-Command",
+      "(Get-AuthenticodeSignature -LiteralPath $env:CURSORDANCE_VERIFY_SIGNATURE_PATH).Status",
+    ],
+    {
+      encoding: "utf8",
+      env: { ...process.env, CURSORDANCE_VERIFY_SIGNATURE_PATH: path },
+    },
+  );
+  if (result.error) throw result.error;
+  if (result.status !== 0 || result.stdout.trim() !== "Valid") {
+    throw new Error(`Windows signature verification failed for ${basename(path)}: ${result.stdout.trim() || result.stderr.trim()}`);
+  }
+}
+
 async function verifyHelperProtocol() {
   const child = spawn(helperPath, [], { stdio: ["pipe", "pipe", "pipe"] });
   const statuses = [];
@@ -123,8 +143,11 @@ for (const expectedLine of ["provider: github", "owner: Rvz1230", "repo: cursor-
 
 const outputNames = await readdir(paths.outputDirectory);
 const artifactPattern = paths.platform === "darwin" ? /\.zip$/ : /\.exe$/i;
+const installerPaths = outputNames
+  .filter((name) => artifactPattern.test(name))
+  .map((name) => join(paths.outputDirectory, name));
 const metadataName = paths.platform === "darwin" ? "latest-mac.yml" : "latest.yml";
-if (!outputNames.some((name) => artifactPattern.test(name))) throw new Error("Packaged desktop installer artifact is missing");
+if (installerPaths.length === 0) throw new Error("Packaged desktop installer artifact is missing");
 if (!outputNames.includes(metadataName)) throw new Error(`${metadataName} is missing`);
 if (!outputNames.some((name) => name.endsWith(".blockmap"))) throw new Error("Update blockmap is missing");
 
@@ -134,7 +157,22 @@ if (paths.platform === "darwin") {
   const signature = spawnSync("codesign", ["--verify", "--deep", "--strict", paths.appDirectory], { encoding: "utf8" });
   const requireSignature = process.env.CURSORDANCE_REQUIRE_SIGNATURE === "1";
   if (requireSignature && signature.status !== 0) throw new Error(`macOS signature verification failed: ${signature.stderr.trim()}`);
+  if (requireSignature) {
+    const details = spawnSync("codesign", ["-dv", "--verbose=4", paths.appDirectory], { encoding: "utf8" });
+    if (details.status !== 0 || !details.stderr.includes("Authority=Developer ID Application:")) {
+      throw new Error(`macOS release is not signed with Developer ID Application: ${details.stderr.trim()}`);
+    }
+  }
+  if (process.env.CURSORDANCE_REQUIRE_NOTARIZATION === "1") {
+    const notarization = spawnSync("xcrun", ["stapler", "validate", paths.appDirectory], { encoding: "utf8" });
+    if (notarization.status !== 0) throw new Error(`macOS notarization validation failed: ${notarization.stderr.trim()}`);
+  }
   console.info(`[desktop-package] signature: ${signature.status === 0 ? "verified" : "unsigned (expected until R6-4)"}`);
+} else if (process.env.CURSORDANCE_REQUIRE_SIGNATURE === "1") {
+  verifyWindowsSignature(paths.executablePath);
+  verifyWindowsSignature(helperPath);
+  installerPaths.forEach(verifyWindowsSignature);
+  console.info("[desktop-package] Windows signatures: verified");
 }
 
 const appStats = await stat(paths.appDirectory);
