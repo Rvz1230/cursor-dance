@@ -3,7 +3,7 @@ import "../../extension/config.js";
 import "../../extension/content-runtime/site-matcher.js";
 import "../../extension/content-runtime/diagnostics.js";
 import "../../extension/content-runtime/config-store.js";
-import "../../extension/content-runtime/visual-effects.js";
+import "./visual-effects";
 import "../../extension/content-runtime/audio-duck-profile.js";
 import "../../extension/content-runtime/audio.js";
 import "../../extension/content-runtime/cursor-overlay.js";

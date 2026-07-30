@@ -1,18 +1,18 @@
 import type { KeyFeedbackConfig } from "./key-feedback-types";
 import type {
   AudioOutput,
-  EffectHandle,
   EffectSurface,
   KeyboardEventPayload,
   RuntimeCursorEvent,
 } from "@/shared/effect-runtime/contracts";
 import type { ActionRuntimeState } from "@/shared/effect-runtime/action-state";
 import type { GestureRuntimeState } from "@/shared/effect-runtime/gesture-state";
+import type { VisualEffectsModule as SharedVisualEffectsModule } from "@/shared/effect-runtime/dom-effect-surface";
 
 // CursorDance 效果引擎共享类型
 //
-// 引擎在扩展端通过 IIFE + window.CursorDanceContentModules 注册（见 extension/content-runtime/*）。
-// 桌面端把同一套引擎放到 ES module 形态下，并通过 createEffectEngine 注入
+// 引擎的 DOM effect surface 由桌面端与扩展端共同使用；其余 legacy runtime
+// 仍通过 window.CursorDanceContentModules 注册。桌面端通过 createEffectEngine 注入
 // window/document/constants/state/configStore，让 overlay 渲染进程与 Workbench 预览面板
 // 共享同一份代码（详见 docs/plans/steady-painting-yeti.md）。
 
@@ -136,21 +136,9 @@ export interface EngineDeps {
 
 /**
  * visual-effects 子模块对外暴露的渲染 API。
- * 与 extension/content-runtime/visual-effects.js 的返回对象一一对应。
+ * 桌面端与扩展端共同使用 shared DOM effect surface。
  */
-export interface VisualEffectsModule {
-  ensureRoot(): HTMLElement;
-  renderText(x: number, y: number, actionConfig: Record<string, unknown>, actionId: string, runIndex: number): EffectHandle;
-  renderRipple(x: number, y: number, actionConfig: Record<string, unknown>): EffectHandle;
-  renderAnimationEffect(x: number, y: number, actionConfig: Record<string, unknown>): EffectHandle;
-  renderImageEffect(x: number, y: number, actionConfig: Record<string, unknown>): EffectHandle;
-  renderParticles(x: number, y: number, actionConfig: Record<string, unknown>, runIndex: number): EffectHandle;
-  renderOrbitalParticles(x: number, y: number, actionConfig: Record<string, unknown>, runIndex: number, actionId?: string): EffectHandle;
-  clearOrbitalParticles(actionId?: string): void;
-  clearEffects(): void;
-  renderCursorOverride(x: number, y: number, actionConfig: Record<string, unknown>): EffectHandle;
-  hasCursorOverride(actionConfig: Record<string, unknown>): boolean;
-}
+export type VisualEffectsModule = SharedVisualEffectsModule;
 
 /**
  * cursor-overlay 子模块的软件光标视觉参数。

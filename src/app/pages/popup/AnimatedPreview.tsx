@@ -16,7 +16,7 @@ import {
 import { getPreviewCycleMs } from "../theme-workbench/lib/timelineModel";
 
 // ═══════════════════════════════════════════════════════════════════
-// Custom keyframes — hand-written to exactly match visual-effects.js
+// Custom keyframes — hand-written to match the shared DOM effect surface.
 // ═══════════════════════════════════════════════════════════════════
 
 const POPUP_KF = `

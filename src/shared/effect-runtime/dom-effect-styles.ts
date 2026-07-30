@@ -1,5 +1,5 @@
 /**
- * Visual-effects CSS stylesheet — extracted from visual-effects.ts.
+ * Shared visual-effects CSS stylesheet.
  *
  * The overlay root ID is injected at runtime, so this module exports a
  * builder function rather than a plain string. Desktop native-cursor hiding
