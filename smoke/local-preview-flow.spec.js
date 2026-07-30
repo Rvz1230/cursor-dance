@@ -352,4 +352,7 @@ test("AI assistant conversation panel opens and renders its message surface", as
 
   await toggle.click();
   await expect(page.getByLabel("描述想要的鼠标效果")).toBeHidden();
+
+  await toggle.click();
+  await expect(aiPanel.getByRole("button", { name: "Agent", exact: true })).toBeVisible();
 });

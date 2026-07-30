@@ -7,19 +7,12 @@ import { InlineStatus } from "@/components/ui/inline-status";
 import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/components/ui/utils";
 import {
-  saveConversation,
-  loadConversation,
-  deleteConversation,
-  sweepExpiredConversations,
-  type ConversationData,
-  type ConversationMessage,
-} from "../lib/storage/ai-conversation";
-import {
   AiConversationMessage,
   AiStreamingMessage,
 } from "./ai-scheme/AiConversationMessage";
 import { AiAgentTimeline, AiModeSwitcher } from "./ai-scheme/AiAgentActivity";
 import { AiProposalPresentation } from "./ai-scheme/AiProposalPresentation";
+import { useAiConversation } from "./ai-scheme/useAiConversation";
 import { useAiProposalRun } from "./ai-scheme/useAiProposalRun";
 import { Panel } from "./WorkbenchControls";
 
@@ -62,16 +55,6 @@ function buildPromptExamples(currentConfig) {
   return [...examples.slice(0, 3), ...fallbacks].slice(0, 4);
 }
 
-function getInitialMessages(): ConversationMessage[] {
-  return [
-    {
-      role: "assistant",
-      content: "描述你想要的鼠标反馈，我会直接生成或修改当前动作配置。",
-      kind: "chat",
-    },
-  ];
-}
-
 export function AiSchemePanel({
   actionId,
   actionLabel,
@@ -90,13 +73,22 @@ export function AiSchemePanel({
   variant = "dock",
 }) {
   const [prompt, setPrompt] = useState("");
-  const [messages, setMessages] = useState(getInitialMessages);
-  const [pendingResult, setPendingResult] = useState(null);
-  const [lastPrompt, setLastPrompt] = useState("");
-  const [useAgent, setUseAgent] = useState(false);
-  const [agentSteps, setAgentSteps] = useState([]);
-  const [agentTotalSteps, setAgentTotalSteps] = useState(0);
   const [confirmClear, setConfirmClear] = useState(false);
+  const {
+    messages,
+    setMessages,
+    pendingResult,
+    setPendingResult,
+    lastPrompt,
+    setLastPrompt,
+    agentSteps,
+    setAgentSteps,
+    agentTotalSteps,
+    setAgentTotalSteps,
+    useAgent,
+    setUseAgent,
+    clearConversation: clearStoredConversation,
+  } = useAiConversation(actionId);
   const {
     isGenerating,
     streamingReply,
@@ -124,75 +116,13 @@ export function AiSchemePanel({
     notify,
   });
 
-  // Persist conversation state when switching between actions
-  const actionIdRef = useRef(actionId);
-  const stateRef = useRef({
-    messages,
-    pendingResult,
-    lastPrompt,
-    agentSteps,
-    agentTotalSteps,
-    useAgent,
-  });
-  stateRef.current = { messages, pendingResult, lastPrompt, agentSteps, agentTotalSteps, useAgent };
-
-  // Hydrate conversation from storage on mount + save/restore on action switch
+  // Reset request-only UI state when switching actions. Conversation state is
+  // loaded and persisted independently by useAiConversation.
   useEffect(() => {
-    const prevId = actionIdRef.current;
-    const isSwitch = prevId && prevId !== actionId;
-
-    async function syncConversation() {
-      if (isSwitch) {
-        // Save previous action's conversation
-        await saveConversation(prevId, stateRef.current as Omit<ConversationData, "updatedAt">);
-      }
-      // Load new action's conversation (or start fresh)
-      const saved = await loadConversation(actionId);
-      if (saved) {
-        setMessages((saved.messages ?? getInitialMessages()).map((m) => ({ ...m, kind: m.kind || "chat" })));
-        setPendingResult(saved.pendingResult ?? null);
-        setLastPrompt(saved.lastPrompt ?? "");
-        setAgentSteps(saved.agentSteps ?? []);
-        setAgentTotalSteps(saved.agentTotalSteps ?? 0);
-        setUseAgent(saved.useAgent ?? false);
-      } else if (isSwitch) {
-        setMessages(getInitialMessages());
-        setPendingResult(null);
-        setLastPrompt("");
-        setAgentSteps([]);
-        setAgentTotalSteps(0);
-      }
-    }
-
-    if (isSwitch || prevId === undefined) {
-      void syncConversation();
-    }
-
-    // Always reset transient state on action switch
     setPrompt("");
     resetRun();
-    setAgentTotalSteps(0);
     setConfirmClear(false);
-
-    actionIdRef.current = actionId;
   }, [actionId, resetRun]);
-
-  // Sweep expired conversations on mount
-  useEffect(() => {
-    void sweepExpiredConversations();
-  }, []);
-
-  // Debounced auto-save when conversation state changes
-  const saveTimerRef = useRef(null);
-  useEffect(() => {
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => {
-      void saveConversation(actionId, stateRef.current as Omit<ConversationData, "updatedAt">);
-    }, 500);
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    };
-  }, [actionId, messages, pendingResult, lastPrompt, agentSteps, useAgent, agentTotalSteps]);
 
   const promptExamples = useMemo(() => buildPromptExamples(currentConfig), [currentConfig]);
 
@@ -290,12 +220,7 @@ export function AiSchemePanel({
   function clearConversation() {
     setPrompt("");
     resetRun();
-    setPendingResult(null);
-    setLastPrompt("");
-    setAgentSteps([]);
-    setAgentTotalSteps(0);
-    setMessages(getInitialMessages());
-    void deleteConversation(actionId);
+    clearStoredConversation();
     onClearPreview?.();
     notify?.({
       tone: "info",

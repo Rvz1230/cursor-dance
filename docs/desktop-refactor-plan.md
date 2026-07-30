@@ -30,7 +30,7 @@
 | R4-2 EffectRuntime adapters | 已完成 | 桌面四类 adapter 已接入；共享 state machine 统一 timing、throttle、run/combo 状态推进与 output plan |
 | R4-3 扩展正式构建 | 已完成 | manifest 已收敛到单一 Vite content bundle；真实 Chromium smoke 覆盖注入、效果触发、扩展页面与 CSP |
 | R4-4 删除旧引擎 | 已完成 | 扩展 runtime、config store、composition root 与共享默认配置均已迁为 TypeScript；legacy IIFE 和动态注册链清零 |
-| R5-1 拆分 `AiSchemePanel` | 进行中 | 展示组件与请求生命周期已拆分；主文件由 1,388 行降至 560 行，并修复切换动作时旧请求污染新会话的竞态 |
+| R5-1 拆分 `AiSchemePanel` | 进行中 | 展示、请求与会话持久化已拆分；主文件由 1,388 行降至 485 行，并修复请求/会话切换竞态 |
 
 当前验证基线：
 
@@ -831,8 +831,9 @@ AiSchemePanel              # 组合层
 - 提案卡片、sanitize/diff 摘要、Agent 工具调用时间线与模式选择器已移出容器，展示状态留在各自组件内部。
 - 请求、取消、冷却与 Agent 流式事件已收敛到 `useAiProposalRun`；Agent step/tool/result/duration 使用纯状态推进函数并有直接单测。
 - 动作切换与卸载会 abort 当前请求，并通过 run id 隔离旧请求的迟到回调，避免响应写入新动作。
-- `AiSchemePanel.tsx` 从 1,388 行降至 560 行；Web smoke 覆盖 AI 面板开关、初始消息、模式切换与输入面。
-- 下一段提取会话加载/切换/防抖持久化 hook，随后收敛 proposal review。
+- 会话首次加载、动作切换、清空、防抖保存和过期清理由 `useAiConversation` 统一管理；load revision 会丢弃快速切换产生的迟到结果，hydration 前不会自动覆盖存储。
+- `AiSchemePanel.tsx` 从 1,388 行降至 485 行；Web smoke 覆盖 AI 面板开关、初始消息、模式切换、卸载后恢复与输入面。
+- 下一段收敛 proposal review，并审查快速/Agent transport 的重复分支。
 
 ### R5-2：拆分 `WorkbenchPreviewRail`
 
