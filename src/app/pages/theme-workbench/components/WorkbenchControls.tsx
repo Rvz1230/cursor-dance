@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { GripVertical, MousePointer2, Plus, X } from "lucide-react";
+import { GripVertical, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/components/ui/utils";
-import { Panel } from "@/components/ui/panel";
 
 // Re-export 已提取到 src/components/ui/ 的通用组件，保持向后兼容
 export { Panel } from "@/components/ui/panel";
@@ -14,10 +13,6 @@ export { FieldRow } from "@/components/ui/field-row";
 export { ControlSlider } from "@/components/ui/control-slider";
 export { ColorOptions } from "@/components/ui/color-options";
 export { ThemeCard } from "@/components/ui/theme-card";
-
-export function WorkbenchAccordionPanel(props: React.ComponentProps<typeof Panel>) {
-  return <Panel collapsible {...props} />;
-}
 
 export function TextTagEditor({ tags, onChange, disabled = false }: { tags: string[]; onChange: (tags: string[]) => void; disabled?: boolean }) {
   const [draft, setDraft] = useState("");
@@ -131,15 +126,6 @@ export function SettingSection({ disabled = false, children }: { disabled?: bool
   );
 }
 
-export function NativeCursorPreview({ size = 48 }: { size?: number }) {
-  return (
-    <div className="relative" style={{ width: `${size}px`, height: `${size}px` }} aria-label="系统原生鼠标指针预览">
-      <MousePointer2 className="absolute left-1 top-1 size-[70%] -rotate-12 fill-white text-slate-950 drop-shadow-sm" />
-      <span className="absolute left-[38%] top-[40%] size-2 rounded-full bg-emerald-500 ring-2 ring-white" aria-hidden="true" />
-    </div>
-  );
-}
-
 export function WorkspaceItem({ item, active, onClick, compact = false }: { item: { icon: React.ComponentType<{ className?: string }>; label: string }; active?: boolean; onClick?: () => void; compact?: boolean }) {
   const Icon = item.icon;
   return (
@@ -178,16 +164,6 @@ export function ActionTab({ item, active, onClick }: { item: { id: string; label
       {item.label}
     </button>
   );
-}
-
-export function PreviewBadge({ children, tone = "slate" }: { children: React.ReactNode; tone?: "emerald" | "amber" | "slate" }) {
-  const toneClass =
-    tone === "emerald"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-      : tone === "amber"
-        ? "border-amber-200 bg-amber-50 text-amber-700"
-        : "border-slate-200 bg-white text-slate-600";
-  return <span className={cn("rounded-lg border px-2 py-1 text-xs font-medium", toneClass)}>{children}</span>;
 }
 
 export function ColumnResizeHandle({ label, onResize }: { label: string; onResize: (event: React.PointerEvent) => void }) {
