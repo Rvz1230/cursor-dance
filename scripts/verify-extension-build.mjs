@@ -15,6 +15,7 @@ const removedRuntimeFiles = [
   "content-runtime/cursor-overlay.js",
   "content-runtime/audio.js",
   "content-runtime/audio-duck-profile.js",
+  "content-runtime/atmosphere.js",
 ];
 
 if (scripts.length !== 1 || scripts[0] !== contentBundle) {

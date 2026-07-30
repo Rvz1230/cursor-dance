@@ -6,6 +6,6 @@ import "../../extension/content-runtime/config-store.js";
 import "./visual-effects";
 import "./audio";
 import "./cursor-overlay";
+import "./atmosphere";
 import "../../extension/content-runtime/trigger-handlers.js";
-import "../../extension/content-runtime/atmosphere.js";
 import "../../extension/content.js";

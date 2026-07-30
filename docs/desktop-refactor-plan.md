@@ -781,7 +781,8 @@ interface AudioOutput {
 - cursor overlay 的 DOM renderer 与状态归一化已共享，扩展仅保留站点/DOM target 解析 adapter，原 IIFE 镜像已删除。
 - 音频节流决策、预设音色与 Web Audio 合成已下沉为共享 runtime，扩展页面媒体 duck 通过 `beforePlay` adapter 注入。
 - audio duck/profile adapter 已迁为 TypeScript，并补媒体原始音量/静音状态恢复测试；原音频 IIFE 镜像已删除。
-- 下一段继续收敛 atmosphere 与剩余扩展装配入口。
+- 网页 atmosphere 已迁为扩展专属 TypeScript 模块；生命周期改为按需启停，磁吸目标增量对账，清理时保留页面原有内联样式，并覆盖创建、幂等同步、完整清理和页面可见性测试。
+- 下一段继续收敛 trigger handlers、config store、diagnostics、site matcher 与 content 装配入口。
 
 ### Phase 4 完成条件
 
