@@ -1,6 +1,6 @@
-# 桌面版发布与回滚
+# macOS 首版发布与回滚
 
-桌面正式版本由 `.github/workflows/release.yml` 唯一发布。普通 CI 产物保持 unsigned，仅用于结构检查和启动 smoke；正式 workflow 缺少签名凭据时会直接失败，不会发布 unsigned 安装包。
+首个桌面正式版本仅支持 macOS Apple Silicon（arm64），由 `.github/workflows/release.yml` 唯一发布。Intel Mac 与 Windows 延后处理，不阻塞首版。普通 CI 产物保持 unsigned，仅用于结构检查和启动 smoke；正式 workflow 缺少签名凭据时会直接失败，不会发布 unsigned 安装包。
 
 ## 发布凭据
 
@@ -14,20 +14,18 @@
 | `APPLE_ID` | Apple 公证账号 |
 | `APPLE_APP_SPECIFIC_PASSWORD` | Apple app-specific password |
 | `APPLE_TEAM_ID` | Apple Developer Team ID |
-| `WIN_CSC_LINK` | Windows code-signing 证书的 base64 内容或受支持的安全 URL |
-| `WIN_CSC_KEY_PASSWORD` | Windows 证书密码 |
 
-正式构建会额外验证 macOS `Developer ID Application` 签名、stapled notarization ticket，以及 Windows 应用、原生 helper 和安装器的 Authenticode 签名。任一验证失败时，publish job 不会运行。
+正式构建会验证 macOS `Developer ID Application` 签名和 stapled notarization ticket。任一验证失败时，publish job 不会运行。
 
 ## 发布步骤
 
 1. 更新根目录 `package.json` 的版本并完成常规 CI。
 2. 创建与版本完全一致的 tag，例如版本 `0.6.1` 只能使用 `v0.6.1`。
 3. 推送 tag。也可用 workflow dispatch 重新执行一个已存在的 tag。
-4. workflow 分别构建 macOS arm64 ZIP 和 Windows x64 NSIS，执行结构检查与最终可执行文件 smoke。
-5. 两端均成功后，publish job 汇总安装包、blockmap 和 `latest*.yml`，生成 `SHA256SUMS.txt`，先创建 draft Release，上传完整产物后再公开。
+4. workflow 构建 macOS arm64 DMG 与 ZIP，执行结构检查、签名/公证验证和最终 `.app` smoke。
+5. publish job 汇总 DMG、ZIP、ZIP blockmap 和 `latest-mac.yml`，生成 `SHA256SUMS.txt`，先创建 draft Release，上传完整产物后再公开。
 
-更新器只消费该 workflow 同批生成的安装包、blockmap 和元数据。不要单独替换 `latest*.yml`、blockmap 或同版本安装包。
+DMG 面向用户安装；自动更新器消费同批生成的 ZIP、blockmap 和 `latest-mac.yml`。不要单独替换元数据、blockmap 或同版本安装包。
 
 ## 失败恢复
 

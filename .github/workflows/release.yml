@@ -1,4 +1,4 @@
-name: Release desktop
+name: Release macOS
 
 on:
   push:
@@ -35,6 +35,8 @@ jobs:
       - run: npm ci
       - run: npm run release:verify-tag -- "$RELEASE_TAG"
       - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run check:dead-code
       - run: npm run test
 
   package-macos:
@@ -43,6 +45,7 @@ jobs:
     env:
       CURSORDANCE_PACKAGE_PLATFORM: darwin
       CURSORDANCE_PACKAGE_ARCH: arm64
+      CURSORDANCE_PACKAGE_DMG: "1"
       CURSORDANCE_REQUIRE_SIGNATURE: "1"
       CURSORDANCE_REQUIRE_NOTARIZATION: "1"
       CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
@@ -68,49 +71,15 @@ jobs:
         with:
           name: release-darwin-arm64
           path: |
+            release/ci-darwin-arm64/*.dmg
             release/ci-darwin-arm64/*.zip
-            release/ci-darwin-arm64/*.blockmap
+            release/ci-darwin-arm64/*.zip.blockmap
             release/ci-darwin-arm64/latest-mac.yml
           if-no-files-found: error
           retention-days: 7
 
-  package-windows:
-    needs: validate
-    runs-on: windows-latest
-    env:
-      CURSORDANCE_PACKAGE_PLATFORM: win32
-      CURSORDANCE_PACKAGE_ARCH: x64
-      CURSORDANCE_REQUIRE_SIGNATURE: "1"
-      CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
-      CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ env.RELEASE_TAG }}
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.12.0
-          cache: npm
-      - uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
-      - run: npm ci
-      - run: npm run release:verify-signing -- win32
-      - run: npm run package:ci
-      - run: npm run verify:package
-      - run: npm run test:package
-      - uses: actions/upload-artifact@v4
-        with:
-          name: release-win32-x64
-          path: |
-            release/ci-win32-x64/*.exe
-            release/ci-win32-x64/*.blockmap
-            release/ci-win32-x64/latest.yml
-          if-no-files-found: error
-          retention-days: 7
-
   publish:
-    needs: [package-macos, package-windows]
+    needs: package-macos
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -123,9 +92,8 @@ jobs:
           node-version: 22.12.0
       - uses: actions/download-artifact@v4
         with:
-          pattern: release-*
+          name: release-darwin-arm64
           path: release-artifacts
-          merge-multiple: true
       - run: npm run release:checksums -- release-artifacts
       - name: Create or resume draft release
         env:

@@ -14,18 +14,15 @@ export function assertReleaseTag(tag, version) {
 }
 
 export function requiredSigningVariables(platform) {
-  if (platform === "darwin") {
-    return [
-      "CSC_LINK",
-      "CSC_KEY_PASSWORD",
-      "CURSORDANCE_MAC_IDENTITY",
-      "APPLE_ID",
-      "APPLE_APP_SPECIFIC_PASSWORD",
-      "APPLE_TEAM_ID",
-    ];
-  }
-  if (platform === "win32") return ["CSC_LINK", "CSC_KEY_PASSWORD"];
-  throw new Error(`Unsupported release signing platform: ${platform}`);
+  if (platform !== "darwin") throw new Error(`Unsupported release signing platform: ${platform}`);
+  return [
+    "CSC_LINK",
+    "CSC_KEY_PASSWORD",
+    "CURSORDANCE_MAC_IDENTITY",
+    "APPLE_ID",
+    "APPLE_APP_SPECIFIC_PASSWORD",
+    "APPLE_TEAM_ID",
+  ];
 }
 
 export function assertSigningEnvironment(platform, environment = process.env) {
@@ -47,7 +44,7 @@ async function listFilesRecursively(root) {
 }
 
 function isReleaseArtifact(name) {
-  return /\.(?:zip|exe|blockmap)$/i.test(name) || /^latest(?:-mac)?\.yml$/.test(name);
+  return /\.(?:dmg|zip|blockmap)$/i.test(name) || name === "latest-mac.yml";
 }
 
 function assertArtifactSet(names) {
@@ -58,12 +55,10 @@ function assertArtifactSet(names) {
     }
   };
 
-  requireOne("macOS ZIP", (name) => name.endsWith(".zip"));
-  requireOne("Windows installer", (name) => name.toLowerCase().endsWith(".exe"));
+  requireOne("macOS DMG", (name) => name.toLowerCase().endsWith(".dmg"));
+  requireOne("macOS ZIP", (name) => name.toLowerCase().endsWith(".zip"));
   requireOne("macOS update metadata", (name) => name === "latest-mac.yml");
-  requireOne("Windows update metadata", (name) => name === "latest.yml");
   requireOne("macOS ZIP blockmap", (name) => name.endsWith(".zip.blockmap"));
-  requireOne("Windows installer blockmap", (name) => name.toLowerCase().endsWith(".exe.blockmap"));
 }
 
 export async function createReleaseChecksums(rootDirectory) {

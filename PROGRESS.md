@@ -70,6 +70,7 @@
 - **R1-3 后续修复**：macOS overlay 改为 NSPanel 并集中 Space policy，双屏原生全屏时主屏窗口已从仅绑定普通 Space 修复为加入全部主屏 Space；隐藏 overlay 不再接收鼠标/键盘 IPC，延迟加载和热插拔会遵守当前显隐状态
 - [ ] R1-4：自定义光标平台能力——macOS helper/watchdog 已完成；Windows Win32 helper、MSVC 构建、安装包资源和 CI 协议验证已接线，并由实验开关保护
 - **R1-4 当前验证**：41 个测试文件共 310 项通过；macOS helper 协议已真机实跑，Windows helper 等待新增 CI 与 Windows 真机验证，能力状态仍为 `planned`
+- **首版范围**：首个桌面正式版本仅支持 macOS Apple Silicon；Windows 自定义光标和 Intel Mac 归入后续版本，不阻塞首版发布。
 - [x] R1-5：桌面氛围运行时取舍——桌面 Workbench 隐藏配置与预览，桌面导出省略氛围字段，删除无调用方 runtime；Chrome 扩展能力不变
 - [x] R1-6：取消桌面 Popup——删除孤立 renderer、HTML 和构建入口，托盘继续提供快速开关和打开工作台
 - **R1-5/R1-6 验证**：41 个测试文件共 311 项、Web smoke 5/5、桌面 smoke 1/1、typecheck、lint 和 Electron build 均通过；renderer 输出减少 65,126 bytes（约 3.1%）
@@ -131,20 +132,20 @@
 - **R6-3 打包矩阵**：macOS arm64 生成 ZIP，Windows x64 生成 NSIS；两端均保留 unpacked 应用用于结构检查和启动 smoke，并将安装包、blockmap、更新元数据作为 7 天 CI artifact 上传。旧的 Windows helper-only job 已由完整打包链路取代。
 - **R6-3 产物门禁**：检查 app.asar 主入口、preload/renderer、外置 extension/tray 图标、`app-update.yml`、latest 元数据、blockmap、`uiohook-napi`/`get-windows`/cursor helper 架构与 asar unpack；直接执行打包内 helper 协议，并以隔离 userData 启动最终可执行文件，确认 v4 配置桥和每屏 overlay。
 - **R6-3 本机验证**：macOS arm64 ZIP、更新元数据和 unpacked `.app` 生成成功；产物结构/架构/helper 协议检查通过，最终 `.app` 启动 smoke 通过（双屏 2 个 overlay、1 个 Workbench、`app.isPackaged=true`）。NSIS 明确保留 userData；签名状态当前按预期为 unsigned。
-- [ ] R6-4：签名、公证与更新策略——用户可见更新控制面、发布 workflow、校验和与回滚说明已完成；等待签名证书接入和正式发布验收。
+- [ ] R6-4：签名、公证与更新策略——macOS 首版的用户可见更新控制面、发布 workflow、校验和与回滚说明已完成；等待 Apple 签名凭据接入和正式发布验收。
 - **R6-4 更新链路**：自动检查保留 4 小时间隔，但关闭 `autoDownload` 和 `autoInstallOnAppQuit`；主进程状态机统一管理检查、可下载、下载进度、等待重启和错误状态。Workbench 标题栏提供检查、下载、重试和重启安装入口，overlay 不具备更新权限。
 - **R6-4 安全与容错**：更新 IPC 纳入 sender policy，开发态和 smoke 返回 `unsupported` 且不联网；检查/下载失败转换为有长度上限的 UI 状态，不再向应用生命周期抛出。停止时清理 interval 与 updater listeners，并用 lifecycle token 隔离已停止实例的异步结果。
-- **R6-4 当前验证**：80 个根测试文件共 384 项、typecheck、Knip、lint（0 error，保留既有 15 warning）、Electron build/bundle budget、desktop smoke、macOS arm64 真实 ZIP 结构验证和最终 `.app` 启动 smoke 通过；发布脚本单测、workflow YAML 结构解析及现有 unsigned 产物回归验证通过。
-- **R6-4 发布门禁**：新增 tag/workflow-dispatch 发布流程，版本与 tag 必须精确匹配；macOS Developer ID + stapled notarization、Windows 应用/helper/安装器 Authenticode 均强制验证。两平台成功后才由单一 job 汇总安装包、更新元数据和 blockmap，生成 `SHA256SUMS.txt`，draft 上传完整后再公开；不会发布 unsigned 或半成品版本。
+- **R6-4 当前验证**：81 个根测试文件共 387 项、typecheck、Knip、lint（0 error，保留既有 15 warning）通过；本机已真实生成 unsigned macOS arm64 DMG + ZIP、ZIP/DMG blockmap 和 `latest-mac.yml`，产物结构、更新元数据引用、helper 协议及最终 `.app` 启动 smoke 通过。发布脚本单测和 macOS-only workflow YAML 结构解析通过。
+- **R6-4 发布门禁**：正式发布已收敛为 macOS arm64-only；版本与 tag 必须精确匹配，Developer ID 与 stapled notarization 均强制验证。workflow 同批生成面向安装的 DMG，以及自动更新使用的 ZIP、blockmap 和 `latest-mac.yml`，随后生成 `SHA256SUMS.txt`，draft 上传完整后再公开；不会发布 unsigned 或半成品版本。
 - **收尾代码清理**：桌面与扩展 `config-store` 的主题选择、动作默认值合并、光标状态和触发区域判断已统一到 shared runtime core；两端文件由合计 811 行降至 536 行，计入 202 行共享实现后生产代码净减少 73 行。Chrome storage 与 Electron adapter 继续独立，避免把平台 I/O 混入共享层。
 - **收尾当前验证**：81 个根测试文件共 387 项、typecheck、Knip、lint（0 error，保留既有 15 warning）、Web/扩展/Electron build、双端 bundle budget、Web smoke 6/6、生产扩展侧载 smoke 1/1 与 desktop smoke 1/1 通过。
-- **下一步**：配置 GitHub 签名 secrets 并执行首个 tag；同时确认 Windows x64 CI/真机结果。发布失败恢复与“只前进、不自动降级”的回滚策略已记录在 `docs/desktop-release.md`。
+- **下一步**：清理剩余 lint warning，配置 GitHub Apple 签名 secrets，并执行首个 macOS arm64 tag 验收。Windows x64 CI/真机与 Intel Mac 支持延后，不再阻塞首版。
 
 ### 分支状态
 
 - **分支**：desktop/phase-0
 - **整理前基线**：`9dcfada refactor(workbench): StatesPanel 迁移至 cursorSkin 数据模型`
-- **阻塞项**：R6-4 的 macOS Developer ID/公证与 Windows code signing 需要外部证书环境和首个 tag 验收；R6-3 Windows x64 路径等待 CI 首跑确认
+- **首版阻塞项**：macOS Developer ID、公证凭据与首个签名 tag 验收；Windows code signing/真机和 Intel Mac 已移出首版范围
 - **验证基线**：以 CI 的 `npm run test`、`npm run test:smoke`、`npm run build`、`npm run build:electron` 为准，不再硬编码容易过期的测试数量
 - **运行环境**：Node.js `>=22.12.0`（与 Electron 42 及 CI 对齐，见 `.nvmrc`）
 - **历史说明**：任务 6.1 已完成自动更新基础设施、GitHub publish 配置和开发态/打包态测试；当前仍保持 `mac.identity: null`，发布签名、公证、用户可见更新状态与 release workflow 统一归入 R6-4。

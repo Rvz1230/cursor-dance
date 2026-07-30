@@ -146,10 +146,21 @@ const artifactPattern = paths.platform === "darwin" ? /\.zip$/ : /\.exe$/i;
 const installerPaths = outputNames
   .filter((name) => artifactPattern.test(name))
   .map((name) => join(paths.outputDirectory, name));
+const dmgPaths = outputNames
+  .filter((name) => name.toLowerCase().endsWith(".dmg"))
+  .map((name) => join(paths.outputDirectory, name));
 const metadataName = paths.platform === "darwin" ? "latest-mac.yml" : "latest.yml";
 if (installerPaths.length === 0) throw new Error("Packaged desktop installer artifact is missing");
+if (paths.platform === "darwin" && process.env.CURSORDANCE_PACKAGE_DMG === "1" && dmgPaths.length !== 1) {
+  throw new Error(`Expected exactly one macOS DMG; found ${dmgPaths.length}`);
+}
 if (!outputNames.includes(metadataName)) throw new Error(`${metadataName} is missing`);
-if (!outputNames.some((name) => name.endsWith(".blockmap"))) throw new Error("Update blockmap is missing");
+const updateBlockmapPattern = paths.platform === "darwin" ? /\.zip\.blockmap$/ : /\.exe\.blockmap$/i;
+if (!outputNames.some((name) => updateBlockmapPattern.test(name))) throw new Error("Update blockmap is missing");
+const updateMetadata = await readFile(join(paths.outputDirectory, metadataName), "utf8");
+if (!installerPaths.some((path) => updateMetadata.includes(basename(path)))) {
+  throw new Error(`${metadataName} does not reference the packaged update artifact`);
+}
 
 if (paths.platform === "darwin") {
   await requirePath(join(paths.appDirectory, "Contents", "Info.plist"));

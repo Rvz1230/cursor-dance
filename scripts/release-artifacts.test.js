@@ -18,15 +18,12 @@ async function createArtifactDirectory() {
   const root = await mkdtemp(join(tmpdir(), "cursordance-release-"));
   temporaryDirectories.push(root);
   const mac = join(root, "mac");
-  const windows = join(root, "windows");
-  await Promise.all([mkdir(mac), mkdir(windows)]);
+  await mkdir(mac);
   await Promise.all([
+    writeFile(join(mac, "CursorDance-0.6.0-arm64.dmg"), "mac-dmg"),
     writeFile(join(mac, "CursorDance-0.6.0-arm64-mac.zip"), "mac"),
     writeFile(join(mac, "CursorDance-0.6.0-arm64-mac.zip.blockmap"), "mac-map"),
     writeFile(join(mac, "latest-mac.yml"), "mac-yml"),
-    writeFile(join(windows, "CursorDance Setup 0.6.0.exe"), "win"),
-    writeFile(join(windows, "CursorDance Setup 0.6.0.exe.blockmap"), "win-map"),
-    writeFile(join(windows, "latest.yml"), "win-yml"),
   ]);
   return root;
 }
@@ -38,27 +35,31 @@ describe("release artifact gates", () => {
   });
 
   it("does not allow a release without all signing credentials", () => {
-    expect(() => assertSigningEnvironment("win32", {
+    expect(() => assertSigningEnvironment("darwin", {
       CSC_LINK: "certificate",
       CSC_KEY_PASSWORD: "password",
+      CURSORDANCE_MAC_IDENTITY: "Developer ID Application: CursorDance (TEAMID)",
+      APPLE_ID: "release@example.com",
+      APPLE_APP_SPECIFIC_PASSWORD: "password",
+      APPLE_TEAM_ID: "TEAMID",
     })).not.toThrow();
     expect(() => assertSigningEnvironment("darwin", {})).toThrow(/Missing darwin release signing variables/);
   });
 
-  it("writes stable checksums for the complete cross-platform artifact set", async () => {
+  it("writes stable checksums for the complete macOS artifact set", async () => {
     const root = await createArtifactDirectory();
     const result = await createReleaseChecksums(root);
     const contents = await readFile(result.outputPath, "utf8");
 
-    expect(result.entries).toHaveLength(6);
+    expect(result.entries).toHaveLength(4);
+    expect(contents).toMatch(/^[a-f0-9]{64}  CursorDance-0\.6\.0-arm64\.dmg$/m);
     expect(contents).toMatch(/^[a-f0-9]{64}  CursorDance-0\.6\.0-arm64-mac\.zip$/m);
-    expect(contents).toContain("CursorDance Setup 0.6.0.exe");
     expect(contents.endsWith("\n")).toBe(true);
   });
 
   it("rejects incomplete release artifacts", async () => {
     const root = await createArtifactDirectory();
-    await rm(join(root, "windows", "latest.yml"));
-    await expect(createReleaseChecksums(root)).rejects.toThrow(/Windows update metadata/);
+    await rm(join(root, "mac", "CursorDance-0.6.0-arm64.dmg"));
+    await expect(createReleaseChecksums(root)).rejects.toThrow(/macOS DMG/);
   });
 });

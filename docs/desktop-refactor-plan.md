@@ -1018,7 +1018,7 @@ AiSchemePanel              # 组合层
 ### R6-4：签名、公证与更新策略
 
 - macOS Developer ID 签名和 notarization。
-- Windows code signing。
+- Windows code signing 延后到 Windows 正式版，不阻塞 macOS 首版。
 - 自动更新默认不静默下载，先提供用户可见状态和重试入口。
 - 发布 workflow 从 tag 生成签名产物和 checksums。
 - updater 只消费同一 workflow 生成的元数据。
@@ -1030,9 +1030,10 @@ AiSchemePanel              # 组合层
 - 主进程维护 `unsupported/idle/checking/available/downloading/downloaded/up-to-date/error` 状态机；Workbench 标题栏显示检查、版本、进度、失败重试和重启安装，overlay preload 不暴露更新能力。
 - 检查、下载和安装均通过 Workbench-only typed IPC；错误被截断为有限长度的可见状态，Promise rejection 不进入应用生命周期。stop 会清理 interval/listener，lifecycle token 阻止旧异步任务污染新实例。
 - 开发态与两类 smoke 显式返回 `unsupported`，不会访问更新网络；desktop smoke 同时验证 preload 方法集合和权限边界。
-- tag release workflow 已完成：版本必须与 tag 精确一致；macOS 和 Windows 分别完成签名、结构检查与最终应用 smoke 后，单一 publish job 才汇总安装包、blockmap 和更新元数据，生成 `SHA256SUMS.txt`，并通过 draft staging 防止半成品 Release 可见。
-- 正式 workflow 强制验证 Developer ID Application、stapled notarization ticket 和 Authenticode；签名 secret 缺失会在打包前失败，不会回退到 unsigned 发布。普通 CI 仍明确保持 unsigned。
-- 发布失败恢复与回滚说明已写入 `docs/desktop-release.md`。剩余工作是接入真实 macOS/Windows 证书并执行首个 tag 验收；Windows x64 CI 和自定义光标仍需真机确认。
+- 首个桌面正式版本已收敛为 macOS Apple Silicon。tag release workflow 要求版本与 tag 精确一致，生成 DMG、ZIP、ZIP blockmap 和 `latest-mac.yml`，再由单一 publish job 生成 `SHA256SUMS.txt`，通过 draft staging 防止半成品 Release 可见。
+- 正式 workflow 强制验证 Developer ID Application 和 stapled notarization ticket；Apple 签名 secret 缺失会在打包前失败，不会回退到 unsigned 发布。普通 CI 仍明确保持 unsigned。
+- 本机 unsigned macOS arm64 DMG + ZIP 已真实生成；结构/架构、更新元数据对 ZIP 的引用、helper 协议和最终 `.app` 启动均通过。签名与公证只在真实 Apple 凭据环境中验收。
+- 发布失败恢复与回滚说明已写入 `docs/desktop-release.md`。剩余工作是接入真实 Apple 证书并执行首个 macOS arm64 tag 验收；Windows x64、自定义光标真机和 Intel Mac 支持归入后续版本。
 
 ### 收尾：统一运行时配置选择器
 
@@ -1044,7 +1045,7 @@ AiSchemePanel              # 组合层
 ### Phase 6 完成条件
 
 - CI 产出的安装包可以启动并完成核心 smoke。
-- macOS/Windows 发布产物已签名。
+- macOS Apple Silicon 发布产物已签名并完成公证。
 - 自动更新具有用户可见状态和回滚说明。
 - 性能指标相比 Phase 0 有记录可验证的改善。
 

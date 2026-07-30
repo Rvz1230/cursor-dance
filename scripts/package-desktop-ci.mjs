@@ -11,9 +11,9 @@ const supportedTargets = new Map([
   ["win32-x64", ["--win", "nsis", "--x64"]],
 ]);
 const targetKey = `${platform}-${architecture}`;
-const builderTarget = supportedTargets.get(targetKey);
+const configuredTarget = supportedTargets.get(targetKey);
 
-if (!builderTarget) {
+if (!configuredTarget) {
   throw new Error(`Unsupported desktop CI package target: ${targetKey}`);
 }
 if (process.platform !== platform || process.arch !== architecture) {
@@ -23,6 +23,9 @@ if (process.platform !== platform || process.arch !== architecture) {
 }
 
 const outputDirectory = join(projectRoot, "release", `ci-${targetKey}`);
+const builderTarget = platform === "darwin" && process.env.CURSORDANCE_PACKAGE_DMG === "1"
+  ? ["--mac", "dmg", "zip", `--${architecture}`]
+  : configuredTarget;
 
 function runNode(scriptPath, args = []) {
   const result = spawnSync(process.execPath, [scriptPath, ...args], {

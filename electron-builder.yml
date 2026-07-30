@@ -97,8 +97,8 @@ nsis:
   deleteAppDataOnUninstall: false
 
 # 自动更新通过 GitHub Releases 分发。electron-builder 只生成安装包与更新元数据；
-# `.github/workflows/release.yml` 在两端验签后统一生成 checksums 并创建 Release，
-# 避免平台 job 分别 publish 导致半成品版本可见。
+# `.github/workflows/release.yml` 为 macOS Apple Silicon 首版生成 DMG + ZIP，
+# 验签后统一生成 checksums 并创建 Release，避免半成品版本可见。
 publish:
   provider: github
   owner: Rvz1230
