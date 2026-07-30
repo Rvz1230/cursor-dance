@@ -28,9 +28,10 @@ import { isDesktop, isExtension } from "@/shared/runtime";
 import {
   activeAppInfoFromSnapshot,
   resolveAppRule,
-  type ActiveWindowSnapshot,
 } from "@/shared/app-rules";
 import { useWorkbenchAiPreview } from "./hooks/useWorkbenchAiPreview";
+import { useWorkbenchColumnLayout } from "./hooks/useWorkbenchColumnLayout";
+import { useDesktopWorkbenchRuntime } from "./hooks/useDesktopWorkbenchRuntime";
 
 export default function ThemeWorkbenchPage({ renderHeader }: ThemeWorkbenchPageProps = {}) {
   return (
@@ -229,13 +230,14 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
   const toast = useToast();
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
-  const [columnWeights, setColumnWeights] = useState({ config: 1.05, preview: 1.25, ai: 1 });
-  // 任务 4.3：首次启动引导
-  // welcomeState: "loading" → "open" → "closed"。loading 期间不渲染 dialog（避免闪现）；
-  // 非桌面环境（cursorDanceApp 不存在）跳过整个流程。
-  const [welcomeState, setWelcomeState] = useState<"loading" | "open" | "closed">("loading");
-  const [accessibilityAuthorized, setAccessibilityAuthorized] = useState<boolean | null>(null);
-  const [activeWindowSnapshot, setActiveWindowSnapshot] = useState<ActiveWindowSnapshot | null>(null);
+  const { gridTemplateColumns, startResizeColumns } = useWorkbenchColumnLayout(aiPanelOpen);
+  const {
+    welcomeState,
+    accessibilityAuthorized,
+    activeWindowSnapshot,
+    closeWelcome,
+    openAccessibilitySettings,
+  } = useDesktopWorkbenchRuntime();
   const {
     state,
     selected,
@@ -312,91 +314,8 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
     ? (activeAppInfo ? resolveAppRule(state.appRules, activeAppInfo) : null)
     : getRuntimeConfig().resolveSiteRule(state.siteRules, state.site.host);
 
-  // 任务 4.3：检测首次启动 + 探测辅助功能授权状态。
-  // 两个 IPC 都是只读查询，挂载时跑一次即可；用户翻 enable/disable 不影响这里。
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      setWelcomeState("closed");
-      return;
-    }
-    const bridge = window.cursorDanceApp;
-    if (!bridge) {
-      // 扩展端 / 静态预览：没有桌面 IPC，永远跳过欢迎流程。
-      setWelcomeState("closed");
-      return;
-    }
-    let cancelled = false;
-    const unsubscribeActiveWindow = bridge.onActiveWindowChanged((snapshot) => {
-      if (cancelled) return;
-      setActiveWindowSnapshot(snapshot);
-      setAccessibilityAuthorized(snapshot.authorized);
-    });
-    void Promise.allSettled([
-      bridge.getFirstRun(),
-      bridge.getActiveWindow(),
-    ]).then(([firstRunResult, activeWindowResult]) => {
-      if (cancelled) return;
-      const isFirstRun = firstRunResult.status === "fulfilled" ? firstRunResult.value === true : false;
-      const authorized = activeWindowResult.status === "fulfilled"
-        ? activeWindowResult.value.authorized === true
-        : false;
-      if (activeWindowResult.status === "fulfilled") {
-        setActiveWindowSnapshot(activeWindowResult.value);
-      }
-      setAccessibilityAuthorized(authorized);
-      setWelcomeState(isFirstRun ? "open" : "closed");
-    });
-    return () => {
-      cancelled = true;
-      unsubscribeActiveWindow();
-    };
-  }, []);
-
-  function handleCloseWelcome() {
-    setWelcomeState("closed");
-    if (typeof window !== "undefined") {
-      window.cursorDanceApp?.markFirstRunComplete().catch(() => { /* 写盘失败仅影响下次启动会再展示一次，无副作用 */ });
-    }
-  }
-
-  function handleOpenAccessibilitySettings() {
-    if (typeof window === "undefined") return;
-    // macOS 13+ 的隐私与安全 → 辅助功能直链。
-    const target = "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility";
-    window.cursorDanceApp?.openExternal(target).catch(() => { /* 静默；用户也可手动打开 */ });
-  }
-
   if (!state.ui.isHydrated) {
     return <div className="h-dvh bg-slate-100" />;
-  }
-
-  function startResizeColumns(event, column) {
-    event.preventDefault();
-    const startX = event.clientX;
-    const startWeights = columnWeights;
-
-    function handlePointerMove(moveEvent) {
-      const deltaX = moveEvent.clientX - startX;
-      const deltaWeight = deltaX / 180;
-      if (column === "config") {
-        const nextConfig = Math.min(1.8, Math.max(0.78, startWeights.config + deltaWeight));
-        const nextPreview = Math.min(1.9, Math.max(0.78, startWeights.preview - (nextConfig - startWeights.config)));
-        setColumnWeights((current) => ({ ...current, config: nextConfig, preview: nextPreview }));
-        return;
-      }
-
-      const nextAi = Math.min(1.9, Math.max(0.8, startWeights.ai - deltaWeight));
-      const nextPreview = Math.min(1.9, Math.max(0.78, startWeights.preview - (nextAi - startWeights.ai)));
-      setColumnWeights((current) => ({ ...current, preview: nextPreview, ai: nextAi }));
-    }
-
-    function handlePointerUp() {
-      window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("pointerup", handlePointerUp);
-    }
-
-    window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("pointerup", handlePointerUp);
   }
 
   async function handleSaveChanges() {
@@ -480,9 +399,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                     "grid h-full min-h-0 w-full gap-1"
                   )}
                   style={{
-                    gridTemplateColumns: aiPanelOpen
-                      ? `minmax(0,${columnWeights.config}fr) 4px minmax(0,${columnWeights.preview}fr) 4px minmax(0,${columnWeights.ai}fr)`
-                      : `minmax(0,${columnWeights.config}fr) 4px minmax(0,${columnWeights.preview}fr)`,
+                    gridTemplateColumns,
                   }}
                 >
                   <div className="min-w-0 min-h-0">
@@ -608,7 +525,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                       appRules={state.appRules}
                       themes={themes}
                       activeApp={activeWindowSnapshot}
-                      openAccessibilitySettings={handleOpenAccessibilitySettings}
+                      openAccessibilitySettings={openAccessibilitySettings}
                       addAppRule={addAppRule}
                       updateAppRule={updateAppRule}
                       deleteAppRule={deleteAppRule}
@@ -654,10 +571,10 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
       {welcomeState === "open" && isDesktop() ? (
         <WelcomeDialog
           open
-          onClose={handleCloseWelcome}
+          onClose={closeWelcome}
           platform={(window.electronAPI?.platform || "darwin") as NodeJS.Platform}
           needsAccessibility={accessibilityAuthorized === false}
-          onOpenAccessibilitySettings={handleOpenAccessibilitySettings}
+          onOpenAccessibilitySettings={openAccessibilitySettings}
         />
       ) : null}
       {aiSettingsOpen && typeof window !== "undefined" && window.cursorDanceAi ? (

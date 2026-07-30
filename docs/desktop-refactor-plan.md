@@ -32,13 +32,13 @@
 | R4-4 删除旧引擎 | 已完成 | 扩展 runtime、config store、composition root 与共享默认配置均已迁为 TypeScript；legacy IIFE 和动态注册链清零 |
 | R5-1 拆分 `AiSchemePanel` | 已完成 | 展示、请求、会话持久化与提案审阅已拆分；主文件由 1,388 行降至 458 行，并删除无消费者的非流式桌面 AI transport |
 | R5-2 拆分 `WorkbenchPreviewRail` | 已完成 | 播放、timeline、舞台与 pointer interaction 已拆分；预览直接使用 shared runtime，app → desktop 依赖归零，主文件由 933 行降至 83 行 |
-| R5-3 收敛 Workbench state | 进行中 | 已分离 editor navigation 与 config dirty/live-preview 边界，并提取 AI 预览/撤销 transient state；下一批提取列宽和桌面欢迎 hooks |
+| R5-3 收敛 Workbench state | 已完成 | editor navigation 与 config dirty/live-preview 边界已分离；AI 预览/撤销、列宽拖拽、桌面欢迎/授权 runtime 均已提取为场景 hook |
 
 当前验证基线：
 
 - `npm run typecheck` 通过。
 - `npm run lint` 通过（0 error；共享旧代码的 22 条显式 `any` 暂作为 warning 逐步收紧）。
-- Vitest 77 个测试文件、367 个测试通过；删除的数量来自 legacy/parity 镜像用例收敛为共享实现的直接行为测试，不再重复比较两份实现。
+- Vitest 79 个测试文件、372 个测试通过；删除的数量来自 legacy/parity 镜像用例收敛为共享实现的直接行为测试，不再重复比较两份实现。
 - API 177 个测试通过。
 - 根 Web、landing、Electron main/preload/renderer 构建通过。
 - 根项目、landing、Electron Vite、Vitest 均复用 Vite 7.3.6。
@@ -879,8 +879,9 @@ AiSchemePanel              # 组合层
 - workspace/action/cursor-state 切换不再设置 config `unsaved` 或清除保存错误，避免保存按钮假脏和无意义 Live Preview 写入；主题切换仍会改变 active theme，继续作为 domain 变更处理。
 - Live Preview effect 的依赖从整个 reducer state 收窄到真实配置切片；重复导航与重复 enabled action 返回原 state，避免无效渲染和序列化。
 - AI 提案预览、应用前快照和撤销已提取到 `useWorkbenchAiPreview`；目标过滤、预览合并与最小快照是可测试纯函数，主题切换会同时清理预览与撤销点，避免跨主题误恢复。
-- `ThemeWorkbenchPage.tsx` 由 695 行降至 668 行；当前通过 77 个根测试文件共 367 项、typecheck、lint（0 error，保留既有 22 warning）、Web smoke 6/6 与 desktop smoke 1/1。
-- 下一批提取列宽和桌面欢迎/辅助功能 transient UI hooks，并继续把持久化副作用限制在 repository/persistence hook。
+- 列宽计算与 grid template 已提取到 `useWorkbenchColumnLayout`；拖拽监听在 pointerup、pointercancel、重入和卸载时统一清理。
+- 首次欢迎、辅助功能授权与活动窗口订阅已提取到 `useDesktopWorkbenchRuntime`；较晚到达的实时窗口事件不会被启动查询的旧快照覆盖。
+- `ThemeWorkbenchPage.tsx` 由 695 行降至 585 行；当前通过 79 个根测试文件共 372 项、typecheck、lint（0 error，保留既有 22 warning）、Web smoke 6/6 与 desktop smoke 1/1。R5-3 完成，下一段进入 R5-4。
 
 ### R5-4：执行无用代码清单
 

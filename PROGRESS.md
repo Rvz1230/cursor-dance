@@ -105,12 +105,11 @@
 - [x] R5-2：拆分 `WorkbenchPreviewRail`——播放、引擎 host、timeline、`PreviewStage` 与 pointer interaction 均已提取，主文件由 933 行降至 83 行；预览直接组合 shared effect runtime，`src/app → src/desktop` 依赖归零。
 - **R5-2 收敛结果**：删除 Workbench 临时 draft ConfigStore、桌面端无消费者的 preview simulation/公开 API，以及 desktop 重复效果/音频 adapter；素材 URL 通过 resolver 注入 shared preview engine。
 - **R5-2 当前验证**：76 个根测试文件共 362 项通过；typecheck、lint（0 error，保留既有 22 warning）、Electron build、Web smoke 6/6 与 desktop smoke 1/1 通过。
-- **后续工作量**：剩余 7 个主要工作包——R5-3 Workbench state、R5-4 无用代码、R5-5 死代码检查，以及 R6-1～R6-4；Windows 自定义光标真机验收并行，签名/公证需要外部证书环境。
-- **下一步**：进入 R5-3，先盘点 `ThemeWorkbenchPage` 的 domain/editor/transient state 与持久化副作用边界，再按 reducer + selectors 分批收敛。Windows 同步执行 R1-4 真机验收。
-- **R5-3 当前进度**：已完成首轮状态分类；editor navigation 不再污染配置 dirty state，Live Preview 只监听真实配置切片；AI 提案预览、应用快照与撤销已提取到 `useWorkbenchAiPreview`，切换主题会清理主题绑定的预览和撤销点。
-- **R5-3 当前结果**：`ThemeWorkbenchPage.tsx` 由 695 行降至 668 行；重复导航/开关 action 直接返回原 state，AI 目标过滤、非破坏式预览合并和最小撤销快照均有纯函数测试。
-- **R5-3 当前验证**：77 个根测试文件共 367 项通过；typecheck、lint（0 error，保留既有 22 warning）、Web smoke 6/6 与 desktop smoke 1/1 通过。
-- **R5-3 下一批**：继续提取列宽交互与桌面欢迎/辅助功能 transient state，让页面容器只组合 domain selectors 与场景 hooks。
+- **后续工作量**：剩余 6 个主要工作包——R5-4 无用代码、R5-5 死代码检查，以及 R6-1～R6-4；Windows 自定义光标真机验收并行，签名/公证需要外部证书环境。
+- [x] R5-3：收敛 Workbench state——editor navigation 与 config dirty/live-preview 边界已分离；AI 预览/撤销、列宽拖拽和桌面欢迎/辅助功能 runtime 均已提取为场景 hook。
+- **R5-3 收敛结果**：`ThemeWorkbenchPage.tsx` 由 695 行降至 585 行；拖拽监听会在结束、取消、重入和卸载时清理，活动窗口实时事件不会再被较早发起的启动查询覆盖。
+- **R5-3 当前验证**：79 个根测试文件共 372 项通过；typecheck、lint（0 error，保留既有 22 warning）、Web smoke 6/6 与 desktop smoke 1/1 通过。
+- **下一步**：进入 R5-4，基于真实引用扫描删除孤立组件、过时 wrapper 和任务编号注释，再进入 R5-5 自动死代码检查。
 
 ### 分支状态
 
