@@ -34,7 +34,7 @@
 
 - `npm run typecheck` 通过。
 - `npm run lint` 通过（0 error；共享旧代码的 24 条显式 `any` 暂作为 warning 逐步收紧）。
-- Vitest 66 个测试文件、337 个测试通过；删除的数量来自 legacy/parity 镜像用例收敛为共享实现的直接行为测试，不再重复比较两份实现。
+- Vitest 67 个测试文件、338 个测试通过；删除的数量来自 legacy/parity 镜像用例收敛为共享实现的直接行为测试，不再重复比较两份实现。
 - API 177 个测试通过。
 - 根 Web、landing、Electron main/preload/renderer 构建通过。
 - 根项目、landing、Electron Vite、Vitest 均复用 Vite 7.3.6。
@@ -780,7 +780,8 @@ interface AudioOutput {
 - visual effects DOM surface 已下沉为共享 TypeScript 实现，扩展端 638 行 IIFE 镜像已删除，桌面端只保留兼容导出。
 - cursor overlay 的 DOM renderer 与状态归一化已共享，扩展仅保留站点/DOM target 解析 adapter，原 IIFE 镜像已删除。
 - 音频节流决策、预设音色与 Web Audio 合成已下沉为共享 runtime，扩展页面媒体 duck 通过 `beforePlay` adapter 注入。
-- 下一段把 audio duck/profile adapter 迁为 TypeScript，再继续收敛 atmosphere 与剩余扩展装配入口。
+- audio duck/profile adapter 已迁为 TypeScript，并补媒体原始音量/静音状态恢复测试；原音频 IIFE 镜像已删除。
+- 下一段继续收敛 atmosphere 与剩余扩展装配入口。
 
 ### Phase 4 完成条件
 

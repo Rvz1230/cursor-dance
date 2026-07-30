@@ -8,7 +8,6 @@ describe("extension shared runtime globals", () => {
     expect(typeof configHelpers.computeParticleSpecs).toBe("function");
     expect(typeof configHelpers.resolveActionTextConfigFromEffect).toBe("function");
     expect(typeof effectRuntime.decideActionExecution).toBe("function");
-    expect(typeof effectRuntime.createAudioRuntime).toBe("function");
     expect(typeof effectRuntime.createDoubleClickDetector).toBe("function");
     expect(typeof effectRuntime.createEffectLifecycle).toBe("function");
     expect(typeof effectRuntime.createEffectGroupRegistry).toBe("function");

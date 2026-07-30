@@ -13,6 +13,8 @@ const removedRuntimeFiles = [
   "content-runtime/trigger-handlers.js",
   "content-runtime/visual-effects.js",
   "content-runtime/cursor-overlay.js",
+  "content-runtime/audio.js",
+  "content-runtime/audio-duck-profile.js",
 ];
 
 if (scripts.length !== 1 || scripts[0] !== contentBundle) {

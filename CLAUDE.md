@@ -94,7 +94,7 @@ The extension is built from `src/extension/content-entry.ts` into one MV3-compat
 IIFE bundle. Shared effect core/runtime, visual effects and cursor overlay are regular
 TypeScript modules; remaining legacy content modules temporarily register through
 `window.CursorDanceContentModules`. `content.js` is still the DI container until the
-remaining audio/atmosphere/config adapters are migrated.
+remaining atmosphere/config adapters are migrated.
 
 ### Workbench component tree
 ```
