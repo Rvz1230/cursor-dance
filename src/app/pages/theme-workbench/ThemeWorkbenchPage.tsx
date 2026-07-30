@@ -2,11 +2,6 @@ import { formatActionLabel } from "./model/workbenchSchema";
 import type { ReactNode } from "react";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { useThemeWorkbenchState } from "./hooks/useThemeWorkbenchState";
-import { BindingsPanel } from "./components/BindingsPanel";
-import { SiteRulesPanel } from "./components/SiteRulesPanel";
-import { AppRulesPanel } from "./components/AppRulesPanel";
-import { StatesPanel } from "./components/StatesPanel";
-import { KeyboardPanel } from "./components/KeyboardPanel";
 import { WorkbenchHeader } from "./components/WorkbenchHeader";
 import { ActionTab, ColumnResizeHandle, WorkspaceItem } from "./components/WorkbenchControls";
 import { WorkbenchPanel } from "./components/WorkbenchPanel";
@@ -37,6 +32,18 @@ const AiSettingsDialog = lazy(() => import("./components/AiSettingsDialog").then
 })));
 const DiagnosticsPanel = lazy(() => import("./components/DiagnosticsPanel").then((module) => ({
   default: module.DiagnosticsPanel,
+})));
+const StatesPanel = lazy(() => import("./components/StatesPanel").then((module) => ({
+  default: module.StatesPanel,
+})));
+const SiteRulesPanel = lazy(() => import("./components/SiteRulesPanel").then((module) => ({
+  default: module.SiteRulesPanel,
+})));
+const AppRulesPanel = lazy(() => import("./components/AppRulesPanel").then((module) => ({
+  default: module.AppRulesPanel,
+})));
+const KeyboardPanel = lazy(() => import("./components/KeyboardPanel").then((module) => ({
+  default: module.KeyboardPanel,
 })));
 
 function DeferredPanelFallback({ label }: { label: string }) {
@@ -498,63 +505,56 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                 </div>
               ) : null}
 
-              {state.workspaceId === "bindings" ? (
-                <div className="h-full overflow-y-auto pr-1">
-                  <BindingsPanel
-                    actionConfigs={draft.actionConfigs}
-                    actionId={selected.actionId}
-                    setActionId={setActionId}
-                    currentConflicts={currentConflicts}
-                  />
-                </div>
-              ) : null}
-
               {state.workspaceId === "states" ? (
                 <div className="h-full overflow-y-auto pr-1">
-                  <StatesPanel
-                    stateId={selected.cursorStateId}
-                    setStateId={setCursorStateId}
-                    cursorSkin={draft.cursorSkin}
-                    recentCursorAssets={recentCursorAssets}
-                    updateCursorSkinState={updateCursorSkinState}
-                    clearCursorSkinState={clearCursorSkinState}
-                    copyDefaultCursorSkinState={copyDefaultCursorSkinState}
-                    resetCursorSkin={resetCursorSkin}
-                    updateCursorStateAsset={updateCursorStateAsset}
-                    updateCursorStateAssetForState={updateCursorStateAssetForState}
-                    rememberRecentCursorAsset={rememberRecentCursorAsset}
-                  />
+                  <Suspense fallback={<DeferredPanelFallback label="正在加载光标皮肤…" />}>
+                    <StatesPanel
+                      stateId={selected.cursorStateId}
+                      setStateId={setCursorStateId}
+                      cursorSkin={draft.cursorSkin}
+                      recentCursorAssets={recentCursorAssets}
+                      updateCursorSkinState={updateCursorSkinState}
+                      clearCursorSkinState={clearCursorSkinState}
+                      copyDefaultCursorSkinState={copyDefaultCursorSkinState}
+                      resetCursorSkin={resetCursorSkin}
+                      updateCursorStateAsset={updateCursorStateAsset}
+                      updateCursorStateAssetForState={updateCursorStateAssetForState}
+                      rememberRecentCursorAsset={rememberRecentCursorAsset}
+                    />
+                  </Suspense>
                 </div>
               ) : null}
 
               {state.workspaceId === "sites" ? (
                 <div className="h-full overflow-y-auto pr-1">
-                  {isDesktop() ? (
-                    <AppRulesPanel
-                      appRules={state.appRules}
-                      themes={themes}
-                      activeApp={activeWindowSnapshot}
-                      openAccessibilitySettings={openAccessibilitySettings}
-                      addAppRule={addAppRule}
-                      updateAppRule={updateAppRule}
-                      deleteAppRule={deleteAppRule}
-                      reorderAppRules={reorderAppRules}
-                      toggleAppRule={toggleAppRule}
-                      clearAllAppRules={clearAllAppRules}
-                    />
-                  ) : (
-                    <SiteRulesPanel
-                      siteRules={state.siteRules}
-                      themes={themes}
-                      activeHost={state.site.host}
-                      addSiteRule={addSiteRule}
-                      updateSiteRule={updateSiteRule}
-                      deleteSiteRule={deleteSiteRule}
-                      reorderSiteRules={reorderSiteRules}
-                      toggleSiteRule={toggleSiteRule}
-                      clearAllSiteRules={clearAllSiteRules}
-                    />
-                  )}
+                  <Suspense fallback={<DeferredPanelFallback label="正在加载应用规则…" />}>
+                    {isDesktop() ? (
+                      <AppRulesPanel
+                        appRules={state.appRules}
+                        themes={themes}
+                        activeApp={activeWindowSnapshot}
+                        openAccessibilitySettings={openAccessibilitySettings}
+                        addAppRule={addAppRule}
+                        updateAppRule={updateAppRule}
+                        deleteAppRule={deleteAppRule}
+                        reorderAppRules={reorderAppRules}
+                        toggleAppRule={toggleAppRule}
+                        clearAllAppRules={clearAllAppRules}
+                      />
+                    ) : (
+                      <SiteRulesPanel
+                        siteRules={state.siteRules}
+                        themes={themes}
+                        activeHost={state.site.host}
+                        addSiteRule={addSiteRule}
+                        updateSiteRule={updateSiteRule}
+                        deleteSiteRule={deleteSiteRule}
+                        reorderSiteRules={reorderSiteRules}
+                        toggleSiteRule={toggleSiteRule}
+                        clearAllSiteRules={clearAllSiteRules}
+                      />
+                    )}
+                  </Suspense>
                 </div>
               ) : null}
 
@@ -567,11 +567,13 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
               ) : null}
 
               {state.workspaceId === "keyboard" ? (
-                <KeyboardPanel
-                  config={keyFeedbackConfig}
-                  themeName={activeTheme?.name}
-                  onUpdate={(patch) => updateKeyFeedbackConfig(patch)}
-                />
+                <Suspense fallback={<DeferredPanelFallback label="正在加载键盘动效…" />}>
+                  <KeyboardPanel
+                    config={keyFeedbackConfig}
+                    themeName={activeTheme?.name}
+                    onUpdate={(patch) => updateKeyFeedbackConfig(patch)}
+                  />
+                </Suspense>
               ) : null}
             </main>
           </div>

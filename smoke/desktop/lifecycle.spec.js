@@ -114,6 +114,12 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
     await aiToggle.click();
     await expect(workbenchPage.getByLabel("描述想要的鼠标效果")).toBeVisible();
     await aiToggle.click();
+    await workbenchPage.getByRole("button", { name: "光标皮肤", exact: true }).click();
+    await expect(workbenchPage.getByRole("heading", { name: "给系统光标状态换一整套皮肤" })).toBeVisible();
+    await workbenchPage.getByRole("button", { name: "应用规则", exact: true }).click();
+    await expect(workbenchPage.getByRole("main").getByText("应用规则", { exact: true })).toBeVisible();
+    await workbenchPage.getByRole("button", { name: "键盘动效", exact: true }).click();
+    await expect(workbenchPage.getByRole("main").getByLabel("键盘动效开关")).toBeVisible();
     await workbenchPage.getByRole("button", { name: "诊断面板", exact: true }).click();
     await expect(workbenchPage.getByRole("button", { name: /开启诊断|关闭诊断/ })).toBeVisible();
     await workbenchPage.getByRole("button", { name: "主题工作台", exact: true }).click();

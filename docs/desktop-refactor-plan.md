@@ -982,7 +982,10 @@ AiSchemePanel              # 组合层
 - 新增 `npm run check:desktop-bundle`，对 Workbench/overlay 初始 raw 与 gzip、最大 JS chunk、renderer 总产物设预算，并接入 `build-desktop` CI。
 - Workbench 欢迎状态与活动窗口查询改为独立结算，活动窗口 IPC 变慢或失败时不再阻塞首次启动弹窗。
 - 当前通过 78 个根测试文件共 375 项、typecheck、Knip、lint（0 error，保留既有 15 warning）、扩展与 Electron build、bundle budget、Web smoke 6/6、desktop smoke 1/1 和完整动态测量；Electron smoke 直接打开 AI 与诊断异步 chunk，覆盖生产构建路径和 CSP。
-- 下一轮继续分析当前约 1.08 MB 的 Workbench 主 JS，重点核对默认配置、Lucide、Radix 与编辑器控件；没有明确首屏收益的拆分不实施。
+- 光标皮肤、应用/站点规则、键盘动效已按工作区动态加载；桌面 smoke 会逐一进入这些工作区，验证生产 chunk、CSP 和交互入口。
+- 删除不可达的 `BindingsPanel`：`WORKSPACES` 没有 `bindings`，也不存在其他 `setWorkspaceId("bindings")` 入口，原条件分支只是让死代码检查误认为它仍被消费。
+- Workbench 初始引用进一步降至 1,167,090 bytes（gzip 246,972），较 R6-2 前累计减少 41.5% / 41.0%；主 JS 约 988 kB，预算同步收紧。
+- 下一轮评估扩展 Popup 初始共享 chunk，以及剩余首屏默认配置、Lucide、Radix 与编辑器控件；没有明确首屏收益的拆分不实施。
 
 ### R6-3：真实打包 CI
 

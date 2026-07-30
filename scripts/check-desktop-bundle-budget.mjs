@@ -6,11 +6,11 @@ const projectRoot = resolve(import.meta.dirname, "..");
 const rendererRoot = resolve(projectRoot, "out/renderer");
 
 const budgets = {
-  workbenchInitialRawBytes: 1_350_000,
-  workbenchInitialGzipBytes: 290_000,
+  workbenchInitialRawBytes: 1_250_000,
+  workbenchInitialGzipBytes: 270_000,
   overlayInitialRawBytes: 180_000,
   overlayInitialGzipBytes: 45_000,
-  largestJavaScriptChunkBytes: 1_200_000,
+  largestJavaScriptChunkBytes: 1_100_000,
   rendererOutputBytes: 2_200_000,
 };
 

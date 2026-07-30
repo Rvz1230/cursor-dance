@@ -124,7 +124,8 @@
 - **R6-2 首轮结果**：AI 助手、AI 设置和诊断面板改为动态加载，父页面无效的 AI 栏 Framer 动画同步删除；Workbench 初始引用由 1,994,491 bytes / gzip 418,432 bytes 降至 1,256,699 / 262,579 bytes，分别减少 37.0% / 37.2%。AI + Framer 主链路独立为约 714 kB chunk，未打开时不再下载和解析。
 - **R6-2 预算门禁**：新增 `check:desktop-bundle`，约束 Workbench/overlay 初始 raw+gzip、最大 JS chunk 和 renderer 总产物，并接入 `build-desktop` CI。欢迎弹窗启动同时解除对活动窗口查询的等待，慢查询不再阻塞首次启动引导。
 - **R6-2 当前验证**：78 个根测试文件共 375 项、typecheck、Knip、lint（0 error，保留既有 15 warning）、扩展与 Electron build、bundle budget、Web smoke 6/6、desktop smoke 1/1 和完整动态测量通过；桌面 smoke 已覆盖构建产物中的 AI/诊断异步 chunk。
-- **下一步**：继续 R6-2，分析剩余 1.08 MB Workbench 主 chunk 中的默认配置、Lucide、Radix 与编辑器控件占比，再决定下一处拆分。
+- **R6-2 第二轮结果**：光标皮肤、应用/站点规则、键盘动效改为工作区级按需加载；删除没有任何可达入口、仅靠条件分支维持引用的 `BindingsPanel`。Workbench 初始引用进一步降至 1,167,090 bytes / gzip 246,972 bytes，较 R6-2 前累计减少 41.5% / 41.0%，主 JS 降至约 988 kB。
+- **下一步**：继续 R6-2，评估扩展 Popup 初始共享 chunk，以及剩余首屏默认配置、Lucide、Radix 和编辑器控件；优先删除不可达代码，再做有明确收益的拆分。
 
 ### 分支状态
 
