@@ -51,9 +51,4 @@ describe("v4 web context matcher", () => {
     ], "example.com", "/")).toBeNull();
     expect(resolveWebContextRule(null, "example.com", "/")).toBeNull();
   });
-
-  it("registers the typed matcher for the legacy config-store adapter", () => {
-    expect(globalThis.CursorDanceContentModules.matchHostPattern).toBe(matchHostPattern);
-    expect(globalThis.CursorDanceContentModules.resolveWebContextRule).toBe(resolveWebContextRule);
-  });
 });

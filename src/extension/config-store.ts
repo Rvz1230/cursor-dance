@@ -13,7 +13,7 @@ import { resolveWebContextRule } from "./site-matcher";
 
 type ActionConfig = Record<string, unknown>;
 
-interface ContentTheme {
+export interface ContentTheme {
   id: string;
   actionConfigs: Record<string, ActionConfig>;
   cursorBindings: Record<string, { mode?: string; actionId?: string }>;
@@ -28,7 +28,7 @@ interface ContentTheme {
   [key: string]: unknown;
 }
 
-interface ContentConfig {
+export interface ContentConfig {
   enabled: boolean;
   activeThemeId: string;
   themes: ContentTheme[];
@@ -97,6 +97,7 @@ export interface ContentConfigStore {
   debouncedSyncConfigFromStorage(options: { clearStateCursorOverlay(): void }): void;
   getAtmosphereConfig(scheme: ContentTheme | null | undefined): { mode: string };
   setOnSyncComplete(callback: (() => void) | null): void;
+  destroy(): void;
 }
 
 const defaultActionConfigsByThemeId = new Map<string | null, Record<string, ActionConfig>>();
@@ -388,6 +389,12 @@ export function createContentConfigStore(runtime: ContentConfigStoreRuntime): Co
     }, 60);
   }
 
+  function destroy(): void {
+    if (syncTimer !== null) window.clearTimeout(syncTimer);
+    syncTimer = null;
+    onSyncComplete = null;
+  }
+
   return {
     normalizeConfig,
     setConfig,
@@ -413,11 +420,6 @@ export function createContentConfigStore(runtime: ContentConfigStoreRuntime): Co
     debouncedSyncConfigFromStorage,
     getAtmosphereConfig,
     setOnSyncComplete,
+    destroy,
   };
 }
-
-const runtimeGlobal = globalThis as typeof globalThis & {
-  CursorDanceContentModules?: Record<string, unknown>;
-};
-runtimeGlobal.CursorDanceContentModules ||= {};
-runtimeGlobal.CursorDanceContentModules.createConfigStore = createContentConfigStore;

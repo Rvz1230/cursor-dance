@@ -9,7 +9,7 @@ interface ChromeStorageChange {
 }
 
 interface ContentChromeStorage {
-  local: {
+  local?: {
     get(keys: string[]): Promise<Record<string, unknown>>;
     set(items: Record<string, unknown>): Promise<void>;
   };
@@ -67,9 +67,3 @@ export function createContentDiagnostics(runtime: ContentDiagnosticsRuntime): Di
     },
   });
 }
-
-const runtimeGlobal = globalThis as typeof globalThis & {
-  CursorDanceContentModules?: Record<string, unknown>;
-};
-runtimeGlobal.CursorDanceContentModules ||= {};
-runtimeGlobal.CursorDanceContentModules.createDiagnostics = createContentDiagnostics;

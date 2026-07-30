@@ -59,10 +59,3 @@ export function resolveWebContextRule(
   }
   return null;
 }
-
-const runtimeGlobal = globalThis as typeof globalThis & {
-  CursorDanceContentModules?: Record<string, unknown>;
-};
-runtimeGlobal.CursorDanceContentModules ||= {};
-runtimeGlobal.CursorDanceContentModules.matchHostPattern = matchHostPattern;
-runtimeGlobal.CursorDanceContentModules.resolveWebContextRule = resolveWebContextRule;

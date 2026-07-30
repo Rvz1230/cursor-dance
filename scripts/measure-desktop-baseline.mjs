@@ -3,8 +3,8 @@ import { mkdtemp, readFile, readdir, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, extname, join, relative, resolve } from "node:path";
 import { performance } from "node:perf_hooks";
-import { pathToFileURL } from "node:url";
 import { _electron as electron } from "@playwright/test";
+import { createServer as createViteServer } from "vite";
 
 const PROJECT_ROOT = resolve(import.meta.dirname, "..");
 const SOURCE_EXTENSIONS = new Set([".css", ".html", ".js", ".jsx", ".mjs", ".ts", ".tsx"]);
@@ -119,20 +119,26 @@ async function measureReferencedBundle(entryName) {
 }
 
 async function measureConfigPayloads() {
-  const assetsDirectory = resolve(PROJECT_ROOT, "out/renderer/assets");
-  const defaultConfigFile = (await readdir(assetsDirectory)).find((name) =>
-    name.startsWith("default-config-") && name.endsWith(".js"),
-  );
-  if (!defaultConfigFile) throw new Error("Built default-config chunk was not found");
-
-  const module = await import(pathToFileURL(join(assetsDirectory, defaultConfigFile)).href);
-  const config = Object.values(module).find((value) =>
-    value && typeof value === "object" && value.schemaVersion === 3 && Array.isArray(value.themePacks),
-  );
-  if (!config || typeof config !== "object") throw new Error("Built default config export was not found");
+  const vite = await createViteServer({
+    root: PROJECT_ROOT,
+    configFile: false,
+    appType: "custom",
+    logLevel: "silent",
+    server: { middlewareMode: true },
+  });
+  let config;
+  try {
+    const module = await vite.ssrLoadModule("/src/desktop/renderer/engine/default-config.ts");
+    config = module.defaultConfig;
+  } finally {
+    await vite.close();
+  }
+  if (!config || config.schemaVersion !== 4 || !Array.isArray(config.themes)) {
+    throw new Error("Canonical schema v4 default config export was not found");
+  }
 
   const withImage = structuredClone(config);
-  const pack = withImage.themePacks?.[0];
+  const pack = withImage.themes[0];
   const imageDataUrl = `data:image/png;base64,${"A".repeat(IMAGE_FIXTURE_DATA_BYTES)}`;
   if (pack) {
     pack.cursorSkin ??= {};
@@ -292,7 +298,7 @@ const result = {
   },
   code: await Promise.all([
     measureCodeArea("desktop", ["src/desktop"]),
-    measureCodeArea("extension runtimes", ["extension/config-runtime", "extension/content-runtime"]),
+    measureCodeArea("extension runtimes", ["src/extension", "extension"]),
     measureCodeArea("shared Workbench UI", ["src/app/pages/theme-workbench", "src/components/ui"]),
   ]),
   bundles: {

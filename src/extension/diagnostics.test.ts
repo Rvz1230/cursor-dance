@@ -59,8 +59,4 @@ describe("extension diagnostics adapter", () => {
     storageListener?.({ "cursordance.debug": { newValue: false } }, "local");
     expect(diagnostics.isEnabled()).toBe(false);
   });
-
-  it("registers the adapter for the legacy content assembly", () => {
-    expect(globalThis.CursorDanceContentModules.createDiagnostics).toBe(createContentDiagnostics);
-  });
 });

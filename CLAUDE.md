@@ -48,9 +48,9 @@ npm run package:win   # electron-builder --win
 
 ### Chrome Extension (existing)
 - Three entrypoints: Workbench (`index.html`), Popup (`popup.html`), Content scripts (`extension/`)
-- Content scripts use IIFE registration (`window.CursorDanceContentModules`) because ES modules aren't available
+- Content runtime is authored as TypeScript modules and bundled by Vite into one MV3-compatible IIFE artifact
 - Storage: `chrome.storage.local` with localStorage fallback
-- Build: Vite 5 MPA (`vite.config.js`)
+- Build: Vite MPA (`vite.config.js`) plus the dedicated content bundle (`vite.extension.config.js`)
 
 ### Electron Desktop App (new)
 ```
@@ -93,9 +93,9 @@ src/
 The extension is built from `src/extension/content-entry.ts` into one MV3-compatible
 IIFE bundle. Shared effect core/runtime, action trigger pipeline, visual effects, cursor overlay and
 diagnostics are regular TypeScript modules; audio, page atmosphere and web rule adapters are also
-TypeScript modules.
-The final legacy assembly module temporarily consumes adapters through
-`window.CursorDanceContentModules`; `content.js` remains the DI container until that entry is migrated.
+TypeScript modules. `src/extension/content-runtime.ts` directly composes the adapters and owns startup,
+configuration bridges, DOM listeners and teardown. `extension/config.js` is the last classic source
+module and remains bundled until its default-config definitions move to TypeScript.
 
 ### Workbench component tree
 ```
@@ -166,7 +166,7 @@ Independent Vite + React build for the public website. Not part of the Electron 
 
 ### Extension-specific
 - Do NOT add `behavior.click.effects` back — this old format was removed (2026-05-24)
-- Do NOT rewrite `extension/content.js` broadly; add focused runtime modules instead
+- Do NOT reintroduce classic content-runtime scripts or a `window.CursorDanceContentModules` registry
 - Keep popup, workbench, and content runtime data shapes synchronized
 
 ### Desktop-specific
@@ -174,7 +174,7 @@ Independent Vite + React build for the public website. Not part of the Electron 
 - Do NOT mix native widgets with Chromium-rendered UI — all UI surfaces use the same design tokens
 - Do NOT add `hover` trigger action on desktop (no DOM context)
 - Do NOT add audio ducking on desktop (no page media)
-- Do NOT let engine logic diverge between extension and desktop — changes to `src/desktop/renderer/engine/` must be reflected in `extension/content-runtime/` equivalents
+- Do NOT let engine logic diverge between extension and desktop — cross-platform behavior belongs in `src/shared/effect-core/` or `src/shared/effect-runtime/`
 - Keep the action-config, text-semantics, and compute-specs parity tests green whenever shared engine semantics change
 
 ### General

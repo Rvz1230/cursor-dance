@@ -15,10 +15,9 @@ import type {
 
 // CursorDance 效果引擎共享类型
 //
-// 引擎的 DOM effect surface 由桌面端与扩展端共同使用；其余 legacy runtime
-// 仍通过 window.CursorDanceContentModules 注册。桌面端通过 createEffectEngine 注入
-// window/document/constants/state/configStore，让 overlay 渲染进程与 Workbench 预览面板
-// 共享同一份代码（详见 docs/plans/steady-painting-yeti.md）。
+// 引擎的 DOM effect surface 由桌面端与扩展端共同使用；两端均通过 TypeScript
+// composition root 注入 window/document/constants/state/configStore，让 overlay 渲染进程、
+// Workbench 预览与扩展 content runtime 共享同一份核心代码。
 
 /**
  * 引擎入口接收的结构化光标事件。

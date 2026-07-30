@@ -50,9 +50,3 @@ export function createContentCursorOverlay(runtime: ContentCursorOverlayRuntime)
     clearStateCursorOverlay: renderer.clearStateCursorOverlay,
   };
 }
-
-const runtimeGlobal = globalThis as typeof globalThis & {
-  CursorDanceContentModules?: Record<string, unknown>;
-};
-runtimeGlobal.CursorDanceContentModules ||= {};
-runtimeGlobal.CursorDanceContentModules.createCursorOverlay = createContentCursorOverlay;

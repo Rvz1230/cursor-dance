@@ -406,9 +406,3 @@ export function createContentAtmosphere(runtime: ContentAtmosphereRuntime): Cont
 
   return { syncConfig, destroy };
 }
-
-const runtimeGlobal = globalThis as typeof globalThis & {
-  CursorDanceContentModules?: Record<string, unknown>;
-};
-runtimeGlobal.CursorDanceContentModules ||= {};
-runtimeGlobal.CursorDanceContentModules.createAtmosphere = createContentAtmosphere;

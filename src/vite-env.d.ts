@@ -48,7 +48,6 @@ type CursorDanceConfigRecord = Record<string, any>
 type CursorDanceConfigRuntime = Record<string, any>
 
 declare var CursorDanceConfigHelpers: CursorDanceConfigRuntime
-declare var CursorDanceContentModules: CursorDanceConfigRuntime
 declare var CursorDanceDefaultConfig: CursorDanceConfigRecord
 declare var CursorDanceConfigRuntime: CursorDanceConfigRuntime
 
@@ -60,7 +59,6 @@ interface Window {
   cursorDanceApp?: CursorDanceAppBridge
   cursorDanceAi?: CursorDanceAiBridge
   CursorDanceConfigHelpers?: CursorDanceConfigRuntime
-  CursorDanceContentModules?: CursorDanceConfigRuntime
   CursorDanceDefaultConfig?: CursorDanceConfigRecord
   CursorDanceConfigRuntime?: CursorDanceConfigRuntime
   electronAPI?: {

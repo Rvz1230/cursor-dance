@@ -1,14 +1,14 @@
 import { createAudioRuntime, type AudioRuntimeModule } from "@/shared/effect-runtime/audio-runtime";
 import { resolveAudioDuckProfile, type AudioDuckProfile } from "./audio-duck-profile";
 
-interface MediaDuckSnapshot {
+export interface MediaDuckSnapshot {
   originalVolume: number;
   originalMuted: boolean;
   restoreTimer: number | null;
   reassertTimer: number | null;
 }
 
-interface ContentAudioState {
+export interface ContentAudioState {
   audioContext?: AudioContext | null;
   lastSoundAtByAction?: Record<string, number>;
   mediaDuckState: WeakMap<HTMLMediaElement, MediaDuckSnapshot>;
@@ -203,9 +203,3 @@ export function createContentAudioRuntime(runtime: ContentAudioRuntime): AudioRu
 
   return createAudioRuntime({ ...runtime, beforePlay: duckPageMedia });
 }
-
-const runtimeGlobal = globalThis as typeof globalThis & {
-  CursorDanceContentModules?: Record<string, unknown>;
-};
-runtimeGlobal.CursorDanceContentModules ||= {};
-runtimeGlobal.CursorDanceContentModules.createAudioRuntime = createContentAudioRuntime;

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createContentCursorOverlay } from "./cursor-overlay";
 
 describe("extension cursor overlay adapter", () => {
-  it("registers the adapter and clears immediately when the site is disabled", () => {
+  it("clears immediately when the site is disabled", () => {
     const remove = vi.fn();
     const overlay = createContentCursorOverlay({
       document: {
@@ -22,6 +22,5 @@ describe("extension cursor overlay adapter", () => {
     overlay.syncStateCursorOverlay({ clientX: 1, clientY: 2, target: null });
 
     expect(remove).toHaveBeenCalledWith("hide-cursor");
-    expect(globalThis.CursorDanceContentModules?.createCursorOverlay).toBe(createContentCursorOverlay);
   });
 });

@@ -76,6 +76,21 @@ describe("extension config store", () => {
     });
 
     expect(store.isCurrentSiteEnabled()).toBe(false);
-    expect(globalThis.CursorDanceContentModules.createConfigStore).toBe(createContentConfigStore);
+  });
+
+  it("cancels pending debounced synchronization when destroyed", async () => {
+    vi.useFakeTimers();
+    try {
+      const { store } = createFixture();
+      const clearStateCursorOverlay = vi.fn();
+
+      store.debouncedSyncConfigFromStorage({ clearStateCursorOverlay });
+      store.destroy();
+      await vi.advanceTimersByTimeAsync(100);
+
+      expect(clearStateCursorOverlay).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

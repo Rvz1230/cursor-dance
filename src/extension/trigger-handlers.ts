@@ -10,7 +10,7 @@ import {
 } from "@/shared/effect-runtime/gesture-state";
 import type { VisualEffectsModule } from "@/shared/effect-runtime/dom-effect-surface";
 
-interface ContentTriggerState extends ActionTriggerState, GestureRuntimeState {
+export interface ContentTriggerState extends ActionTriggerState, GestureRuntimeState {
   lastWheelEventAt: number;
   hoverTimeoutId: number | null;
   hoverTarget: EventTarget | null;
@@ -20,7 +20,7 @@ interface ContentConfigStore {
   isCurrentSiteEnabled(): boolean;
   getActiveScheme(): unknown;
   getConfig(): { themes: unknown[]; activeThemeId?: string };
-  getActionConfig(scheme: unknown, actionId: string): Record<string, unknown> | undefined;
+  getActionConfig(scheme: unknown, actionId: string): Record<string, unknown> | null | undefined;
   getActionTriggerConfig(config: unknown): Record<string, unknown>;
   matchesTriggerZone(
     target: unknown,
@@ -103,7 +103,7 @@ export function createContentTriggerHandlers(runtime: ContentTriggerRuntime): Co
     configStore: {
       isCurrentContextEnabled: () => configStore.isCurrentSiteEnabled(),
       getActiveScheme: () => configStore.getActiveScheme(),
-      getActionConfig: (scheme, actionId) => configStore.getActionConfig(scheme, actionId),
+      getActionConfig: (scheme, actionId) => configStore.getActionConfig(scheme, actionId) ?? undefined,
       getActionTriggerConfig: (config) => configStore.getActionTriggerConfig(config),
       matchesTriggerZone: (target, triggerZone, event, options) => (
         configStore.matchesTriggerZone(target, triggerZone, event, options)
@@ -402,9 +402,3 @@ export function createContentTriggerHandlers(runtime: ContentTriggerRuntime): Co
     previewAtViewportCenter,
   };
 }
-
-const runtimeGlobal = globalThis as typeof globalThis & {
-  CursorDanceContentModules?: Record<string, unknown>;
-};
-runtimeGlobal.CursorDanceContentModules ||= {};
-runtimeGlobal.CursorDanceContentModules.createTriggerHandlers = createContentTriggerHandlers;

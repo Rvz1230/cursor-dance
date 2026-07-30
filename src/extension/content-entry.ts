@@ -1,11 +1,5 @@
 import "./runtime-globals";
 import "../../extension/config.js";
-import "./site-matcher";
-import "./diagnostics";
-import "./config-store";
-import "./visual-effects";
-import "./audio";
-import "./cursor-overlay";
-import "./atmosphere";
-import "./trigger-handlers";
-import "../../extension/content.js";
+import { startContentRuntime } from "./content-runtime";
+
+startContentRuntime();
