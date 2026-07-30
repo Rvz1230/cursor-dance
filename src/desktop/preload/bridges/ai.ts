@@ -1,6 +1,5 @@
 import {
   AI_CANCEL_REQUEST,
-  AI_CREATE_PROPOSAL,
   AI_CREATE_PROPOSAL_STREAM,
   AI_GET_USER_SETTINGS,
   AI_REQUEST_EVENT,
@@ -10,7 +9,6 @@ import {
 import type {
   AiRequestEvent,
   AiStreamRequest,
-  AiTransportPayload,
   AiTransportResponse,
   AiUserSettingsPatch,
   AiUserSettingsView,
@@ -26,9 +24,6 @@ export function createAiBridge() {
     },
     async setSettings(patch: AiUserSettingsPatch): Promise<AiUserSettingsView> {
       return invokeDesktop(AI_SET_USER_SETTINGS, patch);
-    },
-    async createProposal(payload: AiTransportPayload): Promise<AiTransportResponse> {
-      return invokeDesktop(AI_CREATE_PROPOSAL, payload);
     },
     async createProposalStream(request: AiStreamRequest): Promise<AiTransportResponse> {
       return invokeDesktop(AI_CREATE_PROPOSAL_STREAM, request);

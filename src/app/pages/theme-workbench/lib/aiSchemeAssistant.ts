@@ -10,7 +10,6 @@ import {
 } from "../../../../../cursor-dance-api/src/normalize";
 import {
   requestAiAgentRun as requestRemoteAiAgentRun,
-  requestAiSchemeEdit as requestRemoteAiSchemeEdit,
   requestAiSchemeEditStreaming as requestRemoteAiSchemeEditStreaming,
 } from "../../../../../cursor-dance-api/src/client";
 
@@ -179,14 +178,6 @@ async function runDesktopStreamingRequest(bridge, method, options) {
     signal?.removeEventListener("abort", onAbort);
     unsubscribe();
   }
-}
-
-export async function requestAiSchemeEdit(options) {
-  const bridge = getDesktopAiBridge();
-  if (!bridge) return requestRemoteAiSchemeEdit(options);
-  const response = await bridge.createProposal(buildTransportPayload(options));
-  if (response.status !== 200) throw createTransportError(response);
-  return normalizeTransportProposal(response.body, options);
 }
 
 export async function requestAiSchemeEditStreaming(options) {

@@ -184,7 +184,6 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
       windowControls: true,
       aiMethods: [
         "cancelRequest",
-        "createProposal",
         "createProposalStream",
         "getSettings",
         "onRequestEvent",
@@ -195,11 +194,14 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
     });
     await expect(workbenchPage.evaluate(async () => {
       if (!window.cursorDanceAi) throw new Error("cursorDanceAi bridge is unavailable");
-      return window.cursorDanceAi.createProposal({
-        prompt: "smoke test proposal",
-        currentConfig: {},
-        actionId: "leftClick",
-        taskMode: "modify_action",
+      return window.cursorDanceAi.createProposalStream({
+        requestId: "smoke-test-proposal",
+        payload: {
+          prompt: "smoke test proposal",
+          currentConfig: {},
+          actionId: "leftClick",
+          taskMode: "modify_action",
+        },
       });
     })).resolves.toMatchObject({
       status: 503,

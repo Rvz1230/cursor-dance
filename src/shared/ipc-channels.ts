@@ -74,7 +74,6 @@ export const AI_SET_USER_SETTINGS = "cursordance:ai-set-user-settings";
 
 /** renderer → 主进程：桌面 AI typed IPC transport。流式进度通过 AI_REQUEST_EVENT
  *  单向推回发起请求的 Workbench，API key 始终只存在于主进程。 */
-export const AI_CREATE_PROPOSAL = "cursordance:ai-create-proposal";
 export const AI_CREATE_PROPOSAL_STREAM = "cursordance:ai-create-proposal-stream";
 export const AI_RUN_AGENT = "cursordance:ai-run-agent";
 export const AI_CANCEL_REQUEST = "cursordance:ai-cancel-request";

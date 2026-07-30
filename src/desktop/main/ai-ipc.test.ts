@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AI_CANCEL_REQUEST,
-  AI_CREATE_PROPOSAL,
   AI_CREATE_PROPOSAL_STREAM,
   AI_REQUEST_EVENT,
   AI_RUN_AGENT,
@@ -9,7 +8,6 @@ import {
 
 const mocks = vi.hoisted(() => ({
   handlers: new Map<string, (...args: unknown[]) => unknown>(),
-  createProposal: vi.fn(),
   createProposalStream: vi.fn(),
   createAgent: vi.fn(),
   syncEnv: vi.fn(),
@@ -25,7 +23,6 @@ vi.mock("electron", () => ({
 }));
 
 vi.mock("../../../cursor-dance-api/src/proposal-service.mjs", () => ({
-  createAiSchemeProposal: mocks.createProposal,
   createAiSchemeProposalStreaming: mocks.createProposalStream,
   createAiAgentProposal: mocks.createAgent,
 }));
@@ -54,7 +51,6 @@ function eventFor(id: number) {
 describe("desktop AI IPC transport", () => {
   beforeEach(() => {
     mocks.handlers.clear();
-    mocks.createProposal.mockReset().mockResolvedValue({ status: 200, body: { reply: "ok" } });
     mocks.createProposalStream.mockReset().mockResolvedValue({ status: 200, body: { reply: "streamed" } });
     mocks.createAgent.mockReset().mockResolvedValue({ status: 200, body: { proposal: { reply: "agent" } } });
     mocks.syncEnv.mockReset();
@@ -63,13 +59,8 @@ describe("desktop AI IPC transport", () => {
     registerAiIpc();
   });
 
-  it("syncs encrypted settings into the main-process provider and handles proposals", async () => {
-    registerIpcSender({ id: 1 }, "workbench");
-    const result = await mocks.handlers.get(AI_CREATE_PROPOSAL)!(eventFor(1), { prompt: "蓝色" });
-
+  it("syncs encrypted settings into the main-process provider", () => {
     expect(mocks.syncEnv).toHaveBeenCalledOnce();
-    expect(mocks.createProposal).toHaveBeenCalledWith({ prompt: "蓝色" }, { env: process.env });
-    expect(result).toEqual({ status: 200, body: { reply: "ok" } });
   });
 
   it("routes stream events only to the requesting Workbench", async () => {
@@ -121,10 +112,12 @@ describe("desktop AI IPC transport", () => {
     expect(aiTesting.activeRequestCount()).toBe(0);
   });
 
-  it("denies AI requests from Overlay senders", async () => {
+  it("denies AI requests from Overlay senders", () => {
     registerIpcSender({ id: 2 }, "overlay");
-    await expect(mocks.handlers.get(AI_CREATE_PROPOSAL)!(eventFor(2), { prompt: "蓝色" }))
-      .rejects.toThrow(/access denied/);
-    expect(mocks.createProposal).not.toHaveBeenCalled();
+    expect(() => mocks.handlers.get(AI_CREATE_PROPOSAL_STREAM)!(eventFor(2), {
+      requestId: "request-overlay",
+      payload: { prompt: "蓝色" },
+    })).toThrow(/access denied/);
+    expect(mocks.createProposalStream).not.toHaveBeenCalled();
   });
 });

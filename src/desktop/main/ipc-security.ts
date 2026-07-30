@@ -1,7 +1,6 @@
 import type { IpcMainInvokeEvent } from "electron";
 import {
   AI_CANCEL_REQUEST,
-  AI_CREATE_PROPOSAL,
   AI_CREATE_PROPOSAL_STREAM,
   AI_GET_USER_SETTINGS,
   AI_RUN_AGENT,
@@ -53,7 +52,6 @@ export const IPC_SENDER_POLICY: Readonly<Record<string, readonly DesktopWindowKi
   [WINDOW_GET_STATE]: ["workbench"],
   [AI_GET_USER_SETTINGS]: ["workbench"],
   [AI_SET_USER_SETTINGS]: ["workbench"],
-  [AI_CREATE_PROPOSAL]: ["workbench"],
   [AI_CREATE_PROPOSAL_STREAM]: ["workbench"],
   [AI_RUN_AGENT]: ["workbench"],
   [AI_CANCEL_REQUEST]: ["workbench"],

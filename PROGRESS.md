@@ -98,10 +98,11 @@
 - [x] R4-4：删除旧引擎——扩展 effect/runtime、config store 与 content composition root 已全部迁为 TypeScript；v4 默认配置、内置主题和键盘反馈配置收敛至 `src/shared/config`，旧 IIFE、动态脚本加载器、全局配置/模块注册表及源码执行测试均已删除
 - **R4-4 验证**：70 个根测试文件共 345 项通过；typecheck、lint（0 error，既有 warning 从 24 降至 22）、Web/扩展/Electron build、扩展产物完整性校验、Web smoke 5/5、desktop smoke 1/1 与静态基线测量通过；默认配置载荷由 20,011 bytes 降至 6,358 bytes，content bundle 由 94.90 kB 降至 92.81 kB
 - **R4 浏览器验收**：新增独立 `test:extension` 并接入 Linux CI；使用 Playwright 完整 Chromium 真实侧载生产 `dist`，覆盖严格 CSP 页面注入、点击效果节点、popup/options 启动、单 bundle 约束及 eval/CSP/page error 检查。R4 已完成。
-- **R5-1 当前进度**：展示组件、请求生命周期与会话持久化均已拆分；`useAiConversation` 统一首次加载、动作切换、清空、防抖保存和过期清理，`AiSchemePanel.tsx` 从 1,388 行降至 485 行。
+- [x] R5-1：拆分 `AiSchemePanel`——展示、请求生命周期、会话持久化与提案审阅均已拆分；`AiSchemePanel.tsx` 从 1,388 行降至 458 行。
 - **R5-1 稳定性修复**：请求 run id 隔离旧流式回调；会话 load revision 隔离快速切换的迟到读取，且 hydration 完成前禁止自动保存，避免空状态覆盖已有对话。
-- **R5-1 当前验证**：72 个根测试文件共 351 项通过；typecheck、lint（0 error，保留既有 22 warning）、Web/扩展 build 与 AI 会话 smoke 通过；新增 3 项会话归一化测试，smoke 覆盖卸载后恢复 Agent 模式。
-- **下一步**：继续 R5-1，提取应用/预览/放弃 proposal review，并审查快速/Agent transport 是否仍有可删除重复分支。Windows 同步执行 R1-4 真机验收。
+- **R5-1 收敛结果**：`useAiProposalReview` 统一预览、应用、放弃和撤销；删除 renderer、preload 与主进程中无消费者的非流式桌面提案 contract，快速模式只保留可取消的流式 transport。
+- **R5-1 验证**：73 个根测试文件共 353 项通过；typecheck、lint（0 error，保留既有 22 warning）、Web/扩展/Electron build、Web smoke 6/6 与 desktop smoke 1/1 通过。
+- **下一步**：进入 R5-2，拆分 `WorkbenchPreviewRail` 的 preview engine host、缩放/录制工具栏与状态展示。Windows 同步执行 R1-4 真机验收。
 
 ### 分支状态
 

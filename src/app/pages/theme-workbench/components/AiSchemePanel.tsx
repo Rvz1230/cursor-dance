@@ -13,6 +13,7 @@ import {
 import { AiAgentTimeline, AiModeSwitcher } from "./ai-scheme/AiAgentActivity";
 import { AiProposalPresentation } from "./ai-scheme/AiProposalPresentation";
 import { useAiConversation } from "./ai-scheme/useAiConversation";
+import { useAiProposalReview } from "./ai-scheme/useAiProposalReview";
 import { useAiProposalRun } from "./ai-scheme/useAiProposalRun";
 import { Panel } from "./WorkbenchControls";
 
@@ -115,6 +116,25 @@ export function AiSchemePanel({
     onClearAiSnapshot,
     notify,
   });
+  const {
+    previewActive,
+    applyPendingResult,
+    discardPendingResult,
+    previewPendingResult,
+    revertAiChanges,
+  } = useAiProposalReview({
+    pendingResult,
+    previewProposal,
+    aiSnapshot,
+    applyActionConfig,
+    applyProposal,
+    onPreviewProposal,
+    onClearPreview,
+    onRevertAiChanges,
+    notify,
+    setPendingResult,
+    setMessages,
+  });
 
   // Reset request-only UI state when switching actions. Conversation state is
   // loaded and persisted independently by useAiConversation.
@@ -127,7 +147,6 @@ export function AiSchemePanel({
   const promptExamples = useMemo(() => buildPromptExamples(currentConfig), [currentConfig]);
 
   const canSubmit = useMemo(() => prompt.trim().length > 0 && !isGenerating && !cooldownActive, [prompt, isGenerating, cooldownActive]);
-  const previewActive = Boolean(pendingResult && previewProposal === pendingResult);
   const canOpenProviderSettings = Boolean(onOpenAiSettings && error.includes("API Key"));
   const scrollRef = useRef(null);
   const textareaRef = useRef(null);
@@ -184,39 +203,6 @@ export function AiSchemePanel({
     void submitPrompt();
   }
 
-  function applyPendingResult() {
-    if (!pendingResult) return;
-
-    if (aiSnapshot) {
-      notify?.({
-        tone: "info",
-        title: "将覆盖之前的 AI 改动",
-        description: "撤销点将更新到最新状态，之前的改动将无法单独回退。",
-      });
-    }
-
-    if (applyProposal) {
-      applyProposal(pendingResult);
-    } else {
-      applyActionConfig(pendingResult.patch);
-    }
-    onClearPreview?.();
-    setMessages((current) => [...current, { role: "assistant", content: "已应用这次改动到当前动作配置。", kind: "applied" }]);
-    notify?.({
-      tone: "success",
-      title: "已应用 AI 方案",
-      description: pendingResult.targets?.length > 1 ? `已更新 ${pendingResult.targets.length} 个动作。` : pendingResult.diffSummary?.[0] || "配置已更新，可在预览区查看效果。",
-    });
-    setPendingResult(null);
-  }
-
-  function discardPendingResult() {
-    if (!pendingResult) return;
-    setPendingResult(null);
-    onClearPreview?.();
-    setMessages((current) => [...current, { role: "assistant", content: "已放弃这次改动，当前配置保持不变。", kind: "discarded" }]);
-  }
-
   function clearConversation() {
     setPrompt("");
     resetRun();
@@ -226,16 +212,6 @@ export function AiSchemePanel({
       tone: "info",
       title: "已清空 AI 对话",
       description: "当前动作配置保持不变。",
-    });
-  }
-
-  function previewPendingResult() {
-    if (!pendingResult) return;
-    onPreviewProposal?.(pendingResult);
-    notify?.({
-      tone: "info",
-      title: "正在预览 AI 建议",
-      description: "实时预览已切换到 AI 建议配置，应用前不会写入当前配置。",
     });
   }
 
@@ -407,10 +383,7 @@ export function AiSchemePanel({
             <button
               type="button"
               className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-100 active:scale-[0.97]"
-              onClick={() => {
-                onRevertAiChanges?.();
-                setMessages((current) => [...current, { role: "assistant", content: "已撤销 AI 改动，配置已恢复。", kind: "chat" }]);
-              }}
+              onClick={revertAiChanges}
             >
               <RotateCcw className="size-3.5" aria-hidden="true" />
               撤销 AI 改动

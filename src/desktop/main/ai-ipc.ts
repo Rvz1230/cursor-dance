@@ -1,12 +1,10 @@
 import { ipcMain, type IpcMainInvokeEvent } from "electron";
 import {
   createAiAgentProposal,
-  createAiSchemeProposal,
   createAiSchemeProposalStreaming,
 } from "../../../cursor-dance-api/src/proposal-service.mjs";
 import {
   AI_CANCEL_REQUEST,
-  AI_CREATE_PROPOSAL,
   AI_CREATE_PROPOSAL_STREAM,
   AI_GET_USER_SETTINGS,
   AI_REQUEST_EVENT,
@@ -27,7 +25,6 @@ import {
   validateAiCancelRequest,
   validateAiSettingsPatch,
   validateAiStreamRequest,
-  validateAiTransportPayload,
 } from "./ipc-contracts";
 import { assertIpcSender } from "./ipc-security";
 
@@ -139,14 +136,6 @@ export function registerAiIpc(): void {
     return writeSettings(validateAiSettingsPatch(payload));
   });
 
-  ipcMain.handle(AI_CREATE_PROPOSAL, async (event, payload: unknown): Promise<AiTransportResponse> => {
-    assertIpcSender(event, AI_CREATE_PROPOSAL);
-    return normalizeServiceResponse(await createAiSchemeProposal(
-      validateAiTransportPayload(payload),
-      { env: process.env },
-    ));
-  });
-
   ipcMain.handle(AI_CREATE_PROPOSAL_STREAM, (event, payload: unknown): Promise<AiTransportResponse> => {
     assertIpcSender(event, AI_CREATE_PROPOSAL_STREAM);
     return runStreamingRequest(event, payload, "proposal");
@@ -171,7 +160,6 @@ export function registerAiIpc(): void {
 export function unregisterAiIpc(): void {
   ipcMain.removeHandler(AI_GET_USER_SETTINGS);
   ipcMain.removeHandler(AI_SET_USER_SETTINGS);
-  ipcMain.removeHandler(AI_CREATE_PROPOSAL);
   ipcMain.removeHandler(AI_CREATE_PROPOSAL_STREAM);
   ipcMain.removeHandler(AI_RUN_AGENT);
   ipcMain.removeHandler(AI_CANCEL_REQUEST);

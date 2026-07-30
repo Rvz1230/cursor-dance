@@ -7,7 +7,6 @@ import {
   RIPPLE_STYLE_OPTIONS,
 } from "../model/actionConfigOptions";
 import {
-  AI_EXTENSION_VERSION,
   AI_SCHEMA_VERSION,
   buildAiProposalContext,
   buildAiSchemeDiffItems,
@@ -15,7 +14,6 @@ import {
   getAiProposalPatchForAction,
   getAiPatchSanitizeMeta,
   normalizeAiSchemeProposal,
-  requestAiSchemeEdit,
   requestAiSchemeEditStreaming,
   sanitizeAiSchemePatch,
   validateAiSchemeRequest,
@@ -76,7 +74,7 @@ describe("aiSchemeAssistant", () => {
     expect(valid.value.taskMode).toBe("explain_config");
   });
 
-  it("requires the remote AI API instead of falling back to local rules", async () => {
+  it("surfaces remote streaming failures instead of falling back to local rules", async () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = (async () => ({
       ok: false,
@@ -84,59 +82,17 @@ describe("aiSchemeAssistant", () => {
       json: async () => ({ error: "AI model provider is not configured" }),
     })) as unknown as typeof fetch;
 
-    await expect(requestAiSchemeEdit({
-      prompt: "低调蓝色，不要声音",
-      actionId: "leftClick",
-      actionLabel: "左键单击",
-      currentConfig: getBaseConfig(),
-      taskMode: "modify_action",
-    })).rejects.toThrow("AI model provider is not configured");
-
-    globalThis.fetch = originalFetch;
-  });
-
-  it("sends only slim request context to the remote AI API", async () => {
-    const originalFetch = globalThis.fetch;
-    let requestBody = null;
-    globalThis.fetch = (async (_url, options) => {
-      requestBody = JSON.parse(options.body);
-      return {
-        ok: true,
-        json: async () => ({
-          schemaVersion: AI_SCHEMA_VERSION,
-          mode: "tune_proposal",
-          targets: [{ type: "action", actionId: "leftClick", label: "左键单击", patch: { sound: false } }],
-          reply: "已微调。",
-        }),
-      } as Response;
-    }) as typeof fetch;
-
-    await requestAiSchemeEdit({
-      prompt: "再低调一点",
-      actionId: "leftClick",
-      actionLabel: "左键单击",
-      currentConfig: getBaseConfig(),
-      taskMode: "tune_proposal",
-      proposalContext: {
-        proposalId: "proposal-1",
-        messages: [{ role: "user", content: "不应该发送完整聊天记录" }],
-        targets: [{ type: "action", actionId: "leftClick", label: "左键单击", patch: { sound: true, unsafe: true } }],
-        diffItems: [{ before: "large" }],
-      },
-    });
-
-    expect(requestBody).toMatchObject({
-      prompt: "再低调一点",
-      extensionVersion: AI_EXTENSION_VERSION,
-      schemaVersion: AI_SCHEMA_VERSION,
-      taskMode: "tune_proposal",
-    });
-    expect(requestBody.messages).toBeUndefined();
-    expect(requestBody.proposalContext.messages).toBeUndefined();
-    expect(requestBody.proposalContext.diffItems).toBeUndefined();
-    expect(requestBody.proposalContext.targets[0].patch).toEqual({ sound: true });
-
-    globalThis.fetch = originalFetch;
+    try {
+      await expect(requestAiSchemeEditStreaming({
+        prompt: "低调蓝色，不要声音",
+        actionId: "leftClick",
+        actionLabel: "左键单击",
+        currentConfig: getBaseConfig(),
+        taskMode: "modify_action",
+      })).rejects.toThrow("AI model provider is not configured");
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it("uses the desktop IPC bridge and forwards streaming progress", async () => {

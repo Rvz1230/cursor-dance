@@ -1,7 +1,6 @@
 import type { ActiveWindowSnapshot } from "./app-rules";
 import {
   AI_CANCEL_REQUEST,
-  AI_CREATE_PROPOSAL,
   AI_CREATE_PROPOSAL_STREAM,
   AI_GET_USER_SETTINGS,
   AI_RUN_AGENT,
@@ -103,7 +102,6 @@ export interface DesktopIpcInvokeContract {
   [WINDOW_GET_STATE]: InvokeContract<void, WindowStateSnapshot>;
   [AI_GET_USER_SETTINGS]: InvokeContract<void, AiUserSettingsView>;
   [AI_SET_USER_SETTINGS]: InvokeContract<AiUserSettingsPatch, AiUserSettingsView>;
-  [AI_CREATE_PROPOSAL]: InvokeContract<AiTransportPayload, AiTransportResponse>;
   [AI_CREATE_PROPOSAL_STREAM]: InvokeContract<AiStreamRequest, AiTransportResponse>;
   [AI_RUN_AGENT]: InvokeContract<AiStreamRequest, AiTransportResponse>;
   [AI_CANCEL_REQUEST]: InvokeContract<AiCancelRequest, void>;
