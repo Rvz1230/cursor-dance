@@ -1,6 +1,6 @@
 import "./runtime-globals";
 import "../../extension/config.js";
-import "../../extension/content-runtime/site-matcher.js";
+import "./site-matcher";
 import "../../extension/content-runtime/diagnostics.js";
 import "../../extension/content-runtime/config-store.js";
 import "./visual-effects";

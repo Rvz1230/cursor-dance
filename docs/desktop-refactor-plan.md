@@ -782,7 +782,8 @@ interface AudioOutput {
 - 音频节流决策、预设音色与 Web Audio 合成已下沉为共享 runtime，扩展页面媒体 duck 通过 `beforePlay` adapter 注入。
 - audio duck/profile adapter 已迁为 TypeScript，并补媒体原始音量/静音状态恢复测试；原音频 IIFE 镜像已删除。
 - 网页 atmosphere 已迁为扩展专属 TypeScript 模块；生命周期改为按需启停，磁吸目标增量对账，清理时保留页面原有内联样式，并覆盖创建、幂等同步、完整清理和页面可见性测试。
-- 下一段继续收敛 trigger handlers、config store、diagnostics、site matcher 与 content 装配入口。
+- Web 规则匹配器已直接迁为 TypeScript 并复用 v4 context rule 类型，删除通过源码字符串执行的旧测试方式。
+- 下一段继续收敛 trigger handlers、config store、diagnostics 与 content 装配入口。
 
 ### Phase 4 完成条件
 

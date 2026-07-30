@@ -1,20 +1,5 @@
-import { beforeAll, describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
-
-const source = readFileSync(new URL("../content-runtime/site-matcher.js", import.meta.url), "utf8");
-
-beforeAll(() => {
-  globalThis.window = { CursorDanceContentModules: {} };
-  new Function(source)();
-});
-
-function matchHostPattern(host, pattern) {
-  return globalThis.window.CursorDanceContentModules.matchHostPattern(host, pattern);
-}
-
-function resolveWebContextRule(rules, host, path) {
-  return globalThis.window.CursorDanceContentModules.resolveWebContextRule(rules, host, path);
-}
+import { describe, expect, it } from "vitest";
+import { matchHostPattern, resolveWebContextRule } from "./site-matcher";
 
 describe("v4 web context matcher", () => {
   it("matches exact and glob hosts", () => {
@@ -61,6 +46,14 @@ describe("v4 web context matcher", () => {
       action: { type: "disable" },
     };
     expect(resolveWebContextRule([desktopRule], "example.com", "/")).toBeNull();
+    expect(resolveWebContextRule([
+      { context: "web", enabled: true, match: { type: "exact", host: "example.com" } },
+    ], "example.com", "/")).toBeNull();
     expect(resolveWebContextRule(null, "example.com", "/")).toBeNull();
+  });
+
+  it("registers the typed matcher for the legacy config-store adapter", () => {
+    expect(globalThis.CursorDanceContentModules.matchHostPattern).toBe(matchHostPattern);
+    expect(globalThis.CursorDanceContentModules.resolveWebContextRule).toBe(resolveWebContextRule);
   });
 });
