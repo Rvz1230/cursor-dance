@@ -1,10 +1,10 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, CircleDashed, ImagePlus, Loader2, Monitor, MousePointer2, Settings, Sparkles, Type, Volume2, Wand2, X } from "lucide-react";
 import { cn } from "@/components/ui/utils";
 import { ICON_OPTIONS } from "../theme-workbench/model/workbenchSchema";
 import { usePopupState } from "./usePopupState";
 import AnimatedPreview from "./AnimatedPreview";
+import "./popup-motion.css";
 
 // ═══════════════════════════════════════════════════════════════
 // "Theme Identity" — shows what makes each theme unique
@@ -191,29 +191,33 @@ function BubbleBackground({ accent }) {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">
       {bubbles.map((b, i) => (
-        <motion.div
+        <div
           key={i}
-          className="absolute rounded-full"
+          className="cd-popup-bubble absolute rounded-full"
           style={{
             width: b.size,
             height: b.size,
             left: `${b.left}%`,
             top: `${b.top}%`,
             backgroundColor: accent,
-          }}
-          animate={{
-            x: [b.initX, b.initX - b.floatAmount * 0.5, b.initX + b.floatAmount * 0.6, b.initX - b.floatAmount * 0.4, b.initX],
-            y: [b.initY, b.initY - b.floatAmount * 0.6, b.initY + b.floatAmount * 0.4, b.initY + b.floatAmount * 0.5, b.initY],
-            scale: [1, 1 + b.breathAmount, 1 - b.breathAmount * 0.4, 1 + b.breathAmount * 0.3, 1],
-            opacity: [b.opacityBase, b.opacityPeak, b.opacityBase * 0.5, b.opacityPeak * 0.7, b.opacityBase],
-          }}
-          transition={{
-            duration: b.floatDuration,
-            repeat: Infinity,
-            delay: b.delay,
-            ease: "easeInOut",
-            times: [0, 0.25, 0.5, 0.75, 1],
-          }}
+            animationDuration: `${b.floatDuration}s`,
+            animationDelay: `${b.delay}s`,
+            "--bubble-opacity-base": b.opacityBase,
+            "--bubble-opacity-peak": b.opacityPeak,
+            "--bubble-opacity-low": b.opacityBase * 0.5,
+            "--bubble-opacity-high": b.opacityPeak * 0.7,
+            "--bubble-x-0": `${b.initX}px`,
+            "--bubble-y-0": `${b.initY}px`,
+            "--bubble-x-1": `${b.initX - b.floatAmount * 0.5}px`,
+            "--bubble-y-1": `${b.initY - b.floatAmount * 0.6}px`,
+            "--bubble-x-2": `${b.initX + b.floatAmount * 0.6}px`,
+            "--bubble-y-2": `${b.initY + b.floatAmount * 0.4}px`,
+            "--bubble-x-3": `${b.initX - b.floatAmount * 0.4}px`,
+            "--bubble-y-3": `${b.initY + b.floatAmount * 0.5}px`,
+            "--bubble-scale-1": 1 + b.breathAmount,
+            "--bubble-scale-2": 1 - b.breathAmount * 0.4,
+            "--bubble-scale-3": 1 + b.breathAmount * 0.3,
+          } as React.CSSProperties}
         />
       ))}
     </div>
@@ -323,11 +327,9 @@ function Toggle({ checked, onChange }) {
         checked ? "bg-slate-900" : "bg-slate-200"
       )}
     >
-      <motion.span
-        layout
-        transition={{ type: "spring", stiffness: 500, damping: 30 }}
-        className="inline-block size-4 rounded-full bg-white shadow-sm"
-        style={{ x: checked ? 18 : 2 }}
+      <span
+        className="inline-block size-4 rounded-full bg-white shadow-sm transition-transform duration-200 ease-out"
+        style={{ transform: `translateX(${checked ? 18 : 2}px)` }}
       />
     </button>
   );
@@ -341,10 +343,7 @@ function NoticeBar({ notice, onDismiss }) {
   const textMap = { slate: "text-slate-500", amber: "text-amber-700", rose: "text-rose-700" };
   const dotMap = { slate: "bg-slate-400", amber: "bg-amber-500", rose: "bg-rose-500" };
   return (
-    <motion.div
-      initial={{ height: 0, opacity: 0 }}
-      animate={{ height: "auto", opacity: 1 }}
-      exit={{ height: 0, opacity: 0 }}
+    <div
       className={cn("mx-4 mb-1 flex items-center gap-2 rounded-lg px-3 py-1.5", bgMap[notice.tone] || bgMap.slate)}
     >
       <span className={cn("size-1.5 shrink-0 rounded-full", dotMap[notice.tone])} />
@@ -357,7 +356,7 @@ function NoticeBar({ notice, onDismiss }) {
       >
         <X className="size-3" />
       </button>
-    </motion.div>
+    </div>
   );
 }
 
@@ -385,20 +384,17 @@ function ThemeCarousel({ themes, activeId, onSelect, accent }) {
           const CardIcon = t.icon ? themeIcon(t) : null;
 
           return (
-            <motion.button
+            <button
               key={t.id}
               type="button"
               onClick={() => onSelect(t.id)}
               aria-label={`切换到 ${t.name}`}
-              animate={{
-                x: raw * CARD_GAP,
-                scale: active ? 1 : 0.78,
+              className="absolute flex shrink-0 flex-col items-center gap-1 transition-[transform,opacity] duration-300 ease-out"
+              style={{
                 opacity: active ? 1 : Math.abs(raw) === 1 ? 0.4 : 0.15,
                 zIndex: active ? 10 : 1,
-                rotateY: raw * 22,
+                transform: `perspective(320px) translateX(${raw * CARD_GAP}px) scale(${active ? 1 : 0.78}) rotateY(${raw * 22}deg)`,
               }}
-              transition={{ type: "spring", stiffness: 160, damping: 26 }}
-              className="absolute flex shrink-0 flex-col items-center gap-1"
             >
               <div
                 className="flex items-center justify-center rounded-xl"
@@ -436,7 +432,7 @@ function ThemeCarousel({ themes, activeId, onSelect, accent }) {
               >
                 {t.name}
               </span>
-            </motion.button>
+            </button>
           );
         })}
 
@@ -572,38 +568,27 @@ export default function PopupPage() {
       </header>
 
       {/* ── notice bar ── */}
-      <AnimatePresence>
-        {effectiveNotice && (
-          <NoticeBar notice={effectiveNotice} onDismiss={() => setDismissedNotice(true)} />
-        )}
-      </AnimatePresence>
+      {effectiveNotice && (
+        <NoticeBar notice={effectiveNotice} onDismiss={() => setDismissedNotice(true)} />
+      )}
 
       {/* ── identity card ── */}
       <div className={cn("flex-1 min-h-0 px-4 pt-1.5 pb-2", !enabled && "opacity-35")}>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={current?.theme?.id || "empty"}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="h-full"
-          >
-            {current ? (
-              <IdentityCard
-                actionConfig={current.actionConfig}
-                accent={accent}
-                name={current.theme.name}
-                Icon={themeIcon(current.theme)}
-                siteAction={siteAction}
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-                <p className="text-xs text-slate-400">还没有主题，去工作台创建一个</p>
-              </div>
-            )}
-          </motion.div>
-        </AnimatePresence>
+        <div key={current?.theme?.id || "empty"} className="h-full">
+          {current ? (
+            <IdentityCard
+              actionConfig={current.actionConfig}
+              accent={accent}
+              name={current.theme.name}
+              Icon={themeIcon(current.theme)}
+              siteAction={siteAction}
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+              <p className="text-xs text-slate-400">还没有主题，去工作台创建一个</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── disabled overlay label ── */}

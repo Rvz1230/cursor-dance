@@ -981,11 +981,13 @@ AiSchemePanel              # 组合层
 - 父页面原有 AI 栏 Framer 包装位于 `aiPanelOpen` 条件内部，无法完整执行退出动画，却会让整套 Framer 进入首屏；现已删除这层无效包装，动画依赖仅在打开 AI 助手时加载。
 - 新增 `npm run check:desktop-bundle`，对 Workbench/overlay 初始 raw 与 gzip、最大 JS chunk、renderer 总产物设预算，并接入 `build-desktop` CI。
 - Workbench 欢迎状态与活动窗口查询改为独立结算，活动窗口 IPC 变慢或失败时不再阻塞首次启动弹窗。
-- 当前通过 78 个根测试文件共 375 项、typecheck、Knip、lint（0 error，保留既有 15 warning）、扩展与 Electron build、bundle budget、Web smoke 6/6、desktop smoke 1/1 和完整动态测量；Electron smoke 直接打开 AI 与诊断异步 chunk，覆盖生产构建路径和 CSP。
+- 当前通过 78 个根测试文件共 375 项、typecheck、Knip、lint（0 error，保留既有 15 warning）、扩展与 Electron build、双端 bundle budget、Web smoke 6/6、生产扩展侧载 smoke 1/1、desktop smoke 1/1 和完整动态测量；Electron smoke 直接打开全部工作区异步 chunk，覆盖生产构建路径和 CSP。
 - 光标皮肤、应用/站点规则、键盘动效已按工作区动态加载；桌面 smoke 会逐一进入这些工作区，验证生产 chunk、CSP 和交互入口。
 - 删除不可达的 `BindingsPanel`：`WORKSPACES` 没有 `bindings`，也不存在其他 `setWorkspaceId("bindings")` 入口，原条件分支只是让死代码检查误认为它仍被消费。
 - Workbench 初始引用进一步降至 1,167,090 bytes（gzip 246,972），较 R6-2 前累计减少 41.5% / 41.0%；主 JS 约 988 kB，预算同步收紧。
-- 下一轮评估扩展 Popup 初始共享 chunk，以及剩余首屏默认配置、Lucide、Radix 与编辑器控件；没有明确首屏收益的拆分不实施。
+- Popup 的气泡、轮播、开关、提示条和预览装饰动画已由 Framer Motion 改为 CSS transition/keyframes；Framer 只随 AI 异步 chunk 加载。Popup 初始引用从约 441.5 kB（gzip 135.4 kB）降至 340,382 bytes（gzip 101,181），减少约 22.9% / 25.3%。
+- 新增 `npm run check:extension-bundle`，限制 Popup/Options 初始 raw 与 gzip、最大 JS chunk 和 content runtime，并接入扩展构建 CI。
+- 默认配置只有 6,358 bytes，不值得为其增加异步请求；Lucide 已通过 ESM 按图标摇树，剩余首屏 React、Radix 和编辑器核心均有直接消费者。R6-2 到此完成，不继续制造碎片 chunk。
 
 ### R6-3：真实打包 CI
 

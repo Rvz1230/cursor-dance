@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
 import {
   getParticleStyleProps,
   getParticleTint,
@@ -296,7 +295,7 @@ function AnimationPreview({ config }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// SoundIndicator — decorative audio bars (Framer Motion)
+// SoundIndicator — decorative audio bars (CSS keyframes)
 // ═══════════════════════════════════════════════════════════════════
 
 function SoundIndicator({ accent }) {
@@ -310,12 +309,10 @@ function SoundIndicator({ accent }) {
   return (
     <div className="absolute bottom-1.5 right-1.5 flex items-end gap-[2px] pointer-events-none">
       {bars.map((bar, i) => (
-        <motion.div
+        <div
           key={i}
-          className="rounded-full"
-          style={{ width: 2, height: bar.height, backgroundColor: accent }}
-          animate={{ scaleY: [1, 1.8, 1], opacity: [0.35, 0.7, 0.35] }}
-          transition={{ duration: 0.6, repeat: Infinity, delay: bar.delay, ease: "easeInOut" }}
+          className="cd-popup-sound-bar rounded-full"
+          style={{ width: 2, height: bar.height, backgroundColor: accent, animationDelay: `${bar.delay}s` }}
         />
       ))}
     </div>
@@ -323,13 +320,13 @@ function SoundIndicator({ accent }) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// CursorGlowIndicator — decorative glow ring (Framer Motion)
+// CursorGlowIndicator — decorative glow ring (CSS keyframes)
 // ═══════════════════════════════════════════════════════════════════
 
 function CursorGlowIndicator({ color }) {
   return (
-    <motion.div
-      className="absolute left-1/2 top-1/2 rounded-full pointer-events-none"
+    <div
+      className="cd-popup-cursor-glow absolute left-1/2 top-1/2 rounded-full pointer-events-none"
       style={{
         width: 72,
         height: 72,
@@ -337,8 +334,6 @@ function CursorGlowIndicator({ color }) {
         marginTop: -36,
         background: `radial-gradient(circle, ${hexToRgba(color, 0.18)} 0%, ${hexToRgba(color, 0.08)} 50%, transparent 70%)`,
       }}
-      animate={{ opacity: [0.06, 0.14, 0.06], scale: [1, 1.06, 1] }}
-      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
     />
   );
 }

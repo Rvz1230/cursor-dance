@@ -1,0 +1,41 @@
+@keyframes cd-popup-bubble {
+  0%, 100% {
+    opacity: var(--bubble-opacity-base);
+    transform: translate(var(--bubble-x-0), var(--bubble-y-0)) scale(1);
+  }
+  25% {
+    opacity: var(--bubble-opacity-peak);
+    transform: translate(var(--bubble-x-1), var(--bubble-y-1)) scale(var(--bubble-scale-1));
+  }
+  50% {
+    opacity: var(--bubble-opacity-low);
+    transform: translate(var(--bubble-x-2), var(--bubble-y-2)) scale(var(--bubble-scale-2));
+  }
+  75% {
+    opacity: var(--bubble-opacity-high);
+    transform: translate(var(--bubble-x-3), var(--bubble-y-3)) scale(var(--bubble-scale-3));
+  }
+}
+
+@keyframes cd-popup-sound-bar {
+  0%, 100% { opacity: 0.35; transform: scaleY(1); }
+  50% { opacity: 0.7; transform: scaleY(1.8); }
+}
+
+@keyframes cd-popup-cursor-glow {
+  0%, 100% { opacity: 0.06; transform: scale(1); }
+  50% { opacity: 0.14; transform: scale(1.06); }
+}
+
+.cd-popup-bubble {
+  animation: cd-popup-bubble ease-in-out infinite;
+}
+
+.cd-popup-sound-bar {
+  animation: cd-popup-sound-bar 600ms ease-in-out infinite;
+  transform-origin: bottom;
+}
+
+.cd-popup-cursor-glow {
+  animation: cd-popup-cursor-glow 3s ease-in-out infinite;
+}

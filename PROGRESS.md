@@ -120,12 +120,14 @@
 - **R6-1 收敛结果**：禁用时同步取消长按及延迟 action、重置点击/滚轮/键盘/音频节流状态、清除已存在效果和软件光标，并暂停已创建的 AudioContext；恢复后由下一次输入干净重启。延迟任务现有统一 registry，不会跨配置禁用边界补触发。
 - **R6-1 最终测量**：双屏 1,000 Hz、1,000 个源 mousemove 在启用态合并为 60 条目标 IPC；禁用上下文下 overlay 可见数 0、两个 renderer 全部节流、IPC 为 0；冷启动约 0.81 秒。配置仅 6,358 bytes，未引入缺乏收益证据的 revision/patch 或效果对象池。
 - **R6-1 当前验证**：78 个根测试文件共 375 项、typecheck、Knip、lint（0 error，保留既有 15 warning）、Electron build、Web smoke 6/6、desktop smoke 1/1 与完整动态测量通过。
-- [ ] R6-2：前端 bundle 优化——已完成首轮 Workbench 按需加载与预算门禁，继续检查剩余主 chunk 构成。
+- [x] R6-2：前端 bundle 优化——完成桌面 Workbench、扩展 Options/Popup 的按需拆分、无效动画依赖清理和双端预算门禁。
 - **R6-2 首轮结果**：AI 助手、AI 设置和诊断面板改为动态加载，父页面无效的 AI 栏 Framer 动画同步删除；Workbench 初始引用由 1,994,491 bytes / gzip 418,432 bytes 降至 1,256,699 / 262,579 bytes，分别减少 37.0% / 37.2%。AI + Framer 主链路独立为约 714 kB chunk，未打开时不再下载和解析。
 - **R6-2 预算门禁**：新增 `check:desktop-bundle`，约束 Workbench/overlay 初始 raw+gzip、最大 JS chunk 和 renderer 总产物，并接入 `build-desktop` CI。欢迎弹窗启动同时解除对活动窗口查询的等待，慢查询不再阻塞首次启动引导。
-- **R6-2 当前验证**：78 个根测试文件共 375 项、typecheck、Knip、lint（0 error，保留既有 15 warning）、扩展与 Electron build、bundle budget、Web smoke 6/6、desktop smoke 1/1 和完整动态测量通过；桌面 smoke 已覆盖构建产物中的 AI/诊断异步 chunk。
+- **R6-2 最终验证**：78 个根测试文件共 375 项、typecheck、Knip、lint（0 error，保留既有 15 warning）、扩展与 Electron build、双端 bundle budget、Web smoke 6/6、生产扩展侧载 smoke 1/1、desktop smoke 1/1 和完整动态测量通过；桌面 smoke 已覆盖所有工作区异步 chunk。
 - **R6-2 第二轮结果**：光标皮肤、应用/站点规则、键盘动效改为工作区级按需加载；删除没有任何可达入口、仅靠条件分支维持引用的 `BindingsPanel`。Workbench 初始引用进一步降至 1,167,090 bytes / gzip 246,972 bytes，较 R6-2 前累计减少 41.5% / 41.0%，主 JS 降至约 988 kB。
-- **下一步**：继续 R6-2，评估扩展 Popup 初始共享 chunk，以及剩余首屏默认配置、Lucide、Radix 和编辑器控件；优先删除不可达代码，再做有明确收益的拆分。
+- **R6-2 第三轮结果**：Popup 的气泡、轮播、开关、提示和预览装饰动画改用 CSS transition/keyframes，Framer Motion 只随 AI 异步 chunk 加载；Popup 初始引用由约 441.5 kB / gzip 135.4 kB 降至 340,382 / 101,181 bytes，分别减少约 22.9% / 25.3%。
+- **R6-2 扩展预算**：新增 `check:extension-bundle`，约束 Popup、Options、最大 JS chunk 和 content runtime，并接入扩展构建 CI。默认配置仅 6,358 bytes，Lucide 已按 ESM 图标摇树，剩余首屏 React/Radix/编辑器核心均有直接消费者，不再为拆分而拆分。
+- **下一步**：进入 R6-3，补齐 macOS/Windows 真实 package CI、安装包内容检查和可执行产物启动 smoke；签名、公证仍取决于外部证书环境。
 
 ### 分支状态
 
