@@ -2,7 +2,7 @@
 
 > 状态：In Progress  
 > 创建日期：2026-07-28  
-> 最近更新：2026-07-29
+> 最近更新：2026-07-30
 >
 > 适用范围：`src/desktop/`、桌面端使用的 `src/app/` 共享 UI、配置模型、效果引擎、桌面构建与发布链路  
 > 关联文档：[`ARCHITECTURE.md`](../ARCHITECTURE.md)、[`PROGRESS.md`](../PROGRESS.md)、[`docs/bug-fix-plan.md`](./bug-fix-plan.md)
@@ -28,7 +28,8 @@
 | R3-4 Workbench persistence | 已完成 | 统一 repository contract；Electron、Chrome 与静态预览使用独立 adapter，业务 facade 不再判断运行平台 |
 | R4-1 共享效果核心边界 | 已完成 | `text-semantics`、action config 与 compute specs 迁入共享 core；桌面仅保留素材 URL adapter，Workbench 删除重复算法 |
 | R4-2 EffectRuntime adapters | 已完成 | 桌面四类 adapter 已接入；共享 state machine 统一 timing、throttle、run/combo 状态推进与 output plan |
-| R4-3 扩展正式构建 | 进行中 | manifest 已收敛到单一 Vite content bundle；共享 core/runtime 已接入，剩余 legacy IIFE 由 bundle 暂时封装 |
+| R4-3 扩展正式构建 | 已完成 | manifest 已收敛到单一 Vite content bundle；真实 Chromium smoke 覆盖注入、效果触发、扩展页面与 CSP |
+| R4-4 删除旧引擎 | 已完成 | 扩展 runtime、config store、composition root 与共享默认配置均已迁为 TypeScript；legacy IIFE 和动态注册链清零 |
 
 当前验证基线：
 
@@ -752,7 +753,7 @@ interface AudioOutput {
 - double-click 与 long-press 已收敛为共享 gesture state machine，两端只负责事件坐标适配；同时修复桌面端长按提前松开时可能吞掉单击回退的问题。
 - 删除三份 config-runtime IIFE、镜像测试和失去意义的 parity 测试，改为共享模块直接行为测试；本段净减少约 1,209 行。
 - 最终 content bundle 已在系统 Chrome 中直接注入验证：共享 core/runtime 全局可用、效果根节点正常创建，真实点击可生成效果节点。
-- 待完成：迁移 visual effects 等剩余 IIFE，并补真实 Chrome 扩展加载、CSP 与启动性能验收。
+- 已新增独立 `test:extension` 并接入 Linux CI，使用 Playwright 完整 Chromium 真实侧载生产 `dist`；严格 CSP 测试页能注入单一 content bundle，点击可创建效果节点，popup/options 可正常启动，且无 eval、CSP、console 或 page error。
 
 ### R4-4：按模块删除旧引擎
 
@@ -789,7 +790,7 @@ interface AudioOutput {
 - 最终 content 装配入口已迁为 TypeScript composition root，直接导入各 adapter，并补齐启动、配置桥接、DOM listener 与幂等销毁生命周期；旧 `content.js`、全局模块注册表及纯注册测试已删除。
 - v4 默认配置、内置主题与键盘反馈配置已收敛到 `src/shared/config`；扩展、桌面与 Workbench 直接导入，最后的 `extension/config.js`、动态脚本加载器和两套 window 全局注入已删除。
 - builtin 默认配置只持久化主题元数据，动作配置按 theme id 从 shared effect-core 解析，删除 685 行完整主题动作镜像；默认配置 JSON 从约 20 KB 降至约 6.4 KB。
-- 下一段做真实 Chrome 扩展加载/CSP 验收，确认 R4 完成后进入 R5 Workbench 热点拆分。
+- 真实 Chromium 扩展加载/CSP 验收已完成；R4 完成，下一段进入 R5 Workbench 热点拆分。
 
 ### Phase 4 完成条件
 

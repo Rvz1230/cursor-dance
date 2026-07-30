@@ -21,6 +21,7 @@ jobs:
       - run: npm run test
       - run: npx playwright install --with-deps chromium
       - run: npm run test:smoke
+      - run: npm run test:extension
       - run: npm run build:electron
       - run: xvfb-run -a npm run test:desktop
 

@@ -40,6 +40,7 @@
     "test:watch": "vitest --watch",
     "test:smoke": "playwright test",
     "test:smoke:attached": "CURSORDANCE_SMOKE_EXTERNAL_SERVER=1 playwright test",
+    "test:extension": "npm run build && playwright test --config=playwright.extension.config.js",
     "test:desktop": "playwright test --config=playwright.desktop.config.js",
     "measure:desktop-baseline": "npm run build:electron && node scripts/measure-desktop-baseline.mjs",
     "measure:desktop-baseline:static": "npm run build:electron && node scripts/measure-desktop-baseline.mjs --static-only",

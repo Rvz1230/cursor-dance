@@ -52,7 +52,7 @@
 - [x] 增加显式的 TypeScript `typecheck` 脚本并接入 CI
 - [x] 收敛 Vite/Vitest 版本：根项目、landing、Electron Vite 与 Vitest 统一复用 Vite 7.3.6
 - [x] 接入基础 lint 并进入 CI；阻断未使用代码、浮动 Promise、Hooks 顺序问题、桌面端显式 `any` 和 Electron IPC 字符串通道
-- [ ] 持续增加 `extension/` 与 `src/desktop/renderer/engine/` 的行为一致性测试，避免双实现漂移
+- [x] 扩展与桌面效果核心收敛为共享实现，并由 adapter 单测、桌面 smoke 和真实 Chromium 扩展 smoke 覆盖平台差异
 - [ ] macOS 正式发布前完成签名与公证；当前 `mac.identity: null` 仅适合 dogfood
 - [ ] 按职责拆分 `AiSchemePanel.tsx`、`WorkbenchPreviewRail.tsx` 和两端 `config-store` 热点文件
 
@@ -94,10 +94,11 @@
 - [x] R4-2：建立 EffectRuntime adapters——桌面 InputSource、ContextResolver、EffectSurface 与 AudioOutput 均已接入生产链路；timing、throttle、run/combo 状态推进与 output plan 已收敛到共享 action state machine
 - **R4-2 验证**：61 个根测试文件共 336 项通过；typecheck、lint（0 error，保留既有 24 warning）、Web/Electron build、Web smoke 5/5 和 desktop smoke 1/1 通过
 - [x] R4-3：扩展正式构建——Vite 已把共享 effect core/runtime 打成单一 MV3 content bundle，manifest 不再维护脚本加载顺序；扩展 trigger 已接入共享 action 与 gesture state machine，config-runtime 镜像及 parity 测试已删除
-- **R4-3 当前验证**：67 个根测试文件共 338 项通过；typecheck、lint（0 error，保留既有 24 warning）、Web/扩展/Electron build、扩展产物完整性校验、最终 content bundle 系统 Chrome 注入点击验证、Web smoke 5/5 和 desktop smoke 1/1 通过
-- **R4-4 当前进度**：扩展 effect/runtime、config store 与 content composition root 已全部迁为 TypeScript；v4 默认配置、内置主题和键盘反馈配置收敛至 `src/shared/config`，旧 IIFE、动态脚本加载器、全局配置/模块注册表及源码执行测试均已删除
-- **R4-4 当前验证**：70 个根测试文件共 345 项通过；typecheck、lint（0 error，既有 warning 从 24 降至 22）、Web/扩展/Electron build、扩展产物完整性校验、Web smoke 5/5、desktop smoke 1/1 与静态基线测量通过；默认配置载荷由 20,011 bytes 降至 6,358 bytes，content bundle 由 94.90 kB 降至 92.81 kB
-- **下一步**：补真实 Chrome 扩展加载/CSP 验收并确认 R4 完成；随后进入 R5 Workbench 热点拆分与无用代码清理。Windows 同步执行 R1-4 真机验收。
+- **R4-3 验证**：67 个根测试文件共 338 项通过；typecheck、lint（0 error，保留既有 24 warning）、Web/扩展/Electron build、扩展产物完整性校验、最终 content bundle 系统 Chrome 注入点击验证、Web smoke 5/5 和 desktop smoke 1/1 通过
+- [x] R4-4：删除旧引擎——扩展 effect/runtime、config store 与 content composition root 已全部迁为 TypeScript；v4 默认配置、内置主题和键盘反馈配置收敛至 `src/shared/config`，旧 IIFE、动态脚本加载器、全局配置/模块注册表及源码执行测试均已删除
+- **R4-4 验证**：70 个根测试文件共 345 项通过；typecheck、lint（0 error，既有 warning 从 24 降至 22）、Web/扩展/Electron build、扩展产物完整性校验、Web smoke 5/5、desktop smoke 1/1 与静态基线测量通过；默认配置载荷由 20,011 bytes 降至 6,358 bytes，content bundle 由 94.90 kB 降至 92.81 kB
+- **R4 浏览器验收**：新增独立 `test:extension` 并接入 Linux CI；使用 Playwright 完整 Chromium 真实侧载生产 `dist`，覆盖严格 CSP 页面注入、点击效果节点、popup/options 启动、单 bundle 约束及 eval/CSP/page error 检查。R4 已完成。
+- **下一步**：进入 R5-1，先拆分 `AiSchemePanel` 的请求生命周期与纯展示组件，再清理重复状态派生和旧请求分支。Windows 同步执行 R1-4 真机验收。
 
 ### 分支状态
 
