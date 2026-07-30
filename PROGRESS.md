@@ -102,9 +102,10 @@
 - **R5-1 稳定性修复**：请求 run id 隔离旧流式回调；会话 load revision 隔离快速切换的迟到读取，且 hydration 完成前禁止自动保存，避免空状态覆盖已有对话。
 - **R5-1 收敛结果**：`useAiProposalReview` 统一预览、应用、放弃和撤销；删除 renderer、preload 与主进程中无消费者的非流式桌面提案 contract，快速模式只保留可取消的流式 transport。
 - **R5-1 验证**：73 个根测试文件共 353 项通过；typecheck、lint（0 error，保留既有 22 warning）、Web/扩展/Electron build、Web smoke 6/6 与 desktop smoke 1/1 通过。
-- **R5-2 当前进度**：播放控制器、工具栏、`usePreviewEngineHost` 与 `PreviewTimeline` 已从 `WorkbenchPreviewRail` 提取，主文件由 933 行降至 246 行；时间轴标尺、轨道、拖拽/缩放、键盘调整和空状态集中在独立组件。
-- **R5-2 当前验证**：75 个根测试文件共 358 项通过；typecheck、lint（0 error，保留既有 22 warning）、Web smoke 6/6 与 desktop smoke 1/1 通过。
-- **下一步**：继续 R5-2，收敛 pointer interaction 并提取舞台展示组件。Windows 同步执行 R1-4 真机验收。
+- **R5-2 当前进度**：播放、引擎 host、timeline、`PreviewStage` 与 `usePreviewPointer` 均已从 `WorkbenchPreviewRail` 提取，主文件由 933 行降至 83 行；UI 职责拆分完成。
+- **R5-2 当前验证**：76 个根测试文件共 359 项通过；typecheck、lint（0 error，保留既有 22 warning）、Web smoke 6/6 与 desktop smoke 1/1 通过。
+- **后续工作量**：剩余 8 个主要工作包——共享预览引擎边界、R5-3 Workbench state、R5-4 无用代码、R5-5 死代码检查，以及 R6-1～R6-4；Windows 自定义光标真机验收并行，签名/公证需要外部证书环境。
+- **下一步**：继续 R5-2，把 preview composition root 迁出 `src/desktop`，消除 `src/app → src/desktop` 依赖。Windows 同步执行 R1-4 真机验收。
 
 ### 分支状态
 
