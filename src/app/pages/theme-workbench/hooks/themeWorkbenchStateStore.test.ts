@@ -60,6 +60,34 @@ describe("themeWorkbenchStateStore", () => {
     expect(selectedState.ui.unsaved).toBe(true);
   });
 
+  it("keeps editor-only navigation out of the persisted config dirty state", () => {
+    const cleanState = {
+      ...initialState,
+      ui: {
+        ...initialState.ui,
+        unsaved: false,
+        saveError: "previous save error",
+      },
+    };
+
+    const workspaceState = reducer(cleanState, { type: "workspace/set", payload: "states" });
+    const actionState = reducer(workspaceState, { type: "action/select", payload: "wheel" });
+    const cursorState = reducer(actionState, { type: "cursor-state/select", payload: "pointer" });
+
+    expect(cursorState.workspaceId).toBe("states");
+    expect(cursorState.selection).toMatchObject({ actionId: "wheel", cursorStateId: "pointer" });
+    expect(cursorState.ui.unsaved).toBe(false);
+    expect(cursorState.ui.saveError).toBe("previous save error");
+  });
+
+  it("returns the existing state for repeated navigation and enabled values", () => {
+    expect(reducer(initialState, { type: "workspace/set", payload: initialState.workspaceId })).toBe(initialState);
+    expect(reducer(initialState, { type: "theme/select", payload: initialState.selection.themeId })).toBe(initialState);
+    expect(reducer(initialState, { type: "action/select", payload: initialState.selection.actionId })).toBe(initialState);
+    expect(reducer(initialState, { type: "cursor-state/select", payload: initialState.selection.cursorStateId })).toBe(initialState);
+    expect(reducer(initialState, { type: "global-enabled/set", payload: initialState.ui.enabled })).toBe(initialState);
+  });
+
   it("keeps key feedback configs isolated after save and theme switch", () => {
     const themeA = initialState.selection.themeId;
     const themeB = initialState.themeLibrary.find((theme) => theme.id !== themeA)?.id;

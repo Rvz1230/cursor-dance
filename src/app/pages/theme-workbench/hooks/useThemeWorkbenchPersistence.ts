@@ -105,7 +105,17 @@ export function useThemeWorkbenchPersistence({ state, dispatch, configRef }) {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [configRef, state]);
+  }, [
+    configRef,
+    state.ui.isHydrated,
+    state.ui.unsaved,
+    state.ui.enabled,
+    state.selection.themeId,
+    state.siteRules,
+    state.appRules,
+    state.themeLibrary,
+    state.draftsByTheme,
+  ]);
 
   // Auto-save new themes so they survive page refresh without manual save
   const prevThemeLibraryLengthRef = useRef(0);

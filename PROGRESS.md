@@ -107,6 +107,9 @@
 - **R5-2 当前验证**：76 个根测试文件共 362 项通过；typecheck、lint（0 error，保留既有 22 warning）、Electron build、Web smoke 6/6 与 desktop smoke 1/1 通过。
 - **后续工作量**：剩余 7 个主要工作包——R5-3 Workbench state、R5-4 无用代码、R5-5 死代码检查，以及 R6-1～R6-4；Windows 自定义光标真机验收并行，签名/公证需要外部证书环境。
 - **下一步**：进入 R5-3，先盘点 `ThemeWorkbenchPage` 的 domain/editor/transient state 与持久化副作用边界，再按 reducer + selectors 分批收敛。Windows 同步执行 R1-4 真机验收。
+- **R5-3 当前进度**：已完成首轮状态分类；workspace、action 与 cursor-state 导航不再污染配置 dirty state，Live Preview 持久化只监听真实配置切片；重复导航/开关 action 直接返回原 state，减少无效渲染与序列化。
+- **R5-3 当前验证**：76 个根测试文件共 364 项通过；typecheck、lint（0 error，保留既有 22 warning）、Web smoke 6/6 与 desktop smoke 1/1 通过。
+- **R5-3 下一批**：提取 `ThemeWorkbenchPage` 的 transient UI state（AI 面板/提案、列宽、欢迎与辅助功能状态），让页面容器只组合 domain selectors 与场景 hooks。
 
 ### 分支状态
 

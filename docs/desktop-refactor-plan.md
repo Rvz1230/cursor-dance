@@ -32,12 +32,13 @@
 | R4-4 删除旧引擎 | 已完成 | 扩展 runtime、config store、composition root 与共享默认配置均已迁为 TypeScript；legacy IIFE 和动态注册链清零 |
 | R5-1 拆分 `AiSchemePanel` | 已完成 | 展示、请求、会话持久化与提案审阅已拆分；主文件由 1,388 行降至 458 行，并删除无消费者的非流式桌面 AI transport |
 | R5-2 拆分 `WorkbenchPreviewRail` | 已完成 | 播放、timeline、舞台与 pointer interaction 已拆分；预览直接使用 shared runtime，app → desktop 依赖归零，主文件由 933 行降至 83 行 |
+| R5-3 收敛 Workbench state | 进行中 | 已分离 editor navigation 与 config dirty/live-preview 触发边界，并跳过重复导航 action；下一批提取页面 transient UI hooks |
 
 当前验证基线：
 
 - `npm run typecheck` 通过。
 - `npm run lint` 通过（0 error；共享旧代码的 22 条显式 `any` 暂作为 warning 逐步收紧）。
-- Vitest 76 个测试文件、362 个测试通过；删除的数量来自 legacy/parity 镜像用例收敛为共享实现的直接行为测试，不再重复比较两份实现。
+- Vitest 76 个测试文件、364 个测试通过；删除的数量来自 legacy/parity 镜像用例收敛为共享实现的直接行为测试，不再重复比较两份实现。
 - API 177 个测试通过。
 - 根 Web、landing、Electron main/preload/renderer 构建通过。
 - 根项目、landing、Electron Vite、Vitest 均复用 Vite 7.3.6。
@@ -871,6 +872,14 @@ AiSchemePanel              # 组合层
 - persistence effects：集中在 repository/hook，不混入 reducer。
 
 不强制引入大型状态库；优先使用拆分后的 reducer + context/selectors。
+
+当前进度：
+
+- 已确认 domain/config state 为主题库与 draft、当前生效主题、规则和全局开关；workspace、当前 action 与 cursor-state 属于独立持久化的 editor navigation；AI 面板、提案预览、列宽、欢迎弹窗和辅助功能快照属于 transient UI state。
+- workspace/action/cursor-state 切换不再设置 config `unsaved` 或清除保存错误，避免保存按钮假脏和无意义 Live Preview 写入；主题切换仍会改变 active theme，继续作为 domain 变更处理。
+- Live Preview effect 的依赖从整个 reducer state 收窄到真实配置切片；重复导航与重复 enabled action 返回原 state，避免无效渲染和序列化。
+- 首批变更通过 76 个根测试文件共 364 项、typecheck、lint（0 error，保留既有 22 warning）、Web smoke 6/6 与 desktop smoke 1/1。
+- 下一批提取页面 transient UI hooks，并继续把持久化副作用限制在 repository/persistence hook。
 
 ### R5-4：执行无用代码清单
 

@@ -54,12 +54,13 @@ export function reducer(state, action) {
         },
       };
     case "workspace/set":
+      if (state.workspaceId === action.payload) return state;
       return {
         ...state,
         workspaceId: action.payload,
-        ui: { ...state.ui, unsaved: true, saveError: "" },
       };
     case "theme/select":
+      if (state.selection.themeId === action.payload) return state;
       return {
         ...state,
         selection: { ...state.selection, themeId: action.payload },
@@ -116,18 +117,19 @@ export function reducer(state, action) {
       };
     }
     case "action/select":
+      if (state.selection.actionId === action.payload) return state;
       return {
         ...state,
         selection: { ...state.selection, actionId: action.payload },
-        ui: { ...state.ui, unsaved: true, saveError: "" },
       };
     case "cursor-state/select":
+      if (state.selection.cursorStateId === action.payload) return state;
       return {
         ...state,
         selection: { ...state.selection, cursorStateId: action.payload },
-        ui: { ...state.ui, unsaved: true, saveError: "" },
       };
     case "global-enabled/set":
+      if (state.ui.enabled === action.payload) return state;
       return { ...state, ui: { ...state.ui, enabled: action.payload, unsaved: true, saveError: "" } };
     case "rules/add": {
       const collection = action.payload?.collection === "appRules" ? "appRules" : "siteRules";
