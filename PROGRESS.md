@@ -98,9 +98,10 @@
 - [x] R4-4：删除旧引擎——扩展 effect/runtime、config store 与 content composition root 已全部迁为 TypeScript；v4 默认配置、内置主题和键盘反馈配置收敛至 `src/shared/config`，旧 IIFE、动态脚本加载器、全局配置/模块注册表及源码执行测试均已删除
 - **R4-4 验证**：70 个根测试文件共 345 项通过；typecheck、lint（0 error，既有 warning 从 24 降至 22）、Web/扩展/Electron build、扩展产物完整性校验、Web smoke 5/5、desktop smoke 1/1 与静态基线测量通过；默认配置载荷由 20,011 bytes 降至 6,358 bytes，content bundle 由 94.90 kB 降至 92.81 kB
 - **R4 浏览器验收**：新增独立 `test:extension` 并接入 Linux CI；使用 Playwright 完整 Chromium 真实侧载生产 `dist`，覆盖严格 CSP 页面注入、点击效果节点、popup/options 启动、单 bundle 约束及 eval/CSP/page error 检查。R4 已完成。
-- **R5-1 当前进度**：消息/反馈/流式展示、提案展示、Agent 时间线与模式选择器均已提取为独立组件；静态与流式消息共用同一套 Markdown/桌面外链 renderer，`AiSchemePanel.tsx` 从 1,388 行降至 735 行。
-- **R5-1 当前验证**：70 个根测试文件共 345 项通过；typecheck、lint（0 error，保留既有 22 warning）、Web/扩展 build 与 Web smoke 6/6 通过；新增 smoke 覆盖 AI 面板开关、初始消息和输入面。
-- **下一步**：继续 R5-1，把请求、取消、冷却与流式事件生命周期收敛为独立 hook，并清理容器内重复状态推进。Windows 同步执行 R1-4 真机验收。
+- **R5-1 当前进度**：消息/反馈/流式展示、提案展示、Agent 时间线与模式选择器均已提取；请求、取消、冷却和 Agent 流式事件已收敛到 `useAiProposalRun`，`AiSchemePanel.tsx` 从 1,388 行降至 560 行。
+- **R5-1 稳定性修复**：动作切换和组件卸载会真实 abort 当前请求，并通过 run id 丢弃旧动作的迟到流式事件、响应和 finally，避免污染新动作会话。
+- **R5-1 当前验证**：71 个根测试文件共 348 项通过；typecheck、lint（0 error，保留既有 22 warning）、Web/扩展 build、Web smoke 6/6 和 desktop smoke 1/1 通过；Agent 事件推进新增 3 项单测。
+- **下一步**：继续 R5-1，将会话加载/切换/防抖持久化收敛为 `useAiConversation`，随后提取应用/预览/放弃 proposal review。Windows 同步执行 R1-4 真机验收。
 
 ### 分支状态
 

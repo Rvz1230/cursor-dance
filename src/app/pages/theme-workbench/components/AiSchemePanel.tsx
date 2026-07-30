@@ -6,7 +6,6 @@ import { IconButton } from "@/components/ui/icon-button";
 import { InlineStatus } from "@/components/ui/inline-status";
 import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/components/ui/utils";
-import { getAiRequestErrorMessage, requestAiSchemeEditStreaming, requestAiAgentRun } from "../lib/aiSchemeAssistant";
 import {
   saveConversation,
   loadConversation,
@@ -21,6 +20,7 @@ import {
 } from "./ai-scheme/AiConversationMessage";
 import { AiAgentTimeline, AiModeSwitcher } from "./ai-scheme/AiAgentActivity";
 import { AiProposalPresentation } from "./ai-scheme/AiProposalPresentation";
+import { useAiProposalRun } from "./ai-scheme/useAiProposalRun";
 import { Panel } from "./WorkbenchControls";
 
 function buildPromptExamples(currentConfig) {
@@ -91,23 +91,38 @@ export function AiSchemePanel({
 }) {
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState(getInitialMessages);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [streamingReply, setStreamingReply] = useState("");
-  const [error, setError] = useState("");
   const [pendingResult, setPendingResult] = useState(null);
   const [lastPrompt, setLastPrompt] = useState("");
   const [useAgent, setUseAgent] = useState(false);
   const [agentSteps, setAgentSteps] = useState([]);
   const [agentTotalSteps, setAgentTotalSteps] = useState(0);
-  const [agentRunning, setAgentRunning] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
-  const abortRef = useRef(null);
-  // Use ref for atomic submit lock — React state batching could allow
-  // double-submit when tuningOptions chips are clicked in rapid succession.
-  const generatingRef = useRef(false);
-  const COOLDOWN_MS = 3000;
-  const [cooldownActive, setCooldownActive] = useState(false);
-  const cooldownTimerRef = useRef(null);
+  const {
+    isGenerating,
+    streamingReply,
+    error,
+    cooldownActive,
+    agentRunning,
+    startPrompt,
+    cancelGeneration,
+    resetRun,
+  } = useAiProposalRun({
+    actionId,
+    actionLabel,
+    currentConfig,
+    actionConfigs,
+    useAgent,
+    pendingResult,
+    lastPrompt,
+    setPendingResult,
+    setLastPrompt,
+    setMessages,
+    setAgentSteps,
+    setAgentTotalSteps,
+    onClearPreview,
+    onClearAiSnapshot,
+    notify,
+  });
 
   // Persist conversation state when switching between actions
   const actionIdRef = useRef(actionId);
@@ -155,27 +170,16 @@ export function AiSchemePanel({
 
     // Always reset transient state on action switch
     setPrompt("");
-    setError("");
-    setStreamingReply("");
-    setIsGenerating(false);
-    setCooldownActive(false);
-    clearTimeout(cooldownTimerRef.current);
-    setAgentRunning(false);
+    resetRun();
     setAgentTotalSteps(0);
     setConfirmClear(false);
-    abortRef.current = null;
 
     actionIdRef.current = actionId;
-  }, [actionId]);
+  }, [actionId, resetRun]);
 
   // Sweep expired conversations on mount
   useEffect(() => {
     void sweepExpiredConversations();
-  }, []);
-
-  // Cleanup cooldown timer on unmount
-  useEffect(() => {
-    return () => clearTimeout(cooldownTimerRef.current);
   }, []);
 
   // Debounced auto-save when conversation state changes
@@ -234,182 +238,8 @@ export function AiSchemePanel({
     }
   }, [messages, isGenerating, streamingReply, agentSteps]);
 
-  async function submitPrompt(nextPrompt = prompt, modeOverride = "modify_action") {
-    const trimmedPrompt = nextPrompt.trim();
-    if (!trimmedPrompt || generatingRef.current || cooldownActive) return;
-
-    const proposalContext = pendingResult;
-    setPrompt("");
-    setError("");
-    generatingRef.current = true;
-    setIsGenerating(true);
-    onClearPreview?.();
-    onClearAiSnapshot?.();
-    setLastPrompt(trimmedPrompt);
-
-    // Regenerate: remove last assistant message and skip duplicate user message
-    const isRegen = Boolean(pendingResult) && trimmedPrompt === lastPrompt;
-    if (isRegen) {
-      setPendingResult(null);
-      setMessages((current) => {
-        const last = current[current.length - 1];
-        if (last?.role === "assistant") return current.slice(0, -1);
-        return current;
-      });
-    } else {
-      setMessages((current) => [...current, { role: "user", content: trimmedPrompt, kind: "chat" }]);
-    }
-
-    // Create AbortController before async work so cancel is immediately available
-    const controller = new AbortController();
-    abortRef.current = () => controller.abort();
-
-    try {
-      if (useAgent) {
-        // Agent mode: step-by-step reasoning + tool calls
-        setAgentSteps([]);
-        setAgentRunning(true);
-        setStreamingReply("");
-
-        const { result: rawResult } = await requestAiAgentRun({
-          prompt: trimmedPrompt,
-          currentConfig,
-          actionConfigs,
-          actionLabel,
-          actionId,
-          taskMode: modeOverride,
-          proposalContext,
-          signal: controller.signal,
-          onEvent: (eventType, data) => {
-            if (eventType === "progress" || eventType === "stream_token") {
-              setStreamingReply((prev) => prev + (data.text || data.reply || ""));
-              // Accumulate incremental token text into the current step's thought
-              if (data.text) {
-                setAgentSteps((prev) => {
-                  const last = prev[prev.length - 1];
-                  if (!last) return prev;
-                  return [
-                    ...prev.slice(0, -1),
-                    { ...last, thought: last.thought + data.text },
-                  ];
-                });
-              }
-            } else if (eventType === "step_start") {
-              if (data.totalSteps) setAgentTotalSteps(data.totalSteps);
-              setAgentSteps((prev) => [
-                ...prev,
-                { index: data.step, thought: "", toolCalls: [], toolResults: [], durationMs: 0 },
-              ]);
-            } else if (eventType === "tool_call") {
-              setAgentSteps((prev) => {
-                const last = prev[prev.length - 1];
-                if (!last) return prev;
-                return [
-                  ...prev.slice(0, -1),
-                  { ...last, toolCalls: [...last.toolCalls, { name: data.toolName, arguments: data.arguments || {} }] },
-                ];
-              });
-            } else if (eventType === "tool_result") {
-              setAgentSteps((prev) => {
-                const last = prev[prev.length - 1];
-                if (!last) return prev;
-                return [
-                  ...prev.slice(0, -1),
-                  { ...last, toolResults: [...last.toolResults, { name: data.toolName, result: data.result }] },
-                ];
-              });
-            } else if (eventType === "step_end") {
-              setAgentSteps((prev) => {
-                const last = prev[prev.length - 1];
-                if (!last) return prev;
-                return [...prev.slice(0, -1), { ...last, durationMs: data.durationMs || last.durationMs }];
-              });
-            }
-          },
-        });
-
-        setAgentRunning(false);
-        setStreamingReply("");
-
-        const proposal = {
-          ...rawResult,
-          actionId,
-          taskMode: modeOverride,
-          source: "agent",
-          proposalId: rawResult.proposalId || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-        };
-        setPendingResult(proposal);
-        setMessages((current) => [...current, { role: "assistant", content: proposal.reply || "Agent 已完成方案生成。", kind: "proposal" }]);
-        notify?.({
-          tone: "info",
-          title: "Agent 已生成方案提案",
-          description: proposal.scheme?.summary || proposal.diffSummary?.[0] || "请确认后再应用。",
-        });
-      } else {
-        // Fast mode: one-shot streaming
-        setStreamingReply("");
-        const { result } = await requestAiSchemeEditStreaming({
-          prompt: trimmedPrompt,
-          currentConfig,
-          actionLabel,
-          actionId,
-          taskMode: modeOverride,
-          proposalContext,
-          signal: controller.signal,
-          onProgress: (replyText) => {
-            setStreamingReply(replyText);
-          },
-        });
-
-        setStreamingReply("");
-        const proposal = {
-          ...result,
-          actionId,
-          taskMode: modeOverride,
-          proposalId: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-        };
-        setPendingResult(proposal);
-        setMessages((current) => [...current, { role: "assistant", content: proposal.reply, kind: "proposal" }]);
-        notify?.({
-          tone: "info",
-          title: "AI 已生成方案提案",
-          description: result.scheme?.summary || result.diffSummary?.[0] || "请确认后再应用。",
-        });
-      }
-    } catch (caughtError) {
-      setAgentRunning(false);
-      if (controller.signal.aborted) {
-        // User cancelled — silently ignore the error
-      } else {
-        const message = getAiRequestErrorMessage(caughtError);
-        setError(message);
-      }
-    } finally {
-      generatingRef.current = false;
-      setIsGenerating(false);
-      abortRef.current = null;
-      // 启动冷却计时，防止快速连续发请求
-      setCooldownActive(true);
-      clearTimeout(cooldownTimerRef.current);
-      cooldownTimerRef.current = setTimeout(() => setCooldownActive(false), COOLDOWN_MS);
-    }
-  }
-
-  function cancelGeneration() {
-    if (abortRef.current) {
-      abortRef.current();
-      abortRef.current = null;
-    }
-    generatingRef.current = false;
-    const partialContent = streamingReply;
-    setAgentRunning(false);
-    setIsGenerating(false);
-    setStreamingReply("");
-    if (partialContent.trim()) {
-      setMessages((current) => [...current, { role: "assistant", content: partialContent, kind: "chat" }]);
-    } else {
-      setMessages((current) => [...current, { role: "assistant", content: "已取消本次生成。", kind: "chat" }]);
-    }
+  function submitPrompt(nextPrompt = prompt, modeOverride = "modify_action") {
+    if (startPrompt(nextPrompt, modeOverride)) setPrompt("");
   }
 
   function handleKeyDown(event) {
@@ -459,15 +289,11 @@ export function AiSchemePanel({
 
   function clearConversation() {
     setPrompt("");
-    setError("");
+    resetRun();
     setPendingResult(null);
     setLastPrompt("");
     setAgentSteps([]);
     setAgentTotalSteps(0);
-    generatingRef.current = false;
-    setAgentRunning(false);
-    setIsGenerating(false);
-    setStreamingReply("");
     setMessages(getInitialMessages());
     void deleteConversation(actionId);
     onClearPreview?.();
@@ -719,7 +545,6 @@ export function AiSchemePanel({
                   type="button"
                   className="ml-2 shrink-0 rounded-lg border border-rose-200 bg-white px-2 py-1 text-xs font-medium text-rose-600 transition-colors hover:bg-rose-100 active:scale-[0.97]"
                   onClick={() => {
-                    setError("");
                     void submitPrompt(lastPrompt);
                   }}
                 >
