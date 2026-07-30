@@ -114,7 +114,7 @@ export function getAiProposalPatchForAction(proposal, actionId) {
   return target?.patch || null;
 }
 
-export function getAiProposalNextConfigForAction(proposal, actionId, currentConfig = {}) {
+function getAiProposalNextConfigForAction(proposal, actionId, currentConfig = {}) {
   const patch = getAiProposalPatchForAction(proposal, actionId);
   return patch ? mergeActionConfig(currentConfig, patch) : null;
 }

@@ -34,13 +34,15 @@
 | R5-2 拆分 `WorkbenchPreviewRail` | 已完成 | 播放、timeline、舞台与 pointer interaction 已拆分；预览直接使用 shared runtime，app → desktop 依赖归零，主文件由 933 行降至 83 行 |
 | R5-3 收敛 Workbench state | 已完成 | editor navigation 与 config dirty/live-preview 边界已分离；AI 预览/撤销、列宽拖拽、桌面欢迎/授权 runtime 均已提取为场景 hook |
 | R5-4 无用代码清理 | 已完成 | 删除 9 个孤立文件和 3 个无调用导出，净删除 729 行；通用 UI 转发与过时任务编号已清零 |
+| R5-5 自动死代码检查 | 已完成 | Knip 覆盖根项目、Electron/扩展多入口和两个 workspace；文件、依赖、导出检查进入 CI，首轮源码净删除约 600 行 |
 
 当前验证基线：
 
 - `npm run typecheck` 通过。
 - `npm run lint` 通过（0 error；共享旧代码的 15 条显式 `any` 暂作为 warning 逐步收紧）。
+- `npm run check:dead-code` 通过；未引用文件、依赖、导出和导出类型检查已进入 CI。
 - Vitest 78 个测试文件、370 个测试通过；删除的数量来自孤立功能专用测试与 legacy/parity 镜像用例清理，不再为无生产消费者的代码保留测试。
-- API 177 个测试通过。
+- API 178 个测试通过。
 - 根 Web、landing、Electron main/preload/renderer 构建通过。
 - 根项目、landing、Electron Vite、Vitest 均复用 Vite 7.3.6。
 - Electron smoke 已在 macOS 实跑通过并接入 Linux CI；除生命周期外，已覆盖应用规则禁用与清空后即时恢复，以及点击只进入目标显示器 overlay 的真实消费路径。测试使用隔离 userData，并禁用全局输入、托盘、AI 服务和更新器等真机副作用。
@@ -922,10 +924,16 @@ AiSchemePanel              # 组合层
 
 ### R5-5：引入死代码检查
 
-- 配置 Knip 或等价工具，显式声明 Electron/extension 多入口。
-- CI 检查无用文件、依赖和导出。
-- 对动态 manifest、preload 和 build entry 设置明确白名单。
-- 删除依赖后同步检查 package.json、lockfile、builder 配置和许可证清单。
+- [x] 配置 Knip，显式声明根 Web、extension、Electron main/preload/renderer、脚本、测试、API 与 landing 入口。
+- [x] CI 检查无用文件、依赖、导出和导出类型。
+- [x] 对全局部署工具 `pm2` 设置精确白名单；其余构建与 preload 入口均作为真实入口追踪，不使用宽泛 ignore。
+- [x] 补齐 `@radix-ui/react-visually-hidden` 直接依赖，并同步 package.json 与 lockfile。
+
+当前进度：
+
+- 首轮删除孤立 API 聚合入口、废弃 `useTypewriter`，以及只服务无消费者导出的光标 SVG 预设、旧预览格式化器和模型边界常量；源码净删除约 600 行。
+- 收窄私有应用内部无消费者的导出面，Knip 报告归零；Vite 根配置同时改为标准 ESM 路径解析，检查工具不再依赖 Vite 的配置转译兼容行为。
+- 78 个根测试文件共 370 项、typecheck、lint（0 error，保留既有 15 warning）、Web smoke 6/6 与 desktop smoke 1/1 通过。R5-5 与 Phase 5 完成，下一段进入 R6-1。
 
 ### Phase 5 完成条件
 

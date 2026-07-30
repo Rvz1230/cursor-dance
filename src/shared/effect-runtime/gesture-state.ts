@@ -6,7 +6,7 @@ export interface GesturePointerEvent {
   rawEvent?: unknown;
 }
 
-export interface LongPressState {
+interface LongPressState {
   startedAt: number;
   pointerId?: number;
   x: number;

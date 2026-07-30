@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ActiveWindowSnapshot } from "@/shared/app-rules";
 
-export type WelcomeState = "loading" | "open" | "closed";
+type WelcomeState = "loading" | "open" | "closed";
 
 export interface DesktopWorkbenchRuntimeState {
   welcomeState: WelcomeState;

@@ -57,7 +57,7 @@ export type AiUserSettingsPatch = {
   apiMode?: string;
 };
 
-export type AiTransportPayload = Record<string, unknown>;
+type AiTransportPayload = Record<string, unknown>;
 
 export type AiTransportResponse = {
   status: number;
@@ -69,7 +69,7 @@ export type AiStreamRequest = {
   payload: AiTransportPayload;
 };
 
-export type AiCancelRequest = {
+type AiCancelRequest = {
   requestId: string;
 };
 
@@ -84,7 +84,7 @@ type InvokeContract<Request, Response> = {
   response: Response;
 };
 
-export interface DesktopIpcInvokeContract {
+interface DesktopIpcInvokeContract {
   [STORE_GET]: InvokeContract<void, unknown | null>;
   [STORE_SET]: InvokeContract<unknown, unknown>;
   [STORE_GET_LIVE_PREVIEW]: InvokeContract<void, unknown | null>;

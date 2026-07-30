@@ -16,7 +16,7 @@ import type {
 } from "@/shared/config-schema-v4";
 
 type ActionConfig = Record<string, unknown>;
-export type ContentTheme = CursorDanceThemeV4;
+type ContentTheme = CursorDanceThemeV4;
 export type ContentConfig = CursorDanceConfigV4;
 
 interface ChromeStorageArea {

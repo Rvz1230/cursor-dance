@@ -85,7 +85,7 @@ function snapshotsEqual(left: ActiveWindowSnapshot | null, right: ActiveWindowSn
     && left.owner.bundleId === right.owner.bundleId;
 }
 
-export function isCursorDanceWindow(snapshot: ActiveWindowSnapshot): boolean {
+function isCursorDanceWindow(snapshot: ActiveWindowSnapshot): boolean {
   if (!snapshot.authorized) return false;
   const bundleId = snapshot.owner.bundleId?.toLowerCase();
   const processName = snapshot.processName.trim().toLowerCase();

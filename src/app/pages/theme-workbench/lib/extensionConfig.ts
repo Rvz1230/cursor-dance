@@ -27,7 +27,6 @@ export {
   buildPreviewThemePackFromWorkbench,
   buildStoredConfigFromWorkbench,
   buildStoredThemePackFromWorkbench,
-  buildThemeLibrary,
   createWorkbenchThemeState,
   draftFromThemePack,
   hydrateWorkbenchState,

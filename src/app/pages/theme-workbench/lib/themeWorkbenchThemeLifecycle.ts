@@ -15,7 +15,7 @@ function slugifyThemeName(name) {
     .slice(0, 48);
 }
 
-export function buildUniqueThemeId(name, existingIds) {
+function buildUniqueThemeId(name, existingIds) {
   const base = slugifyThemeName(name) || "custom-theme";
   if (!existingIds.has(base)) return base;
   let index = 2;
@@ -25,7 +25,7 @@ export function buildUniqueThemeId(name, existingIds) {
   return `${base}-${index}`;
 }
 
-export function buildUniqueThemeName(name, existingNames) {
+function buildUniqueThemeName(name, existingNames) {
   const trimmedName = String(name || "").trim() || "自定义主题";
   if (!existingNames.has(trimmedName)) return trimmedName;
   let index = 2;
@@ -35,7 +35,7 @@ export function buildUniqueThemeName(name, existingNames) {
   return `${trimmedName} ${index}`;
 }
 
-export function resolveImportedThemePack(rawValue) {
+function resolveImportedThemePack(rawValue) {
   if (!rawValue || typeof rawValue !== "object" || Array.isArray(rawValue)) {
     throw new Error("导入失败：JSON 需要是一个主题对象。");
   }

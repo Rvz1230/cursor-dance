@@ -6,8 +6,8 @@ import type {
   ScreenPointerInputEvent,
 } from "@/shared/effect-runtime/contracts";
 
-export type DesktopCursorEventPayload = ScreenPointerInputEvent;
-export type DesktopKeyboardEventPayload = KeyboardEventPayload;
+type DesktopCursorEventPayload = ScreenPointerInputEvent;
+type DesktopKeyboardEventPayload = KeyboardEventPayload;
 
 export interface DesktopInputBridge {
   onCursorEvent(listener: (event: DesktopCursorEventPayload) => void): () => void;

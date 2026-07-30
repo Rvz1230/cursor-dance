@@ -55,7 +55,7 @@ export function unregisterAssetProtocol(): void {
   protocolRegistered = false;
 }
 
-export const __testing__ = {
+const __testing__ = {
   reset(): void {
     privilegesRegistered = false;
     protocolRegistered = false;

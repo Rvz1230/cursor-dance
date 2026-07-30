@@ -5,7 +5,7 @@ export const navLinks = [
   { label: "关于", href: "/about.html", sectionId: null },
 ];
 
-export function scrollToDemo() {
+function scrollToDemo() {
   const el = document.querySelector(".cursor-crosshair");
   if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
 }

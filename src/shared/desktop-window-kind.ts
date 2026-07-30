@@ -1,6 +1,6 @@
 export type DesktopWindowKind = "workbench" | "overlay";
 
-export const DESKTOP_WINDOW_KIND_ARGUMENT = "--cursordance-window-kind=";
+const DESKTOP_WINDOW_KIND_ARGUMENT = "--cursordance-window-kind=";
 
 export function desktopWindowKindArgument(kind: DesktopWindowKind): string {
   return `${DESKTOP_WINDOW_KIND_ARGUMENT}${kind}`;

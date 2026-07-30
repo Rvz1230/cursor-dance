@@ -24,9 +24,6 @@ export const STORE_CLEAR_LIVE_PREVIEW = "cursordance:store-clear-live-preview";
 /** 主进程 → renderer：live preview 变更广播 */
 export const LIVE_PREVIEW_CHANGED = "cursordance:live-preview-changed";
 
-/** renderer → 主进程：申请预览（test action）由主进程派发到 overlay */
-export const PREVIEW_AT_VIEWPORT_CENTER = "cursordance:preview-at-viewport-center";
-
 /** renderer → 主进程：导出主题包到本地文件（弹原生保存对话框 + 写盘） */
 export const DIALOG_SAVE_THEME_FILE = "cursordance:dialog-save-theme-file";
 

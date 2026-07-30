@@ -43,7 +43,7 @@ export default function ThemeWorkbenchPage({ renderHeader }: ThemeWorkbenchPageP
   );
 }
 
-export interface WorkbenchHeaderProps {
+interface WorkbenchHeaderProps {
   workspaceItems: ReturnType<typeof useThemeWorkbenchState>["workspaceItems"];
   workspaceId: string;
   setWorkspaceId: (id: string) => void;
@@ -60,7 +60,7 @@ export interface WorkbenchHeaderProps {
   openAiSettings?: () => void;
 }
 
-export type WorkbenchHeaderRenderer = (props: WorkbenchHeaderProps) => ReactNode;
+type WorkbenchHeaderRenderer = (props: WorkbenchHeaderProps) => ReactNode;
 
 function WorkspaceTabsScroller({
   workspaceItems,

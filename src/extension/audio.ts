@@ -1,7 +1,7 @@
 import { createAudioRuntime, type AudioRuntimeModule } from "@/shared/effect-runtime/audio-runtime";
 import { resolveAudioDuckProfile, type AudioDuckProfile } from "./audio-duck-profile";
 
-export interface MediaDuckSnapshot {
+interface MediaDuckSnapshot {
   originalVolume: number;
   originalMuted: boolean;
   restoreTimer: number | null;

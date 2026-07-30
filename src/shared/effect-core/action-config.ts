@@ -95,7 +95,7 @@ const ACTION_IMAGE_FIELDS = [
 ];
 const ACTION_CURSOR_FEEDBACK_FIELDS = ["shake", "cursorOverride", "cursorSize", "cursorTrailEnabled", "cursorTrailCount", "cursorTrailOpacity", "cursorGlowColor"];
 
-export function pickActionConfigFields(config: Record<string, unknown> | undefined, fieldNames: string[]): Record<string, unknown> {
+function pickActionConfigFields(config: Record<string, unknown> | undefined, fieldNames: string[]): Record<string, unknown> {
   return Object.fromEntries(fieldNames.map((fieldName) => [fieldName, config?.[fieldName]]));
 }
 
@@ -169,7 +169,7 @@ export function getTextWeightValue(weightLabel: string): number {
   return 500;
 }
 
-export const TEXT_FONT_FAMILY_VALUES: Record<string, string> = {
+const TEXT_FONT_FAMILY_VALUES: Record<string, string> = {
   "系统默认": '"SF Pro Text","PingFang SC","Microsoft YaHei",system-ui,sans-serif',
   "苹方 / 微软雅黑": '"PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif',
   "宋体": 'SimSun,"Songti SC",serif',
@@ -204,31 +204,6 @@ export function getOrderedTextTags(actionConfig: Record<string, unknown> | undef
   return [primaryText].concat(currentTags.filter((item: string) => item !== primaryText));
 }
 
-export function getParticleColor(
-  particleConfig: Record<string, unknown>,
-  textConfig: Record<string, unknown>,
-  index: number,
-): string {
-  const palette = Array.isArray(particleConfig.particlePalette) && particleConfig.particlePalette.length
-    ? particleConfig.particlePalette
-    : ["#FDBA74", "#FDE68A", "#86EFAC", "#93C5FD", "#F9A8D4"];
-  const opacity = ((particleConfig.particleOpacity as number) || 88) / 100;
-  if (particleConfig.particleColorMode === "跟随飘字色") {
-    return hexToRgba(textConfig.textColor as string | undefined, opacity);
-  }
-  if (particleConfig.particleColorMode === "随机轻变化") {
-    return hexToRgba(palette[index % palette.length], opacity);
-  }
-  return hexToRgba(palette[0] || "#FBBF24", opacity);
-}
-
 export {
   ACTION_TRIGGER_FIELDS,
-  ACTION_TEXT_FIELDS,
-  ACTION_PARTICLE_FIELDS,
-  ACTION_RIPPLE_FIELDS,
-  ACTION_AUDIO_FIELDS,
-  ACTION_ANIMATION_FIELDS,
-  ACTION_IMAGE_FIELDS,
-  ACTION_CURSOR_FEEDBACK_FIELDS,
 };

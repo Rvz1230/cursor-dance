@@ -2,17 +2,17 @@
 
 export const CURSORDANCE_CONFIG_SCHEMA_VERSION = 4 as const;
 
-export type ConfigJsonPrimitive = string | number | boolean | null;
-export type ConfigJsonValue =
+type ConfigJsonPrimitive = string | number | boolean | null;
+type ConfigJsonValue =
   | ConfigJsonPrimitive
   | readonly ConfigJsonValue[]
   | { readonly [key: string]: ConfigJsonValue };
-export type ConfigJsonObject = { readonly [key: string]: ConfigJsonValue };
+type ConfigJsonObject = { readonly [key: string]: ConfigJsonValue };
 
-export type ThemeKindV4 = "builtin" | "custom";
-export type CursorBindingModeV4 = "inherit" | "override";
-export type CursorImageMimeTypeV4 = "image/png" | "image/svg+xml" | "image/webp" | "image/unknown";
-export type CursorSizeModeV4 = "source" | "fixedBox";
+type ThemeKindV4 = "builtin" | "custom";
+type CursorBindingModeV4 = "inherit" | "override";
+type CursorImageMimeTypeV4 = "image/png" | "image/svg+xml" | "image/webp" | "image/unknown";
+type CursorSizeModeV4 = "source" | "fixedBox";
 
 interface CursorImageMetadataV4 {
   readonly mimeType: CursorImageMimeTypeV4;
@@ -20,17 +20,17 @@ interface CursorImageMetadataV4 {
   readonly height: number;
 }
 
-export interface InlineCursorImageV4 extends CursorImageMetadataV4 {
+interface InlineCursorImageV4 extends CursorImageMetadataV4 {
   readonly kind: "dataUrl";
   readonly dataUrl: string;
 }
 
-export interface StoredCursorImageV4 extends CursorImageMetadataV4 {
+interface StoredCursorImageV4 extends CursorImageMetadataV4 {
   readonly kind: "asset";
   readonly assetId: string;
 }
 
-export type CursorImageV4 = InlineCursorImageV4 | StoredCursorImageV4;
+type CursorImageV4 = InlineCursorImageV4 | StoredCursorImageV4;
 
 export interface CursorSkinStateV4 {
   readonly image: CursorImageV4;
@@ -121,7 +121,7 @@ export interface WebContextRuleV4 extends ContextRuleBaseV4 {
   };
 }
 
-export interface DesktopContextRuleV4 extends ContextRuleBaseV4 {
+interface DesktopContextRuleV4 extends ContextRuleBaseV4 {
   readonly context: "desktop";
   readonly match: {
     readonly type: "exact" | "glob";
@@ -132,7 +132,7 @@ export interface DesktopContextRuleV4 extends ContextRuleBaseV4 {
 
 export type ContextRuleV4 = WebContextRuleV4 | DesktopContextRuleV4;
 
-export interface PerformancePolicyV4 {
+interface PerformancePolicyV4 {
   readonly maxActiveEffects: number;
 }
 
@@ -145,7 +145,7 @@ export interface CursorDanceConfigV4 {
   readonly performance: PerformancePolicyV4;
 }
 
-export interface ConfigV4Issue {
+interface ConfigV4Issue {
   readonly path: string;
   readonly message: string;
 }

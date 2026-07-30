@@ -124,7 +124,7 @@ async function requestRemoteAiSchemeEdit({ prompt, currentConfig, actionLabel, a
   }
 }
 
-export async function requestAiSchemeEdit({ prompt, currentConfig, actionLabel, actionId, taskMode, proposalContext = null }) {
+async function requestAiSchemeEdit({ prompt, currentConfig, actionLabel, actionId, taskMode, proposalContext = null }) {
   return requestRemoteAiSchemeEdit({ prompt, currentConfig, actionLabel, actionId, taskMode, proposalContext });
 }
 

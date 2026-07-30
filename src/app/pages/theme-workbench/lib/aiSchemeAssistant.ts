@@ -15,52 +15,24 @@ import {
 
 type AiClientError = Error & { status?: number; code?: string };
 
-export {
-  AI_EXTENSION_VERSION,
-  AI_SCHEMA_VERSION,
-  AI_SCHEME_PATCH_FIELDS,
-  AI_TASK_MODES,
-  ARRAY_FIELDS,
-  BOOLEAN_FIELDS,
-  DEFAULT_API_ENDPOINT,
-  ENUM_OPTIONS,
-  FIELD_LABELS,
-  MAX_PROPOSAL_CONTEXT_BYTES,
-  NUMERIC_LIMITS,
-  STRING_FIELDS,
-  VALID_PROPOSAL_MODES,
-} from "../../../../../cursor-dance-api/src/field-defs";
+export { AI_SCHEMA_VERSION } from "../../../../../cursor-dance-api/src/field-defs";
 
 export {
-  clampNumber,
   getAiPatchSanitizeMeta,
   mergeActionConfig,
-  normalizeHexColor,
   sanitizeAiSchemePatch,
-  sanitizePatchValue,
 } from "../../../../../cursor-dance-api/src/sanitize";
 
 export { getAiRequestErrorMessage } from "../../../../../cursor-dance-api/src/errors";
 
-export { repairPatchForUserIntent } from "../../../../../cursor-dance-api/src/intent-repair";
-
-export {
-  buildAiSchemeDiffItems,
-  formatDiffValue,
-} from "../../../../../cursor-dance-api/src/diff";
+export { buildAiSchemeDiffItems } from "../../../../../cursor-dance-api/src/diff";
 
 export {
   buildAiProposalContext,
-  getAiProposalNextConfigForAction,
   getAiProposalPatchForAction,
   normalizeAiSchemeProposal,
   validateAiSchemeRequest,
 } from "../../../../../cursor-dance-api/src/normalize";
-
-export {
-  AGENT_TOOLS,
-  describeAgentToolCall,
-} from "../../../../../cursor-dance-api/src/agent-tools";
 
 function getDesktopAiBridge() {
   return typeof window !== "undefined" ? window.cursorDanceAi : undefined;

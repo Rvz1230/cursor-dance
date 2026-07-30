@@ -1,20 +1,12 @@
 import {
   getActionAudioConfig,
-  getActionAnimationConfig,
-  getActionCursorFeedbackConfig,
-  getActionImageConfig,
-  getActionTextConfig,
   getActionTriggerConfig,
 } from "../model/workbenchSchema";
-
-import { getPreviewCycleMs } from "./timelineModel";
 
 // Computation logic shared with runtime content-script
 import {
   hexToRgba as _hexToRgba,
   getAnimationEasingCss as _getAnimationEasingCss,
-  getTextWeightValue as _getTextWeightValue,
-  formatNumber as _formatNumber,
   getTextContent as _getTextContent,
   computeRippleLayers as _computeRippleLayers,
   computeParticleSpecs as _computeParticleSpecs,
@@ -29,8 +21,6 @@ import {
 // so existing callers (WorkbenchPreviewRail, AnimatedPreview) don't need to change.
 export const hexToRgba = _hexToRgba;
 export const getAnimationEasingCss = _getAnimationEasingCss;
-export const getTextWeightValue = _getTextWeightValue;
-export const formatPreviewNumber = _formatNumber;
 export const getAnimationKeyframeName = _getAnimationKeyframeName;
 export const buildRippleSpecs = _computeRippleLayers;
 export const buildParticleSpecs = _computeParticleSpecs;
@@ -118,63 +108,6 @@ export const PREVIEW_KEYFRAMES = `
 
 export function getPreviewText(config, runIndex = 0, actionId = "leftClick") {
   return _getTextContent(config, runIndex, actionId);
-}
-
-export function getTextShadowValue(config) {
-  const textConfig = getActionTextConfig(config);
-  const color = hexToRgba(textConfig.textColor, textConfig.textShadow === "清晰" ? 0.36 : 0.24);
-  if (textConfig.textShadow === "清晰") return `0 8px 18px ${color}`;
-  if (textConfig.textShadow === "柔和") return `0 4px 12px ${color}`;
-  return "none";
-}
-
-export function getPreviewLoopDelay(config) {
-  return getPreviewCycleMs(config);
-}
-
-export function getPreviewAnimationStyle(config) {
-  const animationConfig = getActionAnimationConfig(config);
-  const scale = Math.max(0.6, (animationConfig.animationScale || 100) / 100);
-  const size = Math.round(56 * scale);
-  return {
-    width: `${size}px`,
-    height: `${size}px`,
-    opacity: Math.max(0.18, (animationConfig.animationOpacity || 100) / 100),
-    marginLeft: `${animationConfig.animationOffsetX || 0}px`,
-    marginTop: `${animationConfig.animationOffsetY || -10}px`,
-  };
-}
-
-export function getPreviewImageStyle(config) {
-  const imageConfig = getActionImageConfig(config);
-  return {
-    width: `${imageConfig.imageSize || 56}px`,
-    height: `${imageConfig.imageSize || 56}px`,
-    opacity: Math.max(0.2, (imageConfig.imageOpacity || 100) / 100),
-    marginLeft: `${imageConfig.imageOffsetX || 0}px`,
-    marginTop: `${imageConfig.imageOffsetY || -18}px`,
-  };
-}
-
-export function getPreviewCursorSize(config) {
-  const cursorConfig = getActionCursorFeedbackConfig(config);
-  return cursorConfig.cursorSize;
-}
-
-const TEXT_FONT_FAMILY_VALUES = {
-  系统默认: '"SF Pro Text","PingFang SC","Microsoft YaHei",system-ui,sans-serif',
-  "苹方 / 微软雅黑": '"PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif',
-  宋体: 'SimSun,"Songti SC",serif',
-  黑体: 'SimHei,"Heiti SC",sans-serif',
-  楷体: 'KaiTi,"Kaiti SC",serif',
-  等宽字体: '"SFMono-Regular",Consolas,"Liberation Mono",monospace',
-};
-
-export function getTextFontFamilyValue(value) {
-  const textFontFamily = typeof value === "string" ? value.trim() : "";
-  if (!textFontFamily || textFontFamily === "自定义") return TEXT_FONT_FAMILY_VALUES.系统默认;
-  if (TEXT_FONT_FAMILY_VALUES[textFontFamily]) return TEXT_FONT_FAMILY_VALUES[textFontFamily];
-  return textFontFamily.replace(/[;\n\r]/g, "").slice(0, 120) || TEXT_FONT_FAMILY_VALUES.系统默认;
 }
 
 export function getPreviewSoundFile(config) {

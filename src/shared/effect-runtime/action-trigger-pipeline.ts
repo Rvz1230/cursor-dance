@@ -15,14 +15,14 @@ export interface ActionTriggerCoords {
   event: unknown;
 }
 
-export interface ActionTriggerOptions {
+interface ActionTriggerOptions {
   triggerSource?: string;
   resolvedActionId?: string;
   throttleMs?: number;
   force?: boolean;
 }
 
-export interface ActionTriggerConfigStore {
+interface ActionTriggerConfigStore {
   isCurrentContextEnabled(): boolean;
   getActiveScheme(): unknown;
   getActionConfig(scheme: unknown, actionId: string): Record<string, unknown> | undefined;

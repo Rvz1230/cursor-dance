@@ -1,4 +1,4 @@
-export type RepositoryUnsubscribe = () => void;
+type RepositoryUnsubscribe = () => void;
 export type RepositoryListener<T> = (value: T) => void | Promise<void>;
 
 export type WorkbenchEditorState = {

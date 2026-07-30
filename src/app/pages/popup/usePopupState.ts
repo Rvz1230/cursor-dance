@@ -84,14 +84,14 @@ function getSiteAction(config, host, path) {
   return null;
 }
 
-export function getEffectiveActiveThemeId(siteAction, activeThemeId) {
+function getEffectiveActiveThemeId(siteAction, activeThemeId) {
   if (siteAction?.type === "enable" && siteAction.themeId) {
     return siteAction.themeId;
   }
   return activeThemeId;
 }
 
-export function resolveNextConfigForThemeChange(currentConfig, site, themeId) {
+function resolveNextConfigForThemeChange(currentConfig, site, themeId) {
   var host = site.host || "";
   var pathname = "/";
   var runtime = getRuntimeConfig();

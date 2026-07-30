@@ -1,4 +1,4 @@
-export type SystemCursorReplacementCapability = {
+type SystemCursorReplacementCapability = {
   status: "supported" | "planned" | "unsupported";
   backend: "bundled-native-helper" | null;
   message: string;

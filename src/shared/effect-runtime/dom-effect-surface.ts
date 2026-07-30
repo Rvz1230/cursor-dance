@@ -28,7 +28,7 @@ import {
   emptyEffectHandle,
 } from "./effect-lifecycle";
 
-export interface VisualEffectsConfigStore {
+interface VisualEffectsConfigStore {
   getActionTextConfig(config: Record<string, unknown> | undefined): Record<string, unknown>;
   getActionRippleConfig(config: Record<string, unknown> | undefined): Record<string, unknown>;
   getActionParticleConfig(config: Record<string, unknown> | undefined): Record<string, unknown>;

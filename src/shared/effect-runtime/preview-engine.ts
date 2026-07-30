@@ -16,7 +16,7 @@ import { createVisualEffects, type VisualEffectsModule } from "./dom-effect-surf
 import { createDomEffectSurface, createWebAudioOutput } from "./output-adapters";
 import type { EffectSurface } from "./contracts";
 
-export interface PreviewEffectEngineConstants {
+interface PreviewEffectEngineConstants {
   ROOT_ID: string;
   STYLE_ID: string;
 }

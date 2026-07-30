@@ -29,7 +29,7 @@ export interface ActionOutputSummary {
   cursorOverrideEnabled: boolean;
 }
 
-export interface ActionOutputPlan {
+interface ActionOutputPlan {
   effects: EffectSpec[];
   audio?: AudioSpec;
 }
@@ -94,7 +94,7 @@ export function getActionTimingMs(
   return Math.max(0, value);
 }
 
-export function getComboWindowMs(
+function getComboWindowMs(
   actionConfig: Readonly<Record<string, unknown>> | undefined,
 ): number {
   const rawValue = Number(actionConfig?.comboWindowMs);
@@ -126,7 +126,7 @@ export function getActionOutputSummary(
   };
 }
 
-export function hasEnabledActionOutput(outputs: ActionOutputSummary): boolean {
+function hasEnabledActionOutput(outputs: ActionOutputSummary): boolean {
   return Object.values(outputs).some(Boolean);
 }
 

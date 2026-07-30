@@ -50,16 +50,8 @@ export function createEffectEngine(deps: EngineDeps): EffectEngine {
 }
 
 export type {
-  CursorEvent,
   EngineDeps,
   EffectEngine,
-  ConfigStore,
-  VisualEffectsModule,
-  CursorOverlayModule,
-  AudioRuntimeModule,
-  TriggerHandlersModule,
-  KeyFeedbackModule,
-  NativeKeyboardEvent,
   EngineConstants,
   EngineState,
 } from "./types";

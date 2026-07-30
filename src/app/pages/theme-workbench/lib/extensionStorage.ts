@@ -1,9 +1,4 @@
 export {
-  LOCAL_PREVIEW_CHANNEL_NAME,
-  DIAGNOSTIC_EVENT_MESSAGE_TYPE,
-} from "./storage/chrome-api";
-
-export {
   readEditorState,
   readExtensionConfig,
   readLivePreviewConfig,

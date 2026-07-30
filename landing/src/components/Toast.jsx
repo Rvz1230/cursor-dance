@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const ToastContext = createContext(null);
 
-export function useToast() {
+function useToast() {
   return useContext(ToastContext);
 }
 

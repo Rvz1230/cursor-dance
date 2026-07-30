@@ -41,22 +41,8 @@ import {
   AUDIO_BLEND_OPTIONS,
   AUDIO_TRIGGER_OPTIONS,
   ANIMATION_STYLE_OPTIONS,
-  ACTION_ANIMATION_FIELDS,
-  CURSOR_HOTSPOT_OPTIONS,
   CURSOR_OVERRIDE_OPTIONS,
-  CURSOR_SIZE_OPTIONS,
   NUMBER_STYLE_OPTIONS,
-  LEFT_CLICK_BEHAVIOR_CANONICAL_FIELDS,
-  ACTION_AUDIO_FIELDS,
-  ACTION_CURSOR_FEEDBACK_FIELDS,
-  ACTION_IMAGE_FIELDS,
-  ACTION_PARTICLE_FIELDS,
-  ACTION_CONFIG_MODEL_BOUNDARIES,
-  ACTION_PREVIEW_DERIVED_FIELDS,
-  ACTION_RIPPLE_FIELDS,
-  ACTION_RUNTIME_FIELDS,
-  ACTION_TEXT_FIELDS,
-  ACTION_TRIGGER_FIELDS,
   PARTICLE_COLOR_MODE_OPTIONS,
   PARTICLE_DIRECTION_OPTIONS,
   PARTICLE_MOTION_MODE_OPTIONS,
@@ -78,16 +64,13 @@ import {
   getConflictsForAction,
   getActionAudioConfig,
   getActionAnimationConfig,
-  getActionCursorFeedbackConfig,
   getActionImageConfig,
   getActionParticleConfig,
   getActionRippleConfig,
-  getOrderedActionTextTags,
   getActionTextConfig,
   getActionTriggerConfig,
   getTimingFieldMeta,
   mergeActionConfig,
-  pickStoredWorkbenchActionConfig,
   pickStoredWorkbenchActionConfigs,
 } from "./actionConfigSchema";
 import { ANIMATION_EASING_OPTIONS } from "./actionConfigOptions";
@@ -133,7 +116,7 @@ const FALLBACK_THEMES = [
   },
 ];
 
-export const THEME_TONES = ["amber", "teal", "sky", "rose", "slate"];
+const THEME_TONES = ["amber", "teal", "sky", "rose", "slate"];
 
 const THEME_TONE_BY_ID = {
   "mono-geo": "slate",
@@ -241,11 +224,11 @@ function buildThemeSummary(themePack) {
   return parts.slice(0, 3).join(" · ") || "默认反馈主题";
 }
 
-export function toThemeKindLabel(kind) {
+function toThemeKindLabel(kind) {
   return kind === "builtin" || kind === "内置" ? "内置" : "自定义";
 }
 
-export function getThemeTone(themeId, fallbackIndex = 0) {
+function getThemeTone(themeId, fallbackIndex = 0) {
   return THEME_TONE_BY_ID[themeId] || THEME_TONES[fallbackIndex % THEME_TONES.length];
 }
 
@@ -262,7 +245,7 @@ export function buildThemeLibraryItem(themePack, fallbackIndex = 0) {
   };
 }
 
-export function buildThemeLibrarySeed(themes = getDefaultThemePacks()) {
+function buildThemeLibrarySeed(themes = getDefaultThemePacks()) {
   if (!themes.length) return FALLBACK_THEMES;
   return themes.map((theme, index) => buildThemeLibraryItem(theme, index));
 }
@@ -330,7 +313,7 @@ export function buildDefaultCursorStateAssets() {
   );
 }
 
-export function buildDefaultCursorSkin() {
+function buildDefaultCursorSkin() {
   return {
     version: 1,
     enabled: true,
@@ -363,21 +346,7 @@ export {
   AUDIO_TRIGGER_OPTIONS,
   ANIMATION_STYLE_OPTIONS,
   ANIMATION_EASING_OPTIONS,
-  ACTION_ANIMATION_FIELDS,
-  ACTION_AUDIO_FIELDS,
-  ACTION_CONFIG_MODEL_BOUNDARIES,
-  ACTION_CURSOR_FEEDBACK_FIELDS,
-  ACTION_IMAGE_FIELDS,
-  ACTION_PARTICLE_FIELDS,
-  ACTION_PREVIEW_DERIVED_FIELDS,
-  ACTION_RIPPLE_FIELDS,
-  ACTION_RUNTIME_FIELDS,
-  ACTION_TEXT_FIELDS,
-  ACTION_TRIGGER_FIELDS,
-  CURSOR_HOTSPOT_OPTIONS,
   CURSOR_OVERRIDE_OPTIONS,
-  CURSOR_SIZE_OPTIONS,
-  LEFT_CLICK_BEHAVIOR_CANONICAL_FIELDS,
   NUMBER_STYLE_OPTIONS,
   PARTICLE_COLOR_MODE_OPTIONS,
   PARTICLE_DIRECTION_OPTIONS,
@@ -399,16 +368,13 @@ export {
   TRIGGER_OPTIONS,
   getActionAudioConfig,
   getActionAnimationConfig,
-  getActionCursorFeedbackConfig,
   getActionImageConfig,
   getActionParticleConfig,
   getActionRippleConfig,
-  getOrderedActionTextTags,
   getActionTextConfig,
   getActionTriggerConfig,
   getConflictsForAction,
   getTimingFieldMeta,
   mergeActionConfig,
-  pickStoredWorkbenchActionConfig,
   pickStoredWorkbenchActionConfigs,
 };

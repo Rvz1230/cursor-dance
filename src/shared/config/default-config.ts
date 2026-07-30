@@ -14,7 +14,7 @@ import { defaultKeyFeedbackConfig } from "./key-feedback";
 export type CursorDanceConfig = CursorDanceConfigV4;
 export type ThemePack = CursorDanceThemeV4;
 
-export const DEFAULT_CURSOR_STATE_IDS = [
+const DEFAULT_CURSOR_STATE_IDS = [
   "default",
   "text",
   "pointer",
@@ -34,7 +34,7 @@ export function cloneValue<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
-export function createDefaultCursorBindings(): Record<string, CursorBindingV4> {
+function createDefaultCursorBindings(): Record<string, CursorBindingV4> {
   return Object.fromEntries(DEFAULT_CURSOR_STATE_IDS.map((stateId) => [
     stateId,
     {
@@ -44,7 +44,7 @@ export function createDefaultCursorBindings(): Record<string, CursorBindingV4> {
   ]));
 }
 
-export function createDefaultCursorSkin(): CursorSkinV4 {
+function createDefaultCursorSkin(): CursorSkinV4 {
   return {
     version: 1,
     enabled: true,

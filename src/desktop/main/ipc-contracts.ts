@@ -5,7 +5,7 @@ import {
 
 export const MAX_CONFIG_PAYLOAD_BYTES = 8 * 1024 * 1024;
 export const MAX_THEME_FILE_BYTES = 8 * 1024 * 1024;
-export const MAX_EXTERNAL_URL_LENGTH = 4_096;
+const MAX_EXTERNAL_URL_LENGTH = 4_096;
 
 const MAX_AI_SECRET_LENGTH = 16_384;
 const MAX_AI_URL_LENGTH = 2_048;
@@ -14,7 +14,7 @@ const MAX_AI_MODE_LENGTH = 64;
 export const MAX_AI_TRANSPORT_BYTES = 50 * 1024;
 const MAX_AI_REQUEST_ID_LENGTH = 128;
 
-export function isPlainRecord(value: unknown): value is Record<string, unknown> {
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const prototype = Object.getPrototypeOf(value);
   return prototype === Object.prototype || prototype === null;

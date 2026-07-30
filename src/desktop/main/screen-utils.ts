@@ -6,7 +6,7 @@
 
 import { screen, type Display } from "electron";
 
-export interface DisplayDelta {
+interface DisplayDelta {
   added: Display[];
   removed: Display[];
   /** metrics-changed 触发时给到（窗口大小 / 缩放因子改变） */

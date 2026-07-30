@@ -522,11 +522,9 @@ async function callChatCompletionsApiWithToolsStreaming({ apiKey, baseUrl, model
   };
 }
 
-export function buildAgentMessagesFromState(requestState) {
+function buildAgentMessagesFromState(requestState) {
   return buildAgentMessages(requestState);
 }
-
-export { buildAgentSystemPrompt };
 
 export async function generateAgentResponse({ messages, tools, env = process.env, onEvent, signal }) {
   const { apiKey, baseUrl, model, maxOutputTokens } = getApiConfig(env);

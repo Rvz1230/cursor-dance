@@ -54,8 +54,6 @@ export const RIPPLE_STYLE_OPTIONS = ["单环", "双环", "柔和面波", "脉冲
 export const RIPPLE_EASING_OPTIONS = ["线性", "缓出", "缓入缓出", "弹性"];
 export const AUDIO_TRIGGER_OPTIONS = ["每次触发", "连击叠加", "节流播放"];
 export const AUDIO_BLEND_OPTIONS = ["保持原音量", "压低页面音频", "仅插件音效"];
-export const CURSOR_SIZE_OPTIONS = ["32 × 32", "40 × 40", "48 × 48", "56 × 56", "64 × 64"];
-export const CURSOR_HOTSPOT_OPTIONS = ["0, 0", "8, 8", "12, 12", "16, 16", "16, 32", "24, 24"];
 export const ANIMATION_STYLE_OPTIONS = ["聚焦脉冲", "斜切闪片", "弹跳徽记", "漩涡旋转", "星光闪耀", "轨道环绕", "螺旋上升"];
 export const ANIMATION_EASING_OPTIONS = ["线性", "缓出", "缓入缓出", "弹性"];
 export const PARTICLE_PHYSICS_PRESET_OPTIONS = ["无", "重力飘落", "风场漂移", "弹跳迸发", "旋转扩散"];
@@ -82,8 +80,8 @@ export const PARTICLE_PALETTE_PRESETS = {
   "暮光": ["#4C1D95", "#7C3AED", "#C084FC", "#F59E0B", "#FDE68A"],
 };
 
-export const ACTION_TRIGGER_FIELDS = ["triggerTiming", "triggerZone", "holdMs"];
-export const ACTION_TEXT_FIELDS = [
+const ACTION_TRIGGER_FIELDS = ["triggerTiming", "triggerZone", "holdMs"];
+const ACTION_TEXT_FIELDS = [
   "textKind",
   "textStyle",
   "textMode",
@@ -110,7 +108,7 @@ export const ACTION_TEXT_FIELDS = [
   "comboWindowMs",
   "textDelay",
 ];
-export const ACTION_PARTICLE_FIELDS = [
+const ACTION_PARTICLE_FIELDS = [
   "particle",
   "particleCount",
   "particleSpread",
@@ -132,7 +130,7 @@ export const ACTION_PARTICLE_FIELDS = [
   "orbitalSpeed",
   "particleStagger",
 ];
-export const ACTION_RIPPLE_FIELDS = [
+const ACTION_RIPPLE_FIELDS = [
   "ripple",
   "rippleSize",
   "rippleDuration",
@@ -143,7 +141,7 @@ export const ACTION_RIPPLE_FIELDS = [
   "rippleColor",
   "rippleDelay",
 ];
-export const ACTION_AUDIO_FIELDS = [
+const ACTION_AUDIO_FIELDS = [
   "sound",
   "volume",
   "playbackRate",
@@ -153,7 +151,7 @@ export const ACTION_AUDIO_FIELDS = [
   "soundBlendMode",
   "soundFile",
 ];
-export const ACTION_ANIMATION_FIELDS = [
+const ACTION_ANIMATION_FIELDS = [
   "animationEnabled",
   "animationStyle",
   "animationDuration",
@@ -166,7 +164,7 @@ export const ACTION_ANIMATION_FIELDS = [
   "animationGlow",
   "animationDelay",
 ];
-export const ACTION_IMAGE_FIELDS = [
+const ACTION_IMAGE_FIELDS = [
   "imageEnabled",
   "imageDataUrl",
   "imageAssetId",
@@ -177,8 +175,8 @@ export const ACTION_IMAGE_FIELDS = [
   "imageOffsetY",
   "imageDelay",
 ];
-export const ACTION_CURSOR_FEEDBACK_FIELDS = ["shake", "cursorOverride", "cursorSize", "cursorTrailEnabled", "cursorTrailCount", "cursorTrailOpacity", "cursorGlowColor"];
-export const ACTION_RUNTIME_FIELDS = Array.from(
+const ACTION_CURSOR_FEEDBACK_FIELDS = ["shake", "cursorOverride", "cursorSize", "cursorTrailEnabled", "cursorTrailCount", "cursorTrailOpacity", "cursorGlowColor"];
+const ACTION_RUNTIME_FIELDS = Array.from(
   new Set([
     ...ACTION_TRIGGER_FIELDS,
     ...ACTION_TEXT_FIELDS,
@@ -190,60 +188,6 @@ export const ACTION_RUNTIME_FIELDS = Array.from(
     ...ACTION_CURSOR_FEEDBACK_FIELDS,
   ])
 );
-
-export const LEFT_CLICK_BEHAVIOR_CANONICAL_FIELDS = [
-  "textKind",
-  "textStyle",
-  "textMode",
-  "textTemplate",
-  "textEnabled",
-  "textContent",
-  "textTags",
-  "textTagPlayMode",
-  "textColor",
-  "textDuration",
-  "textFontFamily",
-  "textWeight",
-  "comboEnabled",
-  "textOffsetX",
-  "textOffsetY",
-  "fontSize",
-  "particle",
-  "particleCount",
-  "particleSpread",
-  "particleDuration",
-  "particleSize",
-  "ripple",
-  "rippleSize",
-  "rippleDuration",
-  "textDelay",
-  "rippleDelay",
-  "particleDelay",
-  "animationDelay",
-  "imageDelay",
-  "holdMs",
-];
-
-export const ACTION_WORKBENCH_CANONICAL_FIELDS = ACTION_RUNTIME_FIELDS.filter(
-  (fieldName) => !LEFT_CLICK_BEHAVIOR_CANONICAL_FIELDS.includes(fieldName)
-);
-
-export const ACTION_PREVIEW_DERIVED_FIELDS = [
-  "previewText",
-  "previewLoopDelay",
-  "previewParticleSpecs",
-  "previewRippleSpecs",
-  "previewTriggerSummary",
-];
-
-export const ACTION_CONFIG_MODEL_BOUNDARIES = {
-  runtimeSemantic: {
-    leftClickBehaviorCanonical: LEFT_CLICK_BEHAVIOR_CANONICAL_FIELDS,
-    workbenchCanonical: ACTION_WORKBENCH_CANONICAL_FIELDS,
-  },
-  editorOnly: [],
-  previewOnlyDerived: ACTION_PREVIEW_DERIVED_FIELDS,
-};
 
 function pickActionConfigFields(config, fieldNames) {
   return Object.fromEntries(
@@ -281,11 +225,7 @@ export function getActionImageConfig(config) {
   return pickActionConfigFields(config, ACTION_IMAGE_FIELDS);
 }
 
-export function getActionCursorFeedbackConfig(config) {
-  return pickActionConfigFields(config, ACTION_CURSOR_FEEDBACK_FIELDS);
-}
-
-export function pickStoredWorkbenchActionConfig(actionId, config) {
+function pickStoredWorkbenchActionConfig(actionId, config) {
   if (!config || typeof config !== "object") return {};
   return pickActionConfigFields(config, ACTION_RUNTIME_FIELDS);
 }

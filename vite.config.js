@@ -2,6 +2,9 @@ import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import fs from "node:fs";
+import { fileURLToPath } from "node:url";
+
+const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 
 function removeTestFiles(dir) {
   if (!fs.existsSync(dir)) return;
@@ -19,7 +22,7 @@ function excludeTestFilesPlugin() {
   return {
     name: "exclude-test-files",
     closeBundle() {
-      const distDir = path.resolve(__dirname, "dist");
+      const distDir = path.resolve(projectRoot, "dist");
       removeTestFiles(distDir);
       fs.rmSync(path.join(distDir, "content-runtime"), { recursive: true, force: true });
     },
@@ -32,7 +35,7 @@ export default defineConfig(({ mode }) => {
   return {
     base: "./",
     appType: "mpa",
-    publicDir: path.resolve(__dirname, "extension"),
+    publicDir: path.resolve(projectRoot, "extension"),
     plugins: [react(), excludeTestFilesPlugin()],
     define: {
       "globalThis.VITE_CURSORDANCE_AI_API_ENDPOINT": JSON.stringify(
@@ -63,7 +66,7 @@ export default defineConfig(({ mode }) => {
     },
     resolve: {
       alias: {
-        "@": path.resolve(__dirname, "./src"),
+        "@": path.resolve(projectRoot, "src"),
       },
     },
     server: {
@@ -77,8 +80,8 @@ export default defineConfig(({ mode }) => {
     build: {
       rollupOptions: {
         input: {
-          options: path.resolve(__dirname, "index.html"),
-          popup: path.resolve(__dirname, "popup.html"),
+          options: path.resolve(projectRoot, "index.html"),
+          popup: path.resolve(projectRoot, "popup.html"),
         },
       },
     },

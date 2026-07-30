@@ -20,7 +20,7 @@ import type { WindowStateSnapshot } from "../../shared/desktop-ipc-contracts";
 import { broadcastToWindows } from "./broadcast";
 import { assertIpcSender } from "./ipc-security";
 
-export type WindowState = WindowStateSnapshot;
+type WindowState = WindowStateSnapshot;
 
 function senderWindow(event: IpcMainInvokeEvent): BrowserWindow | null {
   const win = BrowserWindow.fromWebContents(event.sender);

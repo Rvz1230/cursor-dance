@@ -1,6 +1,6 @@
-export type AtmosphereMode = "none" | "creative-mouse";
+type AtmosphereMode = "none" | "creative-mouse";
 
-export interface AtmosphereConfig {
+interface AtmosphereConfig {
   mode?: string;
 }
 

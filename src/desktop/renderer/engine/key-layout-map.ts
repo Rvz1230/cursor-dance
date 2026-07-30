@@ -282,7 +282,7 @@ export function keyDisplayCharacter(keycode: number): string | null {
 }
 
 /** 返回单独修饰键对应的显示字符，未映射键返回 null。 */
-export function modifierKeyDisplayCharacter(keycode: number): string | null {
+function modifierKeyDisplayCharacter(keycode: number): string | null {
   return modifierDisplayMap.get(keycode) ?? null;
 }
 

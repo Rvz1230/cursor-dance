@@ -105,14 +105,17 @@
 - [x] R5-2：拆分 `WorkbenchPreviewRail`——播放、引擎 host、timeline、`PreviewStage` 与 pointer interaction 均已提取，主文件由 933 行降至 83 行；预览直接组合 shared effect runtime，`src/app → src/desktop` 依赖归零。
 - **R5-2 收敛结果**：删除 Workbench 临时 draft ConfigStore、桌面端无消费者的 preview simulation/公开 API，以及 desktop 重复效果/音频 adapter；素材 URL 通过 resolver 注入 shared preview engine。
 - **R5-2 当前验证**：76 个根测试文件共 362 项通过；typecheck、lint（0 error，保留既有 22 warning）、Electron build、Web smoke 6/6 与 desktop smoke 1/1 通过。
-- **后续工作量**：剩余 5 个主要工作包——R5-5 死代码检查和 R6-1～R6-4；Windows 自定义光标真机验收并行，签名/公证需要外部证书环境。
+- **后续工作量**：剩余 4 个主要工作包——R6-1～R6-4；Windows 自定义光标真机验收并行，签名/公证需要外部证书环境。
 - [x] R5-3：收敛 Workbench state——editor navigation 与 config dirty/live-preview 边界已分离；AI 预览/撤销、列宽拖拽和桌面欢迎/辅助功能 runtime 均已提取为场景 hook。
 - **R5-3 收敛结果**：`ThemeWorkbenchPage.tsx` 由 695 行降至 585 行；拖拽监听会在结束、取消、重入和卸载时清理，活动窗口实时事件不会再被较早发起的启动查询覆盖。
 - **R5-3 当前验证**：79 个根测试文件共 372 项通过；typecheck、lint（0 error，保留既有 22 warning）、Web smoke 6/6 与 desktop smoke 1/1 通过。
 - [x] R5-4：无用代码清理——删除未挂载的素材中心、状态测试区、元素磁吸与 4 个旧氛围配置卡片，以及专用聚合逻辑/测试、3 个无调用导出和废弃选项常量；净删除 729 行。
 - **R5-4 收敛结果**：`WorkbenchControls` 的 8 个通用 UI re-export 已清零，各组件直接依赖 shared UI；桌面与 Workbench 源码中的失效任务编号/迁移说明已清理。
 - **R5-4 当前验证**：78 个根测试文件共 370 项通过；typecheck、lint 0 error，既有 warning 从 22 降至 15；Web smoke 6/6 与 desktop smoke 1/1 通过。
-- **下一步**：进入 R5-5，引入多入口感知的自动死代码检查，并为 Electron、扩展、脚本和测试入口配置显式白名单。
+- [x] R5-5：多入口死代码检查——Knip 覆盖根 Web、扩展、Electron main/preload/renderer、维护脚本、测试、API 与 landing workspace，并进入 CI。
+- **R5-5 收敛结果**：删除 2 个孤立文件及 10 组仅由虚假导出维持的预设/预览/模型代码，收窄无消费者导出；补齐 Radix 直接依赖，`pm2` 按服务器全局工具精确白名单，源码净删除约 600 行。
+- **R5-5 当前验证**：Knip 零报告；78 个根测试文件共 370 项通过；typecheck、lint 0 error（保留既有 15 warning）、Web smoke 6/6 与 desktop smoke 1/1 通过。
+- **下一步**：Phase 5 已完成，进入 R6-1；先复测当前运行时基线，再只针对有数据收益的热路径优化。
 
 ### 分支状态
 

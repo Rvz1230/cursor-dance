@@ -1,8 +1,8 @@
-export function normalizeTextCandidate(value: unknown): string {
+function normalizeTextCandidate(value: unknown): string {
   return typeof value === "string" ? value.replace(/\s+/g, "").trim() : "";
 }
 
-export function inferTextKindFromEffect(
+function inferTextKindFromEffect(
   textEffect: Record<string, unknown> | undefined,
   fallbackKind = "数字飘字",
 ): string {
@@ -24,7 +24,7 @@ export function inferTextKindFromEffect(
   return "文本飘字";
 }
 
-export function resolveNumberStyleFromEffect(
+function resolveNumberStyleFromEffect(
   textEffect: Record<string, unknown> | undefined,
   fallbackStyle: string,
 ): string {
@@ -41,7 +41,7 @@ export function resolveNumberStyleFromEffect(
   return fallbackStyle;
 }
 
-export function resolveTextModeFromEffect(
+function resolveTextModeFromEffect(
   textEffect: Record<string, unknown> | undefined,
   fallbackMode: string,
 ): string {
@@ -52,7 +52,7 @@ export function resolveTextModeFromEffect(
   return fallbackMode;
 }
 
-export function shouldPreserveBaseNumberSemantics(
+function shouldPreserveBaseNumberSemantics(
   baseActionConfig: Record<string, unknown> | undefined,
   textEffect: Record<string, unknown> | undefined,
   textTags: string[],

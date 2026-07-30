@@ -5,13 +5,10 @@ import {
   getActionAnimationConfig,
   hexToRgba,
   formatNumber,
-  getTextWeightValue,
   getOrderedTextTags,
 } from "./action-config";
 
 export {
-  formatNumber,
-  getTextWeightValue,
   hexToRgba,
 };
 export { getAnimationEasing as getAnimationEasingCss } from "./action-config";

@@ -1,6 +1,6 @@
 /** @platform shared — used by both extension and desktop */
 
-export const PLATFORM = typeof window !== "undefined" && "cursorDanceApp" in window
+const PLATFORM = typeof window !== "undefined" && "cursorDanceApp" in window
   ? "desktop" as const
   : "extension" as const;
 

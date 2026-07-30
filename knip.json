@@ -1,0 +1,66 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "include": [
+    "files",
+    "dependencies",
+    "devDependencies",
+    "unlisted",
+    "binaries",
+    "unresolved",
+    "exports",
+    "types"
+  ],
+  "workspaces": {
+    ".": {
+      "entry": [
+        "main.tsx",
+        "popup-main.tsx",
+        "src/extension/{content-entry,smoke-entry}.ts",
+        "src/desktop/main/index.ts",
+        "src/desktop/preload/index.ts",
+        "src/desktop/renderer/{workbench/entry.tsx,overlay/index.ts}",
+        "{src,scripts,server}/**/*.{test,spec}.{js,ts,tsx}",
+        "smoke/**/*.spec.js",
+        "scripts/*.{js,mjs}",
+        "*.config.{js,mjs}"
+      ],
+      "project": [
+        "*.{js,mjs,cjs,ts,tsx}",
+        "src/**/*.{js,mjs,cjs,ts,tsx,css}",
+        "scripts/**/*.{js,mjs,cjs,ts,tsx}",
+        "smoke/**/*.{js,mjs,cjs,ts,tsx}"
+      ],
+      "vite": false,
+      "vitest": false,
+      "playwright": false,
+      "electron-vite": false
+    },
+    "cursor-dance-api": {
+      "entry": [
+        "ecosystem.config.cjs",
+        "scripts/*.{js,mjs,cjs}",
+        "tests/**/*.{test,spec}.{js,mjs,cjs}"
+      ],
+      "project": [
+        "*.{js,mjs,cjs}",
+        "scripts/**/*.{js,mjs,cjs}",
+        "src/**/*.{js,mjs,cjs}",
+        "tests/**/*.{js,mjs,cjs}"
+      ],
+      "ignoreBinaries": ["pm2"]
+    },
+    "landing": {
+      "entry": [
+        "*-main.jsx",
+        "main.jsx",
+        "src/**/*.{test,spec}.{js,jsx}",
+        "*.config.js"
+      ],
+      "project": [
+        "*.{js,jsx}",
+        "src/**/*.{js,jsx,css}"
+      ],
+      "vite": false
+    }
+  }
+}

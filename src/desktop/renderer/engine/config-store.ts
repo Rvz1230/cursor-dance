@@ -54,7 +54,7 @@ function getCachedDefaultActionConfigs(themeId: string | null): Record<string, R
   return configs;
 }
 
-export interface ConfigStoreConstants {
+interface ConfigStoreConstants {
   CONFIG_STORAGE_KEY: string;
   INTERACTIVE_SELECTOR: string;
   TEXT_EDITABLE_SELECTOR: string;

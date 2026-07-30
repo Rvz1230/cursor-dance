@@ -104,7 +104,7 @@ export function draftFromThemePack(theme) {
   return buildDraftFromTheme(theme);
 }
 
-export function buildThemeLibrary(config) {
+function buildThemeLibrary(config) {
   const themes = Array.isArray(config?.themes) ? config.themes : [];
   return themes.map((theme, index) => themePackToThemeLibraryItem(theme, index));
 }

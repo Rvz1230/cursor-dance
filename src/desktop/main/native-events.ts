@@ -74,7 +74,7 @@ class WheelAccumulator {
 // uiohook 实现
 // ============================================================
 
-export class UiohookInputSource implements IInputSource {
+class UiohookInputSource implements IInputSource {
   private callback: ((event: NativeCursorEvent) => void) | null = null;
   private keyboardCallback: ((event: NativeKeyboardEvent) => void) | null = null;
   private buttonsState = 0;

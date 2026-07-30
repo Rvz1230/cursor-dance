@@ -26,7 +26,7 @@ export interface PointerInputEvent extends RuntimeCursorEvent {
   inside: boolean;
 }
 
-export interface PointerLeaveInputEvent {
+interface PointerLeaveInputEvent {
   kind: "pointer-leave";
   timestamp: number;
 }
@@ -55,7 +55,7 @@ export interface ContextResolver<TContext> {
   subscribe(listener: RuntimeListener<TContext>): RuntimeUnsubscribe;
 }
 
-export type EffectKind = "text" | "ripple" | "particle" | "animation" | "image" | "cursor";
+type EffectKind = "text" | "ripple" | "particle" | "animation" | "image" | "cursor";
 
 export interface EffectSpec {
   kind: EffectKind;

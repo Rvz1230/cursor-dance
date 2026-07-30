@@ -23,7 +23,7 @@ export interface ActiveAppInfo {
   title: string;
 }
 
-export interface ActiveWindowOwner {
+interface ActiveWindowOwner {
   name: string;
   bundleId?: string;
 }
@@ -85,42 +85,6 @@ export function resolveAppRule(
     }
   }
   return null;
-}
-
-export function normalizeAppRules(value: unknown, fallback: AppRule[] = []): AppRule[] {
-  if (!Array.isArray(value)) return Array.isArray(fallback) ? fallback : [];
-
-  return value.flatMap((candidate, index) => {
-    if (!candidate || typeof candidate !== "object") return [];
-    const rule = candidate as {
-      id?: unknown;
-      pattern?: { type?: unknown; value?: unknown; target?: unknown };
-      action?: unknown;
-      enabled?: unknown;
-    };
-    const patternValue = typeof rule.pattern?.value === "string" ? rule.pattern.value : "";
-    const patternType: AppRulePatternType = rule.pattern?.type === "glob" ? "glob" : "exact";
-    const patternTarget: AppRuleTarget = rule.pattern?.target === "title" ? "title" : "process";
-
-    let action: AppRuleAction | null = null;
-    if (rule.action === "disable") {
-      action = "disable";
-    } else if (rule.action && typeof rule.action === "object" && (rule.action as { enable?: unknown }).enable === true) {
-      const theme = (rule.action as { theme?: unknown }).theme;
-      action = {
-        enable: true,
-        ...(typeof theme === "string" && theme ? { theme } : {}),
-      };
-    }
-    if (!action) return [];
-
-    return [{
-      id: typeof rule.id === "string" && rule.id ? rule.id : `app-${index + 1}`,
-      pattern: { type: patternType, value: patternValue, target: patternTarget },
-      action,
-      enabled: rule.enabled !== false,
-    }];
-  });
 }
 
 export function activeAppInfoFromSnapshot(snapshot: ActiveWindowSnapshot | null | undefined): ActiveAppInfo | null {

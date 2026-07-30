@@ -9,9 +9,9 @@ import {
 import { computeRippleLayers } from "./computeSpecs";
 
 export type TimelineTrackId = "text" | "ripple" | "particle" | "animation" | "image" | "audio";
-export type TimelineTrackTone = "rose" | "teal" | "amber" | "sky" | "violet" | "slate";
+type TimelineTrackTone = "rose" | "teal" | "amber" | "sky" | "violet" | "slate";
 
-export interface TimelineMarker {
+interface TimelineMarker {
   label: string;
   at: number;
 }
@@ -62,10 +62,10 @@ export const TRACK_DEFAULTS: Record<TimelineTrackId, { delay: number; duration?:
   audio: { delay: 0 },
 };
 
-export const TIMELINE_MIN_TOTAL_MS = 820;
+const TIMELINE_MIN_TOTAL_MS = 820;
 export const PREVIEW_CYCLE_IDLE_MS = 800;
-export const TIMELINE_KEYBOARD_STEP_MS = 20;
-export const TIMELINE_KEYBOARD_LARGE_STEP_MS = 100;
+const TIMELINE_KEYBOARD_STEP_MS = 20;
+const TIMELINE_KEYBOARD_LARGE_STEP_MS = 100;
 
 export function buildTimelineTracks({ textConfig, particleConfig, rippleConfig, audioConfig, animationConfig, imageConfig, config }: TimelineModelInput) {
   const tracks: TimelineTrack[] = [];

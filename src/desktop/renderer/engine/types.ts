@@ -8,10 +8,7 @@ import type {
 import type { ActionRuntimeState } from "@/shared/effect-runtime/action-state";
 import type { GestureRuntimeState } from "@/shared/effect-runtime/gesture-state";
 import type { VisualEffectsModule as SharedVisualEffectsModule } from "@/shared/effect-runtime/dom-effect-surface";
-import type {
-  CursorOverlayModule as SharedCursorOverlayModule,
-  CursorOverlayState as SharedCursorOverlayState,
-} from "@/shared/effect-runtime/cursor-overlay";
+import type { CursorOverlayModule as SharedCursorOverlayModule } from "@/shared/effect-runtime/cursor-overlay";
 
 // CursorDance 效果引擎共享类型
 //
@@ -139,24 +136,18 @@ export interface EngineDeps {
  * visual-effects 子模块对外暴露的渲染 API。
  * 桌面端与扩展端共同使用 shared DOM effect surface。
  */
-export type VisualEffectsModule = SharedVisualEffectsModule;
-
-/**
- * cursor-overlay 子模块的软件光标视觉参数。
- * 上层把站点开关 + cursor-state 解析的责任承担下来，引擎只需要拿到「这次坐标更新里要不要画、画成什么样」。
- */
-export type CursorOverlayState = SharedCursorOverlayState;
+type VisualEffectsModule = SharedVisualEffectsModule;
 
 /**
  * cursor-overlay 子模块对外暴露的 API。
  */
-export type CursorOverlayModule = SharedCursorOverlayModule;
+type CursorOverlayModule = SharedCursorOverlayModule;
 
 /**
  * audio 子模块对外暴露的 API。
  * 桌面版没有页面音视频可压制，因此移除了 duckPageMedia 一族；只保留 playSound。
  */
-export interface AudioRuntimeModule {
+interface AudioRuntimeModule {
   playSound(actionConfig: Record<string, unknown>, actionId: string, runContext?: { comboIndex?: number }): void;
 }
 

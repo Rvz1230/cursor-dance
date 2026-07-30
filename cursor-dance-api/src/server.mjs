@@ -240,9 +240,7 @@ async function handleSchemeProposalStream(request, response) {
   }
 }
 
-export { handleSchemeProposal, handleSchemeProposalStream, handleAgentRun };
-
-export function createApp() {
+function createApp() {
   return createServer(async (request, response) => {
     if (request.method === "OPTIONS") {
       sendJson(response, 204, {}, request.headers.origin || "");

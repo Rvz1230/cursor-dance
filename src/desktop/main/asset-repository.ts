@@ -7,10 +7,9 @@ import {
   DESKTOP_ASSET_SCHEME,
   assetIdFromDesktopAssetUrl,
   isDesktopAssetId,
-  toDesktopAssetUrl,
 } from "../../shared/asset-reference";
 
-export const MAX_DESKTOP_ASSET_BYTES = 6 * 1024 * 1024;
+const MAX_DESKTOP_ASSET_BYTES = 6 * 1024 * 1024;
 export const DESKTOP_ASSET_GC_GRACE_MS = 24 * 60 * 60 * 1_000;
 
 type JsonRecord = Record<string, unknown>;
@@ -116,7 +115,7 @@ export function sniffImageMimeType(bytes: Buffer): string {
   return "application/octet-stream";
 }
 
-export async function readAssetDataUrl(assetId: string, mimeType?: string): Promise<string> {
+async function readAssetDataUrl(assetId: string, mimeType?: string): Promise<string> {
   const bytes = await readAsset(assetId);
   const resolvedMimeType = mimeType?.startsWith("image/") ? mimeType : sniffImageMimeType(bytes);
   return `data:${resolvedMimeType};base64,${bytes.toString("base64")}`;
@@ -261,10 +260,6 @@ export async function sweepUnreferencedAssets(referencedAssetIds: ReadonlySet<st
     removed += 1;
   }));
   return removed;
-}
-
-export function desktopAssetUrl(assetId: string): string {
-  return toDesktopAssetUrl(assetId);
 }
 
 export const __testing__ = {
