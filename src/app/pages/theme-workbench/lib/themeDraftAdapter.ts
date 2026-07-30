@@ -9,7 +9,7 @@ import {
   pickStoredWorkbenchActionConfigs,
 } from "../model/workbenchSchema";
 import { getDefaultConfig, normalizeStoredConfig } from "./runtimeConfig";
-import { normalizeKeyFeedbackConfig } from "@/desktop/renderer/engine/key-feedback-types";
+import { normalizeKeyFeedbackConfig } from "@/shared/config/key-feedback";
 import { isDesktop } from "@/shared/runtime";
 import {
   isDesktopAssetId,

@@ -35,7 +35,8 @@ import {
   Waves,
   Zap,
 } from "lucide-react";
-import { defaultKeyFeedbackConfig } from "@/desktop/renderer/engine/key-feedback-types";
+import { defaultKeyFeedbackConfig } from "@/shared/config/key-feedback";
+import { defaultConfig } from "@/shared/config/default-config";
 import {
   AUDIO_BLEND_OPTIONS,
   AUDIO_TRIGGER_OPTIONS,
@@ -199,8 +200,7 @@ const toneMap = {
 };
 
 function getDefaultThemePacks() {
-  if (typeof window === "undefined") return [];
-  return Array.isArray(window.CursorDanceDefaultConfig?.themes) ? window.CursorDanceDefaultConfig.themes : [];
+  return defaultConfig.themes;
 }
 
 function getThemeSummaryActionConfig(themePack) {

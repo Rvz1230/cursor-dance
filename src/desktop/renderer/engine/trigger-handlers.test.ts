@@ -6,7 +6,7 @@ import type {
   EffectSpec,
   EffectSurface,
 } from "@/shared/effect-runtime/contracts";
-import { defaultKeyFeedbackConfig } from "./key-feedback-types";
+import { defaultKeyFeedbackConfig } from "@/shared/config/key-feedback";
 import { createTriggerHandlers } from "./trigger-handlers";
 import type { ConfigStore, CursorOverlayModule, EngineState } from "./types";
 

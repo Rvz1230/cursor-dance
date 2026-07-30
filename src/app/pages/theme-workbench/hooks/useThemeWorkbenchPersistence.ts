@@ -69,12 +69,8 @@ export function useThemeWorkbenchPersistence({ state, dispatch, configRef }) {
     void hydrate();
     window.addEventListener("pagehide", clearPreviewOnPageHide);
 
-    const unsubscribe = subscribeExtensionConfig(async (nextConfigOrUpdater) => {
+    const unsubscribe = subscribeExtensionConfig(async (nextConfig) => {
       const site = await readActiveSiteContext();
-      const nextConfig =
-        typeof nextConfigOrUpdater === "function"
-          ? nextConfigOrUpdater(configRef.current ?? {})
-          : nextConfigOrUpdater;
       configRef.current = nextConfig;
       if (cancelled || stateRef.current.ui.unsaved) return;
       dispatch({ type: "hydrate", payload: hydrateWorkbenchState(nextConfig, site) });

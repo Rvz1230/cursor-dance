@@ -19,7 +19,7 @@ export interface ContentTriggerState extends ActionTriggerState, GestureRuntimeS
 interface ContentConfigStore {
   isCurrentSiteEnabled(): boolean;
   getActiveScheme(): unknown;
-  getConfig(): { themes: unknown[]; activeThemeId?: string };
+  getConfig(): { themes: readonly unknown[]; activeThemeId?: string };
   getActionConfig(scheme: unknown, actionId: string): Record<string, unknown> | null | undefined;
   getActionTriggerConfig(config: unknown): Record<string, unknown>;
   matchesTriggerZone(

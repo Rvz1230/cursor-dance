@@ -7,7 +7,7 @@ import {
 } from "../lib/extensionConfig";
 import {
   normalizeKeyFeedbackConfig,
-} from "@/desktop/renderer/engine/key-feedback-types";
+} from "@/shared/config/key-feedback";
 
 export const INITIAL_THEME_STATE = createWorkbenchThemeState(THEMES);
 

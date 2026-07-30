@@ -6,6 +6,7 @@ const manifest = JSON.parse(await readFile(resolve(distRoot, "manifest.json"), "
 const scripts = manifest.content_scripts?.[0]?.js || [];
 const contentBundle = "content-runtime/content.js";
 const removedRuntimeFiles = [
+  "config.js",
   "config-runtime/text-semantics.js",
   "config-runtime/action-config.js",
   "config-runtime/compute-specs.js",

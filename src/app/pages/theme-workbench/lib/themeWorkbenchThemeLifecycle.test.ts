@@ -6,7 +6,7 @@ import {
   buildDuplicateThemePayload,
   buildImportedThemePayload,
 } from "./themeWorkbenchThemeLifecycle";
-import { defaultConfig } from "@/desktop/renderer/engine/default-config";
+import { defaultConfig } from "@/shared/config/default-config";
 
 function createThemeRecord(overrides = {}) {
   return {

@@ -1,4 +1,4 @@
-import type { KeyFeedbackConfig } from "./key-feedback-types";
+import type { KeyFeedbackConfig } from "@/shared/config/key-feedback";
 import type {
   AudioOutput,
   EffectSurface,

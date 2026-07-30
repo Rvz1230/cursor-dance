@@ -3,7 +3,7 @@ import {
   defaultKeyFeedbackConfig,
   normalizeKeyFeedbackConfig,
   type KeyFeedbackConfig,
-} from "./key-feedback-types";
+} from "./key-feedback";
 
 describe("normalizeKeyFeedbackConfig", () => {
   it("returns a fresh copy of defaults when input is undefined", () => {

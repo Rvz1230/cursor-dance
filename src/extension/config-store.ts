@@ -10,32 +10,14 @@ import {
 } from "@/shared/effect-core/action-config";
 import { getDefaultActionConfigs } from "@/shared/effect-core/default-action-configs";
 import { resolveWebContextRule } from "./site-matcher";
+import type {
+  CursorDanceConfigV4,
+  CursorDanceThemeV4,
+} from "@/shared/config-schema-v4";
 
 type ActionConfig = Record<string, unknown>;
-
-export interface ContentTheme {
-  id: string;
-  actionConfigs: Record<string, ActionConfig>;
-  cursorBindings: Record<string, { mode?: string; actionId?: string }>;
-  cursorSkin: {
-    states: Record<string, {
-      image?: { kind?: string; assetId?: string; [key: string]: unknown };
-      [key: string]: unknown;
-    }>;
-    [key: string]: unknown;
-  };
-  atmosphere?: { mode?: string };
-  [key: string]: unknown;
-}
-
-export interface ContentConfig {
-  enabled: boolean;
-  activeThemeId: string;
-  themes: ContentTheme[];
-  contextRules: unknown[];
-  performance?: { maxActiveEffects?: number };
-  [key: string]: unknown;
-}
+export type ContentTheme = CursorDanceThemeV4;
+export type ContentConfig = CursorDanceConfigV4;
 
 interface ChromeStorageArea {
   get(keys: string[]): Promise<Record<string, unknown>>;
@@ -331,7 +313,8 @@ export function createContentConfigStore(runtime: ContentConfigStoreRuntime): Co
   }
 
   function getAtmosphereConfig(scheme: ContentTheme | null | undefined): { mode: string } {
-    return { mode: scheme?.atmosphere?.mode || "none" };
+    const mode = scheme?.atmosphere?.mode;
+    return { mode: typeof mode === "string" ? mode : "none" };
   }
 
   async function syncConfigFromStorage({ clearStateCursorOverlay }: {

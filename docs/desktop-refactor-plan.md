@@ -787,7 +787,9 @@ interface AudioOutput {
 - 动作解析、trigger-zone、cursor state 绑定、节流、输出计划与诊断已收敛为共享 action trigger pipeline；扩展 DOM 手势/hover adapter 已迁为 TypeScript，旧 trigger IIFE 与失去调用方的 effect runtime 全局注册已删除。
 - 默认动作配置已从 Workbench、桌面和扩展三份镜像收敛为 shared effect-core 单一来源；扩展 config store 已迁为 TypeScript，并删除 937 行 IIFE 及读取源码动态执行的同步测试。
 - 最终 content 装配入口已迁为 TypeScript composition root，直接导入各 adapter，并补齐启动、配置桥接、DOM listener 与幂等销毁生命周期；旧 `content.js`、全局模块注册表及纯注册测试已删除。
-- 下一段迁移最后的 `extension/config.js` 默认配置模块，再做真实 Chrome 扩展加载/CSP 验收。
+- v4 默认配置、内置主题与键盘反馈配置已收敛到 `src/shared/config`；扩展、桌面与 Workbench 直接导入，最后的 `extension/config.js`、动态脚本加载器和两套 window 全局注入已删除。
+- builtin 默认配置只持久化主题元数据，动作配置按 theme id 从 shared effect-core 解析，删除 685 行完整主题动作镜像；默认配置 JSON 从约 20 KB 降至约 6.4 KB。
+- 下一段做真实 Chrome 扩展加载/CSP 验收，确认 R4 完成后进入 R5 Workbench 热点拆分。
 
 ### Phase 4 完成条件
 

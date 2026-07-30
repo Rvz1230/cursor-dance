@@ -1,4 +1,8 @@
-import { validateCursorDanceConfigV4 } from "@/shared/config-schema-v4";
+import {
+  cloneValue,
+  defaultConfig,
+  normalizeConfig,
+} from "@/shared/config/default-config";
 
 function matchPattern(host, path, pattern) {
   if (!pattern || typeof pattern !== "object" || !pattern.type || typeof pattern.value !== "string") {
@@ -50,7 +54,7 @@ function matchPattern(host, path, pattern) {
   }
 }
 
-function resolveSiteRule(rules, host, path) {
+function resolveSiteRule(rules, host, path = "/") {
   if (!Array.isArray(rules) || rules.length === 0) return null;
 
   for (let i = 0; i < rules.length; i++) {
@@ -70,37 +74,21 @@ function resolveSiteRule(rules, host, path) {
   return null;
 }
 
-const NOOP_RUNTIME = {
-  normalizeConfig: (value, fallback) => {
-    const candidate = validateCursorDanceConfigV4(value);
-    if (candidate.ok) return candidate.value;
-    const fallbackResult = validateCursorDanceConfigV4(fallback);
-    return fallbackResult.ok ? fallbackResult.value : {};
-  },
+const runtimeConfig = {
+  normalizeConfig,
   matchPattern,
   resolveSiteRule,
-  cloneValue: (value) => {
-    try { return JSON.parse(JSON.stringify(value)); } catch { return value; }
-  },
+  cloneValue,
 };
 
-export function getDefaultConfig(): CursorDanceConfigRecord {
-  return window.CursorDanceDefaultConfig ?? {};
+export function getDefaultConfig() {
+  return defaultConfig;
 }
 
-export function getRuntimeConfig(): CursorDanceConfigRuntime {
-  const rt = window.CursorDanceConfigRuntime ?? {};
-  return new Proxy(rt, {
-    get(target, prop) {
-      if (typeof prop !== "string") return undefined;
-      if (prop in target) return target[prop];
-      return NOOP_RUNTIME[prop];
-    },
-  });
+export function getRuntimeConfig() {
+  return runtimeConfig;
 }
 
-export function normalizeStoredConfig(value): CursorDanceConfigRecord {
-  const runtime = getRuntimeConfig();
-  const defaultConfig = getDefaultConfig();
-  return runtime.normalizeConfig(value, defaultConfig);
+export function normalizeStoredConfig(value: unknown) {
+  return normalizeConfig(value, defaultConfig);
 }

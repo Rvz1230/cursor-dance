@@ -44,12 +44,32 @@ interface Chrome {
   }
 }
 
-type CursorDanceConfigRecord = Record<string, any>
-type CursorDanceConfigRuntime = Record<string, any>
+type CursorDanceThemeRecord = {
+  id?: string
+  name?: string
+  actionConfigs?: object
+  cursorBindings?: object
+  cursorSkin?: {
+    states?: Readonly<Record<string, {
+      image?: {
+        kind?: string
+        assetId?: string
+        dataUrl?: string
+      }
+    }>>
+  }
+  keyFeedbackConfig?: object
+  atmosphere?: object
+}
 
-declare var CursorDanceConfigHelpers: CursorDanceConfigRuntime
-declare var CursorDanceDefaultConfig: CursorDanceConfigRecord
-declare var CursorDanceConfigRuntime: CursorDanceConfigRuntime
+type CursorDanceConfigRecord = {
+  schemaVersion?: number
+  enabled?: boolean
+  activeThemeId?: string
+  themes?: readonly CursorDanceThemeRecord[]
+  contextRules?: readonly unknown[]
+  performance?: object
+}
 
 interface Window {
   chrome?: Chrome
@@ -58,9 +78,6 @@ interface Window {
   cursorDanceWindow?: CursorDanceWindowBridge
   cursorDanceApp?: CursorDanceAppBridge
   cursorDanceAi?: CursorDanceAiBridge
-  CursorDanceConfigHelpers?: CursorDanceConfigRuntime
-  CursorDanceDefaultConfig?: CursorDanceConfigRecord
-  CursorDanceConfigRuntime?: CursorDanceConfigRuntime
   electronAPI?: {
     platform: NodeJS.Platform
     capabilities: import("./shared/desktop-capabilities").DesktopCapabilities

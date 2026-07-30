@@ -104,9 +104,8 @@ test("popup theme selection, live preview override, and fallback to saved config
 
   const textPanel = panelByName(workbenchPage, /飘字反馈/);
   await selectRadixOption(workbenchPage, textPanel, 0, "文本飘字");
-  for (const tag of ["+1", "+2", "+3"]) {
-    await textPanel.getByRole("button", { name: `删除标签 ${tag}` }).click();
-  }
+  const deleteTagButtons = textPanel.getByRole("button", { name: /^删除标签 / });
+  while (await deleteTagButtons.count()) await deleteTagButtons.first().click();
   await textPanel.getByPlaceholder("输入一个文本标签，例如：已命中").fill("临时预览");
   await textPanel.getByRole("button", { name: "添加" }).click();
 

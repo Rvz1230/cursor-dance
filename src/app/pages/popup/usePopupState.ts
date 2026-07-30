@@ -165,15 +165,11 @@ export function usePopupState() {
 
     void hydrate();
 
-    const unsubscribe = subscribeExtensionConfig(async (nextConfigOrUpdater) => {
+    const unsubscribe = subscribeExtensionConfig(async (nextConfig) => {
       const nextSite = await readActiveSiteContext();
       if (cancelled) return;
       setSite(nextSite);
-      setConfig((currentConfig) =>
-        typeof nextConfigOrUpdater === "function"
-          ? nextConfigOrUpdater(currentConfig ?? {})
-          : nextConfigOrUpdater
-      );
+      setConfig(nextConfig);
     });
 
     const unsubscribePreview = subscribeLivePreviewConfig(async (nextPreviewConfig) => {

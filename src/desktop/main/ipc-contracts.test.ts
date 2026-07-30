@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defaultConfig } from "../renderer/engine/default-config";
+import { defaultConfig } from "@/shared/config/default-config";
 import {
   MAX_CONFIG_PAYLOAD_BYTES,
   MAX_AI_TRANSPORT_BYTES,

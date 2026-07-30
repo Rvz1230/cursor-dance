@@ -3,7 +3,7 @@ import { createKeyFeedback } from "./key-feedback";
 import {
   defaultKeyFeedbackConfig,
   type KeyFeedbackConfig,
-} from "./key-feedback-types";
+} from "@/shared/config/key-feedback";
 import type { EngineDeps, EngineState, NativeKeyboardEvent } from "./types";
 
 // uiohook UiohookKey 数值，与 key-layout-map.ts 内联的 K 对象保持一致

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { CursorDanceConfigV4 } from "../../../shared/config-schema-v4";
 import type { ActiveAppInfo } from "../../../shared/app-rules";
 import { createConfigStore, type ConfigStoreAdapter } from "./config-store";
-import { defaultConfig } from "./default-config";
+import { defaultConfig } from "@/shared/config/default-config";
 import type { EngineState } from "./types";
 
 function createStore(

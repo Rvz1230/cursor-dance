@@ -47,7 +47,7 @@ npm run package:win   # electron-builder --win
 - Design tokens and UI components in `src/components/ui/` are shared across extension and desktop
 
 ### Chrome Extension (existing)
-- Three entrypoints: Workbench (`index.html`), Popup (`popup.html`), Content scripts (`extension/`)
+- Three entrypoints: Workbench (`index.html`), Popup (`popup.html`), Content runtime (`src/extension/`)
 - Content runtime is authored as TypeScript modules and bundled by Vite into one MV3-compatible IIFE artifact
 - Storage: `chrome.storage.local` with localStorage fallback
 - Build: Vite MPA (`vite.config.js`) plus the dedicated content bundle (`vite.extension.config.js`)
@@ -59,6 +59,7 @@ src/
 ├── components/         # Shared UI component library
 ├── shared/             # Shared utilities + runtime detection
 │   ├── ipc-channels.ts   # Desktop IPC channel constants
+│   ├── config/           # Canonical v4 defaults and key-feedback config
 │   └── runtime.ts        # PLATFORM / isDesktop() / isExtension()
 └── desktop/            # Desktop app (Electron) — all desktop-only code
     ├── main/              # Electron main process
@@ -81,7 +82,6 @@ src/
         │   ├── compute-specs.ts    # Particle/ripple/animation math
         │   ├── action-config.ts    # Action config field pickers
         │   ├── text-semantics.ts   # Text classification (pure data)
-        │   ├── default-config.ts   # Default action configs
         │   ├── app-matcher.ts      # App rule matching (replaces site-matcher)
         │   └── diagnostics.ts      # Runtime event logging
         ├── workbench/     # ThemeWorkbenchPage (reused from extension)
@@ -94,8 +94,8 @@ The extension is built from `src/extension/content-entry.ts` into one MV3-compat
 IIFE bundle. Shared effect core/runtime, action trigger pipeline, visual effects, cursor overlay and
 diagnostics are regular TypeScript modules; audio, page atmosphere and web rule adapters are also
 TypeScript modules. `src/extension/content-runtime.ts` directly composes the adapters and owns startup,
-configuration bridges, DOM listeners and teardown. `extension/config.js` is the last classic source
-module and remains bundled until its default-config definitions move to TypeScript.
+configuration bridges, DOM listeners and teardown. Canonical v4 defaults live in `src/shared/config/`;
+the extension no longer loads classic runtime scripts or configuration globals.
 
 ### Workbench component tree
 ```

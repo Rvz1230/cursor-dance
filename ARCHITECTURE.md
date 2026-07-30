@@ -1,40 +1,36 @@
 # Project Architecture
 
 ```
-extension/              Chrome extension (MV3) — IIFE modules, loaded by manifest.json
-  config-runtime/        Config helpers (text-semantics, action-config, compute-specs)
-  content-runtime/       Content script modules (visual-effects, audio, trigger-handlers, etc.)
-  config.js              DI container + default configs
-  content.js             DI container that wires all content-runtime modules
-  manifest.json          Extension manifest
+extension/                MV3 manifest and static extension assets only
 
 src/
-  app/                   Shared UI — Workbench and extension Popup pages
-  components/            Shared UI component library (Radix + Tailwind)
-  shared/                Shared utilities + runtime detection
-    effect-core/          Platform-neutral action/text/spec computation
-    effect-runtime/       Platform-neutral runtime adapter contracts
-    ipc-channels.ts        Desktop IPC channel constants
+  app/                     Shared Workbench and Popup UI
+  components/              Shared UI component library (Radix + Tailwind)
+  extension/               Typed Chrome content runtime and platform adapters
+    content-entry.ts        Vite content-bundle entry
+    content-runtime.ts      Adapter composition and lifecycle
+  shared/
+    config/                 Canonical v4 defaults, themes and key feedback config
+    effect-core/            Platform-neutral action/text/spec computation
+    effect-runtime/         Shared runtime state machines and DOM/audio surfaces
+    config-schema-v4.ts     Strict persisted configuration contract
+    ipc-channels.ts         Desktop IPC channel constants
     desktop-ipc-contracts.ts Typed invoke request/response contracts
-    runtime.ts             PLATFORM / isDesktop() / isExtension()
-  desktop/               Desktop app (Electron) — all desktop-only code
-    main/                  Electron main process
-      ipc-security.ts      Per-window sender allowlist
-      ipc-contracts.ts     Runtime payload and size validation
-    preload/               Per-window context bridges
-      bridges/             Cohesive IPC bridge factories
-      workbench.ts         Config writes, dialogs, AI, window controls
-      overlay.ts           Input events and read-only runtime state
-    renderer/              Electron renderer
-      engine/              Desktop effect runtime and platform adapters
-      overlay/             Overlay window entry
-      workbench/           Workbench window entry
+    runtime.ts              PLATFORM / isDesktop() / isExtension()
+  desktop/                 Electron-only code
+    main/                    Main process, windows, persistence and native input
+    preload/                 Per-window restricted context bridges
+    renderer/
+      engine/                Desktop input/context adapters
+      overlay/               Overlay window entry
+      workbench/             Workbench window entry
 ```
 
 Key rules:
 
-- `src/app/` and `src/components/` contain shared UI, but the Popup is extension-only. `extension/` and `src/desktop/` are platform-specific.
+- `src/app/` and `src/components/` contain shared UI. `src/extension/` and `src/desktop/` contain platform adapters; `extension/` contains no executable source.
+- Persisted configuration is v4-only. Defaults and strict normalization have one source in `src/shared/config/` and `src/shared/config-schema-v4.ts`; platform code must not publish configuration through window globals.
 - Pure action parsing, text semantics and effect spec computation live in `src/shared/effect-core/`. Shared core must not import DOM, Chrome, Electron or platform storage APIs.
 - Platform adapters only resolve environment capabilities. For example, the desktop action-config adapter converts an asset id to a renderer URL; it does not duplicate shared parsing.
 - Runtime input, context, effect surface and audio capabilities depend on contracts in `src/shared/effect-runtime/`; platform entry points own the concrete adapters and their lifecycle.
-- `extension/config-runtime/` remains a transitional IIFE mirror covered by parity tests until the extension build moves to Vite in R4-3. After that migration it must consume `src/shared/effect-core/` directly.
+- The Chrome content runtime is authored as TypeScript and bundled to one MV3-compatible IIFE by Vite. Do not reintroduce classic runtime scripts, source-string execution or global module registries.

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { STORE_GET, STORE_SET } from "../../shared/ipc-channels";
-import { defaultConfig } from "../renderer/engine/default-config";
+import { defaultConfig } from "@/shared/config/default-config";
 
 const mocks = vi.hoisted(() => ({
   handlers: new Map<string, (...args: unknown[]) => unknown>(),

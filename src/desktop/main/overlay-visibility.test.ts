@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { defaultConfig } from "../renderer/engine/default-config";
+import { defaultConfig } from "@/shared/config/default-config";
 import { shouldKeepOverlaysVisible } from "./overlay-visibility";
 
 describe("shouldKeepOverlaysVisible", () => {

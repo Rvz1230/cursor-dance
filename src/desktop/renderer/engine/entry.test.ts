@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { createEffectEngine } from "./entry";
 import type { EngineDeps } from "./types";
-import { defaultKeyFeedbackConfig } from "./key-feedback-types";
+import { defaultKeyFeedbackConfig } from "@/shared/config/key-feedback";
 
 // 任务 2.4：四个子模块全部就位。
 // 这里只验证骨架装配 —— 不触发任何 DOM API（vitest 默认 node 环境，没有 document.createElement 实现）。

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { defaultConfig, normalizeConfig } from "@/desktop/renderer/engine/default-config";
+import { defaultConfig } from "@/shared/config/default-config";
 import { validateCursorDanceConfigV4 } from "@/shared/config-schema-v4";
 import {
   buildPreviewThemePackFromWorkbench,
@@ -10,11 +10,7 @@ import {
 } from "./themeDraftAdapter";
 
 function installRuntime() {
-  globalThis.window = {
-    CursorDanceDefaultConfig: defaultConfig,
-    CursorDanceConfigRuntime: { normalizeConfig },
-    CursorDanceConfigHelpers: {},
-  } as unknown as Window & typeof globalThis;
+  globalThis.window = {} as Window & typeof globalThis;
 }
 
 function hydrate(config: unknown = defaultConfig) {

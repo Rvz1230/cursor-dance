@@ -22,8 +22,6 @@ function excludeTestFilesPlugin() {
       const distDir = path.resolve(__dirname, "dist");
       removeTestFiles(distDir);
       fs.rmSync(path.join(distDir, "content-runtime"), { recursive: true, force: true });
-      fs.rmSync(path.join(distDir, "config-runtime"), { recursive: true, force: true });
-      fs.rmSync(path.join(distDir, "content.js"), { force: true });
     },
   };
 }

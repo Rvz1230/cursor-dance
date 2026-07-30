@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { validateCursorDanceConfigV4 } from "../../../shared/config-schema-v4";
+import { validateCursorDanceConfigV4 } from "../config-schema-v4";
 import {
   createDefaultThemes,
   defaultConfig,
   needsConfigReset,
   normalizeConfig,
 } from "./default-config";
-import { defaultKeyFeedbackConfig } from "./key-feedback-types";
+import { defaultKeyFeedbackConfig } from "./key-feedback";
+import { getDefaultActionConfigs } from "../effect-core/default-action-configs";
 
 const DESKTOP_ACTION_IDS = ["leftClick", "rightClick", "doubleClick", "longPress", "wheel"] as const;
 const BUILTIN_THEME_IDS = ["mono-geo", "drift", "molten", "sunset"] as const;
@@ -22,9 +23,11 @@ describe("defaultConfig schema v4", () => {
 
   it("provides all desktop actions and theme-owned feedback settings", () => {
     for (const theme of defaultConfig.themes) {
-      expect(Object.keys(theme.actionConfigs)).toEqual(expect.arrayContaining([...DESKTOP_ACTION_IDS]));
+      expect(theme.actionConfigs).toEqual({});
+      const actionConfigs = getDefaultActionConfigs(theme.id);
+      expect(Object.keys(actionConfigs)).toEqual(expect.arrayContaining([...DESKTOP_ACTION_IDS]));
       for (const actionId of DESKTOP_ACTION_IDS) {
-        const action = theme.actionConfigs[actionId];
+        const action = actionConfigs[actionId];
         expect(action, `${theme.id} is missing ${actionId}`).toBeDefined();
         expect(
           action.textEnabled === true
@@ -68,5 +71,23 @@ describe("normalizeConfig v4-only", () => {
   ])("resets %s as a whole", (_label, value) => {
     expect(normalizeConfig(value)).toBe(defaultConfig);
     expect(needsConfigReset(value)).toBe(true);
+  });
+
+  it("accepts v4 web rules and rejects missing theme references", () => {
+    const rule = {
+      id: "docs",
+      context: "web",
+      enabled: true,
+      match: { type: "glob", host: "*.example.com", path: "/docs" },
+      action: { type: "enable", themeId: "drift" },
+    };
+    const valid = { ...defaultConfig, contextRules: [rule] };
+    const invalid = {
+      ...defaultConfig,
+      contextRules: [{ ...rule, action: { type: "enable", themeId: "missing" } }],
+    };
+
+    expect(normalizeConfig(valid)).toBe(valid);
+    expect(normalizeConfig(invalid)).toBe(defaultConfig);
   });
 });

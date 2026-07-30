@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { defaultConfig } from "@/desktop/renderer/engine/default-config";
+import { defaultConfig } from "@/shared/config/default-config";
+import { getDefaultActionConfigs } from "@/shared/effect-core/default-action-configs";
 import { writeLivePreviewConfig } from "./config-io";
 import { __testing__ as repositoryTesting } from "./repository";
 
@@ -9,6 +10,7 @@ const DATA_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB";
 function configWithInlineImages() {
   const config = JSON.parse(JSON.stringify(defaultConfig));
   const theme = config.themes[0];
+  theme.actionConfigs = getDefaultActionConfigs(theme.id);
   theme.cursorSkin.states.default = {
     image: { kind: "dataUrl", mimeType: "image/png", dataUrl: DATA_URL, width: 1, height: 1 },
     hotspot: { x: 0, y: 0 },
@@ -48,7 +50,6 @@ describe("desktop config asset transport", () => {
     });
     Object.assign(globalThis, {
       window: {
-        CursorDanceDefaultConfig: defaultConfig,
         cursorDanceStorage: { setLivePreview },
       },
     });

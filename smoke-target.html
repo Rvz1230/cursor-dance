@@ -87,7 +87,7 @@
     <main>
       <section class="panel">
         <h1>CursorDance 本地冒烟页</h1>
-        <p>这个页面会直接加载 <code>config.js</code> 和 <code>content.js</code>，用于验证 popup 选中主题、workbench 未保存预览、以及回退到已保存配置的联动链路。</p>
+        <p>这个页面会加载 Vite 构建的 TypeScript content runtime，用于验证 popup 选中主题、workbench 未保存预览、以及回退到已保存配置的联动链路。</p>
         <p style="margin-top: 14px;">如需查看运行时诊断日志，可追加 <code>?cursordance-debug=1</code>，或在控制台执行 <code>localStorage.setItem('cursordance.debug', '1')</code> 后刷新。</p>
 
         <div class="actions">

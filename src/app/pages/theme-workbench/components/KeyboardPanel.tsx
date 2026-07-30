@@ -1,6 +1,6 @@
 import { Switch } from "@/components/ui/switch";
 import { PANEL_META } from "../model/workbenchSchema";
-import { defaultKeyFeedbackConfig, type KeyFeedbackConfig } from "@/desktop/renderer/engine/key-feedback-types";
+import { defaultKeyFeedbackConfig, type KeyFeedbackConfig } from "@/shared/config/key-feedback";
 import {
   ColorOptions,
   ControlSlider,

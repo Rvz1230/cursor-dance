@@ -20,15 +20,15 @@ import type {
   EngineState,
   DiagnosticsModule,
 } from "./types";
-import type { KeyFeedbackConfig } from "./key-feedback-types";
-import { normalizeKeyFeedbackConfig } from "./key-feedback-types";
+import type { KeyFeedbackConfig } from "@/shared/config/key-feedback";
+import { normalizeKeyFeedbackConfig } from "@/shared/config/key-feedback";
 import {
   defaultConfig as defaultEngineConfig,
   needsConfigReset,
   normalizeConfig as defaultNormalizeConfig,
   type CursorDanceConfig,
   type ThemePack,
-} from "./default-config";
+} from "@/shared/config/default-config";
 import { getDefaultActionConfigs } from "@/shared/effect-core/default-action-configs";
 import {
   getActionTriggerConfig,

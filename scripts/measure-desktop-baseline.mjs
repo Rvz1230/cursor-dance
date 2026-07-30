@@ -128,7 +128,7 @@ async function measureConfigPayloads() {
   });
   let config;
   try {
-    const module = await vite.ssrLoadModule("/src/desktop/renderer/engine/default-config.ts");
+    const module = await vite.ssrLoadModule("/src/shared/config/default-config.ts");
     config = module.defaultConfig;
   } finally {
     await vite.close();
@@ -299,6 +299,7 @@ const result = {
   code: await Promise.all([
     measureCodeArea("desktop", ["src/desktop"]),
     measureCodeArea("extension runtimes", ["src/extension", "extension"]),
+    measureCodeArea("shared effect and config", ["src/shared/effect-core", "src/shared/effect-runtime", "src/shared/config"]),
     measureCodeArea("shared Workbench UI", ["src/app/pages/theme-workbench", "src/components/ui"]),
   ]),
   bundles: {

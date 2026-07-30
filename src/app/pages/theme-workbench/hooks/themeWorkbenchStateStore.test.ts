@@ -3,14 +3,10 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { createThemeDraft } from "../model/workbenchSchema";
 import { buildStoredConfigFromWorkbench, hydrateWorkbenchState } from "../lib/themeDraftAdapter";
 import { initialState, reducer } from "./themeWorkbenchStateStore";
-import { defaultConfig, normalizeConfig } from "@/desktop/renderer/engine/default-config";
+import { defaultConfig } from "@/shared/config/default-config";
 
 function installWindowStub() {
-  globalThis.window = {
-    CursorDanceDefaultConfig: defaultConfig,
-    CursorDanceConfigRuntime: { normalizeConfig },
-    CursorDanceConfigHelpers: {},
-  } as unknown as Window & typeof globalThis;
+  globalThis.window = {} as Window & typeof globalThis;
 }
 
 describe("themeWorkbenchStateStore", () => {

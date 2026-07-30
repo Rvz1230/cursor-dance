@@ -30,7 +30,7 @@ import {
 import { Panel } from "./WorkbenchControls";
 import { AtmosphereStagePreview } from "./AtmosphereStagePreview";
 import { createEffectEngine, type EngineConstants, type EngineState } from "@/desktop/renderer/engine/entry";
-import { defaultKeyFeedbackConfig } from "@/desktop/renderer/engine/key-feedback-types";
+import { defaultKeyFeedbackConfig } from "@/shared/config/key-feedback";
 import {
   getActionAnimationConfig as engineGetActionAnimationConfig,
   getActionAudioConfig as engineGetActionAudioConfig,

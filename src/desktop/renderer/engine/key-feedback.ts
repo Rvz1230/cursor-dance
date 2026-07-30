@@ -5,8 +5,8 @@
 // 动画使用 Web Animations API (Element.animate)，与现有 visual-effects 模式一致。
 
 import type { EngineDeps, KeyFeedbackModule, NativeKeyboardEvent } from "./types";
-import type { KeyFeedbackConfig } from "./key-feedback-types";
-import { normalizeKeyFeedbackConfig } from "./key-feedback-types";
+import type { KeyFeedbackConfig } from "@/shared/config/key-feedback";
+import { normalizeKeyFeedbackConfig } from "@/shared/config/key-feedback";
 import { keyLayoutNormalizedX, keyDisplayLabel, isModifierKeycode, isSpecialKeycode } from "./key-layout-map";
 import { hexToRgba, getAnimationEasing } from "./action-config";
 

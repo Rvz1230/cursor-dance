@@ -8,9 +8,8 @@ import {
   type CursorDanceConfigV4,
   type CursorDanceThemeV4,
   type CursorSkinV4,
-} from "../../../shared/config-schema-v4";
-import { defaultKeyFeedbackConfig } from "./key-feedback-types";
-import { getDefaultThemeDefinitions } from "./data/default-theme-packs";
+} from "../config-schema-v4";
+import { defaultKeyFeedbackConfig } from "./key-feedback";
 
 export type CursorDanceConfig = CursorDanceConfigV4;
 export type ThemePack = CursorDanceThemeV4;
@@ -55,13 +54,41 @@ export function createDefaultCursorSkin(): CursorSkinV4 {
 }
 
 export function createDefaultThemes(): CursorDanceThemeV4[] {
-  return getDefaultThemeDefinitions().map((definition) => ({
-    ...cloneValue(definition),
+  return BUILTIN_THEME_METADATA.map((definition) => ({
+    ...definition,
+    actionConfigs: {},
     cursorBindings: createDefaultCursorBindings(),
     cursorSkin: createDefaultCursorSkin(),
     keyFeedbackConfig: cloneValue(defaultKeyFeedbackConfig),
   }));
 }
+
+const BUILTIN_THEME_METADATA = [
+  {
+    id: "mono-geo",
+    name: "几何",
+    description: "黑白灰配色、方块粒子和几何波纹，极简克制的反馈风格。",
+    kind: "builtin",
+  },
+  {
+    id: "drift",
+    name: "流光",
+    description: "轨道粒子环绕光标、涟漪扩散，沉静青绿调，适合专注工作场景。",
+    kind: "builtin",
+  },
+  {
+    id: "molten",
+    name: "熔金",
+    description: "火花向上喷发如熔岩飞溅、能量脉冲涟漪，温暖有力的橙金调。",
+    kind: "builtin",
+  },
+  {
+    id: "sunset",
+    name: "夕霞",
+    description: "钻石粒子缓缓飘落、回声涟漪荡漾，落日粉橙暖调，温柔优雅。",
+    kind: "builtin",
+  },
+] as const;
 
 export const defaultConfig: CursorDanceConfigV4 = {
   schemaVersion: CURSORDANCE_CONFIG_SCHEMA_VERSION,

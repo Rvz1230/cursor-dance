@@ -122,8 +122,11 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
         hotspot: { x: 0, y: 0 },
         size: { mode: "fixedBox", boxSize: 32 },
       };
-      theme.actionConfigs.leftClick.imageEnabled = true;
-      theme.actionConfigs.leftClick.imageDataUrl = dataUrl;
+      theme.actionConfigs.leftClick = {
+        ...theme.actionConfigs.leftClick,
+        imageEnabled: true,
+        imageDataUrl: dataUrl,
+      };
       const stored = await bridge.setConfig(next);
       const storedTheme = stored.themes.find((item) => item.id === stored.activeThemeId) || stored.themes[0];
       const cursorImage = storedTheme.cursorSkin.states.default.image;

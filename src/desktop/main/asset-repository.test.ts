@@ -7,7 +7,8 @@ vi.mock("electron", () => ({
   app: { getPath: vi.fn(() => "/unused") },
 }));
 
-import { defaultConfig } from "../renderer/engine/default-config";
+import { defaultConfig } from "@/shared/config/default-config";
+import { getDefaultActionConfigs } from "@/shared/effect-core/default-action-configs";
 import {
   __testing__,
   collectReferencedAssetIds,
@@ -45,6 +46,7 @@ describe("desktop asset repository", () => {
   it("materializes cursor and action images and hydrates portable exports", async () => {
     const config = JSON.parse(JSON.stringify(defaultConfig));
     const theme = config.themes[0];
+    theme.actionConfigs = getDefaultActionConfigs(theme.id);
     theme.cursorSkin.states.default = {
       image: { kind: "dataUrl", mimeType: "image/png", dataUrl: PNG_DATA_URL, width: 1, height: 1 },
       hotspot: { x: 0, y: 0 },
@@ -86,6 +88,7 @@ describe("desktop asset repository", () => {
 
   it("rejects remote and malformed renderer image sources", async () => {
     const config = JSON.parse(JSON.stringify(defaultConfig));
+    config.themes[0].actionConfigs = getDefaultActionConfigs(config.themes[0].id);
     config.themes[0].actionConfigs.leftClick.imageDataUrl = "https://example.com/tracker.png";
     await expect(materializeConfigAssets(config)).rejects.toThrow(/data URL or asset id/);
 

@@ -1,4 +1,4 @@
-import type { KeyFeedbackConfigV4 } from "../../../shared/config-schema-v4";
+import type { KeyFeedbackConfigV4 } from "../config-schema-v4";
 
 // CursorDance 键盘动效配置类型
 //

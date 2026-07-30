@@ -34,7 +34,7 @@ import {
 } from "./themeWorkbenchStateStore";
 import { useThemeWorkbenchPersistence } from "./useThemeWorkbenchPersistence";
 import { isDesktop } from "@/shared/runtime";
-import { normalizeKeyFeedbackConfig } from "@/desktop/renderer/engine/key-feedback-types";
+import { normalizeKeyFeedbackConfig } from "@/shared/config/key-feedback";
 
 export function useThemeWorkbenchState() {
   const [state, dispatch] = useReducer(reducer, initialState);

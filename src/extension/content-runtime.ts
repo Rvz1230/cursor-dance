@@ -1,5 +1,9 @@
 import { createVisualEffects, type VisualEffectsModule } from "@/shared/effect-runtime/dom-effect-surface";
 import type { CursorOverlayRenderState } from "@/shared/effect-runtime/cursor-overlay";
+import {
+  defaultConfig as canonicalDefaultConfig,
+  normalizeConfig as normalizeCanonicalConfig,
+} from "@/shared/config/default-config";
 import { createContentAtmosphere, type ContentAtmosphere } from "./atmosphere";
 import {
   createContentAudioRuntime,
@@ -179,10 +183,8 @@ export function startContentRuntime(options: ContentRuntimeOptions = {}): Conten
   const platformDocument = options.document || platformWindow.document;
   const runtimeGlobal = globalThis as typeof globalThis & { chrome?: ContentChrome };
   const chrome = options.chrome === undefined ? (runtimeGlobal.chrome || null) : options.chrome;
-  const defaultConfig = options.defaultConfig
-    || (platformWindow.CursorDanceDefaultConfig as ContentConfig | undefined);
-  const runtimeConfig = options.runtimeConfig || platformWindow.CursorDanceConfigRuntime;
-  if (!defaultConfig) throw new Error("CursorDance default config must load before the content runtime.");
+  const defaultConfig = options.defaultConfig || canonicalDefaultConfig;
+  const runtimeConfig = options.runtimeConfig || { normalizeConfig: normalizeCanonicalConfig };
 
   const factories = { ...contentRuntimeFactories, ...options.factories };
   const state = createInitialState();

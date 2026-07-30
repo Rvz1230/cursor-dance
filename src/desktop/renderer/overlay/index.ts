@@ -27,7 +27,7 @@ import {
 } from "../adapters/context-resolver";
 import { createConfigStore, type ConfigStoreAdapter } from "../engine/config-store";
 import { createDiagnostics } from "../engine/diagnostics";
-import { defaultConfig } from "../engine/default-config";
+import { defaultConfig } from "@/shared/config/default-config";
 import {
   activeAppInfoFromSnapshot,
   type ActiveWindowSnapshot,
