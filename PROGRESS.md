@@ -102,9 +102,9 @@
 - **R5-1 稳定性修复**：请求 run id 隔离旧流式回调；会话 load revision 隔离快速切换的迟到读取，且 hydration 完成前禁止自动保存，避免空状态覆盖已有对话。
 - **R5-1 收敛结果**：`useAiProposalReview` 统一预览、应用、放弃和撤销；删除 renderer、preload 与主进程中无消费者的非流式桌面提案 contract，快速模式只保留可取消的流式 transport。
 - **R5-1 验证**：73 个根测试文件共 353 项通过；typecheck、lint（0 error，保留既有 22 warning）、Web/扩展/Electron build、Web smoke 6/6 与 desktop smoke 1/1 通过。
-- **R5-2 当前进度**：播放控制器、工具栏与 `usePreviewEngineHost` 已从 `WorkbenchPreviewRail` 提取，主文件由 933 行降至 663 行；引擎实例、draft adapter、效果根节点、资源清理和动作模拟状态集中管理。
+- **R5-2 当前进度**：播放控制器、工具栏、`usePreviewEngineHost` 与 `PreviewTimeline` 已从 `WorkbenchPreviewRail` 提取，主文件由 933 行降至 246 行；时间轴标尺、轨道、拖拽/缩放、键盘调整和空状态集中在独立组件。
 - **R5-2 当前验证**：75 个根测试文件共 358 项通过；typecheck、lint（0 error，保留既有 22 warning）、Web smoke 6/6 与 desktop smoke 1/1 通过。
-- **下一步**：继续 R5-2，拆分 timeline 轨道与拖拽交互组件，再收敛 pointer interaction。Windows 同步执行 R1-4 真机验收。
+- **下一步**：继续 R5-2，收敛 pointer interaction 并提取舞台展示组件。Windows 同步执行 R1-4 真机验收。
 
 ### 分支状态
 

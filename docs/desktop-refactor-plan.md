@@ -31,7 +31,7 @@
 | R4-3 扩展正式构建 | 已完成 | manifest 已收敛到单一 Vite content bundle；真实 Chromium smoke 覆盖注入、效果触发、扩展页面与 CSP |
 | R4-4 删除旧引擎 | 已完成 | 扩展 runtime、config store、composition root 与共享默认配置均已迁为 TypeScript；legacy IIFE 和动态注册链清零 |
 | R5-1 拆分 `AiSchemePanel` | 已完成 | 展示、请求、会话持久化与提案审阅已拆分；主文件由 1,388 行降至 458 行，并删除无消费者的非流式桌面 AI transport |
-| R5-2 拆分 `WorkbenchPreviewRail` | 进行中 | 播放控制与 preview engine host 已拆分；主文件由 933 行降至 663 行，引擎资源生命周期不再混入舞台展示 |
+| R5-2 拆分 `WorkbenchPreviewRail` | 进行中 | 播放控制、preview engine host 与 timeline 交互已拆分；主文件由 933 行降至 246 行 |
 
 当前验证基线：
 
@@ -857,8 +857,9 @@ AiSchemePanel              # 组合层
 - `PreviewPlaybackControls` 独立承载重播、暂停/播放、预设速度和循环间隔展示，容器不再维护工具栏细节。
 - 输入指纹同时包含 `actionId` 与配置，并在 disabled 时清空；切换到相同配置的另一动作或恢复启用后会立即刷新，不再等待下一次定时播放。
 - `usePreviewEngineHost` 统一引擎实例、draft ConfigStore adapter、效果根节点、音频/样式/定时器清理，以及长按/双击模拟状态；舞台组件只消费 host ref 和展示状态。
-- `WorkbenchPreviewRail.tsx` 从 933 行降至 663 行；75 个根测试文件共 358 项、typecheck、lint（0 error，保留既有 22 warning）、Web smoke 6/6 与 desktop smoke 1/1 通过。
-- 下一段拆分 timeline 轨道与拖拽交互组件，再收敛 pointer interaction。
+- `PreviewTimeline` 独立承载标尺、playhead、轨道、拖拽/缩放手柄、键盘调整、重置与空状态；继续复用既有 timeline model/controller 和拖拽 hook。
+- `WorkbenchPreviewRail.tsx` 从 933 行降至 246 行；75 个根测试文件共 358 项、typecheck、lint（0 error，保留既有 22 warning）、Web smoke 6/6 与 desktop smoke 1/1 通过。
+- 下一段收敛 pointer interaction 并提取舞台展示组件，完成 R5-2。
 
 ### R5-3：收敛 Workbench state
 
