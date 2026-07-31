@@ -21,6 +21,9 @@ jobs:
       # noImplicitAny + strictNullChecks；src/app 仍按宽松 typecheck 校验。
       - run: npm run typecheck:strict
       - run: npm run lint
+      # DESIGN.md 反模式门禁：此前设计契约只存在于文档里，CI 无法拦截，
+      # 导致 18 处违规全部积压在光标皮肤模块。
+      - run: npm run check:design-tokens
       - run: npm run check:dead-code
       - run: npm run test
       - run: npx playwright install --with-deps chromium

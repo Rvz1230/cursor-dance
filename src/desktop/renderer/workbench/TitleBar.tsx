@@ -140,7 +140,7 @@ function UpdateControl({
       title={state.message || content.label}
       style={NO_DRAG_STYLE}
       className={cn(
-        "mr-2 inline-flex h-6 shrink-0 items-center gap-1.5 self-center rounded-lg px-2 text-[11px] font-medium transition-colors",
+        "mr-2 inline-flex h-6 shrink-0 items-center gap-1.5 self-center rounded-lg px-2 text-2xs font-medium transition-colors",
         state.status === "error"
           ? "bg-rose-50 text-rose-700 hover:bg-rose-100"
           : state.status === "available" || state.status === "downloaded"

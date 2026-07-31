@@ -105,7 +105,7 @@ export function ThemeCarousel({ themes, activeId, onSelect, accent }) {
               type="button"
               aria-label={`第 ${i + 1} 个主题`}
               onClick={() => onSelect(themes[i].id)}
-              className="rounded-full transition-all duration-300"
+              className="rounded-full transition-[width,height,background-color,opacity] duration-300"
               style={{
                 width: i === idx ? 6 : 3,
                 height: i === idx ? 6 : 3,
