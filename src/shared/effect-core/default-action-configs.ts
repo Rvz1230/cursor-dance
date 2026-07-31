@@ -57,18 +57,31 @@ const ACTION_CONFIG_SHARED_DEFAULTS = {
   orbitalSpeed: 3,
 };
 
-function createActionConfig(overrides) {
+/**
+ * 动作配置是约 50 个扁平字段的集合。持久化边界（`config-schema-v4.ts` 的
+ * `actionConfigs`）同样按 JSON object 处理，这里保持一致的松散契约，
+ * 避免在两处维护重复的字段清单。
+ */
+type ActionConfig = Record<string, unknown>;
+
+type ActionConfigMap = Record<string, ActionConfig>;
+
+function toTextTags(value: unknown): string[] {
+  return Array.isArray(value) ? [...(value as string[])] : [];
+}
+
+function createActionConfig(overrides: ActionConfig): ActionConfig {
   return {
     ...ACTION_CONFIG_SHARED_DEFAULTS,
     ...overrides,
-    textTags: [...(overrides.textTags || [])],
+    textTags: toTextTags(overrides.textTags),
   };
 }
 
-function cloneActionConfig(config) {
+function cloneActionConfig(config: ActionConfig): ActionConfig {
   return {
     ...config,
-    textTags: [...(config.textTags || [])],
+    textTags: toTextTags(config.textTags),
   };
 }
 
@@ -563,8 +576,9 @@ const THEME_ACTION_OVERRIDES = {
   },
 };
 
-export function getDefaultActionConfigs(themeId) {
-  const themeOverrides = THEME_ACTION_OVERRIDES[themeId] || {};
+export function getDefaultActionConfigs(themeId: string | null | undefined): ActionConfigMap {
+  const overridesByTheme: Record<string, ActionConfigMap> = THEME_ACTION_OVERRIDES;
+  const themeOverrides = (themeId ? overridesByTheme[themeId] : undefined) || {};
   return Object.fromEntries(
     Object.entries(ACTION_CONFIG_PRESETS).map(([actionId, config]) => [
       actionId,
@@ -576,7 +590,7 @@ export function getDefaultActionConfigs(themeId) {
   );
 }
 
-export function getTimingFieldMeta(actionId) {
+export function getTimingFieldMeta(actionId: string) {
   if (actionId === "longPress") {
     return { label: "长按阈值", hint: "按住多久以后才算长按。", min: 200, max: 900 };
   }
@@ -592,9 +606,9 @@ export function getTimingFieldMeta(actionId) {
   return { label: "触发延迟", hint: "动作识别后，延迟多久开始反馈。", min: 0, max: 320 };
 }
 
-export function getConflictsForAction(actionId, actionConfigs) {
+export function getConflictsForAction(actionId: string, actionConfigs: ActionConfigMap) {
   const current = actionConfigs[actionId];
-  const conflicts = [];
+  const conflicts: string[] = [];
 
   if (actionId === "longPress" && current.sound && actionConfigs.leftClick.sound) {
     conflicts.push("长按和左键单击都在使用音效，后续需要明确谁先触发。");

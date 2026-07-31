@@ -1,11 +1,10 @@
 import { useMemo, type CSSProperties } from "react";
 import { CircleDashed, ImagePlus, Monitor, MousePointer2, Sparkles, Type, Volume2, Wand2 } from "lucide-react";
-import { ICON_OPTIONS } from "../../theme-workbench/model/workbenchSchema";
+import { resolveThemeIcon } from "@/components/ui/theme-identity";
 import AnimatedPreview from "../AnimatedPreview";
 
 export function themeIcon(theme) {
-  if (!theme?.icon) return Wand2;
-  return ICON_OPTIONS.find((opt) => opt.name === theme.icon)?.Icon || Wand2;
+  return resolveThemeIcon(theme?.icon);
 }
 
 export function themeAccent(ac) {

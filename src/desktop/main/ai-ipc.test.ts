@@ -88,9 +88,10 @@ describe("desktop AI IPC transport", () => {
     registerIpcSender({ id: 1 }, "workbench");
     registerIpcSender({ id: 2 }, "workbench");
     let finishAgent: (value: unknown) => void = () => undefined;
-    let agentSignal: AbortSignal | null = null;
+    // 用可变 holder 而不是 let：赋值发生在闭包里，TS 的线性流分析会把 let 收窄成 null。
+    const captured: { signal: AbortSignal | null } = { signal: null };
     mocks.createAgent.mockImplementation((_payload, options) => new Promise((resolve) => {
-      agentSignal = options.signal;
+      captured.signal = options.signal;
       finishAgent = resolve;
     }));
     const pending = mocks.handlers.get(AI_RUN_AGENT)!(eventFor(1), {
@@ -102,7 +103,7 @@ describe("desktop AI IPC transport", () => {
     mocks.handlers.get(AI_CANCEL_REQUEST)!(eventFor(2), { requestId: "agent-1" });
     expect(aiTesting.activeRequestCount()).toBe(1);
     mocks.handlers.get(AI_CANCEL_REQUEST)!(eventFor(1), { requestId: "agent-1" });
-    expect(agentSignal?.aborted).toBe(true);
+    expect(captured.signal?.aborted).toBe(true);
     finishAgent({ status: 200, body: { proposal: { reply: "late" } } });
 
     await expect(pending).resolves.toEqual({

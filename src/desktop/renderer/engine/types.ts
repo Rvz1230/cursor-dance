@@ -71,22 +71,22 @@ export interface EngineState extends ActionRuntimeState, GestureRuntimeState {
  * 多数返回值/参数在桌面端没有 DOM 概念时会退化为 null/默认值，由 configStore 实现层处理。
  */
 export interface ConfigStore {
-  getActionTextConfig(actionConfig: Record<string, unknown> | undefined): Record<string, unknown>;
-  getActionRippleConfig(actionConfig: Record<string, unknown> | undefined): Record<string, unknown>;
-  getActionParticleConfig(actionConfig: Record<string, unknown> | undefined): Record<string, unknown>;
-  getActionAnimationConfig(actionConfig: Record<string, unknown> | undefined): Record<string, unknown>;
-  getActionImageConfig(actionConfig: Record<string, unknown> | undefined): Record<string, unknown>;
-  getActionCursorFeedbackConfig(actionConfig: Record<string, unknown> | undefined): Record<string, unknown>;
-  getActionAudioConfig(actionConfig: Record<string, unknown> | undefined): Record<string, unknown>;
-  getActionTriggerConfig(actionConfig: Record<string, unknown> | undefined): Record<string, unknown>;
+  getActionTextConfig(actionConfig: Record<string, unknown> | null | undefined): Record<string, unknown>;
+  getActionRippleConfig(actionConfig: Record<string, unknown> | null | undefined): Record<string, unknown>;
+  getActionParticleConfig(actionConfig: Record<string, unknown> | null | undefined): Record<string, unknown>;
+  getActionAnimationConfig(actionConfig: Record<string, unknown> | null | undefined): Record<string, unknown>;
+  getActionImageConfig(actionConfig: Record<string, unknown> | null | undefined): Record<string, unknown>;
+  getActionCursorFeedbackConfig(actionConfig: Record<string, unknown> | null | undefined): Record<string, unknown>;
+  getActionAudioConfig(actionConfig: Record<string, unknown> | null | undefined): Record<string, unknown>;
+  getActionTriggerConfig(actionConfig: Record<string, unknown> | null | undefined): Record<string, unknown>;
   getMaxActiveEffects(): number;
   getKeyFeedbackConfig(): KeyFeedbackConfig;
   /** trigger-handlers：当前 scheme（用户选中的方案） */
   getActiveScheme?(): unknown;
   /** trigger-handlers：站点/应用是否启用。桌面端由共享 app-rules 匹配器实现 */
   isCurrentSiteEnabled?(): boolean;
-  /** trigger-handlers：根据 scheme + actionId 取动作配置 */
-  getActionConfig?(scheme: unknown, actionId: string): Record<string, unknown> | undefined;
+  /** trigger-handlers：根据 scheme + actionId 取动作配置。两端实现在无 scheme 时返回 null。 */
+  getActionConfig?(scheme: unknown, actionId: string): Record<string, unknown> | null | undefined;
   /** trigger-handlers：解析 cursor state 绑定到某个 actionId */
   getCursorStateBinding?(
     scheme: unknown,

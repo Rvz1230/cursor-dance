@@ -25,8 +25,8 @@ interface ActionTriggerOptions {
 interface ActionTriggerConfigStore {
   isCurrentContextEnabled(): boolean;
   getActiveScheme(): unknown;
-  getActionConfig(scheme: unknown, actionId: string): Record<string, unknown> | undefined;
-  getActionTriggerConfig(actionConfig: Record<string, unknown> | undefined): Record<string, unknown>;
+  getActionConfig(scheme: unknown, actionId: string): Record<string, unknown> | null | undefined;
+  getActionTriggerConfig(actionConfig: Record<string, unknown> | null | undefined): Record<string, unknown>;
   matchesTriggerZone(
     target: unknown,
     triggerZone: unknown,

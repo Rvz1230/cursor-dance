@@ -17,6 +17,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
+      # 架构核心四层（shared / extension / components / desktop）锁定
+      # noImplicitAny + strictNullChecks；src/app 仍按宽松 typecheck 校验。
+      - run: npm run typecheck:strict
       - run: npm run lint
       - run: npm run check:dead-code
       - run: npm run test

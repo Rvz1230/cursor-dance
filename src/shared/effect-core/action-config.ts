@@ -107,7 +107,7 @@ const ACTION_RUNTIME_FIELDS = Array.from(new Set([
 ]));
 
 function pickActionConfigFields(
-  config: Record<string, unknown> | undefined,
+  config: Record<string, unknown> | null | undefined,
   fieldNames: readonly string[],
 ): Record<string, unknown> {
   return Object.fromEntries(
@@ -117,35 +117,35 @@ function pickActionConfigFields(
   );
 }
 
-export function getActionTriggerConfig(config: Record<string, unknown> | undefined): Record<string, unknown> {
+export function getActionTriggerConfig(config: Record<string, unknown> | null | undefined): Record<string, unknown> {
   return pickActionConfigFields(config, ACTION_TRIGGER_FIELDS);
 }
 
-export function getActionTextConfig(config: Record<string, unknown> | undefined): Record<string, unknown> {
+export function getActionTextConfig(config: Record<string, unknown> | null | undefined): Record<string, unknown> {
   return pickActionConfigFields(config, ACTION_TEXT_FIELDS);
 }
 
-export function getActionParticleConfig(config: Record<string, unknown> | undefined): Record<string, unknown> {
+export function getActionParticleConfig(config: Record<string, unknown> | null | undefined): Record<string, unknown> {
   return pickActionConfigFields(config, ACTION_PARTICLE_FIELDS);
 }
 
-export function getActionRippleConfig(config: Record<string, unknown> | undefined): Record<string, unknown> {
+export function getActionRippleConfig(config: Record<string, unknown> | null | undefined): Record<string, unknown> {
   return pickActionConfigFields(config, ACTION_RIPPLE_FIELDS);
 }
 
-export function getActionAudioConfig(config: Record<string, unknown> | undefined): Record<string, unknown> {
+export function getActionAudioConfig(config: Record<string, unknown> | null | undefined): Record<string, unknown> {
   return pickActionConfigFields(config, ACTION_AUDIO_FIELDS);
 }
 
-export function getActionAnimationConfig(config: Record<string, unknown> | undefined): Record<string, unknown> {
+export function getActionAnimationConfig(config: Record<string, unknown> | null | undefined): Record<string, unknown> {
   return pickActionConfigFields(config, ACTION_ANIMATION_FIELDS);
 }
 
-export function getActionImageConfig(config: Record<string, unknown> | undefined): Record<string, unknown> {
+export function getActionImageConfig(config: Record<string, unknown> | null | undefined): Record<string, unknown> {
   return pickActionConfigFields(config, ACTION_IMAGE_FIELDS);
 }
 
-export function getActionCursorFeedbackConfig(config: Record<string, unknown> | undefined): Record<string, unknown> {
+export function getActionCursorFeedbackConfig(config: Record<string, unknown> | null | undefined): Record<string, unknown> {
   return pickActionConfigFields(config, ACTION_CURSOR_FEEDBACK_FIELDS);
 }
 

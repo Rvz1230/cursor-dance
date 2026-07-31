@@ -35,13 +35,14 @@ export function createContentDiagnostics(runtime: ContentDiagnosticsRuntime): Di
   let pendingEvents: readonly DiagnosticEntry[] = [];
 
   function scheduleStorageFlush(events: readonly DiagnosticEntry[]): void {
-    if (!chromeStorage?.local) return;
+    const localArea = chromeStorage?.local;
+    if (!localArea) return;
     pendingEvents = events;
     if (storageFlushTimer !== null) return;
     storageFlushTimer = runtime.window.setTimeout(() => {
       storageFlushTimer = null;
       const snapshot = pendingEvents.slice();
-      void chromeStorage.local
+      void localArea
         .set({ [DIAGNOSTIC_EVENTS_STORAGE_KEY]: snapshot })
         .catch(() => undefined);
     }, STORAGE_FLUSH_MS);
@@ -56,7 +57,7 @@ export function createContentDiagnostics(runtime: ContentDiagnosticsRuntime): Di
         setEnabled(changes[storageKey].newValue);
       });
       void chromeStorage?.local
-        .get([storageKey])
+        ?.get([storageKey])
         .then((result) => {
           if (storageKey in result) setEnabled(result[storageKey]);
         })

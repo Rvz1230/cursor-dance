@@ -3,37 +3,20 @@ import {
   Ban,
   CircleDashed,
   Clock3,
-  Cloud,
-  Coffee,
-  Cookie,
   Crosshair,
-  Crown,
-  Feather,
-  Flame,
-  Gamepad2,
-  Gem,
-  Globe,
   Hand,
-  Heart,
   ImagePlus,
   Keyboard,
   Link2,
-  Moon,
   MousePointer2,
   Move,
-  Music,
-  Palette,
-  Rainbow,
   Settings2,
   Sparkles,
-  Star,
-  Sun,
   TextCursorInput,
   Type,
   Volume2,
   Wand2,
   Waves,
-  Zap,
 } from "lucide-react";
 import { defaultKeyFeedbackConfig } from "@/shared/config/key-feedback";
 import { defaultConfig } from "@/shared/config/default-config";
@@ -154,34 +137,6 @@ export const CURSOR_STATES = [
   { id: "resizeDiagonalNESW", label: "对角调整 ↙", detail: "右上到左下方向调整大小", icon: Move, group: "调整大小", support: "部分应用支持", defaultHotspot: "center" },
 ];
 
-const toneMap = {
-  amber: {
-    chip: "bg-amber-100 text-amber-700 ring-amber-200",
-    icon: "bg-amber-100 text-amber-700",
-    border: "border-amber-200",
-  },
-  teal: {
-    chip: "bg-teal-100 text-teal-700 ring-teal-200",
-    icon: "bg-teal-100 text-teal-700",
-    border: "border-teal-200",
-  },
-  sky: {
-    chip: "bg-sky-100 text-sky-700 ring-sky-200",
-    icon: "bg-sky-100 text-sky-700",
-    border: "border-sky-200",
-  },
-  rose: {
-    chip: "bg-rose-100 text-rose-700 ring-rose-200",
-    icon: "bg-rose-100 text-rose-700",
-    border: "border-rose-200",
-  },
-  slate: {
-    chip: "bg-slate-100 text-slate-700 ring-slate-200",
-    icon: "bg-slate-200 text-slate-700",
-    border: "border-slate-200",
-  },
-};
-
 function getDefaultThemePacks() {
   return defaultConfig.themes;
 }
@@ -263,33 +218,6 @@ export const PANEL_META = {
   cursor: { icon: Settings2, tone: "bg-slate-200 text-slate-700" },
   keyboard: { icon: Keyboard, tone: "bg-violet-100 text-violet-700" },
 };
-
-export const ICON_OPTIONS = [
-  { name: "Wand2", Icon: Wand2 },
-  { name: "Sparkles", Icon: Sparkles },
-  { name: "Zap", Icon: Zap },
-  { name: "Star", Icon: Star },
-  { name: "Heart", Icon: Heart },
-  { name: "Flame", Icon: Flame },
-  { name: "Gem", Icon: Gem },
-  { name: "Crown", Icon: Crown },
-  { name: "Sun", Icon: Sun },
-  { name: "Moon", Icon: Moon },
-  { name: "Cloud", Icon: Cloud },
-  { name: "Rainbow", Icon: Rainbow },
-  { name: "Feather", Icon: Feather },
-  { name: "Cookie", Icon: Cookie },
-  { name: "Music", Icon: Music },
-  { name: "Palette", Icon: Palette },
-  { name: "Globe", Icon: Globe },
-  { name: "Gamepad2", Icon: Gamepad2 },
-  { name: "Coffee", Icon: Coffee },
-  { name: "MousePointer2", Icon: MousePointer2 },
-];
-
-export function toneClasses(tone) {
-  return toneMap[tone] ?? toneMap.teal;
-}
 
 export function formatActionLabel(actionId) {
   return ACTIONS.find((item) => item.id === actionId)?.label ?? "左键单击";

@@ -1,7 +1,10 @@
+import type { ComponentPropsWithoutRef } from 'react'
 import * as SliderPrimitive from '@radix-ui/react-slider'
 import { cn } from './utils'
 
-export function Slider({ className, value, onValueChange, min = 0, max = 100, step = 1, ...props }) {
+type SliderProps = ComponentPropsWithoutRef<typeof SliderPrimitive.Root>
+
+export function Slider({ className, value, onValueChange, min = 0, max = 100, step = 1, ...props }: SliderProps) {
   const disabled = Boolean(props.disabled)
 
   return (

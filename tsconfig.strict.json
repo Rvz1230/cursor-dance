@@ -1,0 +1,24 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noImplicitAny": true,
+    "strictNullChecks": true
+  },
+  "include": [
+    "src/vite-env.d.ts",
+    "src/shared/**/*.ts",
+    "src/shared/**/*.tsx",
+    "src/extension/**/*.ts",
+    "src/extension/**/*.tsx",
+    "src/components/**/*.ts",
+    "src/components/**/*.tsx",
+    "src/desktop/**/*.ts",
+    "src/desktop/**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "extension",
+    "src/desktop/renderer/workbench/entry.tsx"
+  ]
+}

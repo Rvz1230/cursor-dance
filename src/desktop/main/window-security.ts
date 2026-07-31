@@ -43,6 +43,9 @@ export function bindWindowSecurity(
     webContents.off("will-navigate", guardNavigation);
     webContents.off("will-redirect", guardNavigation);
     webContents.off("will-attach-webview", denyWebview);
-    webContents.setWindowOpenHandler(null);
+    // Electron 运行时接受 null 以清除 handler，但类型只声明了函数签名。
+    webContents.setWindowOpenHandler(
+      null as unknown as Parameters<typeof webContents.setWindowOpenHandler>[0],
+    );
   };
 }

@@ -1,27 +1,57 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
 import * as ToastPrimitive from '@radix-ui/react-toast'
 import { AlertTriangle, CheckCircle2, Info, XCircle } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { cn } from './utils'
 
-const ToastContext = createContext(null)
+interface ToastToneMeta {
+  icon: LucideIcon
+  iconClass: string
+}
 
-const toneMap = {
+const toneMap: Record<ToastTone, ToastToneMeta> = {
   success: { icon: CheckCircle2, iconClass: 'text-emerald-500' },
   error: { icon: XCircle, iconClass: 'text-rose-500' },
   warning: { icon: AlertTriangle, iconClass: 'text-amber-500' },
   info: { icon: Info, iconClass: 'text-sky-500' },
 }
 
-export function ToastProvider({ children }) {
-  const [toasts, setToasts] = useState([])
+type ToastTone = 'success' | 'error' | 'warning' | 'info'
 
-  const toast = useCallback(({ title, description = '', tone = 'info' }) => {
+interface ToastInput {
+  title: ReactNode
+  description?: string
+  tone?: ToastTone
+}
+
+interface ToastItem {
+  id: string
+  title: ReactNode
+  description: string
+  // 调用方来自未严格检查的 src/app，tone 可能是任意字符串，故按 string 存储并在渲染时兜底。
+  tone: string
+}
+
+interface ToastApi {
+  toast: (input: ToastInput) => string
+}
+
+const ToastContext = createContext<ToastApi | null>(null)
+
+function resolveTone(tone: string): ToastToneMeta {
+  return Object.prototype.hasOwnProperty.call(toneMap, tone) ? toneMap[tone as ToastTone] : toneMap.info
+}
+
+export function ToastProvider({ children }: { children?: ReactNode }) {
+  const [toasts, setToasts] = useState<ToastItem[]>([])
+
+  const toast = useCallback(({ title, description = '', tone = 'info' }: ToastInput) => {
     const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`
     setToasts((current) => [...current, { id, title, description, tone }])
     return id
   }, [])
 
-  const closeToast = useCallback((id) => {
+  const closeToast = useCallback((id: string) => {
     setToasts((current) => current.filter((item) => item.id !== id))
   }, [])
 
@@ -32,7 +62,7 @@ export function ToastProvider({ children }) {
       <ToastPrimitive.Provider swipeDirection="right" duration={2800}>
         {children}
         {toasts.map((item) => {
-          const tone = toneMap[item.tone] || toneMap.info
+          const tone = resolveTone(item.tone)
           const Icon = tone.icon
           return (
             <ToastPrimitive.Root

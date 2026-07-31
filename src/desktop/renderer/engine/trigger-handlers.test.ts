@@ -80,7 +80,7 @@ describe("trigger handlers runtime adapters", () => {
   });
 
   it("falls back to a click when an armed long press is released early", () => {
-    const actionConfigs = {
+    const actionConfigs: Record<string, Record<string, unknown>> = {
       leftClick: { triggerTiming: "按下时", holdMs: 0, textEnabled: true },
       longPress: { triggerTiming: "按住达到时长", holdMs: 420, textEnabled: true },
       doubleClick: { triggerTiming: "第二次松开时", holdMs: 320, textEnabled: true },

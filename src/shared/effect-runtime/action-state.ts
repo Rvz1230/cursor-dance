@@ -71,7 +71,7 @@ export type ActionExecutionDecision =
 
 export function getActionTimingMs(
   actionId: string,
-  actionConfig: Readonly<Record<string, unknown>> | undefined,
+  actionConfig: Readonly<Record<string, unknown>> | null | undefined,
 ): number {
   const rawValue = Number(actionConfig?.holdMs);
   const value = Number.isFinite(rawValue) ? rawValue : 0;

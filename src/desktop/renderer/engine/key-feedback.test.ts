@@ -61,17 +61,20 @@ function createFakeElement(): FakeElement {
       this.appended.push(child);
     },
     animate(keyframes, options) {
+      // 用闭包捕获的数组而非 this：对象字面量方法里的 this 未被 noImplicitThis 约束，会退化为 any。
+      const finishHandlers: Array<() => void> = [];
+      const cancelHandlers: Array<() => void> = [];
       const anim: FakeAnimation = {
-        finishHandlers: [],
-        cancelHandlers: [],
+        finishHandlers,
+        cancelHandlers,
         keyframes,
         options,
         addEventListener(type, cb) {
-          if (type === "finish") this.finishHandlers.push(cb);
-          else this.cancelHandlers.push(cb);
+          if (type === "finish") finishHandlers.push(cb);
+          else cancelHandlers.push(cb);
         },
         finish() {
-          this.finishHandlers.forEach((fn) => fn());
+          finishHandlers.forEach((fn) => fn());
         },
       };
       this.animations.push(anim);

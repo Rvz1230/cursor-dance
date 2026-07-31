@@ -45,23 +45,24 @@ describe("startGlobalMouseCapture", () => {
   it("forwards events from a fake source to the callback", () => {
     const events: NativeCursorEvent[] = [];
     let started = false;
-    let storedCb: ((e: NativeCursorEvent) => void) | null = null;
+    // 用可变 holder 而不是 let：赋值发生在闭包里，TS 的线性流分析会把 let 收窄成 null。
+    const captured: { cb: ((e: NativeCursorEvent) => void) | null } = { cb: null };
     const fakeSource: IInputSource = {
       start(cb) {
         started = true;
-        storedCb = cb;
+        captured.cb = cb;
       },
       stop() {
         started = false;
-        storedCb = null;
+        captured.cb = null;
       },
     };
 
     const stop = startGlobalMouseCapture((e) => events.push(e), undefined, fakeSource);
     expect(started).toBe(true);
 
-    storedCb?.({ type: "mousedown", x: 10, y: 20, buttons: 1, timestamp: 1 });
-    storedCb?.({ type: "mousemove", x: 11, y: 21, buttons: 1, timestamp: 2 });
+    captured.cb?.({ type: "mousedown", x: 10, y: 20, buttons: 1, timestamp: 1 });
+    captured.cb?.({ type: "mousemove", x: 11, y: 21, buttons: 1, timestamp: 2 });
     expect(events).toHaveLength(2);
     expect(events[0]).toMatchObject({ type: "mousedown", x: 10, y: 20 });
 

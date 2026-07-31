@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Copy, Download, MoreHorizontal, Pencil, Trash2, Wand2 } from "lucide-react";
+import { Copy, Download, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/components/ui/utils";
 import { DataPill } from "@/components/ui/data-pill";
-import { toneClasses, ICON_OPTIONS } from "../../app/pages/theme-workbench/model/workbenchSchema";
+import { ICON_OPTIONS, resolveThemeIcon, toneClasses } from "@/components/ui/theme-identity";
 
 export function ThemeCard({
   theme,
@@ -43,7 +43,7 @@ export function ThemeCard({
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
 
-  const ThemeIcon = ICON_OPTIONS.find((opt) => opt.name === theme.icon)?.Icon || Wand2;
+  const ThemeIcon = resolveThemeIcon(theme.icon);
 
   function commitRename() {
     const trimmed = editingName.trim();
