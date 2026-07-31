@@ -67,18 +67,28 @@ function splitWebPattern(value: string): { host: string; path?: string } {
     : { host: normalized.slice(0, slashIndex), path: normalized.slice(slashIndex) };
 }
 
+/**
+ * 工作台站点规则的 pattern → v4 match。
+ *
+ * 导出是为了让「规则匹配测试器」与生产解析走同一份语义，
+ * 避免测试器和实际生效结果给出不同答案。
+ */
+export function workbenchWebPatternToMatch(pattern: SiteRule["pattern"]): WebContextRuleV4["match"] {
+  const isPathRule = pattern.type === "path";
+  return {
+    type: pattern.type === "glob" || (isPathRule && pattern.hostType === "glob")
+      ? "glob"
+      : "exact",
+    ...splitWebPattern(pattern.value),
+  };
+}
+
 function workbenchWebRuleToContext(rule: SiteRule): WebContextRuleV4 {
-  const isPathRule = rule.pattern.type === "path";
   return {
     id: rule.id,
     context: "web",
     enabled: rule.enabled !== false,
-    match: {
-      type: rule.pattern.type === "glob" || (isPathRule && rule.pattern.hostType === "glob")
-        ? "glob"
-        : "exact",
-      ...splitWebPattern(rule.pattern.value),
-    },
+    match: workbenchWebPatternToMatch(rule.pattern),
     action: workbenchActionToContext(rule.action),
   };
 }

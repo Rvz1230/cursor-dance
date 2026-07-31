@@ -3,7 +3,38 @@ import { GripVertical, Trash2, ToggleLeft, ToggleRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/utils";
 import { DataPill } from "@/components/ui/data-pill";
+import { FieldHint } from "@/components/ui/field-hint";
 import { SectionTitle } from "@/components/ui/section-title";
+import { SmallSelect } from "@/components/ui/small-select";
+
+/**
+ * 规则编辑器的字段外壳。
+ *
+ * 说明文字放在 label 旁的 hint / tooltip 里，而不是塞进 `<option>` 文本——
+ * 后者是缺少字段描述位时的变通做法，原生 select 既无法样式化也会截断。
+ */
+export function RuleField({
+  label,
+  hint,
+  tooltip,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  tooltip?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-1.5">
+        <span className="text-xs font-medium text-slate-600">{label}</span>
+        {tooltip ? <FieldHint content={tooltip} /> : null}
+      </div>
+      {children}
+      {hint ? <p className="text-2xs leading-relaxed text-slate-400">{hint}</p> : null}
+    </div>
+  );
+}
 
 export type EditableRuleAction = "disable" | { enable: boolean; theme?: string };
 
@@ -52,37 +83,30 @@ export function RuleActionFields<T extends EditableRule>({
 
   return (
     <>
-      <div className="space-y-2">
-        <label className="block text-2xs font-medium text-slate-500">操作</label>
-        <select
+      <RuleField label="操作">
+        <SmallSelect
+          label="操作"
           value={actionType}
-          onChange={(event) => updateAction(
-            event.target.value === "disable" ? "disable" : { enable: true },
-          )}
-          className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-200"
-        >
-          <option value="disable">{disableLabel}</option>
-          <option value="enable">{enableLabel}</option>
-        </select>
-      </div>
+          options={[
+            { value: "disable", label: disableLabel },
+            { value: "enable", label: enableLabel },
+          ]}
+          onChange={(value) => updateAction(value === "disable" ? "disable" : { enable: true })}
+        />
+      </RuleField>
 
       {actionType === "enable" ? (
-        <div className="space-y-2">
-          <label className="block text-2xs font-medium text-slate-500">主题 (可选)</label>
-          <select
+        <RuleField label="主题" hint="不选则跟随全局主题。">
+          <SmallSelect
+            label="主题"
             value={draft.action === "disable" ? "" : (draft.action.theme || "")}
-            onChange={(event) => {
-              const theme = event.target.value || undefined;
-              updateAction({ enable: true, ...(theme ? { theme } : {}) });
-            }}
-            className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-200"
-          >
-            <option value="">跟随全局主题</option>
-            {themes.map((theme) => (
-              <option key={theme.id} value={theme.id}>{theme.name}</option>
-            ))}
-          </select>
-        </div>
+            options={[
+              { value: "", label: "跟随全局主题" },
+              ...themes.map((theme) => ({ value: theme.id, label: theme.name })),
+            ]}
+            onChange={(value) => updateAction({ enable: true, ...(value ? { theme: value } : {}) })}
+          />
+        </RuleField>
       ) : null}
     </>
   );
@@ -90,10 +114,13 @@ export function RuleActionFields<T extends EditableRule>({
 
 export function RuleEditorFrame({
   children,
+  error,
   onSave,
   onCancel,
 }: {
   children: ReactNode;
+  /** 保存受阻的原因。此前空值时 saveEdit 直接静默 return，点「保存」什么都不发生。 */
+  error?: string;
   onSave: () => void;
   onCancel: () => void;
 }) {
@@ -101,6 +128,11 @@ export function RuleEditorFrame({
     <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <SectionTitle>规则编辑</SectionTitle>
       {children}
+      {error ? (
+        <p role="alert" className="rounded-xl bg-rose-50 px-3 py-2 text-xs leading-relaxed text-rose-700">
+          {error}
+        </p>
+      ) : null}
       <div className="flex gap-2 pt-1">
         <Button variant="outline" className="h-8 px-3 text-xs" onClick={onCancel}>取消</Button>
         <Button variant="default" className="h-8 px-3 text-xs" onClick={onSave}>保存</Button>
@@ -124,6 +156,7 @@ export function RuleList<T extends EditableRule>({
   describePattern,
   emptyState,
   isEditing,
+  matchesNow,
   onToggle,
   onEdit,
   onDelete,
@@ -135,6 +168,8 @@ export function RuleList<T extends EditableRule>({
   describePattern: (rule: T) => string;
   emptyState: ReactNode;
   isEditing: boolean;
+  /** 该规则此刻是否命中当前上下文。用于把「顺序即优先级」变得可见。 */
+  matchesNow?: (rule: T) => boolean;
   onToggle: (id: string) => void;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
@@ -157,14 +192,29 @@ export function RuleList<T extends EditableRule>({
 
   if (rules.length === 0 && !isEditing) return <>{emptyState}</>;
 
+  // 第一条命中的规则决定结果，所以顺序就是优先级。
+  const firstMatchIndex = matchesNow
+    ? rules.findIndex((rule) => rule.enabled !== false && matchesNow(rule))
+    : -1;
+
   return (
     <>
+      {rules.length > 1 ? (
+        <p className="text-2xs leading-relaxed text-slate-400">
+          从上到下匹配，命中的第一条生效。拖动左侧手柄可调整优先级。
+        </p>
+      ) : null}
       <div className="space-y-1.5">
-        {rules.map((rule) => {
+        {rules.map((rule, index) => {
           const themeId = rule.action === "disable" ? "" : rule.action.theme;
           const themeName = themeId
             ? (themes.find((theme) => theme.id === themeId)?.name || themeId)
             : null;
+          const isActiveMatch = index === firstMatchIndex;
+          const isShadowedMatch = !isActiveMatch
+            && firstMatchIndex >= 0
+            && rule.enabled !== false
+            && Boolean(matchesNow?.(rule));
           return (
             <div
               key={rule.id}
@@ -172,7 +222,9 @@ export function RuleList<T extends EditableRule>({
                 "group flex items-center gap-2 rounded-xl border px-3 py-2.5 transition-colors",
                 rule.enabled === false
                   ? "border-slate-100 bg-slate-50/50 opacity-60"
-                  : "border-slate-200 bg-white shadow-sm",
+                  : isActiveMatch
+                    ? "border-slate-950 bg-white shadow-sm"
+                    : "border-slate-200 bg-white shadow-sm",
               )}
               draggable
               onDragStart={(event) => handleDragStart(event, rule.id)}
@@ -201,6 +253,10 @@ export function RuleList<T extends EditableRule>({
                 </code>
                 <ActionBadge action={rule.action} />
                 {themeName ? <span className="truncate text-2xs text-slate-400">{themeName}</span> : null}
+                {isActiveMatch ? <DataPill tone="teal">当前生效</DataPill> : null}
+                {isShadowedMatch ? (
+                  <span className="shrink-0 text-2xs text-slate-400">已被上方规则覆盖</span>
+                ) : null}
               </div>
               <button
                 onClick={() => onEdit(rule.id)}
