@@ -4,6 +4,7 @@ import type {
   CursorDanceThemeV4,
 } from "../config-schema-v4";
 import { getDefaultActionConfigs } from "../effect-core/default-action-configs";
+import type { CursorStateId } from "../cursor-states";
 
 type ActionConfig = Record<string, unknown>;
 
@@ -56,7 +57,7 @@ export function createRuntimeConfigCore(options: RuntimeConfigCoreOptions) {
   } = options;
   const ElementCtor = (window as Window & { Element?: typeof Element }).Element
     ?? (typeof Element === "undefined" ? undefined : Element);
-  const cursorStateIdCache: { target: Element | null; stateId: string } = {
+  const cursorStateIdCache: { target: Element | null; stateId: CursorStateId } = {
     target: null,
     stateId: "default",
   };
@@ -121,13 +122,15 @@ export function createRuntimeConfigCore(options: RuntimeConfigCoreOptions) {
     return theme?.cursorSkin.states[stateId] ?? theme?.cursorSkin.states.default ?? null;
   }
 
-  function resolveCursorStateId(target: unknown): string {
+  function resolveCursorStateId(target: unknown): CursorStateId {
     const element = asElement(target);
     if (!element) return "default";
     if (element === cursorStateIdCache.target) return cursorStateIdCache.stateId;
 
     const cursor = window.getComputedStyle(element).cursor || "";
-    let stateId = "default";
+    // 归并说明：grab / grabbing / move / crosshair / *-resize 在 web 上都收敛到
+    // pointer，因为它们没有独立的配置槽位（见 src/shared/cursor-states.ts）。
+    let stateId: CursorStateId = "default";
     if (
       [
         "pointer",
@@ -146,7 +149,8 @@ export function createRuntimeConfigCore(options: RuntimeConfigCoreOptions) {
     ) stateId = "pointer";
     else if (cursor === "text" || cursor === "vertical-text") stateId = "text";
     else if (cursor === "help") stateId = "help";
-    else if (cursor === "wait" || cursor === "progress") stateId = "wait";
+    // 产出 `busy` 而非 `wait`：配置槽位的 id 是 busy，此前两者不一致导致该状态永不生效。
+    else if (cursor === "wait" || cursor === "progress") stateId = "busy";
     else if (cursor === "not-allowed" || cursor === "no-drop") stateId = "notAllowed";
     else if (cursor === "none") stateId = "default";
     else if (element.closest(textEditableSelector)) stateId = "text";

@@ -12,6 +12,7 @@ import {
   writeExtensionConfig,
   writeLivePreviewConfig,
 } from "../lib/workbenchConfig";
+import { CURSOR_STATES } from "../model/workbenchSchema";
 
 export function useThemeWorkbenchPersistence({ state, dispatch, configRef }) {
   const debounceRef = useRef(null);
@@ -57,9 +58,12 @@ export function useThemeWorkbenchPersistence({ state, dispatch, configRef }) {
         if (aid && ["leftClick", "rightClick", "doubleClick", "longPress", "wheel", "hover"].includes(aid)) {
           hydratedState.selection.actionId = aid;
         }
+        // 只恢复当前平台真正可达的状态；存量的已移除槽位（grab / crosshair /
+        // resize* 等）会落回默认选中项。旧的 wait→busy 别名补丁已不需要——
+        // 运行时现在直接产出 busy。
         const csid = editorState.cursorStateId;
-        if (csid && ["default", "text", "pointer", "grab", "grabbing", "busy", "notAllowed", "crosshair", "move", "resizeHorizontal", "resizeVertical", "resizeDiagonalNWSE", "resizeDiagonalNESW", "wait"].includes(csid)) {
-          hydratedState.selection.cursorStateId = csid === "wait" ? "busy" : csid;
+        if (csid && CURSOR_STATES.some((state) => state.id === csid)) {
+          hydratedState.selection.cursorStateId = csid;
         }
       }
 

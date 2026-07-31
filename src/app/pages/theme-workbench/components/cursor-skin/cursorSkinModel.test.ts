@@ -9,8 +9,10 @@ describe("cursor skin model", () => {
   it("matches common cursor asset file names to semantic states", () => {
     expect(matchStateId("arrow-default.png")).toBe("default");
     expect(matchStateId("hand-pointer.webp")).toBe("pointer");
-    expect(matchStateId("resize-horizontal.svg")).toBe("resizeHorizontal");
+    expect(matchStateId("wait-spinner.svg")).toBe("busy");
     expect(matchStateId("brand-logo.png")).toBe("");
+    // resize / crosshair / move 等状态运行时不可达，已从真值源移除，不再匹配。
+    expect(matchStateId("resize-horizontal.svg")).toBe("");
   });
 
   it("converts recent assets into cursor skin states", () => {

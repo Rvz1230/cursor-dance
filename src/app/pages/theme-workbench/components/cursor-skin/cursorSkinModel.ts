@@ -1,23 +1,56 @@
+import type { LucideIcon } from "lucide-react";
+import { matchCursorStateIdFromFileName } from "@/shared/cursor-states";
+
 export const MAX_CURSOR_UPLOAD_BYTES = 300 * 1024;
 export const DEFAULT_BOX_SIZE = 48;
 
-const MATCH_RULES = [
-  { stateId: "default", patterns: ["normal", "default", "arrow", "cursor", "base"] },
-  { stateId: "pointer", patterns: ["pointer", "hand", "link", "hover", "click"] },
-  { stateId: "text", patterns: ["text", "ibeam", "i-beam", "input"] },
-  { stateId: "grab", patterns: ["grab", "openhand"] },
-  { stateId: "grabbing", patterns: ["grabbing", "closedhand", "dragging", "drag"] },
-  { stateId: "busy", patterns: ["wait", "busy", "loading", "progress"] },
-  { stateId: "notAllowed", patterns: ["disabled", "disable", "notallowed", "not-allowed", "ban", "forbidden"] },
-  { stateId: "crosshair", patterns: ["crosshair", "precision", "aim"] },
-  { stateId: "move", patterns: ["move", "all-scroll", "sizeall"] },
-  { stateId: "resizeHorizontal", patterns: ["resize-horizontal", "sizewe", "ew-resize", "horizontal"] },
-  { stateId: "resizeVertical", patterns: ["resize-vertical", "sizens", "ns-resize", "vertical"] },
-  { stateId: "resizeDiagonalNWSE", patterns: ["nwse", "resize-diagonal-1", "diagonal-nwse"] },
-  { stateId: "resizeDiagonalNESW", patterns: ["nesw", "resize-diagonal-2", "diagonal-nesw"] },
-];
+export interface Hotspot {
+  x: number;
+  y: number;
+}
 
-export function clamp(value, min, max) {
+/** 光标图片的宽松视图：素材可能是内联 dataUrl，也可能是桌面 asset 引用。 */
+interface CursorImageLike {
+  kind?: string;
+  mimeType?: string;
+  dataUrl?: string;
+  assetId?: string;
+  width?: number;
+  height?: number;
+}
+
+export interface CursorSkinStateLike {
+  image?: CursorImageLike;
+  hotspot?: Hotspot;
+  size?: { mode?: string; boxSize?: number };
+}
+
+export interface CursorSkinLike {
+  states?: Record<string, CursorSkinStateLike | undefined>;
+}
+
+/** Workbench 侧的状态元信息（真值源 + UI 图标），见 `model/workbenchSchema.ts`。 */
+export interface CursorStateMeta {
+  id: string;
+  label: string;
+  detail: string;
+  defaultHotspot: "topLeft" | "center";
+  icon: LucideIcon;
+}
+
+/** 旧的扁平素材形状，仍用于「最近素材」与 legacy cursorStateAssets。 */
+export interface LegacyCursorAsset {
+  imageDataUrl?: string;
+  mimeType?: string;
+  hotspotX?: number;
+  hotspotY?: number;
+  size?: number;
+  sourceWidth?: number;
+  sourceHeight?: number;
+  name?: string;
+}
+
+export function clamp(value: number, min: number, max: number): number {
   if (!Number.isFinite(value)) return min;
   return Math.min(max, Math.max(min, value));
 }
@@ -40,7 +73,7 @@ export function getAssetDimensions(dataUrl: string): Promise<{ width: number; he
   });
 }
 
-export function inferMimeType(dataUrl, fileType = "") {
+export function inferMimeType(dataUrl: string, fileType = ""): string {
   if (fileType) return fileType;
   if (dataUrl.startsWith("data:image/svg+xml")) return "image/svg+xml";
   if (dataUrl.startsWith("data:image/webp")) return "image/webp";
@@ -48,30 +81,32 @@ export function inferMimeType(dataUrl, fileType = "") {
   return "image/unknown";
 }
 
-export function matchStateId(fileName) {
-  const normalized = fileName.toLowerCase().replace(/\.[^.]+$/, "");
-  const matched = MATCH_RULES.find((rule) => rule.patterns.some((pattern) => normalized.includes(pattern)));
-  return matched?.stateId || "";
+export function matchStateId(fileName: string): string {
+  return matchCursorStateIdFromFileName(fileName);
 }
 
-export function getDisplaySize(skinState) {
+export function getDisplaySize(skinState: CursorSkinStateLike | null | undefined): number {
   if (!skinState?.image) return DEFAULT_BOX_SIZE;
   if (skinState.size?.mode === "fixedBox") return skinState.size.boxSize || DEFAULT_BOX_SIZE;
   return Math.max(skinState.image.width || DEFAULT_BOX_SIZE, skinState.image.height || DEFAULT_BOX_SIZE);
 }
 
-export function getResolvedSkinState(cursorSkin, stateId) {
+export function getResolvedSkinState(
+  cursorSkin: CursorSkinLike | null | undefined,
+  stateId: string,
+): { state: CursorSkinStateLike | null; inherited: boolean } {
   const ownState = cursorSkin?.states?.[stateId];
   if (ownState) return { state: ownState, inherited: false };
   return { state: cursorSkin?.states?.default || null, inherited: stateId !== "default" };
 }
 
-export function buildSkinStateFromAsset(asset) {
+export function buildSkinStateFromAsset(asset: LegacyCursorAsset): CursorSkinStateLike {
+  const dataUrl = asset.imageDataUrl || "";
   return {
     image: {
       kind: "dataUrl",
-      mimeType: asset.mimeType || inferMimeType(asset.imageDataUrl),
-      dataUrl: asset.imageDataUrl,
+      mimeType: asset.mimeType || inferMimeType(dataUrl),
+      dataUrl,
       width: asset.sourceWidth || asset.size || DEFAULT_BOX_SIZE,
       height: asset.sourceHeight || asset.size || DEFAULT_BOX_SIZE,
     },
@@ -80,7 +115,13 @@ export function buildSkinStateFromAsset(asset) {
   };
 }
 
-export function getDefaultHotspot(stateMeta, width, height) {
-  if (stateMeta?.defaultHotspot === "center") return { x: Math.floor(width / 2), y: Math.floor(height / 2) };
+export function getDefaultHotspot(
+  stateMeta: Pick<CursorStateMeta, "defaultHotspot"> | null | undefined,
+  width: number,
+  height: number,
+): Hotspot {
+  if (stateMeta?.defaultHotspot === "center") {
+    return { x: Math.floor(width / 2), y: Math.floor(height / 2) };
+  }
   return { x: Math.min(10, Math.max(0, width - 1)), y: Math.min(8, Math.max(0, height - 1)) };
 }

@@ -10,32 +10,17 @@ import {
   type CursorSkinV4,
 } from "../config-schema-v4";
 import { defaultKeyFeedbackConfig } from "./key-feedback";
+import { CURSOR_STATE_IDS } from "../cursor-states";
 
 export type CursorDanceConfig = CursorDanceConfigV4;
 export type ThemePack = CursorDanceThemeV4;
-
-const DEFAULT_CURSOR_STATE_IDS = [
-  "default",
-  "text",
-  "pointer",
-  "grab",
-  "grabbing",
-  "busy",
-  "notAllowed",
-  "crosshair",
-  "move",
-  "resizeHorizontal",
-  "resizeVertical",
-  "resizeDiagonalNWSE",
-  "resizeDiagonalNESW",
-] as const;
 
 export function cloneValue<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
 function createDefaultCursorBindings(): Record<string, CursorBindingV4> {
-  return Object.fromEntries(DEFAULT_CURSOR_STATE_IDS.map((stateId) => [
+  return Object.fromEntries(CURSOR_STATE_IDS.map((stateId) => [
     stateId,
     {
       mode: stateId === "default" ? "override" : "inherit",

@@ -33,6 +33,8 @@ import {
   type ActiveWindowSnapshot,
 } from "../../../shared/app-rules";
 import type { CursorSkinStateV4, CursorSkinV4 } from "../../../shared/config-schema-v4";
+// 桌面 overlay 只能产出 default 与 grabbing（无 DOM、无系统光标查询能力）。
+import type { CursorStateId as CursorSkinStateId } from "../../../shared/cursor-states";
 import { resolveDesktopImageSource } from "../../../shared/asset-reference";
 import {
   cursorSkinStateToOverlayState,
@@ -43,21 +45,6 @@ import type {
   PointerInputEvent,
   RuntimeInputEvent,
 } from "../../../shared/effect-runtime/contracts";
-
-type CursorSkinStateId =
-  | "default"
-  | "text"
-  | "pointer"
-  | "grab"
-  | "grabbing"
-  | "busy"
-  | "notAllowed"
-  | "crosshair"
-  | "move"
-  | "resizeHorizontal"
-  | "resizeVertical"
-  | "resizeDiagonalNWSE"
-  | "resizeDiagonalNESW";
 
 const constants: EngineConstants = {
   ROOT_ID: "cursordance-root",

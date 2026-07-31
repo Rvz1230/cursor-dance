@@ -1,6 +1,7 @@
 import { normalizeKeyFeedbackConfig } from "@/shared/config/key-feedback";
 import type { CursorDanceConfigV4 } from "@/shared/config-schema-v4";
 import { isDesktop } from "@/shared/runtime";
+import { pickKnownCursorStates } from "@/shared/cursor-states";
 import type {
   ThemeLibraryItem,
   WorkbenchPersistableState,
@@ -21,6 +22,16 @@ function getStoredTheme(config: CursorDanceConfigV4, themeId: string) {
   return config.themes.find((theme) => theme.id === themeId)
     ?? getDefaultConfig().themes.find((theme) => theme.id === themeId)
     ?? null;
+}
+
+/**
+ * 丢弃已从真值源移除的状态槽位（存量配置里的 grab / crosshair / resize* 等）。
+ * 只做静默丢弃，不做拒绝式校验——后者会触发整份配置恢复默认。
+ */
+function normalizeCursorSkinStates(
+  cursorSkin: WorkbenchThemeDraft["cursorSkin"],
+): WorkbenchThemeDraft["cursorSkin"] {
+  return { ...cursorSkin, states: pickKnownCursorStates(cursorSkin?.states) };
 }
 
 function buildCursorBindings(draft: WorkbenchThemeDraft) {
@@ -60,7 +71,7 @@ function buildStoredTheme(
     kind: themeRecord?.kind === "内置" ? "builtin" as const : "custom" as const,
     actionConfigs: buildStoredActionConfigs(draft),
     cursorBindings: buildCursorBindings(draft),
-    cursorSkin: draft.cursorSkin,
+    cursorSkin: normalizeCursorSkinStates(draft.cursorSkin),
     keyFeedbackConfig: normalizeKeyFeedbackConfig(draft.keyFeedbackConfig),
     ...(atmosphere ? { atmosphere } : {}),
   };

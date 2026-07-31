@@ -104,7 +104,7 @@ ThemeWorkbenchPage
 ├── ThemeLibrarySidebar      # Create/duplicate/delete/import/export themes
 └── main (by workspaceId)
     ├── workbench            # Action config + preview + optional AI panel
-    ├── states (StatesPanel) # Cursor state management (6 states)
+    ├── states (StatesPanel) # Cursor state management (platform-filtered: 6 web / 2 desktop)
     ├── sites (SiteRulesPanel)   # Per-host site rules (extension) / per-app rules (desktop)
     └── diagnostics          # Diagnostic event viewer
 ```

@@ -3,13 +3,12 @@ import {
   Ban,
   CircleDashed,
   Clock3,
-  Crosshair,
   Hand,
+  HelpCircle,
   ImagePlus,
   Keyboard,
   Link2,
   MousePointer2,
-  Move,
   Settings2,
   Sparkles,
   TextCursorInput,
@@ -17,6 +16,7 @@ import {
   Volume2,
   Wand2,
   Waves,
+  type LucideIcon,
 } from "lucide-react";
 import { defaultKeyFeedbackConfig } from "@/shared/config/key-feedback";
 import { defaultConfig } from "@/shared/config/default-config";
@@ -59,6 +59,7 @@ import {
 import { ANIMATION_EASING_OPTIONS } from "./actionConfigOptions";
 import { getDefaultActionConfigs } from "@/shared/effect-core/default-action-configs";
 import { isDesktop } from "@/shared/runtime";
+import { getCursorStatesForPlatform, type CursorStateId } from "@/shared/cursor-states";
 
 export const WORKSPACES = [
   { id: "workbench", label: "主题工作台", icon: Wand2 },
@@ -121,21 +122,28 @@ export const PLATFORM_ACTIONS = isDesktop()
   ? ACTIONS.filter((a) => a.id !== "hover")
   : ACTIONS;
 
-export const CURSOR_STATES = [
-  { id: "default", label: "普通", detail: "默认指针，无法识别状态时使用", icon: MousePointer2, group: "基础", support: "已支持", defaultHotspot: "topLeft" },
-  { id: "text", label: "文本选择", detail: "输入框、编辑器、文本区域", icon: TextCursorInput, group: "基础", support: "部分应用支持", defaultHotspot: "center" },
-  { id: "pointer", label: "可点击", detail: "按钮、链接、菜单项", icon: Hand, group: "基础", support: "部分应用支持", defaultHotspot: "topLeft" },
-  { id: "grab", label: "可拖拽", detail: "可抓取的画布或对象", icon: Hand, group: "操作", support: "依赖规则", defaultHotspot: "center" },
-  { id: "grabbing", label: "拖拽中", detail: "按住并移动对象或内容", icon: Hand, group: "操作", support: "已支持", defaultHotspot: "center" },
-  { id: "busy", label: "忙碌", detail: "应用加载、等待响应", icon: Clock3, group: "系统", support: "依赖规则", defaultHotspot: "center" },
-  { id: "notAllowed", label: "不可用", detail: "禁用按钮、无效拖放区域", icon: Ban, group: "操作", support: "部分应用支持", defaultHotspot: "center" },
-  { id: "crosshair", label: "精确选择", detail: "截图、绘图、选区", icon: Crosshair, group: "操作", support: "部分应用支持", defaultHotspot: "center" },
-  { id: "move", label: "移动", detail: "移动对象、分层或画布元素", icon: Move, group: "操作", support: "依赖规则", defaultHotspot: "center" },
-  { id: "resizeHorizontal", label: "横向调整", detail: "左右调整窗口、分栏或对象", icon: Move, group: "调整大小", support: "部分应用支持", defaultHotspot: "center" },
-  { id: "resizeVertical", label: "纵向调整", detail: "上下调整窗口、分栏或对象", icon: Move, group: "调整大小", support: "部分应用支持", defaultHotspot: "center" },
-  { id: "resizeDiagonalNWSE", label: "对角调整 ↘", detail: "左上到右下方向调整大小", icon: Move, group: "调整大小", support: "部分应用支持", defaultHotspot: "center" },
-  { id: "resizeDiagonalNESW", label: "对角调整 ↙", detail: "右上到左下方向调整大小", icon: Move, group: "调整大小", support: "部分应用支持", defaultHotspot: "center" },
-];
+const CURSOR_STATE_ICONS: Record<CursorStateId, LucideIcon> = {
+  default: MousePointer2,
+  text: TextCursorInput,
+  pointer: Hand,
+  notAllowed: Ban,
+  busy: Clock3,
+  help: HelpCircle,
+  grabbing: Hand,
+};
+
+/**
+ * 只包含当前平台运行时真正能产出的光标状态。
+ * 状态清单与可达性的唯一真值源是 `src/shared/cursor-states.ts`；这里只补 UI 图标。
+ */
+export const CURSOR_STATES = getCursorStatesForPlatform(isDesktop() ? "desktop" : "extension")
+  .map((descriptor) => ({
+    id: descriptor.id,
+    label: descriptor.label,
+    detail: descriptor.detail,
+    defaultHotspot: descriptor.defaultHotspot,
+    icon: CURSOR_STATE_ICONS[descriptor.id],
+  }));
 
 function getDefaultThemePacks() {
   return defaultConfig.themes;
