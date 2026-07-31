@@ -18,15 +18,15 @@ export type RuntimeDiagnosticEntry = Record<string, unknown>;
 export interface WorkbenchRepository {
   readonly kind: "desktop" | "chrome" | "local";
   readonly recentAssetsPersistence: "chrome-local" | "local-storage" | "session";
-  readConfig(): Promise<CursorDanceConfigRecord>;
-  writeConfig(config: unknown): Promise<CursorDanceConfigRecord>;
-  readLivePreview(): Promise<CursorDanceConfigRecord | null>;
-  writeLivePreview(config: unknown): Promise<CursorDanceConfigRecord>;
+  readConfig(): Promise<CursorDanceConfig>;
+  writeConfig(config: unknown): Promise<CursorDanceConfig>;
+  readLivePreview(): Promise<CursorDanceConfig | null>;
+  writeLivePreview(config: unknown): Promise<CursorDanceConfig>;
   clearLivePreview(): Promise<void>;
   readEditorState(): Promise<WorkbenchEditorState | null>;
   writeEditorState(state: WorkbenchEditorState): Promise<void>;
-  subscribeConfig(onChange: RepositoryListener<CursorDanceConfigRecord>): RepositoryUnsubscribe;
-  subscribeLivePreview(onChange: RepositoryListener<CursorDanceConfigRecord | null>): RepositoryUnsubscribe;
+  subscribeConfig(onChange: RepositoryListener<CursorDanceConfig>): RepositoryUnsubscribe;
+  subscribeLivePreview(onChange: RepositoryListener<CursorDanceConfig | null>): RepositoryUnsubscribe;
   readRecentCursorAssets(): Promise<RecentCursorAsset[]>;
   writeRecentCursorAsset(asset: unknown): Promise<RecentCursorAsset[]>;
   readRuntimeErrors(): Promise<RuntimeDiagnosticEntry[]>;
@@ -38,8 +38,8 @@ export interface WorkbenchRepository {
 }
 
 export interface WorkbenchRepositoryCodec {
-  getDefaultConfig(): CursorDanceConfigRecord;
-  normalizeConfig(value: unknown): CursorDanceConfigRecord;
+  getDefaultConfig(): CursorDanceConfig;
+  normalizeConfig(value: unknown): CursorDanceConfig;
 }
 
 export function notifyRepositoryListener<T>(listener: RepositoryListener<T>, value: T): void {
@@ -47,3 +47,4 @@ export function notifyRepositoryListener<T>(listener: RepositoryListener<T>, val
     console.error("[cursordance] repository listener failed:", error);
   });
 }
+import type { CursorDanceConfig } from "@/shared/config/default-config";

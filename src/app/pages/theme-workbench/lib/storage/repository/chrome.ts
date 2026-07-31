@@ -21,6 +21,11 @@ import {
 } from "./types";
 import { normalizeEditorState } from "./local-editor-state";
 import { dedupeRecentAssets, normalizeRecentAsset } from "./support";
+import type { CursorDanceConfig } from "@/shared/config/default-config";
+import type {
+  CursorDanceThemeV4,
+  CursorSkinStateV4,
+} from "@/shared/config-schema-v4";
 
 const DIAGNOSTIC_EVENTS_STORAGE_KEY = "cursordance.diagnosticEvents";
 
@@ -36,84 +41,75 @@ function asRecord(value: unknown): UnknownRecord | null {
     : null;
 }
 
-function buildCursorAssetStorageKeys(config: CursorDanceConfigRecord): string[] {
+function buildCursorAssetStorageKeys(config: CursorDanceConfig): string[] {
   const keys = new Set<string>();
-  for (const themeValue of config.themes || []) {
-    const theme = asRecord(themeValue);
-    const themeId = typeof theme?.id === "string" ? theme.id : "";
-    if (!themeId) continue;
+  for (const theme of config.themes) {
+    const themeId = theme.id;
     for (const state of CURSOR_STATES) keys.add(buildCursorAssetStorageKey(themeId, state.id));
-    const cursorSkin = asRecord(theme.cursorSkin);
-    const states = asRecord(cursorSkin?.states);
-    for (const stateValue of Object.values(states || {})) {
-      const state = asRecord(stateValue);
-      const image = asRecord(state?.image);
-      if (image?.kind === "asset" && typeof image.assetId === "string") keys.add(image.assetId);
+    for (const state of Object.values(theme.cursorSkin.states)) {
+      if (state.image.kind === "asset") keys.add(state.image.assetId);
     }
   }
   return [...keys];
 }
 
 function withResolvedCursorAssets(
-  config: CursorDanceConfigRecord,
+  config: CursorDanceConfig,
   assetEntries: Record<string, unknown>,
-): CursorDanceConfigRecord {
-  const themes = (config.themes || []).map((themeValue) => {
-    const theme = asRecord(themeValue) || {};
-    const cursorSkin = asRecord(theme.cursorSkin) || {};
-    const states = asRecord(cursorSkin.states) || {};
+): CursorDanceConfig {
+  const themes: CursorDanceThemeV4[] = config.themes.map((theme) => {
+    const states: Record<string, CursorSkinStateV4> = Object.fromEntries(
+      Object.entries(theme.cursorSkin.states).map(([stateId, state]) => {
+        const image = state.image;
+        if (image.kind !== "asset") return [stateId, state];
+        const assetRecord = asRecord(assetEntries[image.assetId]);
+        if (typeof assetRecord?.imageDataUrl !== "string") return [stateId, state];
+        return [stateId, {
+          ...state,
+          image: {
+            kind: "dataUrl" as const,
+            mimeType: image.mimeType,
+            dataUrl: assetRecord.imageDataUrl,
+            width: image.width,
+            height: image.height,
+          },
+        }];
+      }),
+    );
     return {
       ...theme,
       cursorSkin: {
-        ...cursorSkin,
-        states: Object.fromEntries(Object.entries(states).map(([stateId, stateValue]) => {
-          const state = asRecord(stateValue) || {};
-          const image = asRecord(state.image);
-          if (image?.kind !== "asset" || typeof image.assetId !== "string") return [stateId, state];
-          const assetRecord = asRecord(assetEntries[image.assetId]);
-          if (typeof assetRecord?.imageDataUrl !== "string") return [stateId, state];
-          return [stateId, {
-            ...state,
-            image: {
-              kind: "dataUrl",
-              mimeType: image.mimeType,
-              dataUrl: assetRecord.imageDataUrl,
-              width: image.width,
-              height: image.height,
-            },
-          }];
-        })),
+        ...theme.cursorSkin,
+        states,
       },
     };
   });
   return { ...config, themes };
 }
 
-function stripInlineCursorAssets(config: CursorDanceConfigRecord): CursorDanceConfigRecord {
-  const themes = (config.themes || []).map((themeValue) => {
-    const theme = asRecord(themeValue) || {};
-    const themeId = typeof theme.id === "string" ? theme.id : "";
-    const cursorSkin = asRecord(theme.cursorSkin) || {};
-    const states = asRecord(cursorSkin.states) || {};
+function stripInlineCursorAssets(config: CursorDanceConfig): CursorDanceConfig {
+  const themes: CursorDanceThemeV4[] = config.themes.map((theme) => {
+    const states: Record<string, CursorSkinStateV4> = Object.fromEntries(
+      Object.entries(theme.cursorSkin.states).map(([stateId, state]) => {
+        const image = state.image;
+        if (image.kind !== "dataUrl") return [stateId, state];
+        return [stateId, {
+          ...state,
+          image: {
+            kind: "asset" as const,
+            assetId: buildCursorAssetStorageKey(theme.id, stateId),
+            mimeType: image.mimeType,
+            width: image.width,
+            height: image.height,
+          },
+        }];
+      }),
+    );
     return {
       ...theme,
       cursorSkin: {
-        ...cursorSkin,
-        states: Object.fromEntries(Object.entries(states).map(([stateId, stateValue]) => {
-          const state = asRecord(stateValue) || {};
-          const image = asRecord(state.image);
-          if (image?.kind !== "dataUrl") return [stateId, state];
-          return [stateId, {
-            ...state,
-            image: {
-              kind: "asset",
-              assetId: buildCursorAssetStorageKey(themeId, stateId),
-              mimeType: image.mimeType,
-              width: image.width,
-              height: image.height,
-            },
-          }];
-        })),
+        ...theme.cursorSkin,
+        states,
       },
     };
   });
@@ -124,7 +120,7 @@ export function createChromeWorkbenchRepository(
   chromeApi: Chrome,
   codec: WorkbenchRepositoryCodec,
 ): WorkbenchRepository {
-  async function resolveCursorAssets(config: CursorDanceConfigRecord): Promise<CursorDanceConfigRecord> {
+  async function resolveCursorAssets(config: CursorDanceConfig): Promise<CursorDanceConfig> {
     const assetKeys = buildCursorAssetStorageKeys(config);
     if (!assetKeys.length) return config;
     return withResolvedCursorAssets(config, await chromeApi.storage.local.get(assetKeys));
@@ -144,16 +140,12 @@ export function createChromeWorkbenchRepository(
       const normalized = codec.normalizeConfig(config);
       const assetWrites: Record<string, unknown> = {};
       const assetRemovals: string[] = [];
-      for (const themeValue of normalized.themes || []) {
-        const theme = asRecord(themeValue);
-        const themeId = typeof theme?.id === "string" ? theme.id : "";
-        if (!themeId) continue;
-        const cursorSkin = asRecord(theme.cursorSkin);
-        const states = asRecord(cursorSkin?.states) || {};
-        for (const [stateId, stateValue] of Object.entries(states)) {
-          const state = asRecord(stateValue);
-          const image = asRecord(state?.image);
-          const imageDataUrl = image?.kind === "dataUrl" && typeof image.dataUrl === "string"
+      for (const theme of normalized.themes) {
+        const themeId = theme.id;
+        const states = theme.cursorSkin.states;
+        for (const [stateId, state] of Object.entries(states)) {
+          const image = state.image;
+          const imageDataUrl = image.kind === "dataUrl"
             ? image.dataUrl
             : "";
           if (imageDataUrl.length > MAX_CURSOR_ASSET_DATA_URL_LENGTH) {

@@ -15,128 +15,21 @@ import {
   hasConfiguredModelProvider,
 } from "./model-provider.mjs";
 import { runAgentLoop } from "./agent-loop.mjs";
+import { getAiRequestLimits } from "./proposal-service/api-policy.mjs";
+import {
+  getAiRequestMetrics,
+  getJsonByteLength,
+  logAiMetrics,
+} from "./proposal-service/request-metrics.mjs";
 
-const DEFAULT_ALLOWED_ORIGINS = [
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
-];
-const MAX_REQUEST_BYTES = 50 * 1024;
-const DEFAULT_MAX_PROMPT_CHARS = 1200;
-const DEFAULT_MAX_CURRENT_CONFIG_BYTES = 24 * 1024;
-const DEFAULT_MAX_PROPOSAL_CONTEXT_BYTES = 8 * 1024;
-
-function getJsonByteLength(value) {
-  if (value === undefined || value === null) return 0;
-  return Buffer.byteLength(JSON.stringify(value), "utf8");
-}
-
-function getPositiveInteger(value, fallback) {
-  const parsed = Number.parseInt(value, 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-}
-
-export function getAiRequestLimits(env = process.env) {
-  return {
-    maxRequestBytes: getPositiveInteger(env.CURSORDANCE_AI_MAX_REQUEST_BYTES, MAX_REQUEST_BYTES),
-    maxPromptChars: getPositiveInteger(env.CURSORDANCE_AI_MAX_PROMPT_CHARS, DEFAULT_MAX_PROMPT_CHARS),
-    maxCurrentConfigBytes: getPositiveInteger(env.CURSORDANCE_AI_MAX_CURRENT_CONFIG_BYTES, DEFAULT_MAX_CURRENT_CONFIG_BYTES),
-    maxProposalContextBytes: getPositiveInteger(env.CURSORDANCE_AI_MAX_PROPOSAL_CONTEXT_BYTES, DEFAULT_MAX_PROPOSAL_CONTEXT_BYTES),
-  };
-}
-
-export function getAiRequestMetrics(payload = {}, requestState = null, extra = {}) {
-  const prompt = typeof payload?.prompt === "string" ? payload.prompt : "";
-  const currentConfig = payload?.currentConfig && typeof payload.currentConfig === "object" ? payload.currentConfig : {};
-  const proposalContext = payload?.proposalContext && typeof payload.proposalContext === "object" ? payload.proposalContext : null;
-
-  return {
-    mode: requestState?.value?.taskMode || payload?.taskMode || "modify_action",
-    schemaVersion: requestState?.value?.schemaVersion || payload?.schemaVersion || AI_SCHEMA_VERSION,
-    extensionVersion: requestState?.value?.extensionVersion || payload?.extensionVersion || "",
-    promptChars: prompt.trim().length,
-    currentConfigBytes: getJsonByteLength(currentConfig),
-    proposalContextBytes: getJsonByteLength(proposalContext),
-    rawBodyBytes: extra.rawBodyLength || 0,
-    targetCount: Array.isArray(extra.targets) ? extra.targets.length : extra.targetCount || 0,
-    droppedFieldCount: extra.droppedFieldCount || 0,
-    durationMs: extra.durationMs || 0,
-    status: extra.status || 0,
-    errorCode: extra.errorCode || "",
-  };
-}
-
-function shouldLogAiMetrics(env = process.env) {
-  return env.CURSORDANCE_AI_METRICS_LOG !== "0";
-}
-
-function logAiMetrics(eventName, metrics, env = process.env) {
-  if (!shouldLogAiMetrics(env)) return;
-  console.log(JSON.stringify({
-    event: eventName,
-    service: "cursor-dance-ai-api",
-    ...metrics,
-  }));
-}
-
-export function getAiServiceHealth(env = process.env) {
-  return {
-    ok: true,
-    service: "cursor-dance-ai-api",
-    modelProviderConfigured: hasConfiguredModelProvider(env),
-    mode: env.CURSORDANCE_AI_API_MODE || "chat_completions",
-    model: env.CURSORDANCE_AI_MODEL || null,
-    limits: getAiRequestLimits(env),
-  };
-}
-
-export function getAllowedOrigins(env = process.env) {
-  const configuredOrigins = String(env.CURSORDANCE_ALLOWED_ORIGINS || "")
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean);
-  return configuredOrigins.length ? configuredOrigins : DEFAULT_ALLOWED_ORIGINS;
-}
-
-export function buildCorsHeaders({ origin = "", env = process.env } = {}) {
-  const allowedOrigins = getAllowedOrigins(env);
-  const allowOrigin = allowedOrigins.includes("*")
-    ? "*"
-    : allowedOrigins.includes(origin)
-      ? origin
-      : allowedOrigins[0];
-
-  return {
-    "Access-Control-Allow-Origin": allowOrigin,
-    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type,Authorization,X-CursorDance-Client",
-    "Access-Control-Max-Age": "86400",
-  };
-}
-
-export function validateAiApiAccess({ headers = {}, rawBodyLength = 0, env = process.env } = {}) {
-  const limits = getAiRequestLimits(env);
-  if (rawBodyLength > limits.maxRequestBytes) {
-    return {
-      ok: false,
-      status: 413,
-      body: { error: "Request body is too large", code: "invalid_request", schemaVersion: AI_SCHEMA_VERSION },
-    };
-  }
-
-  const expectedToken = env.CURSORDANCE_AI_API_ACCESS_TOKEN;
-  if (!expectedToken) return { ok: true };
-
-  const providedToken = headers.authorization?.replace(/^Bearer\s+/i, "") || headers["x-cursordance-client"];
-  if (providedToken !== expectedToken) {
-    return {
-      ok: false,
-      status: 401,
-      body: { error: "Unauthorized AI API request", code: "permission_denied", schemaVersion: AI_SCHEMA_VERSION },
-    };
-  }
-
-  return { ok: true };
-}
+export {
+  buildCorsHeaders,
+  getAiRequestLimits,
+  getAiServiceHealth,
+  getAllowedOrigins,
+  validateAiApiAccess,
+} from "./proposal-service/api-policy.mjs";
+export { getAiRequestMetrics } from "./proposal-service/request-metrics.mjs";
 
 export function serializeAiProposal(proposal) {
   return {

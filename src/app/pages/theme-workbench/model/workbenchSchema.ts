@@ -74,7 +74,7 @@ import {
   pickStoredWorkbenchActionConfigs,
 } from "./actionConfigSchema";
 import { ANIMATION_EASING_OPTIONS } from "./actionConfigOptions";
-import { getDefaultActionConfigs } from "./actionConfigPresets";
+import { getDefaultActionConfigs } from "@/shared/effect-core/default-action-configs";
 import { isDesktop } from "@/shared/runtime";
 
 export const WORKSPACES = [

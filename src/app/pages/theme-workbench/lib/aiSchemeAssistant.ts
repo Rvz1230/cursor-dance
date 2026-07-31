@@ -3,36 +3,35 @@
 import {
   AI_EXTENSION_VERSION,
   AI_SCHEMA_VERSION,
-} from "../../../../../cursor-dance-api/src/field-defs";
-import {
   buildAiProposalContext,
+  buildAiSchemeDiffItems,
+  getAiPatchSanitizeMeta,
+  getAiProposalPatchForAction,
+  getAiRequestErrorMessage,
+  mergeActionConfig,
   normalizeAiSchemeProposal,
-} from "../../../../../cursor-dance-api/src/normalize";
+  sanitizeAiSchemePatch,
+  validateAiSchemeRequest,
+} from "cursor-dance-api/core";
 import {
   requestAiAgentRun as requestRemoteAiAgentRun,
   requestAiSchemeEditStreaming as requestRemoteAiSchemeEditStreaming,
-} from "../../../../../cursor-dance-api/src/client";
+} from "cursor-dance-api/client";
 
 type AiClientError = Error & { status?: number; code?: string };
 
-export { AI_SCHEMA_VERSION } from "../../../../../cursor-dance-api/src/field-defs";
-
 export {
-  getAiPatchSanitizeMeta,
-  mergeActionConfig,
-  sanitizeAiSchemePatch,
-} from "../../../../../cursor-dance-api/src/sanitize";
-
-export { getAiRequestErrorMessage } from "../../../../../cursor-dance-api/src/errors";
-
-export { buildAiSchemeDiffItems } from "../../../../../cursor-dance-api/src/diff";
-
-export {
+  AI_SCHEMA_VERSION,
   buildAiProposalContext,
+  buildAiSchemeDiffItems,
+  getAiPatchSanitizeMeta,
   getAiProposalPatchForAction,
+  getAiRequestErrorMessage,
+  mergeActionConfig,
   normalizeAiSchemeProposal,
+  sanitizeAiSchemePatch,
   validateAiSchemeRequest,
-} from "../../../../../cursor-dance-api/src/normalize";
+};
 
 function getDesktopAiBridge() {
   return typeof window !== "undefined" ? window.cursorDanceAi : undefined;

@@ -10,10 +10,14 @@ import { createChromeWorkbenchRepository } from "./chrome";
 import { createDesktopWorkbenchRepository } from "./desktop";
 import { createLocalWorkbenchRepository } from "./local";
 import type { WorkbenchRepositoryCodec } from "./types";
+import {
+  defaultConfig,
+  normalizeConfig,
+} from "@/shared/config/default-config";
 
 const codec: WorkbenchRepositoryCodec = {
-  getDefaultConfig: () => ({ schemaVersion: 4, enabled: true, themes: [] }),
-  normalizeConfig: (value) => value as CursorDanceConfigRecord,
+  getDefaultConfig: () => defaultConfig,
+  normalizeConfig: (value) => normalizeConfig(value, defaultConfig),
 };
 
 function installLocalWindow() {
@@ -80,7 +84,7 @@ describe("WorkbenchRepository adapters", () => {
     expect(repository.kind).toBe("local");
     expect(repository.recentAssetsPersistence).toBe("local-storage");
 
-    await repository.writeConfig({ schemaVersion: 4, enabled: false, themes: [] });
+    await repository.writeConfig({ ...defaultConfig, enabled: false });
     expect((await repository.readConfig()).enabled).toBe(false);
     await repository.writeEditorState({ workspaceId: "sites", actionId: "wheel" });
     expect(await repository.readEditorState()).toEqual({ workspaceId: "sites", actionId: "wheel" });
@@ -96,7 +100,7 @@ describe("WorkbenchRepository adapters", () => {
 
   it("uses typed desktop bridge storage and session-only recent assets", async () => {
     installLocalWindow();
-    const config = { schemaVersion: 4, enabled: true, themes: [] };
+    const config = defaultConfig;
     const bridge = {
       getConfig: vi.fn(async () => config),
       setConfig: vi.fn(async (value) => value),
@@ -109,7 +113,7 @@ describe("WorkbenchRepository adapters", () => {
     const repository = createDesktopWorkbenchRepository(bridge, codec);
     expect(repository.kind).toBe("desktop");
     expect(repository.recentAssetsPersistence).toBe("session");
-    expect(await repository.readConfig()).toBe(config);
+    expect(await repository.readConfig()).toEqual(config);
     await repository.writeLivePreview({ ...config, enabled: false });
     expect(bridge.setLivePreview).toHaveBeenCalledWith(expect.objectContaining({ enabled: false }));
     await repository.writeRecentCursorAsset({ imageDataUrl: "data:image/png;base64,AA==" });
@@ -120,14 +124,18 @@ describe("WorkbenchRepository adapters", () => {
     const { chromeApi, localValues } = createChromeApi();
     const repository = createChromeWorkbenchRepository(chromeApi, codec);
     const config = {
-      schemaVersion: 4,
-      enabled: true,
+      ...defaultConfig,
+      activeThemeId: "theme-a",
       themes: [{
+        ...defaultConfig.themes[0],
         id: "theme-a",
         cursorSkin: {
+          ...defaultConfig.themes[0].cursorSkin,
           states: {
             default: {
               image: { kind: "dataUrl", dataUrl: "data:image/png;base64,AA==", mimeType: "image/png", width: 1, height: 1 },
+              hotspot: { x: 0, y: 0 },
+              size: { mode: "source" },
             },
           },
         },

@@ -6,7 +6,7 @@ import {
   getActionRippleConfig,
   getActionTextConfig,
 } from "../model/actionConfigSchema";
-import { computeRippleLayers } from "./computeSpecs";
+import { computeRippleLayers } from "@/shared/effect-core/compute-specs";
 
 export type TimelineTrackId = "text" | "ripple" | "particle" | "animation" | "image" | "audio";
 type TimelineTrackTone = "rose" | "teal" | "amber" | "sky" | "violet" | "slate";
@@ -27,13 +27,13 @@ export interface TimelineTrack {
 }
 
 export interface TimelineModelInput {
-  textConfig: Record<string, any>;
-  particleConfig: Record<string, any>;
-  rippleConfig: Record<string, any>;
-  audioConfig: Record<string, any>;
-  animationConfig: Record<string, any>;
-  imageConfig: Record<string, any>;
-  config: Record<string, any>;
+  textConfig: Record<string, unknown>;
+  particleConfig: Record<string, unknown>;
+  rippleConfig: Record<string, unknown>;
+  audioConfig: Record<string, unknown>;
+  animationConfig: Record<string, unknown>;
+  imageConfig: Record<string, unknown>;
+  config: Record<string, unknown>;
 }
 
 export const DELAY_FIELD_BY_TRACK: Partial<Record<TimelineTrackId, string>> = {
@@ -67,28 +67,37 @@ export const PREVIEW_CYCLE_IDLE_MS = 800;
 const TIMELINE_KEYBOARD_STEP_MS = 20;
 const TIMELINE_KEYBOARD_LARGE_STEP_MS = 100;
 
+const numericValue = (value: unknown, fallback = 0): number => (
+  typeof value === "number" && Number.isFinite(value) ? value : fallback
+);
+
 export function buildTimelineTracks({ textConfig, particleConfig, rippleConfig, audioConfig, animationConfig, imageConfig, config }: TimelineModelInput) {
   const tracks: TimelineTrack[] = [];
-  const textDelay = textConfig.textDelay || 0;
-  const rippleDelay = rippleConfig.rippleDelay || 0;
-  const particleDelay = particleConfig.particleDelay || 0;
-  const animationDelay = animationConfig.animationDelay || 0;
-  const imageDelay = imageConfig.imageDelay || 0;
-  const soundDelay = audioConfig.soundDelay || 0;
+  const textDelay = numericValue(textConfig.textDelay);
+  const rippleDelay = numericValue(rippleConfig.rippleDelay);
+  const particleDelay = numericValue(particleConfig.particleDelay);
+  const animationDelay = numericValue(animationConfig.animationDelay);
+  const imageDelay = numericValue(imageConfig.imageDelay);
+  const soundDelay = numericValue(audioConfig.soundDelay);
+  const textDuration = numericValue(textConfig.textDuration);
+  const rippleDuration = numericValue(rippleConfig.rippleDuration);
+  const particleDuration = numericValue(particleConfig.particleDuration);
+  const animationDuration = numericValue(animationConfig.animationDuration);
+  const imageDuration = numericValue(imageConfig.imageDuration);
 
   const ripples = rippleConfig.ripple ? computeRippleLayers(config) : [];
-  const rippleEnd = rippleDelay + ripples.reduce((max, ripple) => Math.max(max, ripple.delay + rippleConfig.rippleDuration), 0);
+  const rippleEnd = rippleDelay + ripples.reduce((max, ripple) => Math.max(max, ripple.delay + rippleDuration), 0);
   const particleEnd = particleConfig.particle
     ? (particleConfig.particleMotionMode === "orbital"
-      ? particleDelay + Math.max(particleConfig.particleDuration || 3000, 1000)
-      : particleDelay + particleConfig.particleDuration + Math.min(520, Math.max(0, particleConfig.particleCount - 1) * (particleConfig.particleStagger ?? 26)))
+      ? particleDelay + Math.max(particleDuration || 3000, 1000)
+      : particleDelay + particleDuration + Math.min(520, Math.max(0, numericValue(particleConfig.particleCount) - 1) * numericValue(particleConfig.particleStagger, 26)))
     : 0;
 
-  if (textConfig.textEnabled) tracks.push({ id: "text", label: "飘字", tone: "rose", start: textDelay, end: textDelay + textConfig.textDuration, configuredDuration: textConfig.textDuration, markers: [{ label: "出现", at: textDelay }, { label: "峰值", at: textDelay + Math.round(textConfig.textDuration * 0.18) }, { label: "淡出", at: textDelay + textConfig.textDuration }] });
-  if (rippleConfig.ripple) tracks.push({ id: "ripple", label: "波纹", tone: "teal", start: rippleDelay, end: rippleEnd, configuredDuration: rippleConfig.rippleDuration, markers: [{ label: "扩散", at: rippleDelay }, { label: "最大", at: rippleEnd }] });
-  if (particleConfig.particle) tracks.push({ id: "particle", label: "粒子", tone: "amber", start: particleDelay, end: particleEnd, configuredDuration: particleConfig.particleDuration, markers: [{ label: "喷发", at: particleDelay }, { label: "散开", at: Math.round(particleDelay + (particleEnd - particleDelay) * 0.55) }] });
-  if (animationConfig.animationEnabled) tracks.push({ id: "animation", label: "动画", tone: "sky", start: animationDelay, end: animationDelay + animationConfig.animationDuration, configuredDuration: animationConfig.animationDuration, markers: [{ label: "入场", at: animationDelay }, { label: "收束", at: animationDelay + animationConfig.animationDuration }] });
-  if (imageConfig.imageEnabled && imageConfig.imageDataUrl) tracks.push({ id: "image", label: "贴纸", tone: "violet", start: imageDelay, end: imageDelay + imageConfig.imageDuration, configuredDuration: imageConfig.imageDuration, markers: [{ label: "弹出", at: imageDelay }, { label: "离场", at: imageDelay + imageConfig.imageDuration }] });
+  if (textConfig.textEnabled) tracks.push({ id: "text", label: "飘字", tone: "rose", start: textDelay, end: textDelay + textDuration, configuredDuration: textDuration, markers: [{ label: "出现", at: textDelay }, { label: "峰值", at: textDelay + Math.round(textDuration * 0.18) }, { label: "淡出", at: textDelay + textDuration }] });
+  if (rippleConfig.ripple) tracks.push({ id: "ripple", label: "波纹", tone: "teal", start: rippleDelay, end: rippleEnd, configuredDuration: rippleDuration, markers: [{ label: "扩散", at: rippleDelay }, { label: "最大", at: rippleEnd }] });
+  if (particleConfig.particle) tracks.push({ id: "particle", label: "粒子", tone: "amber", start: particleDelay, end: particleEnd, configuredDuration: particleDuration, markers: [{ label: "喷发", at: particleDelay }, { label: "散开", at: Math.round(particleDelay + (particleEnd - particleDelay) * 0.55) }] });
+  if (animationConfig.animationEnabled) tracks.push({ id: "animation", label: "动画", tone: "sky", start: animationDelay, end: animationDelay + animationDuration, configuredDuration: animationDuration, markers: [{ label: "入场", at: animationDelay }, { label: "收束", at: animationDelay + animationDuration }] });
+  if (imageConfig.imageEnabled && imageConfig.imageDataUrl) tracks.push({ id: "image", label: "贴纸", tone: "violet", start: imageDelay, end: imageDelay + imageDuration, configuredDuration: imageDuration, markers: [{ label: "弹出", at: imageDelay }, { label: "离场", at: imageDelay + imageDuration }] });
   if (audioConfig.sound) tracks.push({ id: "audio", label: "音效", tone: "slate", start: soundDelay, end: soundDelay + 120, markers: [{ label: "播放", at: soundDelay }] });
 
   const totalMs = Math.max(TIMELINE_MIN_TOTAL_MS, ...tracks.map((track) => track.end));
@@ -159,7 +168,27 @@ export function buildTimelineKeyboardPatch({
   return null;
 }
 
-export function buildTimelineModel(config: Record<string, any>) {
+export function isTimelineTrackDirty(track: TimelineTrack): boolean {
+  const defaults = TRACK_DEFAULTS[track.id];
+  return track.start !== defaults.delay
+    || (defaults.duration !== undefined && track.configuredDuration !== defaults.duration);
+}
+
+export function buildTimelineResetPatch(tracks: TimelineTrack[]): Record<string, number> {
+  const patch: Record<string, number> = {};
+  for (const track of tracks) {
+    const defaults = TRACK_DEFAULTS[track.id];
+    const delayField = DELAY_FIELD_BY_TRACK[track.id];
+    const durationField = DURATION_FIELD_BY_TRACK[track.id];
+    if (delayField) patch[delayField] = defaults.delay;
+    if (durationField && defaults.duration !== undefined) {
+      patch[durationField] = defaults.duration;
+    }
+  }
+  return patch;
+}
+
+export function buildTimelineModel(config: Record<string, unknown>) {
   return buildTimelineTracks({
     textConfig: getActionTextConfig(config),
     particleConfig: getActionParticleConfig(config),
@@ -171,6 +200,6 @@ export function buildTimelineModel(config: Record<string, any>) {
   });
 }
 
-export function getPreviewCycleMs(config: Record<string, any>): number {
+export function getPreviewCycleMs(config: Record<string, unknown>): number {
   return buildTimelineModel(config).totalMs + PREVIEW_CYCLE_IDLE_MS;
 }

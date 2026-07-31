@@ -15,7 +15,7 @@ import {
   getParticleTint as _getParticleTint,
   getAnimationVisualStyle as _getAnimationVisualStyle,
   getAnimationKeyframeName as _getAnimationKeyframeName,
-} from "./computeSpecs";
+} from "@/shared/effect-core/compute-specs";
 
 // Re-export shared computation functions under their original names
 // so existing callers (WorkbenchPreviewRail, AnimatedPreview) don't need to change.
@@ -112,7 +112,7 @@ export function getPreviewText(config, runIndex = 0, actionId = "leftClick") {
 
 export function getPreviewSoundFile(config) {
   const audioConfig = getActionAudioConfig(config);
-  return audioConfig.soundFile;
+  return typeof audioConfig.soundFile === "string" ? audioConfig.soundFile : "";
 }
 
 export function getPreviewTriggerSummary(config) {

@@ -15,7 +15,7 @@ CursorDance 为网页和桌面系统添加可定制的鼠标交互效果——�
 
 - Chrome 扩展（Manifest V3）已上架，内容脚本在目标网页中渲染效果。
 - Electron 桌面版正在开发，通过透明 overlay 和全局输入监听在操作系统桌面渲染效果。
-- 两端复用 React 工作台、设计系统和 schema v3 配置模型；Popup 目前仅由 Chrome 扩展提供。
+- 两端复用 React 工作台、设计系统、schema v4 配置模型和共享效果运行时；Popup 目前仅由 Chrome 扩展提供。
 
 ## 截图
 
@@ -71,10 +71,10 @@ npm run dev:electron
 | 层 | 技术 |
 |---|------|
 | 共享工作台 + 扩展 Popup | React 18 + Vite + Tailwind CSS + Framer Motion |
-| Chrome 扩展 | Manifest V3 + 原生 IIFE 内容脚本 |
+| Chrome 扩展 | Manifest V3 + Vite TypeScript 内容脚本 |
 | Electron 桌面端 | electron-vite + 透明 overlay + uiohook-napi |
 | 状态管理 | useReducer + Chrome Storage / electron-store |
-| 数据格式 | schema v3，主 key `cursordance.config` |
+| 数据格式 | schema v4，主 key `cursordance.config` |
 | 测试 | Vitest + Node test runner + Playwright smoke |
 | AI API | Node.js + OpenAI Responses API 格式 → DeepSeek 模型 |
 
@@ -122,7 +122,7 @@ npm run ai:dev
                      │  Shared React UI     │
                      │ Workbench + Popup    │
                      └──────────┬───────────┘
-                                │ schema v3
+                                │ schema v4
                  ┌──────────────┴──────────────┐
                  │                             │
        ┌─────────▼─────────┐         ┌─────────▼─────────┐
@@ -133,12 +133,18 @@ npm run ai:dev
        └─────────┬─────────┘         └─────────┬─────────┘
                  │                             │
        ┌─────────▼─────────┐         ┌─────────▼─────────┐
-       │ IIFE Effect Engine│         │ TS Effect Engine  │
-       │ inside web pages  │         │ transparent overlay│
-       └───────────────────┘         └───────────────────┘
+       │ Extension Adapter │         │ Desktop Adapter    │
+       │ DOM / Web Audio   │         │ transparent overlay│
+       └─────────┬─────────┘         └─────────┬─────────┘
+                 └──────────────┬──────────────┘
+                                │
+                     ┌──────────▼──────────┐
+                     │ Shared Effect Core │
+                     │ state / specs / DOM│
+                     └─────────────────────┘
 ```
 
-平台边界及同步约束详见 [`ARCHITECTURE.md`](./ARCHITECTURE.md)。扩展与桌面端目前各有一套效果引擎；修改一端时必须同步另一端，并通过 parity 测试锁定共享行为。
+平台边界及同步约束详见 [`ARCHITECTURE.md`](./ARCHITECTURE.md)。动作语义、效果规格、状态机与 DOM/音频运行时位于 `src/shared/`；扩展和桌面端只保留输入、上下文、存储与平台能力适配。
 
 ### 数据流
 
@@ -147,7 +153,7 @@ npm run ai:dev
 1. 用户在工作台编辑主题 → 保存到 `chrome.storage.local`（key: `cursordance.config`）
 2. Live Preview → 写入 `chrome.storage.session`（key: `cursordance.livePreviewConfig`）
 3. 内容脚本通过 `chrome.storage.onChanged` 监听变更 → `syncConfigFromStorage()` 同步配置
-4. DOM 事件（pointerdown/up/move, wheel, contextmenu）→ `trigger-handlers.js` 解析动作配置 → `visual-effects.js` 渲染效果
+4. DOM 事件（pointerdown/up/move, wheel, contextmenu）→ TypeScript trigger adapter → shared effect runtime 渲染效果
 5. Popup 读取配置并解析站点规则，显示实际生效的主题
 
 桌面端：工作台通过 preload IPC 读写 `electron-store`；主进程捕获全局鼠标/键盘事件并广播给透明 overlay，overlay 使用 TypeScript 效果引擎渲染。应用规则根据当前前台应用决定是否启用及使用哪个主题。
@@ -156,7 +162,7 @@ npm run ai:dev
 
 ```
 cursor-dance/
-├── extension/                  # Chrome MV3 清单、配置与 IIFE 内容脚本
+├── extension/                  # Chrome MV3 清单与静态资源
 ├── src/
 │   ├── app/                    # 两端复用的 Workbench / Popup
 │   ├── components/             # Radix + Tailwind 共享组件
@@ -178,26 +184,26 @@ cursor-dance/
 
 ```js
 {
-  schemaVersion: 3,
+  schemaVersion: 4,
   enabled: true,
-  activeThemePackId: "mono-geo",
-  themePacks: [{
+  activeThemeId: "mono-geo",
+  themes: [{
     id: "mono-geo",
     name: "几何",
-    cursorStates: { default: { mode: "inherit", size: 48 }, ... },
-    workbenchDraft: {
-      actionConfigs: {
-        leftClick: { textEnabled: true, particle: true, ripple: true, sound: true, ... },
-        rightClick: { ... },
-        doubleClick: { ... },
-        longPress: { ... },
-        wheel: { ... },
-        hover: { ... }
-      }
-    }
+    cursorBindings: { default: { mode: "override", actionId: "leftClick" }, ... },
+    cursorSkin: { version: 1, enabled: true, transitionMs: 80, states: {} },
+    actionConfigs: {
+      leftClick: { textEnabled: true, particle: true, ripple: true, sound: true, ... },
+      rightClick: { ... },
+      doubleClick: { ... },
+      longPress: { ... },
+      wheel: { ... },
+      hover: { ... }
+    },
+    keyFeedbackConfig: { enabled: true, ... }
   }],
-  siteRules: [
-    { id: "r1", pattern: { type: "glob", value: "*.example.com" }, action: { enable: true, theme: "petal" } }
+  contextRules: [
+    { id: "r1", context: "web", enabled: true, match: { type: "glob", host: "*.example.com" }, action: { type: "enable", themeId: "petal" } }
   ],
   performance: { maxActiveEffects: 48 }
 }

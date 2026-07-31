@@ -1,6 +1,7 @@
 import { AI_EXTENSION_VERSION, AI_SCHEMA_VERSION, DEFAULT_API_ENDPOINT } from "./field-defs.js";
 import { getAiRequestErrorMessage } from "./errors.js";
 import { normalizeAiSchemeProposal, buildAiProposalContext } from "./normalize.js";
+import { readJsonSseEvents } from "./transport/sse-client.js";
 
 function getAiTimeoutMs() {
   const envValue = globalThis.VITE_CURSORDANCE_AI_TIMEOUT_MS;
@@ -129,56 +130,16 @@ async function requestAiSchemeEdit({ prompt, currentConfig, actionLabel, actionI
 }
 
 async function parseSseStream(response, onProgress, signal) {
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  let currentEventType = "message";
-
-  function checkAborted() {
-    if (signal?.aborted) {
-      const cancelError = new Error("AI 请求已取消。");
-      cancelError.code = "abort";
-      throw cancelError;
+  for await (const event of readJsonSseEvents(response, { signal })) {
+    if (event.type === "progress" && event.data.reply) {
+      onProgress?.(event.data.reply);
+    } else if (event.type === "result") {
+      return event.data;
+    } else if (event.type === "error") {
+      throw new Error(event.data.error || event.data.details || "Stream error");
     }
   }
-
-  try {
-    while (true) {
-      checkAborted();
-      const { done, value } = await reader.read();
-      if (done) throw new Error("Unexpected end of SSE stream without result.");
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-
-      for (const line of lines) {
-        if (line.startsWith("event: ")) {
-          currentEventType = line.slice(7).trim();
-          continue;
-        }
-        if (!line.startsWith("data: ")) continue;
-        const rawData = line.slice(6).trim();
-        if (!rawData) continue;
-
-        try {
-          const data = JSON.parse(rawData);
-          if (currentEventType === "progress" && data.reply) {
-            onProgress?.(data.reply);
-          } else if (currentEventType === "result") {
-            return data;
-          } else if (currentEventType === "error") {
-            throw new Error(data.error || data.details || "Stream error");
-          }
-        } catch (err) {
-          if (err instanceof SyntaxError) continue;
-          throw err;
-        }
-      }
-    }
-  } finally {
-    reader.releaseLock?.();
-  }
+  throw new Error("Unexpected end of SSE stream without result.");
 }
 
 export async function requestAiSchemeEditStreaming({ prompt, currentConfig, actionLabel, actionId, taskMode, proposalContext, onProgress, signal: externalSignal }) {
@@ -297,72 +258,23 @@ export async function requestAiAgentRun({ prompt, currentConfig, actionConfigs, 
 }
 
 async function parseAgentSseStream(response, onEvent, signal) {
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  let currentEventType = "message";
   let finalResult = null;
 
-  function checkAborted() {
-    if (signal?.aborted) {
-      const cancelError = new Error("AI 请求已取消。");
-      cancelError.code = "abort";
-      throw cancelError;
+  for await (const event of readJsonSseEvents(response, { signal })) {
+    const { data, type } = event;
+    onEvent?.(type, data);
+
+    if (type === "result" && data.proposal) {
+      finalResult = data.proposal;
+      if (data.totalTokens != null) finalResult.totalTokens = data.totalTokens;
+      if (data.durationMs != null) finalResult.durationMs = data.durationMs;
+      if (data.steps != null) finalResult.steps = data.steps;
+      if (data.totalCacheHitTokens != null) finalResult.totalCacheHitTokens = data.totalCacheHitTokens;
+      if (data.totalCacheMissTokens != null) finalResult.totalCacheMissTokens = data.totalCacheMissTokens;
     }
-  }
-
-  try {
-    while (true) {
-      checkAborted();
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-
-      for (const line of lines) {
-        if (line.startsWith("event: ")) {
-          currentEventType = line.slice(7).trim();
-          continue;
-        }
-        if (!line.startsWith("data: ")) continue;
-        const rawData = line.slice(6).trim();
-        if (!rawData) continue;
-
-        try {
-          const data = JSON.parse(rawData);
-          onEvent?.(currentEventType, data);
-
-          if (currentEventType === "result" && data.proposal) {
-            finalResult = data.proposal;
-            if (data.totalTokens != null) {
-              finalResult.totalTokens = data.totalTokens;
-            }
-            if (data.durationMs != null) {
-              finalResult.durationMs = data.durationMs;
-            }
-            if (data.steps != null) {
-              finalResult.steps = data.steps;
-            }
-            if (data.totalCacheHitTokens != null) {
-              finalResult.totalCacheHitTokens = data.totalCacheHitTokens;
-            }
-            if (data.totalCacheMissTokens != null) {
-              finalResult.totalCacheMissTokens = data.totalCacheMissTokens;
-            }
-          }
-          if (currentEventType === "error") {
-            throw new Error(data.error || data.details || "Agent run error");
-          }
-        } catch (err) {
-          if (err instanceof SyntaxError) continue;
-          throw err;
-        }
-      }
+    if (type === "error") {
+      throw new Error(data.error || data.details || "Agent run error");
     }
-  } finally {
-    reader.releaseLock?.();
   }
 
   if (!finalResult) throw new Error("Agent run ended without result.");

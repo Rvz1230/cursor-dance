@@ -22,7 +22,7 @@ vi.mock("electron", () => ({
   },
 }));
 
-vi.mock("../../../cursor-dance-api/src/proposal-service.mjs", () => ({
+vi.mock("cursor-dance-api/service", () => ({
   createAiSchemeProposalStreaming: mocks.createProposalStream,
   createAiAgentProposal: mocks.createAgent,
 }));

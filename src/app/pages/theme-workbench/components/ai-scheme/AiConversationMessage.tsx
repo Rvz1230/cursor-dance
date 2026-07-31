@@ -1,16 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Check, Copy, PenLine, ThumbsDown, ThumbsUp } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { IconButton } from "@/components/ui/icon-button";
 import { cn } from "@/components/ui/utils";
 import type { ConversationMessage } from "../../lib/storage/ai-conversation";
 import { saveFeedback } from "../../lib/storage/ai-feedback";
 
-// react-markdown's React 19-oriented component types conflict with this
-// project's React 18 types. Keep the compatibility cast in one place.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const Markdown = ReactMarkdown as any;
+const AiMarkdownRenderer = lazy(() => import("./AiMarkdownRenderer").then((module) => ({
+  default: module.AiMarkdownRenderer,
+})));
 
 interface Notification {
   tone: "success";
@@ -24,49 +21,11 @@ interface AiConversationMessageProps {
   notify?(notification: Notification): void;
 }
 
-const markdownComponents = {
-  p: ({ children }) => <p className="mb-1 last:mb-0">{children}</p>,
-  code: ({ className, children, ...props }) => {
-    const isBlock = /language-/.test(className || "");
-    if (isBlock) {
-      return (
-        <pre className="mb-1 mt-1 overflow-x-auto rounded-lg bg-slate-100 p-2 text-2xs leading-5">
-          <code className={className} {...props}>{children}</code>
-        </pre>
-      );
-    }
-    return (
-      <code className="rounded bg-slate-200/70 px-1 py-0.5 font-mono text-2xs" {...props}>
-        {children}
-      </code>
-    );
-  },
-  ul: ({ children }) => <ul className="mb-1 list-disc pl-4">{children}</ul>,
-  ol: ({ children }) => <ol className="mb-1 list-decimal pl-4">{children}</ol>,
-  li: ({ children }) => <li className="text-xs leading-5">{children}</li>,
-  strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
-  a: ({ href, children }) => (
-    <a
-      href={href}
-      className="underline underline-offset-2 hover:text-slate-900"
-      target="_blank"
-      rel="noreferrer"
-      onClick={(event) => {
-        if (!href || !window.cursorDanceApp) return;
-        event.preventDefault();
-        void window.cursorDanceApp.openExternal(href);
-      }}
-    >
-      {children}
-    </a>
-  ),
-};
-
 function AiMarkdown({ children }: { children: string }) {
   return (
-    <Markdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-      {children}
-    </Markdown>
+    <Suspense fallback={<span className="whitespace-pre-wrap">{children}</span>}>
+      <AiMarkdownRenderer>{children}</AiMarkdownRenderer>
+    </Suspense>
   );
 }
 

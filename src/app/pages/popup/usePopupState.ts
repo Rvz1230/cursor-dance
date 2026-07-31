@@ -14,11 +14,26 @@ import {
   subscribeExtensionConfig,
   subscribeLivePreviewConfig,
   writeExtensionConfig,
-} from "../theme-workbench/lib/extensionConfig";
-import { getRuntimeConfig } from "../theme-workbench/lib/runtimeConfig";
+} from "../theme-workbench/lib/workbenchConfig";
+import {
+  buildInitialNotice,
+  getActionConfig,
+  getEffectiveActiveThemeId,
+  getErrorMessage,
+  getPreviewActionId,
+  getSiteAction,
+  resolveNextConfigForThemeChange,
+  type PopupNotice,
+  type PopupSiteContext,
+} from "./popupConfigModel";
 import { ACTIONS } from "../theme-workbench/model/workbenchSchema";
+import type {
+  RuntimeDiagnosticEntry,
+  WorkbenchEditorState,
+} from "../theme-workbench/lib/storage/repository/types";
+import type { CursorDanceConfig } from "@/shared/config/default-config";
 
-const EMPTY_SITE = {
+const EMPTY_SITE: PopupSiteContext = {
   host: "",
   isSupportedPage: false,
   isPreviewMode: false,
@@ -35,105 +50,14 @@ const EMPTY_STATE = {
   draftsByTheme: EMPTY_THEME_STATE.draftsByTheme,
 };
 
-function getPreviewActionId(editorState) {
-  return ACTIONS.some((item) => item.id === editorState?.actionId)
-    ? editorState.actionId
-    : "leftClick";
-}
-
-function getActionConfig(draftsByTheme, themeId, actionId) {
-  return draftsByTheme[themeId]?.actionConfigs?.[actionId]
-    ?? draftsByTheme[themeId]?.actionConfigs?.leftClick
-    ?? null;
-}
-
-function buildInitialNotice(site) {
-  if (site.isPreviewMode) {
-    return { tone: "slate", message: "本地预览模式已就绪。" };
-  }
-  if (site.isSupportedPage) {
-    return { tone: "slate", message: "已连接当前网页。" };
-  }
-  return { tone: "amber", message: "当前标签页不是普通网页，部分操作暂不可用。" };
-}
-
-function getErrorMessage(error, fallback) {
-  return error instanceof Error ? error.message : fallback;
-}
-
-function getSiteAction(config, host, path) {
-  if (!config) return null;
-  var runtime = getRuntimeConfig();
-  var rules = Array.isArray(config.contextRules)
-    ? config.contextRules.filter((rule) => rule?.context === "web")
-    : [];
-  for (var i = 0; i < rules.length; i++) {
-    var rule = rules[i];
-    if (!rule.enabled) continue;
-    var hostPattern = {
-      type: rule.match?.type,
-      value: rule.match?.host || "",
-    };
-    var hostMatches = typeof runtime.matchPattern === "function"
-      && runtime.matchPattern(host, path, hostPattern);
-    var pathMatches = !rule.match?.path || path.startsWith(rule.match.path);
-    if (hostMatches && pathMatches) {
-      return rule.action;
-    }
-  }
-  return null;
-}
-
-function getEffectiveActiveThemeId(siteAction, activeThemeId) {
-  if (siteAction?.type === "enable" && siteAction.themeId) {
-    return siteAction.themeId;
-  }
-  return activeThemeId;
-}
-
-function resolveNextConfigForThemeChange(currentConfig, site, themeId) {
-  var host = site.host || "";
-  var pathname = "/";
-  var runtime = getRuntimeConfig();
-  var rules = Array.isArray(currentConfig.contextRules) ? currentConfig.contextRules : [];
-
-  var matchedIndex = -1;
-  for (var i = 0; i < rules.length; i++) {
-    var rule = rules[i];
-    var hostPattern = rule?.context === "web" ? {
-      type: rule.match?.type,
-      value: rule.match?.host || "",
-    } : null;
-    var hostMatches = hostPattern && typeof runtime.matchPattern === "function"
-      && runtime.matchPattern(host, pathname, hostPattern);
-    var pathMatches = !rule?.match?.path || pathname.startsWith(rule.match.path);
-    if (rule?.enabled && hostMatches && pathMatches) {
-      matchedIndex = i;
-      break;
-    }
-  }
-
-  if (matchedIndex >= 0 && host) {
-    var matchedRule = rules[matchedIndex];
-    var nextRules = rules.slice();
-    nextRules[matchedIndex] = { ...matchedRule, action: { type: "enable", themeId } };
-    return { ...currentConfig, contextRules: nextRules };
-  }
-
-  return {
-    ...currentConfig,
-    activeThemeId: themeId,
-  };
-}
-
 export function usePopupState() {
-  const [config, setConfig] = useState(null);
-  const [livePreviewConfig, setLivePreviewConfig] = useState(null);
-  const [editorState, setEditorState] = useState(null);
+  const [config, setConfig] = useState<CursorDanceConfig | null>(null);
+  const [livePreviewConfig, setLivePreviewConfig] = useState<CursorDanceConfig | null>(null);
+  const [editorState, setEditorState] = useState<WorkbenchEditorState | null>(null);
   const [site, setSite] = useState(EMPTY_SITE);
   const [busyKey, setBusyKey] = useState("");
-  const [notice, setNotice] = useState({ tone: "slate", message: "正在连接主题切换器…" });
-  const [runtimeErrors, setRuntimeErrors] = useState([]);
+  const [notice, setNotice] = useState<PopupNotice>({ tone: "slate", message: "正在连接主题切换器…" });
+  const [runtimeErrors, setRuntimeErrors] = useState<RuntimeDiagnosticEntry[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -194,7 +118,7 @@ export function usePopupState() {
   }, [effectiveConfig, site]);
 
   const activeThemeId = hydrated.selection.themeId;
-  var siteAction = getSiteAction(effectiveConfig, site.host, "/");
+  const siteAction = getSiteAction(effectiveConfig, site.host, "/");
   const effectiveActiveThemeId = getEffectiveActiveThemeId(siteAction, activeThemeId);
   const previewActionId = getPreviewActionId(editorState);
   const activeAction = ACTIONS.find((item) => item.id === previewActionId) ?? ACTIONS[0];
@@ -215,7 +139,13 @@ export function usePopupState() {
   const activeThemeChoice = themeChoices.find((item) => item.theme.id === effectiveActiveThemeId) ?? themeChoices[0] ?? null;
   const enabled = effectiveConfig?.enabled !== false;
 
-  async function commitConfig(key, updater, nextNotice) {
+  async function commitConfig(
+    key: string,
+    updater: (
+      currentConfig: CursorDanceConfig,
+    ) => CursorDanceConfig | Promise<CursorDanceConfig>,
+    nextNotice: PopupNotice | null,
+  ): Promise<CursorDanceConfig | null> {
     setBusyKey(key);
     try {
       const currentConfig = await readExtensionConfig();
@@ -247,10 +177,10 @@ export function usePopupState() {
     }
   }
 
-  async function setEnabled(nextEnabled) {
+  async function setEnabled(nextEnabled: boolean): Promise<void> {
     await commitConfig(
       "enabled",
-      async (currentConfig) => ({
+      (currentConfig) => ({
         ...currentConfig,
         enabled: nextEnabled,
       }),
@@ -261,10 +191,10 @@ export function usePopupState() {
     );
   }
 
-  async function setThemeId(themeId) {
+  async function setThemeId(themeId: string): Promise<void> {
     const savedConfig = await commitConfig(
       "theme",
-      async (currentConfig) => resolveNextConfigForThemeChange(currentConfig, site, themeId),
+      (currentConfig) => resolveNextConfigForThemeChange(currentConfig, site, themeId),
       {
         tone: "slate",
         message: "当前主题已切换。",

@@ -3,30 +3,14 @@ import {
   PLATFORM_ACTIONS,
   CURSOR_STATES,
   WORKSPACES,
-  buildDefaultCursorStateActions,
-  buildDefaultCursorStateAssets,
-  createThemeDraft,
   getConflictsForAction,
 } from "../model/workbenchSchema";
 import {
-  buildStoredThemePackFromWorkbench,
-  buildPreviewThemePackFromWorkbench,
   buildStoredConfigFromWorkbench,
-  buildThemeExportPayload,
   clearLivePreviewConfig,
-  downloadThemePackExport,
-  draftFromThemePack,
-  previewThemePack,
   readExtensionConfig,
-  writeRecentCursorAsset,
   writeExtensionConfig,
-} from "../lib/extensionConfig";
-import {
-  buildCreateThemePayload,
-  buildDeleteThemePlan,
-  buildDuplicateThemePayload,
-  buildImportedThemePayload,
-} from "../lib/themeWorkbenchThemeLifecycle";
+} from "../lib/workbenchConfig";
 import {
   INITIAL_THEME_STATE,
   initialState,
@@ -35,10 +19,20 @@ import {
 import { useThemeWorkbenchPersistence } from "./useThemeWorkbenchPersistence";
 import { isDesktop } from "@/shared/runtime";
 import { normalizeKeyFeedbackConfig } from "@/shared/config/key-feedback";
+import { createWorkbenchThemeCommands } from "./workbenchThemeCommands";
+import { createWorkbenchCursorCommands } from "./workbenchCursorCommands";
+import type { AppRule } from "@/shared/app-rules";
+import type { KeyFeedbackConfig } from "@/shared/config/key-feedback";
+import type {
+  SiteRule,
+  WorkbenchActionConfig,
+  WorkbenchConfigRef,
+  WorkbenchThemeDraft,
+} from "./workbenchStateTypes";
 
 export function useThemeWorkbenchState() {
   const [state, dispatch] = useReducer(reducer, initialState);
-  const configRef = useRef(null);
+  const configRef: WorkbenchConfigRef = useRef(null);
   const stateRef = useRef(state);
   stateRef.current = state;
   useThemeWorkbenchPersistence({ state, dispatch, configRef });
@@ -53,7 +47,7 @@ export function useThemeWorkbenchState() {
   const currentConflicts = getConflictsForAction(selected.actionId, draft.actionConfigs);
   const isWorkbench = state.workspaceId === "workbench";
 
-  function updateCurrentTheme(updater) {
+  function updateCurrentTheme(updater: (current: WorkbenchThemeDraft) => WorkbenchThemeDraft): void {
     dispatch({ type: "theme/update-current", payload: updater });
   }
 
@@ -77,155 +71,17 @@ export function useThemeWorkbenchState() {
     }
   }
 
-  function discardThemeChanges(themeId) {
-    const storedConfig = configRef.current;
-    const themePack = storedConfig?.themes?.find((theme) => theme.id === themeId);
-    const draft = themePack ? draftFromThemePack(themePack) : createThemeDraft(themeId);
-    dispatch({ type: "theme/discard-changes", payload: { themeId, draft } });
-  }
-
-  async function previewActiveTheme() {
-    const currentConfig = configRef.current ?? (await readExtensionConfig());
-    const previewTheme = buildPreviewThemePackFromWorkbench(currentConfig, state);
-    await previewThemePack(selected.themeId, previewTheme, selected.actionId);
-  }
-
-  async function rememberRecentCursorAsset(assetRecord) {
-    const nextRecentAssets = await writeRecentCursorAsset(assetRecord);
-    dispatch({ type: "recent-assets/set", payload: nextRecentAssets });
-  }
-
-  function createTheme({ name, description = "", basedOnThemeId = "blank" }) {
-    dispatch({
-      type: "theme/library-add",
-      payload: buildCreateThemePayload(
-        { themeLibrary: state.themeLibrary, draftsByTheme: state.draftsByTheme },
-        { name, description, basedOnThemeId }
-      ),
-    });
-  }
-
-  function duplicateTheme(themeId = selected.themeId) {
-    const { duplicatedName, payload } = buildDuplicateThemePayload(
-      { themeLibrary: state.themeLibrary, draftsByTheme: state.draftsByTheme },
-      themeId
-    );
-
-    dispatch({
-      type: "theme/library-add",
-      payload,
-    });
-
-    return duplicatedName;
-  }
-
-  function deleteTheme(themeId = selected.themeId) {
-    const { themeName, nextSelectedThemeId } = buildDeleteThemePlan(state.themeLibrary, themeId);
-    dispatch({
-      type: "theme/library-remove",
-      payload: {
-        themeId,
-        nextSelectedThemeId,
-      },
-    });
-
-    return themeName;
-  }
-
-  async function exportTheme(themeId = selected.themeId) {
-    const theme = state.themeLibrary.find((item) => item.id === themeId);
-    if (!theme) {
-      throw new Error("导出失败：没有找到要导出的主题。");
-    }
-
-    const previousConfig = configRef.current ?? {
-      schemaVersion: 4,
-      enabled: state.ui.enabled,
-      activeThemeId: state.selection.themeId,
-      themes: [],
-      contextRules: [],
-      performance: { maxActiveEffects: 48 },
-    };
-    const themePack = buildStoredThemePackFromWorkbench(previousConfig, state, themeId);
-    const fileName = await downloadThemePackExport(themePack);
-    if (!fileName) return null;
-    return {
-      fileName,
-      payload: buildThemeExportPayload(themePack),
-    };
-  }
-
-  function importThemeFromText(text, fileName = "") {
-    let parsed;
-    try {
-      parsed = JSON.parse(text);
-    } catch {
-      throw new Error("导入失败：文件不是合法的 JSON。");
-    }
-
-    dispatch({
-      type: "theme/library-add",
-      payload: buildImportedThemePayload(state.themeLibrary, parsed, fileName),
-    });
-  }
-
-  function renameTheme(themeId, name) {
-    const trimmed = name.trim();
-    if (!trimmed) return false;
-    const exists = state.themeLibrary.some(
-      (theme) => theme.id !== themeId && theme.name.toLowerCase() === trimmed.toLowerCase()
-    );
-    if (exists) return false;
-    dispatch({ type: "theme/library-rename", payload: { themeId, name: trimmed } });
-    return true;
-  }
-
-  function updateThemeIcon(themeId, icon) {
-    dispatch({ type: "theme/library-update-icon", payload: { themeId, icon } });
-  }
-
-  function updateCursorSkinState(stateId, patch) {
-    updateCurrentTheme((current) => ({
-      ...current,
-      cursorSkin: {
-        ...(current.cursorSkin || { version: 1, enabled: true, transitionMs: 80, states: {} }),
-        states: {
-          ...(current.cursorSkin?.states || {}),
-          [stateId]: {
-            ...(current.cursorSkin?.states?.[stateId] || {}),
-            ...patch,
-          },
-        },
-      },
-    }));
-  }
-
-  function clearCursorSkinState(stateId) {
-    updateCurrentTheme((current) => {
-      const states = { ...(current.cursorSkin?.states || {}) };
-      delete states[stateId];
-      return {
-        ...current,
-        cursorSkin: {
-          ...(current.cursorSkin || { version: 1, enabled: true, transitionMs: 80, states: {} }),
-          states,
-        },
-      };
-    });
-  }
-
-  function copyDefaultCursorSkinState(stateId = selected.cursorStateId) {
-    const defaultState = draft?.cursorSkin?.states?.default;
-    if (!defaultState) return;
-    updateCursorSkinState(stateId, JSON.parse(JSON.stringify(defaultState)));
-  }
-
-  function resetCursorSkin() {
-    updateCurrentTheme((current) => ({
-      ...current,
-      cursorSkin: { version: 1, enabled: true, transitionMs: 80, states: {} },
-    }));
-  }
+  const themeCommands = createWorkbenchThemeCommands({
+    state,
+    selected,
+    configRef,
+    dispatch,
+  });
+  const cursorCommands = createWorkbenchCursorCommands({
+    selected,
+    draft,
+    updateCurrentTheme,
+  });
 
   return {
     state,
@@ -244,23 +100,15 @@ export function useThemeWorkbenchState() {
     actionItems: PLATFORM_ACTIONS,
     cursorStates: CURSOR_STATES,
     recentCursorAssets: state.recentCursorAssets,
-    setWorkspaceId: (value) => dispatch({ type: "workspace/set", payload: value }),
-    setThemeId: (value) => dispatch({ type: "theme/select", payload: value }),
-    setActionId: (value) => dispatch({ type: "action/select", payload: value }),
-    setCursorStateId: (value) => dispatch({ type: "cursor-state/select", payload: value }),
-    setEnabled: (value) => dispatch({ type: "global-enabled/set", payload: value }),
+    setWorkspaceId: (value: string) => dispatch({ type: "workspace/set", payload: value }),
+    setThemeId: (value: string) => dispatch({ type: "theme/select", payload: value }),
+    setActionId: (value: string) => dispatch({ type: "action/select", payload: value }),
+    setCursorStateId: (value: string) => dispatch({ type: "cursor-state/select", payload: value }),
+    setEnabled: (value: boolean) => dispatch({ type: "global-enabled/set", payload: value }),
     saveChanges,
-    discardThemeChanges,
-    previewActiveTheme,
-    createTheme,
-    duplicateTheme,
-    deleteTheme,
-    exportTheme,
-    importThemeFromText,
-    renameTheme,
-    updateThemeIcon,
+    ...themeCommands,
     resetCurrentTheme: () => dispatch({ type: "theme/reset-current" }),
-    updateActionConfig: (patch) =>
+    updateActionConfig: (patch: WorkbenchActionConfig) =>
       updateCurrentTheme((current) => ({
         ...current,
         actionConfigs: {
@@ -271,7 +119,7 @@ export function useThemeWorkbenchState() {
           },
         },
       })),
-    updateActionConfigs: (patchesByActionId) =>
+    updateActionConfigs: (patchesByActionId: Record<string, WorkbenchActionConfig>) =>
       updateCurrentTheme((current) => ({
         ...current,
         actionConfigs: Object.entries(patchesByActionId || {}).reduce(
@@ -285,7 +133,7 @@ export function useThemeWorkbenchState() {
           current.actionConfigs
         ),
       })),
-    updateAtmosphere: (patch) =>
+    updateAtmosphere: (patch: Record<string, unknown>) =>
       updateCurrentTheme((current) => ({
         ...current,
         atmosphere: {
@@ -293,119 +141,20 @@ export function useThemeWorkbenchState() {
           ...patch,
         },
       })),
-    updateCursorMode: (mode) =>
-      updateCurrentTheme((current) => ({
-        ...current,
-        cursorModes: {
-          ...current.cursorModes,
-          [selected.cursorStateId]: mode,
-        },
-      })),
-    updateCursorStateAction: (actionId) =>
-      updateCurrentTheme((current) => ({
-        ...current,
-        cursorStateActions: {
-          ...current.cursorStateActions,
-          [selected.cursorStateId]: actionId,
-        },
-      })),
-    updateCursorStateAsset: (patch) =>
-      updateCurrentTheme((current) => ({
-        ...current,
-        cursorModes:
-          selected.cursorStateId !== "default"
-            ? {
-                ...current.cursorModes,
-                [selected.cursorStateId]: "覆盖",
-              }
-            : current.cursorModes,
-        cursorStateAssets: {
-          ...current.cursorStateAssets,
-          [selected.cursorStateId]: {
-            ...current.cursorStateAssets[selected.cursorStateId],
-            ...patch,
-          },
-        },
-      })),
-    updateCursorStateAssetForState: (targetStateId, patch) =>
-      updateCurrentTheme((current) => ({
-        ...current,
-        cursorModes:
-          targetStateId !== "default"
-            ? {
-                ...current.cursorModes,
-                [targetStateId]: "覆盖",
-              }
-            : current.cursorModes,
-        cursorStateAssets: {
-          ...current.cursorStateAssets,
-          [targetStateId]: {
-            ...current.cursorStateAssets[targetStateId],
-            ...patch,
-          },
-        },
-      })),
-    rememberRecentCursorAsset,
-    updateCursorSkinState,
-    clearCursorSkinState,
-    copyDefaultCursorSkinState,
-    resetCursorSkin,
-    copyDefaultCursorStateAsset: () =>
-      updateCurrentTheme((current) => ({
-        ...current,
-        cursorModes:
-          selected.cursorStateId !== "default"
-            ? {
-                ...current.cursorModes,
-                [selected.cursorStateId]: "覆盖",
-              }
-            : current.cursorModes,
-        cursorStateAssets: {
-          ...current.cursorStateAssets,
-          [selected.cursorStateId]: {
-            ...current.cursorStateAssets.default,
-          },
-        },
-      })),
-    resetCurrentCursorState: () => {
-      const stateMeta = CURSOR_STATES.find((item) => item.id === selected.cursorStateId);
-      if (!stateMeta) return;
-      updateCurrentTheme((current) => ({
-        ...current,
-        cursorModes: {
-          ...current.cursorModes,
-          [selected.cursorStateId]: stateMeta.id === "default" ? "源" : "继承",
-        },
-        cursorStateActions: {
-          ...current.cursorStateActions,
-          [selected.cursorStateId]: buildDefaultCursorStateActions()[selected.cursorStateId],
-        },
-        cursorStateAssets: {
-          ...current.cursorStateAssets,
-          [selected.cursorStateId]: buildDefaultCursorStateAssets()[selected.cursorStateId],
-        },
-      }));
-    },
-    resetAllCursorStates: () =>
-      updateCurrentTheme((current) => ({
-        ...current,
-        cursorModes: Object.fromEntries(CURSOR_STATES.map((item) => [item.id, item.id === "default" ? "源" : "继承"])),
-        cursorStateActions: buildDefaultCursorStateActions(),
-        cursorStateAssets: buildDefaultCursorStateAssets(),
-      })),
-    addSiteRule: (rule) => dispatch({ type: "rules/add", payload: { collection: "siteRules", rule } }),
-    updateSiteRule: (id, updates) => dispatch({ type: "rules/update", payload: { collection: "siteRules", id, updates } }),
-    deleteSiteRule: (id) => dispatch({ type: "rules/delete", payload: { collection: "siteRules", id } }),
-    reorderSiteRules: (from, to) => dispatch({ type: "rules/reorder", payload: { collection: "siteRules", from, to } }),
-    toggleSiteRule: (id) => dispatch({ type: "rules/toggle", payload: { collection: "siteRules", id } }),
+    ...cursorCommands,
+    addSiteRule: (rule: SiteRule) => dispatch({ type: "rules/add", payload: { collection: "siteRules", rule } }),
+    updateSiteRule: (id: string, updates: Partial<SiteRule>) => dispatch({ type: "rules/update", payload: { collection: "siteRules", id, updates } }),
+    deleteSiteRule: (id: string) => dispatch({ type: "rules/delete", payload: { collection: "siteRules", id } }),
+    reorderSiteRules: (from: number, to: number) => dispatch({ type: "rules/reorder", payload: { collection: "siteRules", from, to } }),
+    toggleSiteRule: (id: string) => dispatch({ type: "rules/toggle", payload: { collection: "siteRules", id } }),
     clearAllSiteRules: () => dispatch({ type: "rules/clear-all", payload: { collection: "siteRules" } }),
-    addAppRule: (rule) => dispatch({ type: "rules/add", payload: { collection: "appRules", rule } }),
-    updateAppRule: (id, updates) => dispatch({ type: "rules/update", payload: { collection: "appRules", id, updates } }),
-    deleteAppRule: (id) => dispatch({ type: "rules/delete", payload: { collection: "appRules", id } }),
-    reorderAppRules: (from, to) => dispatch({ type: "rules/reorder", payload: { collection: "appRules", from, to } }),
-    toggleAppRule: (id) => dispatch({ type: "rules/toggle", payload: { collection: "appRules", id } }),
+    addAppRule: (rule: AppRule) => dispatch({ type: "rules/add", payload: { collection: "appRules", rule } }),
+    updateAppRule: (id: string, updates: Partial<AppRule>) => dispatch({ type: "rules/update", payload: { collection: "appRules", id, updates } }),
+    deleteAppRule: (id: string) => dispatch({ type: "rules/delete", payload: { collection: "appRules", id } }),
+    reorderAppRules: (from: number, to: number) => dispatch({ type: "rules/reorder", payload: { collection: "appRules", from, to } }),
+    toggleAppRule: (id: string) => dispatch({ type: "rules/toggle", payload: { collection: "appRules", id } }),
     clearAllAppRules: () => dispatch({ type: "rules/clear-all", payload: { collection: "appRules" } }),
     keyFeedbackConfig: normalizeKeyFeedbackConfig(draft?.keyFeedbackConfig),
-    updateKeyFeedbackConfig: (patch) => dispatch({ type: "key-feedback/update", payload: patch }),
+    updateKeyFeedbackConfig: (patch: Partial<KeyFeedbackConfig>) => dispatch({ type: "key-feedback/update", payload: patch }),
   };
 }

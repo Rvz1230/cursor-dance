@@ -100,7 +100,10 @@ describe("themeWorkbenchStateStore", () => {
       defaultConfig,
       editedState
     );
-    const hydratedState = hydrateWorkbenchState(storedConfig, { host: "example.com" });
+    const hydratedState = reducer(initialState, {
+      type: "hydrate",
+      payload: hydrateWorkbenchState(storedConfig, { host: "example.com" }),
+    });
     const switchedState = reducer(hydratedState, { type: "theme/select", payload: themeB });
 
     expect(switchedState.draftsByTheme[themeA].keyFeedbackConfig.color).toBe("#00FFAA");

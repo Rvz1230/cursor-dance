@@ -1,5 +1,5 @@
 import { createThemeDraft } from "../model/workbenchSchema";
-import { draftFromThemePack, themePackToThemeLibraryItem } from "./extensionConfig";
+import { draftFromThemePack, themePackToThemeLibraryItem } from "./workbenchConfig";
 import { validateCursorDanceConfigV4 } from "@/shared/config-schema-v4";
 
 function cloneValue(value) {

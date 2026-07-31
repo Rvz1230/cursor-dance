@@ -2,6 +2,11 @@
   "name": "cursor-dance-api",
   "private": true,
   "type": "module",
+  "exports": {
+    "./core": "./src/core.js",
+    "./client": "./src/client.js",
+    "./service": "./src/proposal-service.mjs"
+  },
   "engines": {
     "node": ">=22.0.0"
   },

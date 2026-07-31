@@ -12,7 +12,7 @@ import {
   subscribeLivePreviewConfig,
   subscribeRuntimeDiagnostics,
   writeDiagnosticDebugFlag,
-} from "../lib/extensionConfig";
+} from "../lib/workbenchConfig";
 import { appendDiagnosticEntry, summarizeLivePreviewConfig } from "../lib/diagnosticsSurface";
 import { isDesktop } from "@/shared/runtime";
 

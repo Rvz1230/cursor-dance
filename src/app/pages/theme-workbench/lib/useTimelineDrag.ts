@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 
 /**
  * Horizontal drag/resize hook for timeline tracks.
@@ -8,26 +9,40 @@ import { useCallback, useRef, useState } from "react";
  *   "resize-left"  – drag the left edge (changes delay)
  *   "resize-right" – drag the right edge (changes duration)
  *
- * @param {Object} opts
- * @param {"move"|"resize-left"|"resize-right"} opts.mode
- * @param {number} opts.pxPerMs      - pixels per millisecond
- * @param {number} [opts.snapMs=20]  - snap grid interval in ms
- * @param {number} [opts.minMs=0]    - minimum allowed value
- * @param {(ms: number) => void} [opts.onChange] - called during drag (throttled)
- * @param {(ms: number) => void} [opts.onCommit] - called when drag ends
  */
-export function useTimelineDrag({ mode, pxPerMs, snapMs = 20, minMs = 0, maxMs = Infinity, onChange, onCommit }) {
+interface TimelineDragOptions {
+  pxPerMs: number;
+  snapMs?: number;
+  minMs?: number;
+  maxMs?: number;
+  onChange?(deltaMs: number | null): void;
+  onCommit?(deltaMs: number): void;
+}
+
+interface TimelineDragState {
+  startX: number;
+  lastBroadcastMs: number | null;
+}
+
+export function useTimelineDrag({
+  pxPerMs,
+  snapMs = 20,
+  minMs = 0,
+  maxMs = Infinity,
+  onChange,
+  onCommit,
+}: TimelineDragOptions) {
   const [isDragging, setIsDragging] = useState(false);
-  const [tooltipMs, setTooltipMs] = useState(null);
-  const stateRef = useRef(null);
+  const [tooltipMs, setTooltipMs] = useState<number | null>(null);
+  const stateRef = useRef<TimelineDragState | null>(null);
 
   const snap = useCallback(
-    (value) => Math.min(maxMs, Math.max(minMs, Math.round(value / snapMs) * snapMs)),
+    (value: number) => Math.min(maxMs, Math.max(minMs, Math.round(value / snapMs) * snapMs)),
     [maxMs, minMs, snapMs]
   );
 
   const onPointerDown = useCallback(
-    (event) => {
+    (event: ReactPointerEvent<HTMLDivElement>) => {
       if (event.button !== 0 || pxPerMs <= 0) return;
       event.preventDefault();
       event.stopPropagation();
@@ -44,19 +59,14 @@ export function useTimelineDrag({ mode, pxPerMs, snapMs = 20, minMs = 0, maxMs =
   );
 
   const onPointerMove = useCallback(
-    (event) => {
+    (event: ReactPointerEvent<HTMLDivElement>) => {
       const state = stateRef.current;
       if (!state) return;
 
       const deltaX = event.clientX - state.startX;
       const deltaMs = deltaX / pxPerMs;
 
-      let currentMs;
-      if (mode === "resize-right") {
-        currentMs = snap(deltaMs);
-      } else {
-        currentMs = snap(deltaMs);
-      }
+      const currentMs = snap(deltaMs);
 
       setTooltipMs(currentMs);
 
@@ -65,16 +75,16 @@ export function useTimelineDrag({ mode, pxPerMs, snapMs = 20, minMs = 0, maxMs =
         if (onChange) onChange(currentMs);
       }
     },
-    [pxPerMs, snap, mode, onChange]
+    [pxPerMs, snap, onChange]
   );
 
   const finishDrag = useCallback(
-    (event, commit) => {
+    (event: ReactPointerEvent<HTMLDivElement>, commit: boolean) => {
       const state = stateRef.current;
       if (!state) return;
 
       const el = event.currentTarget;
-      try { el.releasePointerCapture(event.pointerId); } catch (_) { /* ignore */ }
+      try { el.releasePointerCapture(event.pointerId); } catch { /* ignore */ }
 
       const deltaX = event.clientX - state.startX;
       const deltaMs = deltaX / pxPerMs;
@@ -91,12 +101,12 @@ export function useTimelineDrag({ mode, pxPerMs, snapMs = 20, minMs = 0, maxMs =
   );
 
   const onPointerUp = useCallback(
-    (event) => finishDrag(event, true),
+    (event: ReactPointerEvent<HTMLDivElement>) => finishDrag(event, true),
     [finishDrag]
   );
 
   const onPointerCancel = useCallback(
-    (event) => finishDrag(event, false),
+    (event: ReactPointerEvent<HTMLDivElement>) => finishDrag(event, false),
     [finishDrag]
   );
 

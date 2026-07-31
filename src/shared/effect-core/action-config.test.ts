@@ -3,6 +3,7 @@ import {
   ACTION_TRIGGER_FIELDS,
   getActionAudioConfig,
   getActionTriggerConfig,
+  pickStoredActionConfigs,
 } from "./action-config";
 
 describe("shared action config helpers", () => {
@@ -41,6 +42,28 @@ describe("shared action config helpers", () => {
       triggerTiming: "抬起时",
       triggerZone: "当前页面可点击区域",
       holdMs: 80,
+    });
+  });
+
+  it("omits missing fields instead of materializing undefined values", () => {
+    expect(getActionAudioConfig({ sound: true })).toEqual({ sound: true });
+    expect(getActionTriggerConfig(undefined)).toEqual({});
+  });
+
+  it("keeps only runtime fields when preparing stored action configs", () => {
+    expect(pickStoredActionConfigs({
+      leftClick: {
+        triggerTiming: "按下时",
+        textEnabled: true,
+        editorOnly: "discarded",
+      },
+      malformed: "discarded",
+    })).toEqual({
+      leftClick: {
+        triggerTiming: "按下时",
+        textEnabled: true,
+      },
+      malformed: {},
     });
   });
 });

@@ -1,3 +1,14 @@
+export {
+  getActionAnimationConfig,
+  getActionAudioConfig,
+  getActionImageConfig,
+  getActionParticleConfig,
+  getActionRippleConfig,
+  getActionTextConfig,
+  getActionTriggerConfig,
+  pickStoredActionConfigs as pickStoredWorkbenchActionConfigs,
+} from "@/shared/effect-core/action-config";
+
 export const TRIGGER_OPTIONS = {
   leftClick: {
     timing: ["按下时", "抬起时"],
@@ -79,162 +90,3 @@ export const PARTICLE_PALETTE_PRESETS = {
   "海洋": ["#1E3A5F", "#1E40AF", "#3B82F6", "#93C5FD", "#DBEAFE"],
   "暮光": ["#4C1D95", "#7C3AED", "#C084FC", "#F59E0B", "#FDE68A"],
 };
-
-const ACTION_TRIGGER_FIELDS = ["triggerTiming", "triggerZone", "holdMs"];
-const ACTION_TEXT_FIELDS = [
-  "textKind",
-  "textStyle",
-  "textMode",
-  "textTemplate",
-  "textEnabled",
-  "textContent",
-  "textTags",
-  "textTagPlayMode",
-  "textColor",
-  "textDuration",
-  "textEasing",
-  "textOpacity",
-  "textFontFamily",
-  "textWeight",
-  "textOutlineWidth",
-  "textShadow",
-  "comboEnabled",
-  "textOffsetX",
-  "textOffsetY",
-  "fontSize",
-  "textGradient",
-  "textGradientStart",
-  "textGradientEnd",
-  "comboWindowMs",
-  "textDelay",
-];
-const ACTION_PARTICLE_FIELDS = [
-  "particle",
-  "particleCount",
-  "particleSpread",
-  "particleStyle",
-  "particleDirection",
-  "particleColorMode",
-  "particleDuration",
-  "particleSize",
-  "particleOpacity",
-  "particlePalette",
-  "particleGravity",
-  "particleWind",
-  "particleBounce",
-  "particleTrail",
-  "particleDelay",
-  "particleMotionMode",
-  "orbitalCount",
-  "orbitalRadius",
-  "orbitalSpeed",
-  "particleStagger",
-];
-const ACTION_RIPPLE_FIELDS = [
-  "ripple",
-  "rippleSize",
-  "rippleDuration",
-  "rippleStyle",
-  "rippleEasing",
-  "rippleLineWidth",
-  "rippleOpacity",
-  "rippleColor",
-  "rippleDelay",
-];
-const ACTION_AUDIO_FIELDS = [
-  "sound",
-  "volume",
-  "playbackRate",
-  "soundDelay",
-  "soundFadeOut",
-  "soundTriggerMode",
-  "soundBlendMode",
-  "soundFile",
-];
-const ACTION_ANIMATION_FIELDS = [
-  "animationEnabled",
-  "animationStyle",
-  "animationDuration",
-  "animationEasing",
-  "animationScale",
-  "animationOpacity",
-  "animationOffsetX",
-  "animationOffsetY",
-  "animationColor",
-  "animationGlow",
-  "animationDelay",
-];
-const ACTION_IMAGE_FIELDS = [
-  "imageEnabled",
-  "imageDataUrl",
-  "imageAssetId",
-  "imageDuration",
-  "imageSize",
-  "imageOpacity",
-  "imageOffsetX",
-  "imageOffsetY",
-  "imageDelay",
-];
-const ACTION_CURSOR_FEEDBACK_FIELDS = ["shake", "cursorOverride", "cursorSize", "cursorTrailEnabled", "cursorTrailCount", "cursorTrailOpacity", "cursorGlowColor"];
-const ACTION_RUNTIME_FIELDS = Array.from(
-  new Set([
-    ...ACTION_TRIGGER_FIELDS,
-    ...ACTION_TEXT_FIELDS,
-    ...ACTION_PARTICLE_FIELDS,
-    ...ACTION_RIPPLE_FIELDS,
-    ...ACTION_AUDIO_FIELDS,
-    ...ACTION_ANIMATION_FIELDS,
-    ...ACTION_IMAGE_FIELDS,
-    ...ACTION_CURSOR_FEEDBACK_FIELDS,
-  ])
-);
-
-function pickActionConfigFields(config, fieldNames) {
-  return Object.fromEntries(
-    fieldNames
-      .map((fieldName) => [fieldName, config?.[fieldName]])
-      .filter(([, value]) => value !== undefined),
-  );
-}
-
-export function getActionTriggerConfig(config) {
-  return pickActionConfigFields(config, ACTION_TRIGGER_FIELDS);
-}
-
-export function getActionTextConfig(config) {
-  return pickActionConfigFields(config, ACTION_TEXT_FIELDS);
-}
-
-export function getActionParticleConfig(config) {
-  return pickActionConfigFields(config, ACTION_PARTICLE_FIELDS);
-}
-
-export function getActionRippleConfig(config) {
-  return pickActionConfigFields(config, ACTION_RIPPLE_FIELDS);
-}
-
-export function getActionAudioConfig(config) {
-  return pickActionConfigFields(config, ACTION_AUDIO_FIELDS);
-}
-
-export function getActionAnimationConfig(config) {
-  return pickActionConfigFields(config, ACTION_ANIMATION_FIELDS);
-}
-
-export function getActionImageConfig(config) {
-  return pickActionConfigFields(config, ACTION_IMAGE_FIELDS);
-}
-
-function pickStoredWorkbenchActionConfig(actionId, config) {
-  if (!config || typeof config !== "object") return {};
-  return pickActionConfigFields(config, ACTION_RUNTIME_FIELDS);
-}
-
-export function pickStoredWorkbenchActionConfigs(actionConfigs = {}) {
-  return Object.fromEntries(
-    Object.entries(actionConfigs).map(([actionId, config]) => [
-      actionId,
-      pickStoredWorkbenchActionConfig(actionId, config),
-    ])
-  );
-}

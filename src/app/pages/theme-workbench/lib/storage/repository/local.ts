@@ -12,8 +12,9 @@ import {
   type WorkbenchRepositoryCodec,
 } from "./types";
 import { createBrowserFallbackSupport } from "./support";
+import type { CursorDanceConfig } from "@/shared/config/default-config";
 
-function readStoredConfig(key: string, codec: WorkbenchRepositoryCodec): CursorDanceConfigRecord | null {
+function readStoredConfig(key: string, codec: WorkbenchRepositoryCodec): CursorDanceConfig | null {
   if (!canUseLocalStorage()) return null;
   try {
     const raw = window.localStorage.getItem(key);
@@ -25,7 +26,7 @@ function readStoredConfig(key: string, codec: WorkbenchRepositoryCodec): CursorD
 
 export function createLocalWorkbenchRepository(codec: WorkbenchRepositoryCodec): WorkbenchRepository {
   const support = createBrowserFallbackSupport("local-storage");
-  function writeStoredConfig(key: string, config: unknown, messageType: string): CursorDanceConfigRecord {
+  function writeStoredConfig(key: string, config: unknown, messageType: string): CursorDanceConfig {
     const normalized = codec.normalizeConfig(config);
     if (!canUseLocalStorage()) return normalized;
     try {

@@ -4,14 +4,22 @@ import {
 } from "../model/workbenchSchema";
 import {
   createWorkbenchThemeState,
-} from "../lib/extensionConfig";
+} from "../lib/workbenchConfig";
 import {
   normalizeKeyFeedbackConfig,
 } from "@/shared/config/key-feedback";
+import type {
+  AppRule,
+} from "@/shared/app-rules";
+import type {
+  SiteRule,
+  WorkbenchAction,
+  WorkbenchState,
+} from "./workbenchStateTypes";
 
 export const INITIAL_THEME_STATE = createWorkbenchThemeState(THEMES);
 
-export const initialState = {
+export const initialState: WorkbenchState = {
   workspaceId: "workbench",
   selection: {
     themeId: INITIAL_THEME_STATE.selectedThemeId,
@@ -38,7 +46,7 @@ export const initialState = {
   draftsByTheme: INITIAL_THEME_STATE.draftsByTheme,
 };
 
-export function reducer(state, action) {
+export function reducer(state: WorkbenchState, action: WorkbenchAction): WorkbenchState {
   switch (action.type) {
     case "hydrate":
       return {
@@ -141,19 +149,34 @@ export function reducer(state, action) {
         action: rule.action,
         enabled: rule.enabled !== false,
       };
-      return {
-        ...state,
-        [collection]: [...state[collection], newRule],
-        ui: { ...state.ui, unsaved: true, saveError: "" },
-      };
+      return collection === "appRules"
+        ? {
+            ...state,
+            appRules: [...state.appRules, newRule as AppRule],
+            ui: { ...state.ui, unsaved: true, saveError: "" },
+          }
+        : {
+            ...state,
+            siteRules: [...state.siteRules, newRule as SiteRule],
+            ui: { ...state.ui, unsaved: true, saveError: "" },
+          };
     }
     case "rules/update": {
       const collection = action.payload?.collection === "appRules" ? "appRules" : "siteRules";
       const { id, updates } = action.payload;
+      if (collection === "appRules") {
+        return {
+          ...state,
+          appRules: state.appRules.map((rule) =>
+            rule.id === id ? { ...rule, ...(updates as Partial<AppRule>) } : rule
+          ),
+          ui: { ...state.ui, unsaved: true, saveError: "" },
+        };
+      }
       return {
         ...state,
-        [collection]: state[collection].map((rule) =>
-          rule.id === id ? { ...rule, ...updates } : rule
+        siteRules: state.siteRules.map((rule) =>
+          rule.id === id ? { ...rule, ...(updates as Partial<SiteRule>) } : rule
         ),
         ui: { ...state.ui, unsaved: true, saveError: "" },
       };

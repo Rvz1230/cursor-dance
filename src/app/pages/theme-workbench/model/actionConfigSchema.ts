@@ -35,10 +35,13 @@ export {
 export {
   getConflictsForAction,
   getTimingFieldMeta,
-} from "./actionConfigPresets";
+} from "@/shared/effect-core/default-action-configs";
 
-export function mergeActionConfig(baseConfig: Record<string, any> = {}, ...overlays: Array<Record<string, any> | null | undefined>) {
-  return overlays.reduce(
+export function mergeActionConfig(
+  baseConfig: Record<string, unknown> = {},
+  ...overlays: Array<Record<string, unknown> | null | undefined>
+): Record<string, unknown> {
+  return overlays.reduce<Record<string, unknown>>(
     (mergedConfig, overlay) => ({
       ...mergedConfig,
       ...(overlay || {}),

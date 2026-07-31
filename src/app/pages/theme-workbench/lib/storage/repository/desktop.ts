@@ -9,6 +9,7 @@ import {
   type WorkbenchRepositoryCodec,
 } from "./types";
 import { createBrowserFallbackSupport } from "./support";
+import type { CursorDanceConfig } from "@/shared/config/default-config";
 
 type TransportImage = {
   kind?: unknown;
@@ -103,7 +104,7 @@ export function createDesktopWorkbenchRepository(
   async function writeWithAssets(
     config: unknown,
     write: (payload: unknown) => Promise<unknown>,
-  ): Promise<CursorDanceConfigRecord> {
+  ): Promise<CursorDanceConfig> {
     const normalized = codec.normalizeConfig(config);
     const stored = await write(canonicalizeCachedAssets(normalized));
     const materialized = stored ? codec.normalizeConfig(stored) : normalized;

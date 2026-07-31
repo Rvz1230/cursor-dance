@@ -1,4 +1,4 @@
-const ACTION_TRIGGER_FIELDS = ["triggerTiming", "triggerZone", "holdMs"];
+export const ACTION_TRIGGER_FIELDS = ["triggerTiming", "triggerZone", "holdMs"] as const;
 const ACTION_TEXT_FIELDS = [
   "textKind",
   "textStyle",
@@ -25,7 +25,7 @@ const ACTION_TEXT_FIELDS = [
   "textGradientEnd",
   "comboWindowMs",
   "textDelay",
-];
+] as const;
 const ACTION_PARTICLE_FIELDS = [
   "particle",
   "particleCount",
@@ -47,7 +47,7 @@ const ACTION_PARTICLE_FIELDS = [
   "orbitalCount",
   "orbitalRadius",
   "orbitalSpeed",
-];
+] as const;
 const ACTION_RIPPLE_FIELDS = [
   "ripple",
   "rippleSize",
@@ -58,7 +58,7 @@ const ACTION_RIPPLE_FIELDS = [
   "rippleOpacity",
   "rippleColor",
   "rippleDelay",
-];
+] as const;
 const ACTION_AUDIO_FIELDS = [
   "sound",
   "volume",
@@ -68,7 +68,7 @@ const ACTION_AUDIO_FIELDS = [
   "soundTriggerMode",
   "soundBlendMode",
   "soundFile",
-];
+] as const;
 const ACTION_ANIMATION_FIELDS = [
   "animationEnabled",
   "animationStyle",
@@ -81,7 +81,7 @@ const ACTION_ANIMATION_FIELDS = [
   "animationColor",
   "animationGlow",
   "animationDelay",
-];
+] as const;
 const ACTION_IMAGE_FIELDS = [
   "imageEnabled",
   "imageDataUrl",
@@ -92,11 +92,29 @@ const ACTION_IMAGE_FIELDS = [
   "imageOffsetX",
   "imageOffsetY",
   "imageDelay",
-];
-const ACTION_CURSOR_FEEDBACK_FIELDS = ["shake", "cursorOverride", "cursorSize", "cursorTrailEnabled", "cursorTrailCount", "cursorTrailOpacity", "cursorGlowColor"];
+] as const;
+const ACTION_CURSOR_FEEDBACK_FIELDS = ["shake", "cursorOverride", "cursorSize", "cursorTrailEnabled", "cursorTrailCount", "cursorTrailOpacity", "cursorGlowColor"] as const;
 
-function pickActionConfigFields(config: Record<string, unknown> | undefined, fieldNames: string[]): Record<string, unknown> {
-  return Object.fromEntries(fieldNames.map((fieldName) => [fieldName, config?.[fieldName]]));
+const ACTION_RUNTIME_FIELDS = Array.from(new Set([
+  ...ACTION_TRIGGER_FIELDS,
+  ...ACTION_TEXT_FIELDS,
+  ...ACTION_PARTICLE_FIELDS,
+  ...ACTION_RIPPLE_FIELDS,
+  ...ACTION_AUDIO_FIELDS,
+  ...ACTION_ANIMATION_FIELDS,
+  ...ACTION_IMAGE_FIELDS,
+  ...ACTION_CURSOR_FEEDBACK_FIELDS,
+]));
+
+function pickActionConfigFields(
+  config: Record<string, unknown> | undefined,
+  fieldNames: readonly string[],
+): Record<string, unknown> {
+  return Object.fromEntries(
+    fieldNames
+      .map((fieldName) => [fieldName, config?.[fieldName]])
+      .filter((entry) => entry[1] !== undefined),
+  );
 }
 
 export function getActionTriggerConfig(config: Record<string, unknown> | undefined): Record<string, unknown> {
@@ -129,6 +147,17 @@ export function getActionImageConfig(config: Record<string, unknown> | undefined
 
 export function getActionCursorFeedbackConfig(config: Record<string, unknown> | undefined): Record<string, unknown> {
   return pickActionConfigFields(config, ACTION_CURSOR_FEEDBACK_FIELDS);
+}
+
+export function pickStoredActionConfigs(
+  actionConfigs: Record<string, unknown> = {},
+): Record<string, Record<string, unknown>> {
+  return Object.fromEntries(Object.entries(actionConfigs).map(([actionId, value]) => {
+    const config = value && typeof value === "object" && !Array.isArray(value)
+      ? value as Record<string, unknown>
+      : {};
+    return [actionId, pickActionConfigFields(config, ACTION_RUNTIME_FIELDS)];
+  }));
 }
 
 export function hasCursorOverride(config: Record<string, unknown> | undefined): boolean {
@@ -203,7 +232,3 @@ export function getOrderedTextTags(actionConfig: Record<string, unknown> | undef
   if (!primaryText) return currentTags;
   return [primaryText].concat(currentTags.filter((item: string) => item !== primaryText));
 }
-
-export {
-  ACTION_TRIGGER_FIELDS,
-};

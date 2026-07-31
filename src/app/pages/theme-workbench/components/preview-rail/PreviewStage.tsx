@@ -15,7 +15,7 @@ export function PreviewStage({ config, disabled, runId, comboIndex, actionId, ac
   const audioConfig = useMemo(() => getActionAudioConfig(config), [config]);
   const timeline = useMemo(() => buildTimelineModel(config), [config]);
 
-  const soundDelay = audioConfig.soundDelay || 0;
+  const soundDelay = typeof audioConfig.soundDelay === "number" ? audioConfig.soundDelay : 0;
 
   const {
     stageRef,

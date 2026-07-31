@@ -2,7 +2,7 @@ import { ipcMain, type IpcMainInvokeEvent } from "electron";
 import {
   createAiAgentProposal,
   createAiSchemeProposalStreaming,
-} from "../../../cursor-dance-api/src/proposal-service.mjs";
+} from "cursor-dance-api/service";
 import {
   AI_CANCEL_REQUEST,
   AI_CREATE_PROPOSAL_STREAM,

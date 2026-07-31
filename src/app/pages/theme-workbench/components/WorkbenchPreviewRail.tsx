@@ -38,7 +38,7 @@ export function WorkbenchPreviewRail({ actionId = "leftClick", config, actionCon
     () => buildOutputTags({ textConfig, particleConfig, rippleConfig, audioConfig, animationConfig, imageConfig, config }),
     [textConfig, particleConfig, rippleConfig, audioConfig, animationConfig, imageConfig, config]
   );
-  const comboWindowMs = textConfig.comboWindowMs || 900;
+  const comboWindowMs = typeof textConfig.comboWindowMs === "number" ? textConfig.comboWindowMs : 900;
   const {
     runId,
     comboIndex,
@@ -50,7 +50,7 @@ export function WorkbenchPreviewRail({ actionId = "leftClick", config, actionCon
   } = usePreviewPlayback({
     actionId,
     config,
-    comboEnabled: textConfig.comboEnabled,
+    comboEnabled: textConfig.comboEnabled === true,
     comboWindowMs,
     disabled,
   });

@@ -24,6 +24,10 @@ function buildKey(actionId: string): string {
   return `${STORAGE_KEY_PREFIX}${actionId}`;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
 /** Check whether a key matches our prefix and extract actionId. */
 function isOwnKey(key: string): string | null {
   if (!key.startsWith(STORAGE_KEY_PREFIX)) return null;
@@ -91,10 +95,8 @@ export async function loadConversation(
     try {
       const result = await storage.get([buildKey(actionId)]);
       const raw = result[buildKey(actionId)];
-      if (!raw) return null;
-      // Validate basic shape
-      if (!Array.isArray(raw.messages)) return null;
-      return raw as ConversationData;
+      if (!isRecord(raw) || !Array.isArray(raw.messages)) return null;
+      return raw as unknown as ConversationData;
     } catch {
       return null;
     }
@@ -152,7 +154,7 @@ export async function sweepExpiredConversations(): Promise<void> {
         const actionId = isOwnKey(key);
         if (!actionId) continue;
         const raw = all[key];
-        if (raw && typeof raw.updatedAt === "number" && raw.updatedAt < cutoff) {
+        if (isRecord(raw) && typeof raw.updatedAt === "number" && raw.updatedAt < cutoff) {
           toDelete.push(key);
         }
       }

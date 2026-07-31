@@ -11,7 +11,7 @@ import {
   writeEditorState,
   writeExtensionConfig,
   writeLivePreviewConfig,
-} from "../lib/extensionConfig";
+} from "../lib/workbenchConfig";
 
 export function useThemeWorkbenchPersistence({ state, dispatch, configRef }) {
   const debounceRef = useRef(null);

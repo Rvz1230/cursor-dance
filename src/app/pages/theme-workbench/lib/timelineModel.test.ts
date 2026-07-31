@@ -10,9 +10,11 @@ import {
   buildTickMarks,
   buildTimelineKeyboardPatch,
   buildTimelineModel,
+  buildTimelineResetPatch,
   buildTimelineTracks,
   formatTickMs,
   getPreviewCycleMs,
+  isTimelineTrackDirty,
 } from "./timelineModel";
 import {
   getActionAnimationConfig,
@@ -23,7 +25,7 @@ import {
   getActionTextConfig,
 } from "../model/workbenchSchema";
 
-function buildTimelineFromActionConfig(config: Record<string, any>) {
+function buildTimelineFromActionConfig(config: Record<string, unknown>) {
   return buildTimelineTracks({
     textConfig: getActionTextConfig(config),
     particleConfig: getActionParticleConfig(config),
@@ -169,5 +171,32 @@ describe("timelineModel", () => {
     expect(DELAY_FIELD_BY_TRACK.audio).toBe("soundDelay");
     expect(DURATION_FIELD_BY_TRACK.audio).toBeUndefined();
     expect(TRACK_DEFAULTS.ripple).toEqual({ delay: 0, duration: 820 });
+  });
+
+  it("builds one reset patch for editable timeline fields", () => {
+    const textTrack = {
+      id: "text" as const,
+      label: "飘字",
+      tone: "rose" as const,
+      start: 120,
+      end: 1120,
+      configuredDuration: 900,
+      markers: [],
+    };
+    const audioTrack = {
+      id: "audio" as const,
+      label: "音效",
+      tone: "slate" as const,
+      start: 60,
+      end: 180,
+      markers: [],
+    };
+
+    expect(isTimelineTrackDirty(textTrack)).toBe(true);
+    expect(buildTimelineResetPatch([textTrack, audioTrack])).toEqual({
+      textDelay: 0,
+      textDuration: 1000,
+      soundDelay: 0,
+    });
   });
 });

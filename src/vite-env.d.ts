@@ -8,17 +8,17 @@ declare module '*.css' {
 interface Chrome {
   storage: {
     local: {
-      get: (keys: string | string[] | Record<string, unknown> | null) => Promise<Record<string, any>>
+      get: (keys: string | string[] | Record<string, unknown> | null) => Promise<Record<string, unknown>>
       set: (items: Record<string, unknown>) => Promise<void>
       remove: (keys: string | string[]) => Promise<void>
       clear: () => Promise<void>
     }
     sync: {
-      get: (keys: string | string[] | Record<string, unknown> | null) => Promise<Record<string, any>>
+      get: (keys: string | string[] | Record<string, unknown> | null) => Promise<Record<string, unknown>>
       set: (items: Record<string, unknown>) => Promise<void>
     }
     session: {
-      get: (keys: string | string[] | Record<string, unknown> | null) => Promise<Record<string, any>>
+      get: (keys: string | string[] | Record<string, unknown> | null) => Promise<Record<string, unknown>>
       set: (items: Record<string, unknown>) => Promise<void>
       remove: (keys: string | string[]) => Promise<void>
       setAccessLevel?: (options: { accessLevel: string }) => Promise<void>
@@ -42,33 +42,6 @@ interface Chrome {
     create: (createProperties: Record<string, unknown>) => void
     sendMessage: (tabId: number, message: unknown) => Promise<unknown>
   }
-}
-
-type CursorDanceThemeRecord = {
-  id?: string
-  name?: string
-  actionConfigs?: object
-  cursorBindings?: object
-  cursorSkin?: {
-    states?: Readonly<Record<string, {
-      image?: {
-        kind?: string
-        assetId?: string
-        dataUrl?: string
-      }
-    }>>
-  }
-  keyFeedbackConfig?: object
-  atmosphere?: object
-}
-
-type CursorDanceConfigRecord = {
-  schemaVersion?: number
-  enabled?: boolean
-  activeThemeId?: string
-  themes?: readonly CursorDanceThemeRecord[]
-  contextRules?: readonly unknown[]
-  performance?: object
 }
 
 interface Window {
