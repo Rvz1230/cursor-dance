@@ -35,7 +35,6 @@ export function TextFeedbackCard({ config, updateActionConfig, panelId, reset })
       id={panelId}
       title="飘字反馈"
       icon={PANEL_META.text.icon}
-      iconTone={PANEL_META.text.tone}
       collapsible
       defaultOpen={config.textEnabled}
       enabled={config.textEnabled}

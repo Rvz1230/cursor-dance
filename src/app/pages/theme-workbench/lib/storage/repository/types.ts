@@ -1,11 +1,24 @@
 type RepositoryUnsubscribe = () => void;
 export type RepositoryListener<T> = (value: T) => void | Promise<void>;
 
+/** 工作台的列宽权重。语义与夹取区间见 `hooks/useWorkbenchColumnLayout.ts`。 */
+export type WorkbenchColumnWeightsState = {
+  config: number;
+  preview: number;
+  ai: number;
+};
+
+/**
+ * 编辑器导航与界面偏好。与主题配置分开存放：它描述「你把工作台摆成什么样」，
+ * 不是主题内容，不该跟着主题导出。
+ */
 export type WorkbenchEditorState = {
   workspaceId?: string;
   themeId?: string;
   actionId?: string;
   cursorStateId?: string;
+  columnWeights?: WorkbenchColumnWeightsState;
+  libraryCollapsed?: boolean;
 };
 
 export type RecentCursorAsset = Record<string, unknown> & {

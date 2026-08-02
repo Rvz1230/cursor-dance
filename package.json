@@ -34,6 +34,7 @@
     "verify:extension-build": "node scripts/verify-extension-build.mjs",
     "check:dead-code": "knip",
     "check:design-tokens": "node scripts/check-design-tokens.mjs",
+    "check:ui-spec": "node scripts/check-ui-spec.mjs",
     "check:desktop-bundle": "node scripts/check-desktop-bundle-budget.mjs",
     "check:extension-bundle": "node scripts/check-extension-bundle-budget.mjs",
     "lint": "eslint .",

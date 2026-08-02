@@ -2,7 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, Info, RotateCcw, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InlineStatus } from "@/components/ui/inline-status";
+import { PageHeader } from "@/components/ui/page-header";
 import { isDesktop } from "@/shared/runtime";
+import { hotspotToImagePixels, normalizeHotspot } from "@/shared/effect-core/cursor-hotspot";
 import { CURSOR_STATES } from "../model/workbenchSchema";
 import { validateCursorAssetFile } from "../lib/cursorAssetPresets";
 import {
@@ -100,7 +102,7 @@ export function StatesPanel({
         width: dimensions.width,
         height: dimensions.height,
       },
-      hotspot: getDefaultHotspot(stateMeta, dimensions.width, dimensions.height),
+      hotspot: getDefaultHotspot(stateMeta),
       size: { mode: "fixedBox", boxSize: DEFAULT_BOX_SIZE },
     };
   }
@@ -110,10 +112,16 @@ export function StatesPanel({
     try {
       const skinState = await buildSkinStateFromFile(file, targetStateId);
       updateCursorSkinState(targetStateId, skinState);
+      // LegacyCursorAsset 的 hotspotX/Y 是原图像素，skinState.hotspot 是分数——这里要折回去。
+      const legacyHotspot = hotspotToImagePixels(
+        normalizeHotspot(skinState.hotspot, skinState.image?.width, skinState.image?.height),
+        skinState.image?.width,
+        skinState.image?.height,
+      );
       const legacyAsset: LegacyCursorAsset = {
         imageDataUrl: skinState.image?.dataUrl,
-        hotspotX: skinState.hotspot?.x,
-        hotspotY: skinState.hotspot?.y,
+        hotspotX: legacyHotspot.x,
+        hotspotY: legacyHotspot.y,
         size: skinState.size?.boxSize || DEFAULT_BOX_SIZE,
         sourceWidth: skinState.image?.width,
         sourceHeight: skinState.image?.height,
@@ -175,14 +183,12 @@ export function StatesPanel({
   return (
     <div className="min-h-full bg-slate-100 p-3">
       <div className="mx-auto flex max-w-[1480px] flex-col gap-2.5">
-        <header className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0">
-            <h1 className="text-base font-semibold text-slate-900 text-balance">光标皮肤</h1>
-            <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-500 text-pretty">
-              为每个光标状态上传一张图片。运行时会根据当前语义自动切换到对应皮肤。
-            </p>
-          </div>
-          <div className="flex shrink-0 flex-wrap gap-2">
+        <PageHeader
+          className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+          title="光标皮肤"
+          description="为每个光标状态上传一张图片。运行时会根据当前语义自动切换到对应皮肤。"
+          actions={(
+            <>
             <input
               ref={batchInputRef}
               type="file"
@@ -202,8 +208,9 @@ export function StatesPanel({
               <RotateCcw className="mr-1.5 size-3.5" aria-hidden />
               重置
             </Button>
-          </div>
-        </header>
+            </>
+          )}
+        />
 
         {/*
           桌面端只有 default 与 grabbing 可达——没有 DOM 也没有查询系统当前光标的

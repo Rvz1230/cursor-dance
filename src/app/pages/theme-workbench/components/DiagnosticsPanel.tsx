@@ -217,7 +217,6 @@ export function DiagnosticsPanel({ selectedThemeId }) {
         <Panel
           title="运行时错误"
           icon={AlertTriangle}
-          iconTone="bg-red-100 text-red-700"
           action={
             <Button variant="ghost" className="rounded-2xl px-3 text-xs" onClick={handleClearRuntimeErrors}>
               <Trash2 className="mr-2 h-4 w-4" />
@@ -227,13 +226,13 @@ export function DiagnosticsPanel({ selectedThemeId }) {
         >
           <div className="space-y-2">
             {runtimeErrors.map((error, index) => (
-              <div key={`error-${error.at}-${index}`} className="rounded-2xl border border-red-200 bg-red-50 p-4">
+              <div key={`error-${error.at}-${index}`} className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <DataPill tone="red">{error.type}</DataPill>
                   <DataPill tone="slate">{formatEntryTime(error.at)}</DataPill>
                   <span className="text-xs text-slate-500">{error.host}</span>
                 </div>
-                <div className="mt-2 text-sm text-red-800">{error.detail}</div>
+                <div className="mt-2 text-sm text-rose-800">{error.detail}</div>
               </div>
             ))}
           </div>
@@ -243,7 +242,7 @@ export function DiagnosticsPanel({ selectedThemeId }) {
       <Panel
         title="调试开关"
         icon={Bug}
-        iconTone="bg-amber-100 text-amber-700"
+        enabled={debugEnabled}
         action={
           <Button variant={debugEnabled ? "outline" : "default"} className="rounded-2xl px-4" onClick={toggleDebug}>
             {debugEnabled ? "关闭诊断" : "开启诊断"}
@@ -267,7 +266,8 @@ export function DiagnosticsPanel({ selectedThemeId }) {
       <Panel
         title="运行时事件流"
         icon={RadioTower}
-        iconTone="bg-emerald-100 text-emerald-700"
+        // 采集没开时事件流就是死的，图标底如实反映这一点（采集开关是唯一真值源）。
+        enabled={debugEnabled}
         action={
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1">

@@ -1,6 +1,7 @@
 import type { CursorSkinV4 } from "@/shared/config-schema-v4";
 import { normalizeKeyFeedbackConfig } from "@/shared/config/key-feedback";
 import { isDesktop } from "@/shared/runtime";
+import { hotspotToImagePixels, normalizeHotspot } from "@/shared/effect-core/cursor-hotspot";
 import {
   isDesktopAssetId,
   resolveDesktopImageSource,
@@ -46,13 +47,21 @@ function assetFromCursorSkinState(skinState: CursorSkinV4["states"][string] | un
   const size = skinState.size.mode === "fixedBox"
     ? (skinState.size.boxSize || 48)
     : Math.max(skinState.image.width || 48, skinState.image.height || 48);
+  const sourceWidth = skinState.image.width || size;
+  const sourceHeight = skinState.image.height || size;
+  // 扁平素材形状的 hotspotX/Y 是原图像素；cursorSkin.hotspot 是 0–1 分数。
+  const hotspot = hotspotToImagePixels(
+    normalizeHotspot(skinState.hotspot, sourceWidth, sourceHeight),
+    sourceWidth,
+    sourceHeight,
+  );
   return {
     imageDataUrl,
-    hotspotX: skinState.hotspot.x ?? 0,
-    hotspotY: skinState.hotspot.y ?? 0,
+    hotspotX: hotspot.x,
+    hotspotY: hotspot.y,
     size,
-    sourceWidth: skinState.image.width || size,
-    sourceHeight: skinState.image.height || size,
+    sourceWidth,
+    sourceHeight,
     mimeType: skinState.image.mimeType,
   };
 }

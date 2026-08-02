@@ -144,7 +144,7 @@ function UpdateControl({
         state.status === "error"
           ? "bg-rose-50 text-rose-700 hover:bg-rose-100"
           : state.status === "available" || state.status === "downloaded"
-            ? "bg-blue-50 text-blue-700 hover:bg-blue-100"
+            ? "bg-sky-50 text-sky-700 hover:bg-sky-100"
             : "text-slate-500 hover:bg-slate-100 hover:text-slate-700",
         isBusy && "cursor-default opacity-80",
       )}

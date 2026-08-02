@@ -13,14 +13,16 @@ import { SettingSection } from "../WorkbenchControls";
 import { ResetCardButton } from "./ResetCardButton";
 
 export function CursorFeedbackCard({ config, updateActionConfig, panelId, reset }) {
+  // 这张卡没有单一开关：改过光标或有抖动就算在起作用。
+  const active = config.cursorOverride !== "跟随当前状态" || config.shake > 0;
   return (
     <Panel
       id={panelId}
       title="光标与命中反馈"
       icon={PANEL_META.cursor.icon}
-      iconTone={PANEL_META.cursor.tone}
       collapsible
-      defaultOpen={config.cursorOverride !== "跟随当前状态" || config.shake > 0}
+      enabled={active}
+      defaultOpen={active}
       summary={`${config.cursorOverride} · ${config.cursorSize}px · 抖动 ${config.shake}%`}
       action={reset ? <ResetCardButton dirty={reset.dirty} onReset={reset.onReset} /> : undefined}
     >

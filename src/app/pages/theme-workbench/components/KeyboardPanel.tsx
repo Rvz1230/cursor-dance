@@ -3,6 +3,7 @@ import { ColorOptions } from "@/components/ui/color-options";
 import { ControlSlider } from "@/components/ui/control-slider";
 import { FieldRow } from "@/components/ui/field-row";
 import { Panel } from "@/components/ui/panel";
+import { Segmented } from "@/components/ui/segmented";
 import { SectionTitle } from "@/components/ui/section-title";
 import { SmallSelect } from "@/components/ui/small-select";
 import { PANEL_META } from "../model/workbenchSchema";
@@ -21,7 +22,13 @@ const ORIGIN_MAPPINGS = ["keyboardLayout", "center"] as const;
 const EASING_OPTIONS = ["弹跳", "缓出", "缓入", "缓入缓出", "弹性", "线性"];
 const FONT_WEIGHTS = ["标准", "中等", "半粗", "加粗"];
 const FONT_FAMILIES = ["系统默认", "SF Mono", "SF Pro Rounded", "Helvetica Neue"];
-const KEY_DISPLAY_MODES = ["typed", "physical"] as const;
+// 二选一 + 需要人话标签 → 用 Segmented 而不是下拉。
+// 原先是 SmallSelect，options 直接是 ["typed","physical"]，
+// 于是界面上真的显示英文枚举值给用户看。
+const KEY_DISPLAY_MODE_OPTIONS = [
+  { value: "typed", label: "真实输入" },
+  { value: "physical", label: "物理键名" },
+] as const;
 
 interface KeyboardPanelProps {
   config: KeyFeedbackConfig;
@@ -43,7 +50,6 @@ export function KeyboardPanel({ config, themeName, onUpdate }: KeyboardPanelProp
           id="key-feedback-enable"
           title="键盘动效"
           icon={PANEL_META.keyboard.icon}
-          iconTone={PANEL_META.keyboard.tone}
           summary={
             enabled ? (
               <span className="inline-flex items-center gap-1.5">
@@ -83,7 +89,6 @@ export function KeyboardPanel({ config, themeName, onUpdate }: KeyboardPanelProp
           id="key-feedback-style"
           title="动画风格"
           icon={PANEL_META.keyboard.icon}
-          iconTone={PANEL_META.keyboard.tone}
           collapsible
           defaultOpen
           enabled={enabled}
@@ -116,7 +121,6 @@ export function KeyboardPanel({ config, themeName, onUpdate }: KeyboardPanelProp
           id="key-feedback-params"
           title="动画参数"
           icon={PANEL_META.keyboard.icon}
-          iconTone={PANEL_META.keyboard.tone}
           collapsible
           defaultOpen
           enabled={enabled}
@@ -185,7 +189,6 @@ export function KeyboardPanel({ config, themeName, onUpdate }: KeyboardPanelProp
           id="key-feedback-position"
           title="弹出位置"
           icon={PANEL_META.keyboard.icon}
-          iconTone={PANEL_META.keyboard.tone}
           collapsible
           enabled={enabled}
         >
@@ -224,7 +227,6 @@ export function KeyboardPanel({ config, themeName, onUpdate }: KeyboardPanelProp
           id="key-feedback-text"
           title="字符样式"
           icon={PANEL_META.keyboard.icon}
-          iconTone={PANEL_META.keyboard.tone}
           collapsible
           enabled={enabled}
         >
@@ -248,7 +250,15 @@ export function KeyboardPanel({ config, themeName, onUpdate }: KeyboardPanelProp
               <FieldRow
                 label="显示模式"
                 tooltip="真实输入会把 Shift+1 显示为 !；物理键名会保留按键本身，适合展示快捷键训练"
-                control={<SmallSelect value={config.keyDisplayMode} options={KEY_DISPLAY_MODES} onChange={enabled ? (v) => onUpdate({ keyDisplayMode: v }) : undefined} />}
+                control={(
+                  <Segmented
+                    ariaLabel="按键显示模式"
+                    options={KEY_DISPLAY_MODE_OPTIONS}
+                    value={config.keyDisplayMode}
+                    disabled={!enabled}
+                    onChange={(keyDisplayMode) => onUpdate({ keyDisplayMode })}
+                  />
+                )}
               />
               <FieldRow
                 label="语义分层"
@@ -279,7 +289,6 @@ export function KeyboardPanel({ config, themeName, onUpdate }: KeyboardPanelProp
           id="key-feedback-effects"
           title="特效增强"
           icon={PANEL_META.keyboard.icon}
-          iconTone={PANEL_META.keyboard.tone}
           collapsible
           enabled={enabled}
         >
@@ -313,7 +322,6 @@ export function KeyboardPanel({ config, themeName, onUpdate }: KeyboardPanelProp
           id="key-feedback-advanced"
           title="高级"
           icon={PANEL_META.keyboard.icon}
-          iconTone={PANEL_META.keyboard.tone}
           collapsible
           enabled={enabled}
         >

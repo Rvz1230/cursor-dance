@@ -125,7 +125,7 @@ export function AiConversationMessage({
           </div>
         ) : message.content}
       </div>
-      <div className="flex items-center gap-0 px-1 opacity-0 transition-opacity group-hover:opacity-100">
+      <div className="flex items-center gap-0 px-1">
         <IconButton
           className="rounded-md p-1 text-slate-400 hover:text-slate-600"
           onClick={handleCopy}

@@ -2,11 +2,14 @@
 // desktop overlay or extension adapter; this module only renders normalized
 // coordinates and cursor state.
 
+import { hotspotOffsetPx, normalizeHotspot } from "@/shared/effect-core/cursor-hotspot";
+
 export interface CursorOverlayState {
   imageDataUrl?: string;
   size?: number;
-  hotspotX?: number;
-  hotspotY?: number;
+  /** 归一化 0–1 的指向点。刻意不叫 hotspotX/Y：改名强制每个调用点重新审视一遍单位。 */
+  hotspotNormX?: number;
+  hotspotNormY?: number;
 }
 
 export interface CursorOverlayModule {
@@ -49,11 +52,12 @@ export function cursorSkinStateToOverlayState(
   const sourceSize = Math.max(imageWidth || 48, imageHeight || 48);
   const fixedSize = typeof state.size?.boxSize === "number" ? state.size.boxSize : 48;
   const size = state.size?.mode === "fixedBox" ? (fixedSize || 48) : sourceSize;
+  const hotspot = normalizeHotspot(state.hotspot, imageWidth, imageHeight);
   return {
     imageDataUrl,
     size,
-    hotspotX: typeof state.hotspot?.x === "number" ? state.hotspot.x : 0,
-    hotspotY: typeof state.hotspot?.y === "number" ? state.hotspot.y : 0,
+    hotspotNormX: hotspot.x,
+    hotspotNormY: hotspot.y,
   };
 }
 
@@ -93,7 +97,13 @@ export function createCursorOverlay(deps: CursorOverlayDeps): CursorOverlayModul
     cursorNode.hidden = false;
     cursorNode.style.width = `${cursorSize}px`;
     cursorNode.style.height = `${cursorSize}px`;
-    cursorNode.style.transform = `translate3d(${x - (cursorState.hotspotX || 0)}px, ${y - (cursorState.hotspotY || 0)}px, 0)`;
+    // 指向点换算的唯一去处：分数 × cursorSize。必须用夹取之后的 cursorSize，
+    // 因为它才是图片真正被渲染成的尺寸。
+    const offset = hotspotOffsetPx(
+      { x: cursorState.hotspotNormX || 0, y: cursorState.hotspotNormY || 0 },
+      cursorSize,
+    );
+    cursorNode.style.transform = `translate3d(${x - offset.x}px, ${y - offset.y}px, 0)`;
 
     if (state.stateCursorImg && state.stateCursorImg.src !== cursorState.imageDataUrl) {
       state.stateCursorImg.src = cursorState.imageDataUrl;

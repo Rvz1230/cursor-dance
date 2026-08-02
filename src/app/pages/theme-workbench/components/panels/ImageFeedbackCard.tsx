@@ -63,7 +63,6 @@ export function ImageFeedbackCard({ config, updateActionConfig, panelId, reset }
       id={panelId}
       title="图片贴纸反馈"
       icon={PANEL_META.image.icon}
-      iconTone={PANEL_META.image.tone}
       collapsible
       defaultOpen={config.imageEnabled}
       enabled={config.imageEnabled}

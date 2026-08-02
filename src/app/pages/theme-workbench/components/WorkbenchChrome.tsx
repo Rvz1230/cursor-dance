@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Bot, ChevronLeft, ChevronRight, Loader2, RotateCcw } from "lucide-react";
+import { Bot, ChevronLeft, ChevronRight, Loader2, Redo2, RotateCcw, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { WorkspaceItem } from "./WorkbenchControls";
@@ -12,6 +12,9 @@ export interface WorkbenchHeaderProps {
   enabled: boolean;
   setEnabled: (value: boolean) => void;
   unsaved: boolean;
+  /** 撤销 / 重做。快捷键之外必须有可见入口——只有快捷键的功能等于隐藏功能。 */
+  undo?: { run: () => void; label: string | null };
+  redo?: { run: () => void; label: string | null };
   isSaving: boolean;
   saveError?: string | null;
   saveChanges: () => void;
@@ -110,6 +113,8 @@ export function DesktopWorkbenchToolbar({
   enabled,
   setEnabled,
   unsaved,
+  undo,
+  redo,
   isSaving,
   saveError,
   saveChanges,
@@ -136,6 +141,32 @@ export function DesktopWorkbenchToolbar({
               <Bot className="mr-1.5 size-3.5" aria-hidden="true" />
               AI 助手
             </Button>
+          ) : null}
+          {undo || redo ? (
+            <div className="flex h-8 shrink-0 items-center rounded-xl bg-white px-1 shadow-sm ring-1 ring-slate-200">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-6 rounded-lg"
+                onClick={undo?.run}
+                disabled={!undo?.label}
+                title={undo?.label ? `撤销：${undo.label}（⌘Z）` : "没有可撤销的改动"}
+                aria-label={undo?.label ? `撤销：${undo.label}` : "没有可撤销的改动"}
+              >
+                <Undo2 className="size-3.5" aria-hidden="true" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-6 rounded-lg"
+                onClick={redo?.run}
+                disabled={!redo?.label}
+                title={redo?.label ? `重做：${redo.label}（⌘⇧Z）` : "没有可重做的改动"}
+                aria-label={redo?.label ? `重做：${redo.label}` : "没有可重做的改动"}
+              >
+                <Redo2 className="size-3.5" aria-hidden="true" />
+              </Button>
+            </div>
           ) : null}
           <div className="flex h-8 shrink-0 items-center gap-2 rounded-xl bg-white px-2.5 text-xs text-slate-600 shadow-sm ring-1 ring-slate-200">
             <Switch checked={enabled} onCheckedChange={setEnabled} aria-label="全局启用开关" />

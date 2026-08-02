@@ -2,37 +2,51 @@ import { ChevronDown } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { cn } from "@/components/ui/utils";
 
+/**
+ * 图标底色只表达「这张卡启用了没有」——深底=启用、浅灰=关闭。
+ *
+ * 取代原先按效果种类分配的九色底（emerald/amber/sky/teal/rose/cyan/fuchsia/slate/violet）：
+ * 八张卡排一列就是八种颜色，颜色不承载任何信息，反而把「启用」这个真正要看的状态淹了。
+ * 见 DESIGN.md 色彩与 docs/ui-spec/library/components.html 的改前/改后对照。
+ */
+const ICON_TONE_ENABLED = "bg-slate-900 text-white";
+const ICON_TONE_DISABLED = "bg-slate-100 text-slate-500";
+
 export function Panel({
   title,
   action,
   icon: Icon,
-  iconTone = "bg-slate-200 text-slate-700",
   children,
   className,
   contentClassName,
   collapsible = false,
   defaultOpen = true,
   summary,
-  enabled: _enabled,
+  enabled = true,
   id,
 }: {
   title: string
   action?: React.ReactNode
   icon?: React.ComponentType<{ className?: string }>
-  iconTone?: string
   children: React.ReactNode
   className?: string
   contentClassName?: string
   collapsible?: boolean
   defaultOpen?: boolean
   summary?: React.ReactNode
+  /** 驱动图标底色。不传时按启用渲染。 */
   enabled?: boolean
   id?: string
 }) {
   const header = (
     <div className="flex min-w-0 items-center gap-3">
       {Icon ? (
-        <div className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl", iconTone)}>
+        <div
+          className={cn(
+            "flex size-9 shrink-0 items-center justify-center rounded-xl transition-colors",
+            enabled ? ICON_TONE_ENABLED : ICON_TONE_DISABLED,
+          )}
+        >
           <Icon className="size-4" />
         </div>
       ) : null}

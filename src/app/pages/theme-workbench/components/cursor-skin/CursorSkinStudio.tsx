@@ -2,10 +2,15 @@ import { useRef, useState, type PointerEvent as ReactPointerEvent, type Keyboard
 import { ImagePlus, MousePointer2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataPill } from "@/components/ui/data-pill";
-import { Input } from "@/components/ui/input";
+import { NumberField } from "@/components/ui/number-field";
 import { cn } from "@/components/ui/utils";
 import { resolveDesktopImageSource } from "@/shared/asset-reference";
 import type { CursorStateId } from "@/shared/cursor-states";
+import {
+  hotspotFromImagePixels,
+  hotspotToImagePixels,
+  normalizeHotspot,
+} from "@/shared/effect-core/cursor-hotspot";
 import {
   DEFAULT_BOX_SIZE,
   clamp,
@@ -176,12 +181,19 @@ export function HotspotStudio({
   const displaySize = getDisplaySize(skinState);
   const naturalWidth = image?.width || DEFAULT_BOX_SIZE;
   const naturalHeight = image?.height || DEFAULT_BOX_SIZE;
-  const hotspot = skinState?.hotspot || { x: 0, y: 0 };
+  // 存储是 0–1 分数，但这一屏的交互（拖拽 / 方向键 / 数值框）全部按原图像素进行——
+  // 用户想的就是「图片上的第几个像素」。分数与像素的换算只发生在这两个边界上。
+  const hotspot = normalizeHotspot(skinState?.hotspot, naturalWidth, naturalHeight);
+  const hotspotPx = hotspotToImagePixels(hotspot, naturalWidth, naturalHeight);
   const scale = Math.min(1, (PREVIEW_STAGE_SIZE * 0.68) / Math.max(displaySize, 1));
   const previewSize = displaySize * scale;
   const offset = (PREVIEW_STAGE_SIZE - previewSize) / 2;
-  const hotspotLeft = offset + (hotspot.x / Math.max(naturalWidth, 1)) * previewSize;
-  const hotspotTop = offset + (hotspot.y / Math.max(naturalHeight, 1)) * previewSize;
+  const hotspotLeft = offset + hotspot.x * previewSize;
+  const hotspotTop = offset + hotspot.y * previewSize;
+
+  function emitHotspotPx(pixels: Hotspot) {
+    onChangeHotspot(hotspotFromImagePixels(pixels, naturalWidth, naturalHeight));
+  }
 
   function updateHotspotFromEvent(event: ReactPointerEvent<HTMLDivElement>) {
     if (!stageRef.current || !skinState) return;
@@ -196,7 +208,7 @@ export function HotspotStudio({
       0,
       naturalHeight - 1,
     );
-    onChangeHotspot({ x: Math.round(x), y: Math.round(y) });
+    emitHotspotPx({ x: Math.round(x), y: Math.round(y) });
   }
 
   function nudgeHotspot(event: ReactKeyboardEvent<HTMLDivElement>) {
@@ -211,9 +223,9 @@ export function HotspotStudio({
     const delta = deltas[event.key];
     if (!delta) return;
     event.preventDefault();
-    onChangeHotspot({
-      x: clamp(hotspot.x + delta[0], 0, naturalWidth - 1),
-      y: clamp(hotspot.y + delta[1], 0, naturalHeight - 1),
+    emitHotspotPx({
+      x: clamp(hotspotPx.x + delta[0], 0, naturalWidth - 1),
+      y: clamp(hotspotPx.y + delta[1], 0, naturalHeight - 1),
     });
   }
 
@@ -229,7 +241,7 @@ export function HotspotStudio({
         role="application"
         tabIndex={0}
         aria-label={`${stateMeta.label} 指向点编辑区，方向键微调，按住 Shift 加速`}
-        aria-valuetext={skinState ? `指向点 X ${Math.round(hotspot.x)}，Y ${Math.round(hotspot.y)}` : "尚未上传图片"}
+        aria-valuetext={skinState ? `指向点 X ${hotspotPx.x}，Y ${hotspotPx.y}` : "尚未上传图片"}
         onKeyDown={nudgeHotspot}
         onPointerDown={(event) => {
           if (!skinState) return;
@@ -289,43 +301,25 @@ export function HotspotStudio({
         <div className="mt-3.5 grid grid-cols-2 gap-2">
           <NumberField
             label="X"
-            value={Math.round(hotspot.x)}
+            value={hotspotPx.x}
             max={Math.max(0, naturalWidth - 1)}
             disabled={!skinState}
-            onChange={(x) => onChangeHotspot({ x, y: hotspot.y })}
+            onChange={(x) => emitHotspotPx({ x, y: hotspotPx.y })}
           />
           <NumberField
             label="Y"
-            value={Math.round(hotspot.y)}
+            value={hotspotPx.y}
             max={Math.max(0, naturalHeight - 1)}
             disabled={!skinState}
-            onChange={(y) => onChangeHotspot({ x: hotspot.x, y })}
+            onChange={(y) => emitHotspotPx({ x: hotspotPx.x, y })}
           />
         </div>
+        {/* 这几个位置本身就是分数语义（角、正中、底边中点），直接写分数比先算像素再折回去准。 */}
         <div className="mt-2.5 grid grid-cols-2 gap-2">
           <Chip disabled={!skinState} onClick={() => onChangeHotspot({ x: 0, y: 0 })}>左上角</Chip>
-          <Chip
-            disabled={!skinState}
-            onClick={() => onChangeHotspot({
-              x: Math.floor(naturalWidth / 2),
-              y: Math.floor(naturalHeight / 2),
-            })}
-          >
-            中心点
-          </Chip>
-          <Chip
-            disabled={!skinState}
-            onClick={() => onChangeHotspot({
-              x: Math.floor(naturalWidth / 2),
-              y: Math.max(0, naturalHeight - 1),
-            })}
-          >
-            底部中心
-          </Chip>
-          <Chip
-            disabled={!skinState}
-            onClick={() => onChangeHotspot(getDefaultHotspot(stateMeta, naturalWidth, naturalHeight))}
-          >
+          <Chip disabled={!skinState} onClick={() => onChangeHotspot({ x: 0.5, y: 0.5 })}>中心点</Chip>
+          <Chip disabled={!skinState} onClick={() => onChangeHotspot({ x: 0.5, y: 1 })}>底部中心</Chip>
+          <Chip disabled={!skinState} onClick={() => onChangeHotspot(getDefaultHotspot(stateMeta))}>
             推荐点
           </Chip>
         </div>
@@ -349,35 +343,6 @@ export function HotspotStudio({
         </div>
       </div>
     </div>
-  );
-}
-
-function NumberField({
-  label,
-  value,
-  max,
-  onChange,
-  disabled,
-}: {
-  label: string;
-  value: number;
-  max: number;
-  onChange: (value: number) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <label className="grid gap-1.5">
-      <span className="text-xs font-medium text-slate-600">{label}</span>
-      <Input
-        type="number"
-        min={0}
-        max={max}
-        value={value}
-        disabled={disabled}
-        className="text-center tabular-nums"
-        onChange={(event) => onChange(clamp(Number(event.target.value), 0, max))}
-      />
-    </label>
   );
 }
 

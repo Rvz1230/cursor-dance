@@ -24,6 +24,9 @@ jobs:
       # DESIGN.md 反模式门禁：此前设计契约只存在于文档里，CI 无法拦截，
       # 导致 18 处违规全部积压在光标皮肤模块。
       - run: npm run check:design-tokens
+      # docs/ui-spec 稿子自检：原生控件数、内联脚本语法、残留外壳 DOM 引用、调色板。
+      # 前三条都是走查时反复踩到的坑——页面渲染正常但整段脚本已经死了，人眼查不出来。
+      - run: npm run check:ui-spec
       - run: npm run check:dead-code
       - run: npm run test
       - run: npx playwright install --with-deps chromium

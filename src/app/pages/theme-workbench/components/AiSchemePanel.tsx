@@ -219,7 +219,6 @@ export function AiSchemePanel({
     <Panel
       title="AI 方案助手"
       icon={Bot}
-      iconTone="bg-sky-500 text-white"
       summary={`${actionLabel} · 内嵌对话`}
       className={cn("shadow-sm", variant === "full" ? "flex h-full min-h-0 flex-col" : "max-h-[380px] shrink-0")}
       contentClassName={cn("min-h-0 overflow-hidden !p-0", variant === "full" && "flex flex-1 flex-col")}

@@ -86,7 +86,20 @@ export function ThemeCard({
     >
       {selected ? <div className="absolute inset-y-3 left-0 w-1 rounded-r-full bg-slate-950" aria-hidden="true" /> : null}
       {isDirty ? <span className="absolute right-10 top-3 size-1.5 rounded-full bg-amber-400" aria-label="有未保存的更改" /> : null}
-      <button type="button" onClick={onClick} className="w-full px-3 py-2.5 pr-11 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2">
+      {/*
+        选择整卡的点击目标是一个**铺满卡片、垫在内容下面**的按钮，
+        而不是把整张卡包成 <button>。
+        原先是后者，于是卡里的「重命名」按钮成了 button 套 button ——
+        HTML 无效、激活行为未定义，读屏器也读不清。
+        （hover-only 改成常显之后这个嵌套更要紧了：那个内层按钮现在一直都在。）
+      */}
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={`选择主题 ${theme.name}`}
+        className="absolute inset-0 z-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
+      />
+      <div className="relative z-10 px-3 py-2.5 pr-11 text-left">
         <div className="flex items-start gap-2.5">
           <Popover open={iconPickerOpen} onOpenChange={setIconPickerOpen}>
             <PopoverTrigger asChild>
@@ -151,7 +164,7 @@ export function ThemeCard({
                   >{theme.name}</div>
                   <button
                     type="button"
-                    className="shrink-0 flex size-5 items-center justify-center rounded text-slate-400 opacity-0 transition-opacity hover:bg-slate-200 hover:text-slate-600 group-hover:opacity-100"
+                    className="shrink-0 flex size-5 items-center justify-center rounded text-slate-400 transition-colors hover:bg-slate-200 hover:text-slate-600"
                     onClick={(event) => { event.stopPropagation(); startRename(); }}
                     aria-label="编辑主题名称"
                     title="编辑名称"
@@ -162,16 +175,16 @@ export function ThemeCard({
                 </>
               )}
             </div>
-            <div className="mt-1 text-xs leading-5 text-pretty text-slate-600">{theme.summary}</div>
+            <div className="pointer-events-none mt-1 text-xs leading-5 text-pretty text-slate-600">{theme.summary}</div>
           </div>
         </div>
-      </button>
+      </div>
       <Popover open={actionMenuOpen} onOpenChange={setActionMenuOpen}>
         <PopoverTrigger asChild>
           <Button
             variant="ghost"
             size="icon"
-            className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-lg text-slate-400 opacity-0 transition-opacity hover:bg-slate-200 hover:text-slate-600 group-hover:opacity-100 group-focus-within:opacity-100 data-[state=open]:opacity-100"
+            className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-200 hover:text-slate-600"
             aria-label={`${theme.name} 更多操作`}
             onClick={(event) => event.stopPropagation()}
           >

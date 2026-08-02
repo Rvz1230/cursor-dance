@@ -1,8 +1,9 @@
-import { useMemo, useReducer, useRef } from "react";
+import { useCallback, useMemo, useReducer, useRef } from "react";
 import {
   PLATFORM_ACTIONS,
   CURSOR_STATES,
   WORKSPACES,
+  formatActionLabel,
   getConflictsForAction,
 } from "../model/workbenchSchema";
 import {
@@ -21,6 +22,7 @@ import { isDesktop } from "@/shared/runtime";
 import { normalizeKeyFeedbackConfig } from "@/shared/config/key-feedback";
 import { createWorkbenchThemeCommands } from "./workbenchThemeCommands";
 import { createWorkbenchCursorCommands } from "./workbenchCursorCommands";
+import { useWorkbenchUndo } from "./useWorkbenchUndo";
 import type { AppRule } from "@/shared/app-rules";
 import type { KeyFeedbackConfig } from "@/shared/config/key-feedback";
 import type {
@@ -47,8 +49,37 @@ export function useThemeWorkbenchState() {
   const currentConflicts = getConflictsForAction(selected.actionId, draft.actionConfigs);
   const isWorkbench = state.workspaceId === "workbench";
 
-  function updateCurrentTheme(updater: (current: WorkbenchThemeDraft) => WorkbenchThemeDraft): void {
+  /**
+   * 撤销：把当前主题草稿恢复成快照。刻意**不**经过 updateCurrentTheme，
+   * 否则恢复动作本身又会被记一笔，形成自我循环。
+   */
+  const applyDraftSnapshot = useCallback((snapshot: WorkbenchThemeDraft) => {
+    dispatch({ type: "theme/update-current", payload: () => snapshot });
+  }, []);
+  const undoStack = useWorkbenchUndo(applyDraftSnapshot);
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
+
+  /**
+   * 所有主题草稿的改动都从这里走 —— 所以撤销也只在这里记录一次。
+   *
+   * `after` 用 updater 自己算，而不是等 reducer 跑完再从 state 里读：
+   * updater 都是纯函数（`(current) => ({...current, ...})`），
+   * 这样就不需要靠 effect 去观测「新状态」，记录与派发在同一个同步流里完成。
+   */
+  function updateCurrentTheme(
+    updater: (current: WorkbenchThemeDraft) => WorkbenchThemeDraft,
+    meta?: { label?: string; mergeKey?: string },
+  ): void {
+    const before = draftRef.current;
     dispatch({ type: "theme/update-current", payload: updater });
+    undoStack.record({
+      bucket: selected.themeId,
+      before,
+      after: updater(before),
+      label: meta?.label ?? formatActionLabel(selected.actionId),
+      mergeKey: meta?.mergeKey,
+    });
   }
 
   async function saveChanges() {
@@ -86,6 +117,7 @@ export function useThemeWorkbenchState() {
   return {
     state,
     selected,
+    undoStack,
     themes: state.themeLibrary,
     activeTheme,
     draft,
@@ -118,7 +150,12 @@ export function useThemeWorkbenchState() {
             ...patch,
           },
         },
-      })),
+      }), {
+        // mergeKey 按「动作 + 被改的字段」自动生成：ControlSlider 用的是
+        // Radix onValueChange，拖动时每帧都提交一次，不合并的话一次拖拽会塞进
+        // 几十条撤销记录，按一次 ⌘Z 只退回一帧。
+        mergeKey: `${selected.actionId}:${Object.keys(patch ?? {}).sort().join(",")}`,
+      }),
     updateActionConfigs: (patchesByActionId: Record<string, WorkbenchActionConfig>) =>
       updateCurrentTheme((current) => ({
         ...current,

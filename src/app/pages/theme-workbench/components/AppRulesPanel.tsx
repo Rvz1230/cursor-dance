@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AppWindow, Check, Crosshair, ExternalLink, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { SectionTitle } from "@/components/ui/section-title";
 import { SmallSelect } from "@/components/ui/small-select";
@@ -360,25 +361,24 @@ export function AppRulesPanel({
         }}
         matchesNow={activeInfo ? (rule) => matchAppPattern(activeInfo, rule.pattern) : undefined}
         emptyState={(
-          <div className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-8 text-center">
-            <div className="mx-auto inline-flex size-10 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-              <AppWindow className="size-5" aria-hidden />
-            </div>
-            <p className="mt-3 text-xs font-medium text-slate-600">还没有应用规则</p>
-            <p className="mx-auto mt-1.5 max-w-sm text-2xs leading-5 text-slate-500">
-              按进程名或窗口标题为指定应用启用 / 禁用效果，或切换到不同主题。
-            </p>
-            <div className="mt-4 flex items-center justify-center gap-2">
-              <Button variant="default" className="h-8 px-3 text-xs" onClick={startAdd}>
-                <Plus className="mr-1.5 size-3.5" />添加规则
-              </Button>
-              {activeProcess ? (
-                <Button variant="outline" className="h-8 px-3 text-xs" onClick={disableCurrentApp}>
-                  禁用 {activeProcess}
+          <EmptyState
+            icon={AppWindow}
+            title="还没有应用规则"
+            description="按进程名或窗口标题为指定应用启用 / 禁用效果，或切换到不同主题。"
+            className="bg-white px-4 py-8"
+            action={(
+              <div className="flex items-center gap-2">
+                <Button variant="default" className="h-8 px-3 text-xs" onClick={startAdd}>
+                  <Plus className="mr-1.5 size-3.5" />添加规则
                 </Button>
-              ) : null}
-            </div>
-          </div>
+                {activeProcess ? (
+                  <Button variant="outline" className="h-8 px-3 text-xs" onClick={disableCurrentApp}>
+                    禁用 {activeProcess}
+                  </Button>
+                ) : null}
+              </div>
+            )}
+          />
         )}
         isEditing={isEditing}
         onToggle={toggleAppRule}

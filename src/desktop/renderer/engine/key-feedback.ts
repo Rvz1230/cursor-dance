@@ -198,7 +198,10 @@ export function createKeyFeedback(deps: EngineDeps): KeyFeedbackModule {
         : (screenH + fontSize * 2);
     } else if (edge === "left") {
       startX = -halfFont;
-      startY = mapping === "center" ? screenH * config.globalOffsetY : screenH * 0.5;
+      // keyLayoutNormalizedX 是 QWERTY 的**横向**位置映射，对纵轴没有语义。
+      // 横向入场时 keyboardLayout 回落到 center 行为，而不是硬编码屏幕中线——
+      // 否则 globalOffsetY 会被静默忽略。UI 侧在横向入场时如实禁用该映射。
+      startY = screenH * config.globalOffsetY;
       dy = 0;
       dx = style === "bounce"
         ? (config.bounceHeight + screenW * offsetX + halfFont)
@@ -206,7 +209,7 @@ export function createKeyFeedback(deps: EngineDeps): KeyFeedbackModule {
     } else {
       // right
       startX = screenW + halfFont;
-      startY = mapping === "center" ? screenH * config.globalOffsetY : screenH * 0.5;
+      startY = screenH * config.globalOffsetY;
       dy = 0;
       dx = style === "bounce"
         ? -(config.bounceHeight + screenW * offsetX + halfFont)
@@ -248,7 +251,15 @@ export function createKeyFeedback(deps: EngineDeps): KeyFeedbackModule {
     }
 
     // 构建 keyframes
-    const easing = getAnimationEasing(config.easing);
+    //
+    // 选中的缓动只作用在**入场段**（第一个 keyframe），动画级 easing 必须是 linear。
+    // 原因：像「弹跳」这样的过冲曲线 (cubic-bezier(0.34,1.56,0.64,1)) 输出会超过 1，
+    // 当它是动画级 timing function 时，整条时间轴的进度会在中途冲过末帧——
+    // 而末帧 opacity 是 0，于是字符在过冲窗口里整段不可见。
+    // 实测（默认配置、bounce）：easing 留在动画级时可见时长只占 29.8%，
+    // 改成 linear + 入场段带曲线后是 86.5%。
+    // linear 让 keyframe 的 offset 与真实时间一一对应，可见性由 keyframes 自己说清楚。
+    const entranceEasing = getAnimationEasing(config.easing);
     const targetOpacity = config.opacity / 100;
     let keyframes: Keyframe[];
 
@@ -261,7 +272,7 @@ export function createKeyFeedback(deps: EngineDeps): KeyFeedbackModule {
       const midDx = dx * 0.5 + (isVertical ? windDist * 0.3 : 0);
       const midDy = dy * 0.5 + (isVertical ? 0 : windDist * 0.3);
       keyframes = [
-        { opacity: 0, transform: `translate(-50%,-50%) translate(0,0)` },
+        { opacity: 0, transform: `translate(-50%,-50%) translate(0,0)`, easing: entranceEasing },
         { opacity: targetOpacity, transform: `translate(-50%,-50%) translate(${dx * 0.2}px, ${dy * 0.2}px)`, offset: 0.2 },
         { opacity: targetOpacity, transform: `translate(-50%,-50%) translate(${midDx}px, ${midDy}px)`, offset: 0.6 },
         { opacity: 0, transform: `translate(-50%,-50%) translate(${finalDx}px, ${finalDy}px)` },
@@ -271,7 +282,7 @@ export function createKeyFeedback(deps: EngineDeps): KeyFeedbackModule {
       // 每段 keyframe 用独立 easing，模拟阻尼弹簧
       const ease = "cubic-bezier(0.4, 0, 0.2, 1)";
       keyframes = [
-        { opacity: 0, transform: `translate(-50%,-50%) translate(0,0) scale(0.4)`, easing: ease },
+        { opacity: 0, transform: `translate(-50%,-50%) translate(0,0) scale(0.4)`, easing: entranceEasing },
         { opacity: targetOpacity, transform: `translate(-50%,-50%) translate(${dx * 0.12}px, ${dy * 0.12}px) scale(0.82)`, offset: 0.12, easing: ease },
         { opacity: targetOpacity, transform: `translate(-50%,-50%) translate(${dx * 1.06}px, ${dy * 1.06}px) scale(1.18)`, offset: 0.42, easing: ease },
         { transform: `translate(-50%,-50%) translate(${dx * 0.94}px, ${dy * 0.94}px) scale(0.96)`, offset: 0.6, easing: ease },
@@ -288,7 +299,7 @@ export function createKeyFeedback(deps: EngineDeps): KeyFeedbackModule {
 
     const animation = el.animate(keyframes, {
       duration,
-      easing,
+      easing: "linear",
       delay: startDelay,
       fill: "forwards",
     });

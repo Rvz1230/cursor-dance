@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PanelLeftClose, PanelLeftOpen, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/components/ui/utils";
 import { ThemeCard } from "@/components/ui/theme-card";
+import { readEditorState, writeEditorState } from "../lib/workbenchConfig";
 import { ThemeComposerModal } from "./theme-library/ThemeComposerModal";
 import { ThemeLibraryDialogs } from "./theme-library/ThemeLibraryDialogs";
 
@@ -29,7 +30,26 @@ export function ThemeLibrarySidebar({
   const [pendingDeleteTheme, setPendingDeleteTheme] = useState(null);
   const [pendingSwitchThemeId, setPendingSwitchThemeId] = useState(null);
   const [isSwitching, setIsSwitching] = useState(false);
-  const [collapsed, setCollapsed] = useState(true);
+  // 默认展开：主题库是最高频的导航面，藏起来会让人以为主题只有当前这一套。
+  const [collapsed, setCollapsed] = useState(false);
+
+  // 折叠态要持久化——每次打开都被强制展开跟每次都被强制折叠一样烦人。
+  useEffect(() => {
+    let cancelled = false;
+    void readEditorState().then((editorState) => {
+      if (cancelled || typeof editorState?.libraryCollapsed !== "boolean") return;
+      setCollapsed(editorState.libraryCollapsed);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  function toggleCollapsed() {
+    setCollapsed((previous) => {
+      const next = !previous;
+      void writeEditorState({ libraryCollapsed: next });
+      return next;
+    });
+  }
 
   const filteredThemes = useMemo(() => {
     const keyword = query.trim().toLowerCase();
@@ -132,7 +152,7 @@ export function ThemeLibrarySidebar({
               className="size-9 rounded-xl"
               aria-label="展开主题库"
               title="展开主题库"
-              onClick={() => setCollapsed(false)}
+              onClick={toggleCollapsed}
             >
               <PanelLeftOpen className="h-4 w-4" />
             </Button>
@@ -144,7 +164,7 @@ export function ThemeLibrarySidebar({
                 className="size-9 shrink-0 rounded-xl"
                 aria-label="收起主题库"
                 title="收起主题库"
-                onClick={() => setCollapsed(true)}
+                onClick={toggleCollapsed}
               >
                 <PanelLeftClose className="h-4 w-4" />
               </Button>

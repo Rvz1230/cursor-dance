@@ -61,7 +61,6 @@ export function WorkbenchPreviewRail({ actionId = "leftClick", config, actionCon
       <Panel
         title="实时预览"
         icon={MousePointerClick}
-        iconTone={previewMode ? "bg-sky-100 text-sky-700" : "bg-slate-950 text-white"}
         className="flex h-full min-h-0 flex-col shadow-sm"
         contentClassName="flex min-h-0 flex-1 flex-col"
         summary={previewMode ? "正在预览 AI 建议" : undefined}

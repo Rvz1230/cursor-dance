@@ -414,3 +414,132 @@ describe("key-feedback: rendering", () => {
     expect(root.appended[0].textContent).toBe("Del");
   });
 });
+
+// ────────────────────────────────────────────────────────────────
+// 缓动过冲：把选中的曲线放在动画级会让字符整段不可见
+//
+// 「弹跳」是 cubic-bezier(0.34, 1.56, 0.64, 1)，输出会超过 1。作为动画级
+// timing function 时，时间轴进度会在中途冲过末帧，而末帧 opacity 是 0——
+// 于是过冲窗口里字符看不见。修法：动画级 linear，曲线挪到入场段 keyframe。
+// 下面的采样器刻意把动画级 easing 也算进去，所以这条断言能真正区分修没修。
+// ────────────────────────────────────────────────────────────────
+
+/** 解 cubic-bezier(x1,y1,x2,y2) 在输入 u 处的输出；二分足够精确。 */
+function easingOutput(easing: string, u: number): number {
+  if (easing === "linear") return u;
+  const match = /cubic-bezier\(([^)]+)\)/.exec(easing);
+  if (!match) return u;
+  const [x1, y1, x2, y2] = match[1].split(",").map((part) => Number(part.trim()));
+  const axis = (a: number, b: number, t: number) =>
+    3 * (1 - t) ** 2 * t * a + 3 * (1 - t) * t * t * b + t ** 3;
+  let low = 0;
+  let high = 1;
+  for (let i = 0; i < 60; i += 1) {
+    const mid = (low + high) / 2;
+    if (axis(x1, x2, mid) < u) low = mid;
+    else high = mid;
+  }
+  return axis(y1, y2, (low + high) / 2);
+}
+
+/** 在整段时长上采样，返回 opacity ≥ 阈值的时间占比。 */
+function visibleFraction(keyframes: Keyframe[], animationEasing: string, target: number): number {
+  // Web Animations 里只有**声明了** opacity 的 keyframe 参与该属性的插值。
+  const stops = keyframes
+    .map((frame, index) => ({
+      offset: typeof frame.offset === "number" ? frame.offset : index / (keyframes.length - 1),
+      opacity: frame.opacity,
+      easing: typeof frame.easing === "string" ? frame.easing : "linear",
+    }))
+    .filter((stop): stop is { offset: number; opacity: number; easing: string } =>
+      typeof stop.opacity === "number");
+
+  const threshold = target * 0.5;
+  const SAMPLES = 400;
+  let visible = 0;
+
+  for (let i = 0; i <= SAMPLES; i += 1) {
+    const u = i / SAMPLES;
+    const progress = easingOutput(animationEasing, u);
+    let opacity: number;
+    if (progress <= stops[0].offset) opacity = stops[0].opacity;
+    else if (progress >= stops[stops.length - 1].offset) opacity = stops[stops.length - 1].opacity;
+    else {
+      const nextIndex = stops.findIndex((stop) => stop.offset >= progress);
+      const from = stops[nextIndex - 1];
+      const to = stops[nextIndex];
+      const local = (progress - from.offset) / (to.offset - from.offset);
+      opacity = from.opacity + (to.opacity - from.opacity) * easingOutput(from.easing, local);
+    }
+    if (opacity >= threshold) visible += 1;
+  }
+
+  return visible / (SAMPLES + 1);
+}
+
+describe("key-feedback: 缓动只作用于入场段", () => {
+  const OVERSHOOT = "cubic-bezier(0.34, 1.56, 0.64, 1)";
+
+  it("keeps the animation-level easing linear so keyframe offsets equal real time", () => {
+    const { deps, root } = makeFakeDeps({ easing: "弹跳" });
+    const mod = createKeyFeedback(deps);
+    mod.handleKeyboardEvent(makeKeyEvent(KEY_A));
+    expect(root.appended[0].animations[0].options.easing).toBe("linear");
+  });
+
+  it("moves the selected curve onto the entrance keyframe for both styles", () => {
+    for (const animationStyle of ["bounce", "raindrop"] as const) {
+      const { deps, root } = makeFakeDeps({ easing: "弹跳", animationStyle });
+      const mod = createKeyFeedback(deps);
+      mod.handleKeyboardEvent(makeKeyEvent(KEY_A));
+      expect(root.appended[0].animations[0].keyframes[0].easing).toBe(OVERSHOOT);
+    }
+  });
+
+  it("leaves the character visible for most of the duration under an overshoot curve", () => {
+    const { deps, root, config } = makeFakeDeps({ easing: "弹跳", animationStyle: "bounce" });
+    const mod = createKeyFeedback(deps);
+    mod.handleKeyboardEvent(makeKeyEvent(KEY_A));
+    const animation = root.appended[0].animations[0];
+    const fraction = visibleFraction(
+      animation.keyframes,
+      String(animation.options.easing),
+      config.opacity / 100,
+    );
+    expect(fraction).toBeGreaterThan(0.8);
+  });
+
+  it("regression guard: the same keyframes go mostly invisible if the curve returns to the animation level", () => {
+    // 这条不测产品代码，只锁住「采样器确实能识别这个缺陷」——
+    // 否则上一条断言可能因为采样器写错而永远为真。
+    const { deps, root, config } = makeFakeDeps({ easing: "弹跳", animationStyle: "bounce" });
+    const mod = createKeyFeedback(deps);
+    mod.handleKeyboardEvent(makeKeyEvent(KEY_A));
+    const fraction = visibleFraction(
+      root.appended[0].animations[0].keyframes,
+      OVERSHOOT,
+      config.opacity / 100,
+    );
+    expect(fraction).toBeLessThan(0.7);
+  });
+});
+
+describe("key-feedback: 横向入场的 keyboardLayout 映射", () => {
+  // keyLayoutNormalizedX 是横向位置映射，对纵轴没有语义。横向入场时它必须
+  // 回落到 center 行为，否则 globalOffsetY 被静默忽略、控件点了没反应。
+  for (const originEdge of ["left", "right"] as const) {
+    it(`${originEdge} entry: keyboardLayout falls back to center and honors globalOffsetY`, () => {
+      const shared = { animationStyle: "raindrop", originEdge, globalOffsetY: 0.25 } as const;
+
+      const layout = makeFakeDeps({ ...shared, originMapping: "keyboardLayout" });
+      createKeyFeedback(layout.deps).handleKeyboardEvent(makeKeyEvent(KEY_A));
+
+      const center = makeFakeDeps({ ...shared, originMapping: "center" });
+      createKeyFeedback(center.deps).handleKeyboardEvent(makeKeyEvent(KEY_A));
+
+      // 1080 * 0.25 = 270，而不是过去硬编码的 540（屏幕中线）
+      expect(layout.root.appended[0].style.cssText).toContain("top:270px");
+      expect(layout.root.appended[0].style.cssText).toBe(center.root.appended[0].style.cssText);
+    });
+  }
+});

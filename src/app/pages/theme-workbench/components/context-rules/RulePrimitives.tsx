@@ -260,13 +260,13 @@ export function RuleList<T extends EditableRule>({
               </div>
               <button
                 onClick={() => onEdit(rule.id)}
-                className="shrink-0 rounded-lg px-2 py-1 text-2xs font-medium text-slate-500 opacity-0 transition-colors hover:bg-slate-100 hover:text-slate-700 group-hover:opacity-100"
+                className="shrink-0 rounded-lg px-2 py-1 text-2xs font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
               >
                 编辑
               </button>
               <button
                 onClick={() => onDelete(rule.id)}
-                className="shrink-0 rounded-lg p-1 text-slate-300 opacity-0 transition-colors hover:bg-rose-50 hover:text-rose-500 group-hover:opacity-100"
+                className="shrink-0 rounded-lg p-1 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-500"
                 aria-label="删除规则"
               >
                 <Trash2 className="size-3.5" />

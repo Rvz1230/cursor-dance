@@ -22,6 +22,11 @@ interface ToastInput {
   title: ReactNode
   description?: string
   tone?: ToastTone
+  /**
+   * 撤销动作。决策 #7：一次性结果走 toast 且**带撤销**——
+   * 没有撤销出口的一次性提示只是在通知用户「已经来不及了」。
+   */
+  undo?: { label?: string; run: () => void }
 }
 
 interface ToastItem {
@@ -30,6 +35,7 @@ interface ToastItem {
   description: string
   // 调用方来自未严格检查的 src/app，tone 可能是任意字符串，故按 string 存储并在渲染时兜底。
   tone: string
+  undo?: { label?: string; run: () => void }
 }
 
 interface ToastApi {
@@ -45,9 +51,9 @@ function resolveTone(tone: string): ToastToneMeta {
 export function ToastProvider({ children }: { children?: ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([])
 
-  const toast = useCallback(({ title, description = '', tone = 'info' }: ToastInput) => {
+  const toast = useCallback(({ title, description = '', tone = 'info', undo }: ToastInput) => {
     const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`
-    setToasts((current) => [...current, { id, title, description, tone }])
+    setToasts((current) => [...current, { id, title, description, tone, undo }])
     return id
   }, [])
 
@@ -76,7 +82,7 @@ export function ToastProvider({ children }: { children?: ReactNode }) {
               )}
             >
               <Icon className={cn('mt-0.5 size-4 shrink-0', tone.iconClass)} aria-hidden="true" />
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <ToastPrimitive.Title className="text-xs font-medium text-slate-600 text-pretty">
                   {item.title}
                 </ToastPrimitive.Title>
@@ -86,6 +92,20 @@ export function ToastProvider({ children }: { children?: ReactNode }) {
                   </ToastPrimitive.Description>
                 ) : null}
               </div>
+              {item.undo ? (
+                <ToastPrimitive.Action
+                  asChild
+                  altText={item.undo.label ?? '撤销'}
+                  onClick={() => item.undo?.run()}
+                >
+                  <button
+                    type="button"
+                    className="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                  >
+                    {item.undo.label ?? '撤销'}
+                  </button>
+                </ToastPrimitive.Action>
+              ) : null}
             </ToastPrimitive.Root>
           )
         })}

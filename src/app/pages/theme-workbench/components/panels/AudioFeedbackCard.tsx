@@ -21,7 +21,6 @@ export function AudioFeedbackCard({ config, updateActionConfig, panelId, reset }
       id={panelId}
       title="音频反馈"
       icon={PANEL_META.audio.icon}
-      iconTone={PANEL_META.audio.tone}
       collapsible
       defaultOpen={config.sound}
       enabled={config.sound}

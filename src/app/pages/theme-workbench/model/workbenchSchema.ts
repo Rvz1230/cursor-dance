@@ -215,16 +215,23 @@ function buildThemeLibrarySeed(themes = getDefaultThemePacks()) {
 
 export const THEMES = buildThemeLibrarySeed();
 
+/**
+ * 只留图标，不再带色调。
+ *
+ * 原先每种效果分一个色（emerald/amber/sky/teal/rose/cyan/fuchsia/slate/violet），
+ * 八张卡排一列就是八种颜色——颜色不承载信息，还把「启用/关闭」这个真正要看的状态盖住了。
+ * 现在色调由 `Panel` 的 `enabled` 决定：深底=启用、浅灰=关闭（DESIGN.md 色彩）。
+ */
 export const PANEL_META = {
-  trigger: { icon: MousePointer2, tone: "bg-emerald-100 text-emerald-700" },
-  text: { icon: Type, tone: "bg-amber-100 text-amber-700" },
-  particles: { icon: Waves, tone: "bg-sky-100 text-sky-700" },
-  ripple: { icon: CircleDashed, tone: "bg-teal-100 text-teal-700" },
-  audio: { icon: Volume2, tone: "bg-rose-100 text-rose-700" },
-  animation: { icon: Sparkles, tone: "bg-cyan-100 text-cyan-700" },
-  image: { icon: ImagePlus, tone: "bg-fuchsia-100 text-fuchsia-700" },
-  cursor: { icon: Settings2, tone: "bg-slate-200 text-slate-700" },
-  keyboard: { icon: Keyboard, tone: "bg-violet-100 text-violet-700" },
+  trigger: { icon: MousePointer2 },
+  text: { icon: Type },
+  particles: { icon: Waves },
+  ripple: { icon: CircleDashed },
+  audio: { icon: Volume2 },
+  animation: { icon: Sparkles },
+  image: { icon: ImagePlus },
+  cursor: { icon: Settings2 },
+  keyboard: { icon: Keyboard },
 };
 
 export function formatActionLabel(actionId) {

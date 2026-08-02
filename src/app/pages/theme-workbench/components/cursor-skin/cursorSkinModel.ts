@@ -1,13 +1,12 @@
 import type { LucideIcon } from "lucide-react";
 import { matchCursorStateIdFromFileName } from "@/shared/cursor-states";
+import { hotspotFromImagePixels, type Hotspot } from "@/shared/effect-core/cursor-hotspot";
 
 export const MAX_CURSOR_UPLOAD_BYTES = 300 * 1024;
 export const DEFAULT_BOX_SIZE = 48;
 
-export interface Hotspot {
-  x: number;
-  y: number;
-}
+/** 指向点是 0–1 归一化分数，语义与换算见 `shared/effect-core/cursor-hotspot.ts`。 */
+export type { Hotspot };
 
 /** 光标图片的宽松视图：素材可能是内联 dataUrl，也可能是桌面 asset 引用。 */
 interface CursorImageLike {
@@ -102,26 +101,38 @@ export function getResolvedSkinState(
 
 export function buildSkinStateFromAsset(asset: LegacyCursorAsset): CursorSkinStateLike {
   const dataUrl = asset.imageDataUrl || "";
+  const width = asset.sourceWidth || asset.size || DEFAULT_BOX_SIZE;
+  const height = asset.sourceHeight || asset.size || DEFAULT_BOX_SIZE;
   return {
     image: {
       kind: "dataUrl",
       mimeType: asset.mimeType || inferMimeType(dataUrl),
       dataUrl,
-      width: asset.sourceWidth || asset.size || DEFAULT_BOX_SIZE,
-      height: asset.sourceHeight || asset.size || DEFAULT_BOX_SIZE,
+      width,
+      height,
     },
-    hotspot: { x: asset.hotspotX ?? 0, y: asset.hotspotY ?? 0 },
+    // LegacyCursorAsset 是扁平的旧素材形状，hotspotX/Y 一直是原图像素，
+    // 在这个边界上折算成分数。
+    hotspot: hotspotFromImagePixels(
+      { x: asset.hotspotX ?? 0, y: asset.hotspotY ?? 0 },
+      width,
+      height,
+    ),
     size: { mode: "fixedBox", boxSize: asset.size || DEFAULT_BOX_SIZE },
   };
 }
 
+/**
+ * 推荐指向点，返回归一化分数。
+ *
+ * `topLeft` 沿用历史上按 48px 素材定的箭头尖位置（10, 8），折算成分数后
+ * 才对任意尺寸的素材都成立——这正是像素存储换成分数存储的收益。
+ */
+const TIP_HOTSPOT: Hotspot = { x: 10 / DEFAULT_BOX_SIZE, y: 8 / DEFAULT_BOX_SIZE };
+
 export function getDefaultHotspot(
   stateMeta: Pick<CursorStateMeta, "defaultHotspot"> | null | undefined,
-  width: number,
-  height: number,
 ): Hotspot {
-  if (stateMeta?.defaultHotspot === "center") {
-    return { x: Math.floor(width / 2), y: Math.floor(height / 2) };
-  }
-  return { x: Math.min(10, Math.max(0, width - 1)), y: Math.min(8, Math.max(0, height - 1)) };
+  if (stateMeta?.defaultHotspot === "center") return { x: 0.5, y: 0.5 };
+  return { ...TIP_HOTSPOT };
 }

@@ -64,7 +64,6 @@ export function ParticleFeedbackCard({ config, updateActionConfig, panelId, rese
       id={panelId}
       title="粒子反馈"
       icon={PANEL_META.particles.icon}
-      iconTone={PANEL_META.particles.tone}
       collapsible
       defaultOpen={config.particle}
       enabled={config.particle}

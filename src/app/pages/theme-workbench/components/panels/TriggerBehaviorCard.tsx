@@ -14,7 +14,6 @@ export function TriggerBehaviorCard({ actionId, config, updateActionConfig, pane
       id={panelId}
       title="触发行为"
       icon={PANEL_META.trigger.icon}
-      iconTone={PANEL_META.trigger.tone}
       collapsible
       defaultOpen
       summary={`${config.triggerTiming} · ${config.triggerZone}`}

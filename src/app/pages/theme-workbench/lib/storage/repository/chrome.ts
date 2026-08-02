@@ -19,7 +19,7 @@ import {
   type WorkbenchRepository,
   type WorkbenchRepositoryCodec,
 } from "./types";
-import { normalizeEditorState } from "./local-editor-state";
+import { mergeEditorState, normalizeEditorState } from "./local-editor-state";
 import { dedupeRecentAssets, normalizeRecentAsset } from "./support";
 import type { CursorDanceConfig } from "@/shared/config/default-config";
 import type {
@@ -193,9 +193,12 @@ export function createChromeWorkbenchRepository(
         return null;
       }
     },
-    async writeEditorState(state) {
+    async writeEditorState(patch) {
       try {
-        await chromeApi.storage.local.set({ [EDITOR_STATE_STORAGE_KEY]: state });
+        // patch 语义：见 local-editor-state.ts 的 mergeEditorState。
+        const result = await chromeApi.storage.local.get([EDITOR_STATE_STORAGE_KEY]);
+        const merged = mergeEditorState(normalizeEditorState(result[EDITOR_STATE_STORAGE_KEY]), patch);
+        await chromeApi.storage.local.set({ [EDITOR_STATE_STORAGE_KEY]: merged });
       } catch {
         // Editor navigation state is best-effort.
       }

@@ -21,7 +21,6 @@ export function AnimationFeedbackCard({ config, updateActionConfig, panelId, res
       id={panelId}
       title="基础动画反馈"
       icon={PANEL_META.animation.icon}
-      iconTone={PANEL_META.animation.tone}
       collapsible
       defaultOpen={config.animationEnabled}
       enabled={config.animationEnabled}

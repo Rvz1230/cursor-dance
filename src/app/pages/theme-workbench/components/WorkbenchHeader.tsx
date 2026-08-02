@@ -1,4 +1,4 @@
-import { Bot, Loader2, RotateCcw } from "lucide-react";
+import { Bot, Loader2, Redo2, RotateCcw, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandMark } from "@/components/ui/brand-mark";
 import { Switch } from "@/components/ui/switch";
@@ -11,6 +11,8 @@ export function WorkbenchHeader({
   enabled,
   setEnabled,
   unsaved,
+  undo = undefined,
+  redo = undefined,
   isSaving,
   saveError = "",
   saveChanges,
@@ -36,6 +38,36 @@ export function WorkbenchHeader({
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
+          {/*
+            撤销 / 重做要有可见入口。只有 ⌘Z 的功能等于隐藏功能——
+            没人会去猜一个没有按钮的快捷键存在。两端工具栏都要有（决策 #1 / #6）。
+          */}
+          {undo || redo ? (
+            <div className="flex h-8 items-center rounded-xl bg-slate-50 px-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-6 rounded-lg"
+                onClick={undo?.run}
+                disabled={!undo?.label}
+                title={undo?.label ? `撤销：${undo.label}（⌘Z）` : "没有可撤销的改动"}
+                aria-label={undo?.label ? `撤销：${undo.label}` : "没有可撤销的改动"}
+              >
+                <Undo2 className="size-3.5" aria-hidden="true" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-6 rounded-lg"
+                onClick={redo?.run}
+                disabled={!redo?.label}
+                title={redo?.label ? `重做：${redo.label}（⌘⇧Z）` : "没有可重做的改动"}
+                aria-label={redo?.label ? `重做：${redo.label}` : "没有可重做的改动"}
+              >
+                <Redo2 className="size-3.5" aria-hidden="true" />
+              </Button>
+            </div>
+          ) : null}
           {workspaceId === "workbench" ? (
             <Button
               variant={aiPanelOpen ? "default" : "outline"}

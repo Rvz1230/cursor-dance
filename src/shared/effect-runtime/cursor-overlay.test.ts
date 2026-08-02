@@ -43,6 +43,7 @@ describe("shared cursor overlay", () => {
     const fixed = cursorSkinStateToOverlayState({
       image: { kind: "dataUrl", dataUrl: "data:image/png;base64,AA", width: 32, height: 48 },
       size: { mode: "fixedBox", boxSize: 64 },
+      // 存量像素指向点（> 1）按原图尺寸折算：4/32、5/48
       hotspot: { x: 4, y: 5 },
     });
     const intrinsic = cursorSkinStateToOverlayState({
@@ -53,8 +54,8 @@ describe("shared cursor overlay", () => {
     expect(fixed).toEqual({
       imageDataUrl: "data:image/png;base64,AA",
       size: 64,
-      hotspotX: 4,
-      hotspotY: 5,
+      hotspotNormX: 4 / 32,
+      hotspotNormY: 5 / 48,
     });
     expect(intrinsic).toMatchObject({ imageDataUrl: "asset://resolved", size: 48 });
   });
@@ -64,19 +65,41 @@ describe("shared cursor overlay", () => {
     overlay.syncStateCursorOverlay(100, 80, {
       imageDataUrl: "data:image/png;base64,AA",
       size: 120,
-      hotspotX: 5,
-      hotspotY: 6,
+      hotspotNormX: 0.25,
+      hotspotNormY: 0.5,
     });
 
     expect(root.append).toHaveBeenCalledOnce();
     expect(created).toHaveLength(2);
+    // size 120 被夹到 96；偏移必须按夹取后的 96 算：0.25*96=24、0.5*96=48
     expect(state.stateCursorNode?.style.width).toBe("96px");
-    expect(state.stateCursorNode?.style.transform).toBe("translate3d(95px, 74px, 0)");
+    expect(state.stateCursorNode?.style.transform).toBe("translate3d(76px, 32px, 0)");
     expect(state.stateCursorImg?.src).toBe("data:image/png;base64,AA");
     expect(classes.has("hide-cursor")).toBe(true);
 
     overlay.clearStateCursorOverlay();
     expect(state.stateCursorNode?.hidden).toBe(true);
     expect(classes.has("hide-cursor")).toBe(false);
+  });
+
+  // 原缺陷的回归护栏：编辑器按原图比例定位红点，运行时却把同一个值当 CSS px
+  // 直接减、且没跟着被夹后的渲染尺寸换算。
+  it("anchors a centered hotspot on the pointer regardless of image size or box size", () => {
+    for (const [imageSize, boxSize, expectedOffset] of [
+      [128, 32, 16],
+      [128, 96, 48],
+      [16, 32, 16],
+    ] as const) {
+      const { overlay, state } = createHarness();
+      const overlayState = cursorSkinStateToOverlayState({
+        image: { kind: "dataUrl", dataUrl: "data:image/png;base64,AA", width: imageSize, height: imageSize },
+        size: { mode: "fixedBox", boxSize },
+        // 原图正中：像素表达法下是 imageSize/2
+        hotspot: { x: imageSize / 2, y: imageSize / 2 },
+      });
+      overlay.syncStateCursorOverlay(200, 200, overlayState);
+      expect(state.stateCursorNode?.style.transform)
+        .toBe(`translate3d(${200 - expectedOffset}px, ${200 - expectedOffset}px, 0)`);
+    }
   });
 });

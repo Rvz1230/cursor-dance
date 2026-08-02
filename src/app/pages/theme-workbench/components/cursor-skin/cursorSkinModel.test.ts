@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildSkinStateFromAsset,
+  getDefaultHotspot,
   getResolvedSkinState,
   matchStateId,
 } from "./cursorSkinModel";
@@ -15,7 +16,9 @@ describe("cursor skin model", () => {
     expect(matchStateId("resize-horizontal.svg")).toBe("");
   });
 
-  it("converts recent assets into cursor skin states", () => {
+  // LegacyCursorAsset 的 hotspotX/Y 是原图像素；cursorSkin.hotspot 是 0–1 分数。
+  // 这个边界负责折算，所以 4/40 与 6/42。
+  it("converts recent assets into cursor skin states with a normalized hotspot", () => {
     expect(buildSkinStateFromAsset({
       imageDataUrl: "data:image/png;base64,AA==",
       hotspotX: 4,
@@ -31,9 +34,15 @@ describe("cursor skin model", () => {
         width: 40,
         height: 42,
       },
-      hotspot: { x: 4, y: 6 },
+      hotspot: { x: 4 / 40, y: 6 / 42 },
       size: { mode: "fixedBox", boxSize: 32 },
     });
+  });
+
+  it("returns recommended hotspots as fractions so they generalize across image sizes", () => {
+    expect(getDefaultHotspot({ defaultHotspot: "center" })).toEqual({ x: 0.5, y: 0.5 });
+    // 箭头尖历史上定在 48px 素材的 (10, 8)，折成分数后对任意尺寸的素材都成立
+    expect(getDefaultHotspot({ defaultHotspot: "topLeft" })).toEqual({ x: 10 / 48, y: 8 / 48 });
   });
 
   it("falls back to the default skin for inherited states", () => {

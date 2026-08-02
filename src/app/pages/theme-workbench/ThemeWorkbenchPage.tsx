@@ -9,7 +9,7 @@ import { getRuntimeConfig } from "./lib/runtimeConfig";
 import { ThemeLibrarySidebar } from "./components/ThemeLibrarySidebar";
 import { WelcomeDialog } from "./components/WelcomeDialog";
 import { cn } from "@/components/ui/utils";
-import { Loader2 } from "lucide-react";
+import { PanelSkeleton } from "@/components/ui/skeleton";
 import { ToastProvider, useToast } from "@/components/ui/toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { isDesktop, isExtension } from "@/shared/runtime";
@@ -19,6 +19,7 @@ import {
 } from "@/shared/app-rules";
 import { useWorkbenchAiPreview } from "./hooks/useWorkbenchAiPreview";
 import { useWorkbenchColumnLayout } from "./hooks/useWorkbenchColumnLayout";
+import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
 import { useDesktopWorkbenchRuntime } from "./hooks/useDesktopWorkbenchRuntime";
 import {
   DesktopWorkbenchToolbar,
@@ -48,11 +49,15 @@ const KeyboardPanel = lazy(() => import("./components/KeyboardPanel").then((modu
   default: module.KeyboardPanel,
 })));
 
+/**
+ * 懒加载占位。原先是一个居中 spinner —— 那让整块面板在加载期间看起来像「空了」，
+ * 而且面板出现时会跳版。骨架屏保留了「马上会出现什么形状」的信息。
+ * 见 docs/ui-spec/library/components.html 的 Skeleton 一节。
+ */
 function DeferredPanelFallback({ label }: { label: string }) {
   return (
-    <div className="flex h-full min-h-32 items-center justify-center text-xs text-slate-500" role="status">
-      <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
-      {label}
+    <div className="h-full min-h-32" role="status" aria-label={label}>
+      <PanelSkeleton rows={3} />
     </div>
   );
 }
@@ -92,6 +97,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
     currentActionConfig,
     currentConflicts,
     isWorkbench,
+    undoStack,
     workspaceItems,
     actionItems,
     setWorkspaceId,
@@ -159,6 +165,34 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
     ? (activeAppInfo ? resolveAppRule(state.appRules, activeAppInfo) : null)
     : getRuntimeConfig().resolveSiteRule(state.siteRules, state.site.host);
 
+  // 撤销 / 重做：快捷键与工具栏按钮走同一条路径，不写两遍
+  function runUndo() {
+    const label = undoStack.undo(selected.themeId);
+    // 没有可撤销的就如实说，而不是静默无反应
+    toast(label
+      ? { title: `已撤销：${label}`, tone: "info", undo: { label: "重做", run: runRedo } }
+      : { title: "没有可撤销的改动", tone: "info" });
+  }
+  function runRedo() {
+    const label = undoStack.redo(selected.themeId);
+    toast(label
+      ? { title: `已重做：${label}`, tone: "info", undo: { label: "撤销", run: runUndo } }
+      : { title: "没有可重做的改动", tone: "info" });
+  }
+
+  // 快捷键（决策 #6）。必须挂在 hydration 早退**之前** —— hook 不能出现在条件返回之后。
+  useGlobalShortcuts({
+    onUndo: runUndo,
+    onRedo: runRedo,
+    onToggleAi: () => setAiPanelOpen((open) => !open),
+    onWorkspace: setWorkspaceId,
+    // ⌘K（命令面板）与 ⌘N（新建主题）**刻意先不注册**：
+    // 命令面板在真实代码里还不存在；新建主题的 composer 状态目前私有在
+    // ThemeLibrarySidebar 内部，要先把它提上来才能从快捷键触发。
+    // 注册一个没实现的键位会吃掉原生行为又什么都不做，比没有更糟。
+    // 形态见 docs/ui-spec/surfaces/01-workbench.html 的 ⌘K 面板。
+  });
+
   if (!state.ui.isHydrated) {
     return <div className="h-dvh bg-slate-100" />;
   }
@@ -192,6 +226,8 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
     enabled: state.ui.enabled,
     setEnabled,
     unsaved: state.ui.unsaved,
+    undo: { run: runUndo, label: undoStack.undoLabel(selected.themeId) },
+    redo: { run: runRedo, label: undoStack.redoLabel(selected.themeId) },
     isSaving: state.ui.isSaving,
     saveError: state.ui.saveError,
     saveChanges: () => { void handleSaveChanges(); },
