@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI 助手 · UI 规范</title>
+<link rel="stylesheet" href="../mockup.css" />
+<style>
+  body { font-family: "SF Pro Display", "SF Pro Text", "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif; }
+</style>
+</head>
+<body class="bg-slate-200 p-6 text-slate-900">
+
+<div id="proto"></div>
+<div id="app"></div>
+
+<template id="page">
+  <div class="grid min-h-0 flex-1 gap-2.5" style="grid-template-columns: minmax(0,1fr) 424px">
+
+    <!-- ══ 左：目标区（简化的工作台，用于演示定位与高亮） ══ -->
+    <div class="flex min-h-0 flex-col gap-2.5 overflow-y-auto pr-1">
+      <div class="rounded-xl border border-dashed border-slate-300 bg-white px-3 py-2">
+        <p class="text-2xs leading-relaxed text-slate-500">
+          左侧是<span class="font-medium text-slate-700">工作台的简化示意</span>，只为演示「hover 提案项 → 高亮它要改的位置」。
+          实现时它就是真实的效果卡与时间轴。
+        </p>
+      </div>
+
+      <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div class="border-b border-slate-100 px-4 py-2.5">
+          <h3 class="text-sm font-medium text-slate-900">效果卡</h3>
+          <div class="mt-0.5 text-xs text-slate-500">左键单击 · 3 个效果已启用</div>
+        </div>
+        <div id="targetCards" class="space-y-1.5 px-3 py-3"></div>
+      </section>
+
+      <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div class="border-b border-slate-100 px-4 py-2.5">
+          <h3 class="text-sm font-medium text-slate-900">时间轴</h3>
+          <div class="mt-0.5 text-xs text-slate-500">时间关系类提案会高亮到对应轨道</div>
+        </div>
+        <div class="px-3 py-3">
+          <div id="targetLanes" class="space-y-1"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ══ 右：AI 助手 ══ -->
+    <aside class="flex min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+
+      <!-- 头部 -->
+      <div class="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-2.5">
+        <div class="min-w-0">
+          <h3 class="flex items-center gap-2 text-sm font-medium text-slate-900">
+            AI 助手
+            <span class="inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-2xs font-medium text-slate-600">只提案，不写入</span>
+          </h3>
+          <div class="mt-0.5 text-xs text-slate-500">产出一份可逐项接受的补丁</div>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <div id="scopeSel" class="w-[124px]"></div>
+        </div>
+      </div>
+
+      <!-- ① 空态 -->
+      <div data-show="empty" class="flex min-h-0 flex-1 flex-col items-center justify-center px-6 text-center">
+        <div class="grid size-11 place-items-center rounded-full bg-slate-100 text-slate-400">
+          <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8V4H8M4 8h16v12H4zM9 16h6"/></svg>
+        </div>
+        <p class="mt-3 text-xs font-medium text-slate-600">说一句你想要的手感</p>
+        <p class="mx-auto mt-1.5 max-w-[260px] text-2xs leading-relaxed text-slate-500">
+          它会读当前配置、时间关系和最近的诊断，产出一份补丁。<span class="font-medium text-slate-700">在你逐项确认之前，什么都不会写入。</span>
+        </p>
+      </div>
+
+      <!-- ② 生成中 / ③④ 提案 -->
+      <div data-show="running proposal triage accepted" class="flex min-h-0 flex-1 flex-col">
+
+        <!-- 过程区（只读工具，可折叠） -->
+        <div class="shrink-0 border-b border-slate-100">
+          <button id="stepsToggle" class="flex w-full items-center gap-2 px-4 py-2 text-left transition-colors hover:bg-slate-50">
+            <svg id="stepsChevron" class="size-3.5 shrink-0 text-slate-400 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 6 6 6-6 6"/></svg>
+            <span class="text-2xs font-semibold text-slate-600">过程</span>
+            <span id="stepsSummary" class="min-w-0 flex-1 truncate text-2xs text-slate-400"></span>
+            <span class="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-2xs font-medium text-slate-500">全部只读</span>
+          </button>
+          <div id="stepsBody" class="hidden space-y-1 px-4 pb-2.5"></div>
+        </div>
+
+        <!-- 提案主体 -->
+        <div class="min-h-0 flex-1 overflow-y-auto">
+          <div id="answer" class="border-b border-slate-100 px-4 py-3"></div>
+          <div id="opsHead" class="flex flex-wrap items-center justify-between gap-2 px-4 py-2">
+            <span class="text-2xs font-semibold text-slate-600">改动 <span id="opsCount">0</span> 项</span>
+            <div class="flex items-center gap-1.5">
+              <button id="selAll" class="text-2xs font-medium text-slate-500 underline underline-offset-2 hover:text-slate-900">全选</button>
+              <span class="text-slate-300">·</span>
+              <button id="selNone" class="text-2xs font-medium text-slate-500 underline underline-offset-2 hover:text-slate-900">全不选</button>
+            </div>
+          </div>
+          <div id="ops" class="space-y-1.5 px-3 pb-3"></div>
+          <div id="risks" class="px-4 pb-3"></div>
+        </div>
+
+        <!-- 底部操作 -->
+        <div class="shrink-0 space-y-2 border-t border-slate-100 bg-slate-50/60 px-4 py-2.5">
+          <div class="flex flex-wrap items-center gap-1.5">
+            <button id="abBtn" class="btn-outline h-7 px-2.5 text-2xs" title="按住查看接受后的效果">A/B 试听</button>
+            <button id="savePreset" class="btn-outline h-7 px-2.5 text-2xs">存为预设</button>
+            <span id="budgetHint" class="ml-auto text-2xs text-slate-500"></span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button id="acceptBtn" class="btn-default h-8 flex-1 px-3 text-xs">接受选中的 <span id="acceptCount">0</span> 项</button>
+            <button id="rejectBtn" class="btn-ghost h-8 px-3 text-xs">全部拒绝</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 提问区 -->
+      <div class="shrink-0 border-t border-slate-100 px-4 py-2.5">
+        <div id="intents" class="mb-2 flex flex-wrap gap-1.5"></div>
+        <div class="relative">
+          <textarea id="ask" rows="2" placeholder="想要什么手感？例：点击再克制一点，但保留粒子"
+            class="w-full resize-none rounded-xl border border-slate-200 bg-white px-2.5 py-2 pr-9 text-xs leading-relaxed text-slate-700 shadow-sm placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"></textarea>
+          <button id="sendBtn" class="absolute bottom-2 right-2 grid size-6 place-items-center rounded-lg bg-slate-950 text-white transition-colors hover:bg-slate-800" aria-label="发送">
+            <svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
+        </div>
+        <!-- 隐私：诊断含前台应用名，默认脱敏 -->
+        <button id="privacyToggle" class="mt-2 flex w-full items-start gap-2 rounded-lg px-1 py-1 text-left transition-colors hover:bg-slate-50">
+          <span id="privacyKnob" class="switch-knob mt-0.5"></span>
+          <span class="min-w-0 flex-1">
+            <span class="block text-2xs font-medium text-slate-600">诊断里带上应用名</span>
+            <span id="privacyDesc" class="mt-0.5 block text-2xs leading-relaxed text-slate-400">当前发送为「某应用」。开启后会发送真实名称（如 Figma），建议更准。</span>
+          </span>
+        </button>
+      </div>
+    </aside>
+  </div>
+</template>
+
+<script src="../controls.js"></script>
+<script src="../shell.js"></script>
+<script>
+mountShell({ active: 'workbench', mainClass: 'flex min-w-0 flex-1 flex-col overflow-hidden bg-slate-50 px-3 py-3',
+  proto: [['empty', '① 空态'], ['running', '② 生成中'], ['proposal', '③ 提案（含冲突）'], ['triage', '④ 排障提案'], ['accepted', '⑤ 部分接受后']],
+  hint: 'hover 提案项会高亮左侧对应位置 · 每项可单独接受/跳过 · 接受后进全局撤销栈',
+  onProto: (id) => onProtoState(id) });
+</script>
+<script>
+const $ = (id) => document.getElementById(id);
+
+// ── 目标区：简化的效果卡与时间轴（只为演示高亮与接受后的变化）
+const CARDS = [
+  { key: 'text', name: '飘字', preset: '弹跳', on: true, fields: [['字号', 28, 'custom'], ['时长', 820, 'preset']] },
+  { key: 'particle', name: '粒子', preset: '礼花', on: true, fields: [['数量', 14, 'preset'], ['扩散半径', 96, 'preset']] },
+  { key: 'ripple', name: '波纹', preset: '涟漪', on: true, fields: [['最大半径', 120, 'preset']] },
+  { key: 'audio', name: '音效', preset: '清脆', on: true, fields: [['音量', 70, 'preset']] },
+];
+const LANES = [
+  { key: 'ripple', label: '波纹', start: 0, dur: 620, ref: 'trigger' },
+  { key: 'particle', label: '粒子', start: 384, dur: 900, ref: 'ripple.peak' },
+  { key: 'text', label: '飘字', start: 424, dur: 820, ref: 'ripple.peak' },
+  { key: 'audio', label: '音效', start: 0, dur: 120, ref: 'trigger' },
+];
+const SRC_DOT = { preset: 'bg-slate-300', ai: 'bg-sky-400', custom: 'bg-slate-900' };
+const SRC_NAME = { preset: '来自预设', ai: 'AI 建议', custom: '你改过' };
+
+function renderTarget() {
+  $('targetCards').innerHTML = CARDS.map((c) => `
+    <div data-tcard="${c.key}" class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm transition-colors">
+      <div class="flex items-center gap-2.5">
+        <span class="grid size-7 shrink-0 place-items-center rounded-xl text-2xs font-semibold ${c.on ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'}">${c.name[0]}</span>
+        <span class="min-w-0 flex-1">
+          <span class="flex items-center gap-2">
+            <span class="text-xs font-medium text-slate-900">${c.name}</span>
+            ${c.on ? '<span class="inline-flex items-center gap-1 text-2xs font-semibold text-emerald-700"><span class="size-1.5 rounded-full bg-emerald-500"></span>已启用</span>' : '<span class="text-2xs text-slate-400">已关闭</span>'}
+          </span>
+          <span class="mt-0.5 block text-2xs text-slate-400">${c.preset}</span>
+        </span>
+      </div>
+      <div class="mt-2 flex flex-wrap gap-1.5">
+        ${c.fields.map(([label, value, src]) => `
+          <span data-tfield="${c.key}|${label}" class="inline-flex items-center gap-1 rounded-lg bg-slate-50 px-1.5 py-0.5 text-2xs text-slate-600 ring-1 ring-slate-200">
+            <span class="size-1.5 rounded-full ${SRC_DOT[src]}" title="${SRC_NAME[src]}"></span>${label} <span class="font-semibold tabular-nums">${value}</span>
+          </span>`).join('')}
+      </div>
+    </div>`).join('');
+
+  const T = Math.max(...LANES.map((l) => l.start + l.dur));
+  $('targetLanes').innerHTML = LANES.map((l) => `
+    <div data-tlane="${l.key}" class="grid grid-cols-[52px_minmax(0,1fr)] items-center gap-2 rounded-lg px-1 py-0.5 transition-colors">
+      <span class="truncate text-2xs font-semibold text-slate-600">${l.label}</span>
+      <span class="relative block h-5 rounded bg-slate-100/70">
+        <span class="absolute top-1/2 h-4 -translate-y-1/2 rounded border border-slate-300 bg-white shadow-sm"
+              style="left:${(l.start / T) * 100}%;width:${Math.max(1.5, (l.dur / T) * 100)}%">
+          ${l.ref !== 'trigger' ? '<span class="absolute -top-0.5 left-0.5 text-[8px] leading-3 text-slate-400">⛓</span>' : ''}
+        </span>
+      </span>
+    </div>`).join('');
+}
+
+// ── 补丁：五种 op，与新架构的五个可编辑面一一对应
+const KIND = {
+  preset: ['预设', 'bg-slate-900 text-white'],
+  field: ['字段', 'bg-slate-100 text-slate-600'],
+  timing: ['时间', 'bg-slate-100 text-slate-600'],
+  curve: ['曲线', 'bg-slate-100 text-slate-600'],
+  toggle: ['开关', 'bg-slate-100 text-slate-600'],
+};
+const PROPOSALS = {
+  proposal: {
+    answer: '把点击收敛一档：飘字换成更轻的预设、粒子减半、飘字与波纹峰值对齐。粒子的形状和颜色保持不动。',
+    budget: '同显 31/48 → 约 18/48',
+    steps: [
+      ['read_config', 'leftClick · 4 个通道已启用'],
+      ['read_timeline', '飘字与粒子都链在 ripple.peak 上'],
+      ['list_presets', '飘字可用：轻盈 / 弹跳 / 爆裂 / 打字机'],
+      ['propose_patch', '6 项改动，其中 2 项与你的手改冲突'],
+    ],
+    ops: [
+      { id: 'o1', kind: 'preset', card: 'text', target: '飘字 · 预设', from: '弹跳', to: '轻盈', reason: '降低视觉重量，其余字段跟随预设', accept: true },
+      { id: 'o2', kind: 'field', card: 'particle', field: '数量', target: '粒子 · 数量', from: 14, to: 6, reason: '减少同时存在的元素', accept: true, budget: true },
+      { id: 'o3', kind: 'timing', lane: 'text', target: '飘字 · 起点', from: 'ripple.peak + 40ms', to: 'ripple.peak + 0ms', reason: '与波纹峰值对齐，节奏更紧', accept: true, keepsLink: true },
+      { id: 'o4', kind: 'curve', card: 'text', target: '飘字 · 上浮曲线', fromCurve: [.2, .7, .3, 1], toCurve: [0, 0, .2, 1], reason: '去掉过冲，收得更干净', accept: false, conflict: '会覆盖你手改的曲线' },
+      { id: 'o5', kind: 'field', card: 'text', field: '字号', target: '飘字 · 字号', from: 28, to: 22, reason: '与更轻的预设匹配', accept: false, conflict: '会覆盖你手改的字号 28' },
+      { id: 'o6', kind: 'toggle', card: 'audio', target: '音效', from: '开', to: '关', reason: '视觉反馈已足够', accept: false, risk: true },
+    ],
+    risks: ['关掉音效会让「熔金」这类主题失去标志性反馈，建议先 A/B 试听。'],
+  },
+  triage: {
+    answer: '你的点击大部分没出效果，不是配置不对，是被<span class="font-medium text-slate-800">触发区域</span>拦下了：最近 40 次里有 11 次判定为「不在触发区域内」，因为触发区域设成了「中心区域」，而你实际在侧边栏点击。',
+    budget: '预算水位正常：同显 31/48',
+    steps: [
+      ['read_diagnostics', '40 次触发 · 11 次被区域过滤 · 6 次被应用规则'],
+      ['read_config', 'leftClick 触发区域 = 中心区域'],
+      ['propose_patch', '1 项改动'],
+    ],
+    ops: [
+      { id: 't1', kind: 'field', card: 'text', field: '触发区域', target: '触发行为 · 触发区域', from: '中心区域', to: '整屏', reason: '让侧边栏与边缘的点击也能触发', accept: true },
+    ],
+    risks: [],
+    link: '在诊断面板查看这 11 组',
+  },
+};
+
+let state = 'empty', ops = [], answerHtml = '', steps = [], risks = [], budget = '', link = '';
+let privacy = false, stepsOpen = false, ab = false;
+
+function renderSteps() {
+  $('stepsBody').classList.toggle('hidden', !stepsOpen);
+  $('stepsChevron').classList.toggle('rotate-90', stepsOpen);
+  $('stepsSummary').textContent = stepsOpen ? '' : steps.map((s) => s[0]).join(' → ');
+  $('stepsBody').innerHTML = steps.map(([tool, note], i) => `
+    <div class="flex items-baseline gap-2">
+      <span class="w-4 shrink-0 text-2xs tabular-nums text-slate-300">${i + 1}</span>
+      <code class="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 font-mono text-2xs ${tool === 'propose_patch' ? 'text-slate-900' : 'text-slate-500'}">${tool}</code>
+      <span class="min-w-0 flex-1 text-2xs leading-relaxed text-slate-500">${note}</span>
+    </div>`).join('');
+}
+
+function renderOps() {
+  $('opsCount').textContent = ops.length;
+  $('ops').innerHTML = ops.map((op) => {
+    const [kindLabel, kindTone] = KIND[op.kind];
+    const val = (v, curve, tone) => (curve
+      ? `<span class="inline-block size-6 align-middle">${Ctl.curveThumb(curve, 24)}</span>`
+      : `<span class="rounded px-1 py-0.5 font-semibold tabular-nums ${tone}">${v}</span>`);
+    return `<div data-op="${op.id}" class="rounded-xl border ${op.accept ? 'border-slate-900' : 'border-slate-200'} bg-white px-3 py-2.5 shadow-sm transition-colors">
+      <div class="flex items-start gap-2.5">
+        <button data-toggle-op="${op.id}" class="mt-0.5 grid size-4 shrink-0 place-items-center rounded border ${op.accept ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-300 bg-white'}" aria-label="接受这一项">
+          ${op.accept ? '<svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M20 6 9 17l-5-5"/></svg>' : ''}
+        </button>
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span class="inline-flex items-center rounded px-1.5 py-0.5 text-2xs font-semibold ${kindTone}">${kindLabel}</span>
+            <span class="min-w-0 truncate text-xs font-medium text-slate-800">${op.target}</span>
+          </div>
+          <div class="mt-1.5 flex flex-wrap items-center gap-1.5 text-2xs">
+            ${val(op.from, op.fromCurve, 'bg-slate-100 text-slate-500 line-through')}
+            <svg class="size-3 shrink-0 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            ${val(op.to, op.toCurve, 'bg-slate-900 text-white')}
+            ${op.keepsLink ? '<span class="inline-flex items-center gap-1 rounded bg-slate-50 px-1.5 py-0.5 text-2xs text-slate-500 ring-1 ring-slate-200">⛓ 保留链接</span>' : ''}
+            ${op.budget ? `<span class="inline-flex items-center rounded bg-emerald-50 px-1.5 py-0.5 text-2xs font-medium text-emerald-700">${budget}</span>` : ''}
+          </div>
+          <p class="mt-1.5 text-2xs leading-relaxed text-slate-500">${op.reason}</p>
+          ${op.conflict ? `<p class="mt-1.5 inline-flex items-start gap-1 rounded-lg bg-amber-50 px-1.5 py-1 text-2xs leading-relaxed text-amber-800">
+            <svg class="mt-0.5 size-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+            ${op.conflict}</p>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // hover → 高亮左侧对应位置
+  $('ops').querySelectorAll('[data-op]').forEach((row) => {
+    const op = ops.find((x) => x.id === row.dataset.op);
+    row.addEventListener('mouseenter', () => highlight(op, true));
+    row.addEventListener('mouseleave', () => highlight(op, false));
+  });
+  $('ops').querySelectorAll('[data-toggle-op]').forEach((b) => b.addEventListener('click', () => {
+    const op = ops.find((x) => x.id === b.dataset.toggleOp);
+    op.accept = !op.accept;
+    renderOps(); syncAccept();
+  }));
+  syncAccept();
+}
+function highlight(op, on) {
+  const card = op.card ? document.querySelector(`[data-tcard="${op.card}"]`) : null;
+  const lane = op.lane ? document.querySelector(`[data-tlane="${op.lane}"]`) : null;
+  const field = op.field && op.card ? document.querySelector(`[data-tfield="${op.card}|${op.field}"]`) : null;
+  [card, lane].forEach((el) => el && el.classList.toggle('ring-2', on) && el.classList.toggle('ring-slate-400', on));
+  if (card) { card.classList.toggle('ring-2', on); card.classList.toggle('ring-slate-400', on); }
+  if (lane) { lane.classList.toggle('bg-slate-100', on); }
+  if (field) { field.classList.toggle('ring-2', on); field.classList.toggle('ring-slate-900', on); }
+}
+function syncAccept() {
+  const n = ops.filter((o) => o.accept).length;
+  $('acceptCount').textContent = n;
+  $('acceptBtn').disabled = n === 0;
+  $('acceptBtn').classList.toggle('opacity-50', n === 0);
+}
+function renderRisks() {
+  $('risks').innerHTML = (risks.length ? risks : []).map((r) => `
+    <p class="flex items-start gap-1.5 rounded-xl bg-amber-50 px-2.5 py-2 text-2xs leading-relaxed text-amber-800">
+      <svg class="mt-0.5 size-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>${r}</p>`).join('');
+  $('answer').innerHTML = `<p class="text-xs leading-relaxed text-slate-700">${answerHtml}</p>`
+    + (link ? `<button class="mt-2 text-2xs font-medium text-slate-900 underline underline-offset-2">${link}</button>` : '');
+  $('budgetHint').textContent = budget && state !== 'accepted' ? budget : '';
+}
+
+// ── 接受选中项：写入目标区、标 AI 来源、进全局撤销栈
+$('acceptBtn').addEventListener('click', () => {
+  const taken = ops.filter((o) => o.accept);
+  if (!taken.length) return;
+  const before = JSON.parse(JSON.stringify({ CARDS, LANES }));
+  taken.forEach((op) => {
+    const c = CARDS.find((x) => x.key === op.card);
+    if (op.kind === 'preset' && c) c.preset = op.to;
+    if (op.kind === 'field' && c) {
+      const f = c.fields.find(([l]) => l === op.field);
+      if (f) { f[1] = op.to; f[2] = 'ai'; }
+    }
+    if (op.kind === 'toggle' && c) c.on = op.to === '开';
+    if (op.kind === 'timing') {
+      const l = LANES.find((x) => x.key === op.lane);
+      if (l) l.start = 384;   // 与 ripple.peak 对齐
+    }
+  });
+  ops = ops.filter((o) => !o.accept);
+  renderTarget(); renderOps(); renderRisks();
+  const undo = () => {
+    CARDS.splice(0, CARDS.length, ...before.CARDS);
+    LANES.splice(0, LANES.length, ...before.LANES);
+    renderTarget();
+    return () => { $('acceptBtn').click(); return undo; };
+  };
+  toast(`已接受 ${taken.length} 项${ops.length ? `，跳过 ${ops.length} 项` : ''}`, undo);
+  if (!ops.length) setProtoLocal('accepted');
+});
+$('rejectBtn').addEventListener('click', () => { ops = []; renderOps(); toast('已拒绝全部建议'); setProtoLocal('accepted'); });
+$('selAll').addEventListener('click', () => { ops.forEach((o) => { o.accept = true; }); renderOps(); });
+$('selNone').addEventListener('click', () => { ops.forEach((o) => { o.accept = false; }); renderOps(); });
+$('stepsToggle').addEventListener('click', () => { stepsOpen = !stepsOpen; renderSteps(); });
+$('savePreset').addEventListener('click', () => toast('已把这套改动存成自定义预设「克制点击」'));
+$('abBtn').addEventListener('pointerdown', () => { ab = true; $('abBtn').textContent = '松手回到当前'; });
+window.addEventListener('pointerup', () => { if (ab) { ab = false; $('abBtn').textContent = 'A/B 试听'; } });
+$('privacyToggle').addEventListener('click', () => {
+  privacy = !privacy;
+  $('privacyKnob').className = 'switch-knob mt-0.5' + (privacy ? ' switch-on' : '');
+  $('privacyDesc').textContent = privacy
+    ? '会发送真实应用名（如 Figma）。仅用于本次请求，不留存。'
+    : '当前发送为「某应用」。开启后会发送真实名称（如 Figma），建议更准。';
+});
+$('sendBtn').addEventListener('click', () => {
+  const q = $('ask').value.trim();
+  setProtoLocal('running');
+  setTimeout(() => setProtoLocal(q.includes('为什么') || q.includes('没效果') ? 'triage' : 'proposal'), 900);
+});
+
+const INTENTS = ['更克制', '更夸张', '贴合深色桌面', '降低性能开销', '为什么没效果'];
+$('intents').innerHTML = INTENTS.map((t) => `<button data-intent="${t}" class="preset-chip">${t}</button>`).join('');
+$('intents').querySelectorAll('[data-intent]').forEach((b) => b.addEventListener('click', () => {
+  $('ask').value = b.dataset.intent === '为什么没效果' ? '我配好了但点击经常没效果，为什么' : `让点击${b.dataset.intent}`;
+  $('sendBtn').click();
+}));
+
+Ctl.select($('scopeSel'), {
+  options: [{ label: '当前动作', desc: '只改左键单击' }, { label: '整个主题', desc: '5 个动作一起改' }, { label: '所有主题', desc: '影响面最大' }],
+  value: '当前动作',
+});
+
+// 原型状态
+function setProtoLocal(id) {
+  document.querySelectorAll('.proto-btn').forEach((b) => {
+    const on = b.dataset.proto === id;
+    b.className = 'proto-btn h-7 rounded-lg px-2.5 text-2xs font-medium ' + (on ? 'bg-white text-slate-900' : 'text-slate-300 hover:bg-slate-800');
+  });
+  onProtoState(id);
+  document.querySelectorAll('[data-show]').forEach((el) => {
+    el.classList.toggle('hidden', !el.dataset.show.split(' ').includes(id));
+  });
+}
+function onProtoState(id) {
+  state = id;
+  if (id === 'proposal' || id === 'triage') {
+    const p = PROPOSALS[id];
+    answerHtml = p.answer; steps = p.steps; risks = p.risks; budget = p.budget; link = p.link || '';
+    ops = JSON.parse(JSON.stringify(p.ops));
+    stepsOpen = false;
+  }
+  if (id === 'running') {
+    answerHtml = '<span class="inline-flex items-center gap-1.5 text-slate-500"><svg class="size-3 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a9 9 0 1 0 9 9"/></svg>正在读取当前配置与最近诊断…</span>';
+    steps = [['read_config', '读取中…']]; ops = []; risks = []; budget = ''; link = '';
+    stepsOpen = true;
+  }
+  if (id === 'accepted') {
+    answerHtml = '已按你的选择写入。被 AI 改过的字段在左侧用 <span class="inline-block size-1.5 rounded-full bg-sky-400 align-middle"></span> 标记，可用 ⌘Z 整批撤销。';
+    steps = PROPOSALS.proposal.steps; ops = []; risks = []; budget = ''; link = '';
+  }
+  renderSteps(); renderOps(); renderRisks();
+}
+
+renderTarget();
+</script>
+</body>
+</html>

@@ -1,0 +1,333 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 原型专用的组件类：等价于 src/components/ui 里的 Button / WorkspaceItem / DataPill，
+   在静态 HTML 里用 @apply 复刻，保证 mockup 与真实产品的类名语义一致。 */
+@layer components {
+  /* 深色分支：主按钮在深色下反相为浅底深字，否则 slate-950 底几乎融进面板 */
+  .btn-default {
+    @apply inline-flex items-center justify-center rounded-xl border border-slate-950 bg-slate-950 font-medium text-white shadow-sm transition-colors hover:bg-slate-800
+      dark:border-slate-100 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white;
+  }
+  .btn-outline {
+    @apply inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white font-medium text-slate-700 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50
+      dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center rounded-xl font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900;
+  }
+
+  .ws-chip {
+    @apply inline-flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900;
+  }
+  .ws-chip-active {
+    @apply border-slate-950 bg-slate-950 text-white shadow-sm hover:bg-slate-950 hover:text-white;
+  }
+
+  /* 应用图标：真实实现由 app.getFileIcon() 提供，这里用首字母块占位 */
+  .app-icon {
+    @apply grid size-8 shrink-0 place-items-center rounded-lg text-xs font-semibold text-white;
+  }
+  .app-icon-sm {
+    @apply grid size-5 shrink-0 place-items-center rounded-md text-2xs font-semibold text-white;
+  }
+
+  /* 每行的三段控件：启用 / 关闭 / 主题 */
+  .seg-group {
+    @apply inline-flex shrink-0 items-center gap-0.5 rounded-xl border border-slate-200 bg-slate-50 p-0.5
+      dark:border-slate-700 dark:bg-slate-800;
+  }
+  .seg-item {
+    @apply inline-flex h-6 items-center rounded-lg px-2 text-2xs font-medium text-slate-500 transition-colors hover:text-slate-900
+      dark:text-slate-400 dark:hover:text-slate-100;
+  }
+  .seg-item-on {
+    @apply bg-slate-950 text-white shadow-sm hover:text-white
+      dark:bg-slate-100 dark:text-slate-900 dark:hover:text-slate-900;
+  }
+
+  /* 行尾控件组：分段控件 + 仅在「启用」时出现的主题选择器 */
+  .row-controls {
+    @apply flex shrink-0 items-center gap-1.5;
+  }
+  /* 固定宽度：槽位宽度不能随主题名长短变化，否则各行的分段控件对不齐 */
+  .theme-pick {
+    @apply inline-flex h-7 w-[88px] shrink-0 items-center justify-between rounded-xl border border-slate-200 bg-white px-2.5 text-2xs font-medium text-slate-600 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50;
+  }
+
+  .row-del {
+    @apply grid size-7 shrink-0 place-items-center rounded-lg text-slate-300 transition-colors hover:bg-rose-50 hover:text-rose-500;
+  }
+
+  /* 默认行为的单选卡 */
+  .mode-card {
+    @apply flex items-start gap-2.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-left shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50;
+  }
+  .mode-card-on {
+    @apply border-slate-950 bg-white hover:bg-white;
+  }
+  .mode-dot {
+    @apply mt-0.5 grid size-4 shrink-0 place-items-center rounded-full border border-slate-300 bg-white;
+  }
+  .mode-dot-on {
+    @apply border-slate-950;
+  }
+  .mode-dot-on::after {
+    content: "";
+    @apply size-2 rounded-full bg-slate-950;
+  }
+
+  /* 添加应用浮层里的行 */
+  .pick-row {
+    @apply flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-left transition-colors hover:bg-slate-50;
+  }
+  .pick-body { @apply min-w-0 flex-1; }
+  .pick-name { @apply block truncate text-xs font-medium text-slate-800; }
+  .pick-meta { @apply block truncate text-2xs text-slate-400; }
+  .pick-cta {
+    @apply shrink-0 rounded-lg border border-slate-200 bg-white px-2 py-1 text-2xs font-medium text-slate-600 shadow-sm;
+  }
+  .pick-added { @apply shrink-0 text-2xs font-medium text-slate-300; }
+
+  /* 首次进入的挑选行 */
+  .first-pick {
+    @apply flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-2.5 py-2 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50;
+  }
+  .first-add { @apply shrink-0 text-2xs font-medium text-slate-500; }
+
+  /* ── 键盘动效 ── */
+
+  /* 预设卡：缩略图里跑真实动画，不用静态图示 */
+  .preset-tile {
+    @apply relative flex flex-col gap-1.5 overflow-hidden rounded-xl border border-slate-200 bg-white p-2 text-left shadow-sm transition-colors hover:border-slate-300;
+  }
+  .preset-tile-on { @apply border-slate-950; }
+  .preset-stage { @apply relative grid h-14 place-items-center overflow-hidden rounded-lg bg-slate-50; }
+  .preset-glyph { @apply text-xl font-bold leading-none; }
+  .preset-meta { @apply block min-w-0; }
+  .preset-name { @apply block truncate text-xs font-medium text-slate-800; }
+  .preset-desc { @apply block truncate text-2xs text-slate-400; }
+
+  .color-swatch { @apply size-7 shrink-0 rounded-lg border border-slate-200 shadow-sm transition-colors; }
+  .color-swatch-on { @apply border-slate-950 ring-2 ring-slate-300; }
+
+  /* 入场边：面板里的四宫格 + 屏幕预览四条边上的直接选择 */
+  .edge-chip {
+    @apply inline-flex h-8 items-center justify-center rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-600 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50;
+  }
+  .edge-chip-on { @apply border-slate-950 bg-slate-950 text-white hover:bg-slate-950 hover:text-white; }
+  .edge-btn {
+    @apply absolute z-20 grid place-items-center rounded-lg border border-slate-200 bg-white text-2xs font-medium text-slate-500 shadow-sm transition-colors hover:border-slate-300 hover:text-slate-900;
+  }
+  .edge-btn-on { @apply border-slate-950 bg-slate-950 text-white hover:text-white; }
+
+  /* 语义分层图例：样例字随配置实时变化 */
+  .legend-row {
+    @apply flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm transition-colors;
+  }
+  .legend-row-hit { @apply border-slate-950 bg-slate-50; }
+  .legend-sample { @apply grid size-9 shrink-0 place-items-center rounded-lg bg-slate-50 font-bold leading-none; }
+
+  .mini-select { @apply h-8 rounded-xl border border-slate-200 bg-white px-2 text-xs text-slate-700 shadow-sm; }
+
+  .switch-row {
+    @apply flex w-full items-center justify-between gap-2 rounded-lg px-1 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50;
+  }
+  /* 深色下必须反相：否则 on=slate-950 融进面板、off=slate-300 反而更亮，
+     两个状态的视觉权重是颠倒的。 */
+  .switch-knob { @apply relative inline-flex h-4 w-7 shrink-0 items-center rounded-full bg-slate-300 dark:bg-slate-700; }
+  .switch-knob::after { content: ""; @apply ml-0.5 size-3 rounded-full bg-white shadow-sm dark:bg-slate-300; }
+  .switch-on { @apply bg-slate-950 dark:bg-slate-100; }
+  .switch-on::after { @apply ml-3.5 dark:bg-slate-900; }
+
+  /* ── 主题工作台 ── */
+
+  /* 动作标签：带「已启用效果数」徽标，解决切动作后不知道哪个配过的问题 */
+  .action-tab {
+    @apply inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50;
+  }
+  .action-tab-on { @apply border-slate-950 bg-slate-950 text-white shadow-sm hover:bg-slate-950 hover:text-white; }
+  .count-badge {
+    @apply inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-100 px-1 text-2xs font-semibold tabular-nums text-emerald-700;
+  }
+  .action-tab-on .count-badge { @apply bg-white/20 text-white; }
+
+  /* 效果卡：启用后展开，未启用收成一行 */
+  .cfg-card { @apply overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm; }
+  .cfg-card-on { @apply border-slate-300; }
+  .cfg-head { @apply flex items-center gap-2.5 px-3 py-2.5; }
+  /* 图标底统一 slate——颜色只用来表达「已启用」，不做装饰 */
+  .cfg-icon { @apply grid size-8 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600; }
+  .cfg-icon-on { @apply bg-slate-900 text-white; }
+  .cfg-name { @apply text-sm font-medium text-slate-900; }
+  .cfg-sum { @apply truncate text-2xs text-slate-400; }
+  .on-dot { @apply inline-flex items-center gap-1 text-2xs font-semibold text-emerald-700; }
+
+  /* 预设 chip：把「一组字段」变成一次点击 */
+  .preset-chip {
+    @apply inline-flex h-7 shrink-0 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-2xs font-medium text-slate-600 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50;
+  }
+  .preset-chip-on { @apply border-slate-950 bg-slate-950 text-white hover:bg-slate-950 hover:text-white; }
+
+  /* 滑块 + 可编辑读数：51 个滑块里有一半是精确值，拖不准 */
+  .num-input {
+    @apply h-6 w-14 rounded-lg border border-slate-200 bg-white px-1 text-center text-2xs font-semibold tabular-nums text-slate-700 shadow-sm
+      dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200;
+  }
+  .field-label { @apply text-xs font-medium text-slate-600; }
+
+  /* 布局预设 */
+  .layout-btn { @apply grid size-7 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700; }
+  .layout-btn-on { @apply bg-slate-950 text-white hover:bg-slate-950 hover:text-white; }
+
+  /* 侧边栏主题卡：操作常显，dirty 只有一处表达 */
+  .side-theme {
+    @apply relative flex w-full items-start gap-2.5 rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-left shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50;
+  }
+  .side-theme-on { @apply border-slate-950; }
+
+  /* 命令面板 */
+  .cmdk-item {
+    @apply flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs text-slate-700 transition-colors hover:bg-slate-100;
+  }
+  .cmdk-item-on { @apply bg-slate-100; }
+  .kbd {
+    @apply inline-flex h-5 items-center rounded border border-slate-200 bg-slate-50 px-1.5 text-2xs font-medium tabular-nums text-slate-500
+      dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400;
+  }
+
+  /* ── 通用组件库（含深色令牌层验证） ── */
+  .surface { @apply bg-white dark:bg-slate-900; }
+  .surface-sunken { @apply bg-slate-50 dark:bg-slate-950; }
+  .hairline { @apply border-slate-200 dark:border-slate-700; }
+  .ink { @apply text-slate-900 dark:text-slate-100; }
+  .ink-2 { @apply text-slate-600 dark:text-slate-300; }
+  .ink-3 { @apply text-slate-500 dark:text-slate-400; }
+  .ink-4 { @apply text-slate-400 dark:text-slate-500; }
+  .gal-card { @apply rounded-xl border shadow-sm hairline surface; }
+  .skel { @apply animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800; }
+
+  /* ── Move 1：品牌色接管身份时刻（品牌标记 / 活跃导航 / 主操作 / focus ring） ──
+     语义色分工不变：emerald=已启用，rose=危险，sky=信息。
+     「未保存」原本占用 amber——自动保存之后这个状态不存在了，amber 因此腾了出来。 */
+  .btn-brand {
+    @apply inline-flex items-center justify-center rounded-xl border border-amber-500 bg-amber-500 font-medium text-slate-950 shadow-sm transition-colors hover:border-amber-400 hover:bg-amber-400
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2;
+  }
+  .nav-chip {
+    @apply inline-flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border px-2.5 text-xs font-medium transition-colors
+      border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900
+      dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white;
+  }
+  .nav-chip-on {
+    @apply border-amber-500 bg-amber-500 text-slate-950 shadow-sm hover:border-amber-400 hover:bg-amber-400 hover:text-slate-950
+      dark:border-amber-500 dark:bg-amber-500 dark:text-slate-950 dark:hover:bg-amber-400 dark:hover:text-slate-950;
+  }
+  /* ── Move 2：舞台 = 黑箱。容器不参与视觉竞争，效果是唯一主角 ── */
+  .stage-box {
+    @apply relative overflow-hidden rounded-xl bg-slate-950 ring-1 ring-slate-800;
+  }
+  .stage-chrome {
+    @apply inline-flex h-6 items-center rounded-lg bg-white/10 px-2 text-2xs font-medium text-slate-300 backdrop-blur;
+  }
+
+  /* ══ 配置控件基元 ══
+     字段行统一三列节奏：标签 / 控件 / 数值。标签列定宽、数值列右对齐 tabular-nums，
+     密集面板的「工整感」几乎全部来自这一条。 */
+  .ctl-row { @apply grid grid-cols-[92px_minmax(0,1fr)_auto] items-center gap-3; }
+  .ctl-row-wide { @apply grid grid-cols-[92px_minmax(0,1fr)] items-center gap-3; }
+  .ctl-label { @apply flex items-center gap-1.5 text-xs font-medium text-slate-600; }
+  /* 按住标签左右拖动可改值（Blender / AE 式 scrub），光标提示 col-resize */
+  .ctl-label-scrub { @apply cursor-col-resize select-none hover:text-slate-900; }
+  .ctl-value { @apply w-[74px] shrink-0 text-right text-2xs font-semibold tabular-nums text-slate-700; }
+  /* 与默认值不同时出现的小点 */
+  .ctl-dirty { @apply size-1.5 shrink-0 rounded-full bg-slate-400; }
+
+  /* 自绘滑块：原生 input[type=range] 做不了双拖柄、双向填充和数值气泡 */
+  .sl { @apply relative h-5 w-full cursor-pointer select-none touch-none; }
+  .sl-track { @apply absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-slate-200; }
+  .sl-fill { @apply absolute top-1/2 h-1 -translate-y-1/2 rounded-full bg-slate-900; }
+  .sl-thumb {
+    @apply absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-slate-900 shadow-sm
+      transition-[transform,box-shadow] duration-150;
+  }
+  .sl:hover .sl-thumb { @apply scale-110; }
+  .sl-thumb-active { @apply scale-125 ring-2 ring-slate-300; }
+  .sl-tick { @apply absolute top-1/2 h-2 w-px -translate-x-1/2 -translate-y-1/2 bg-slate-300; }
+  /* 默认值标记：轨道下方一个小三角，双击拖柄回到这里 */
+  .sl-default { @apply absolute top-1/2 size-1 -translate-x-1/2 translate-y-1.5 rotate-45 bg-slate-400; }
+  .sl-bubble {
+    @apply pointer-events-none absolute -top-7 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-900 px-1.5 py-0.5
+      text-2xs font-semibold tabular-nums text-white shadow-lg;
+  }
+  /* 禁用态必须由 CSS 承担：.sl-fill 是 @apply 组件类，元素上没有 bg-slate-900
+     这个类名，JS 里 classList.replace 会静默失败。 */
+  .sl-disabled { @apply cursor-not-allowed; }
+  .sl-disabled .sl-track { @apply bg-slate-100; }
+  .sl-disabled .sl-fill { @apply bg-slate-300; }
+  .sl-disabled .sl-thumb { @apply bg-slate-300 ring-0; }
+  .sl-disabled:hover .sl-thumb { @apply scale-100; }
+  .sl-disabled .sl-tick, .sl-disabled .sl-default { @apply bg-slate-200; }
+
+  /* 下拉：带描述行和预览缩略图的选项 */
+  .opt-row {
+    @apply flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-slate-100;
+  }
+  .opt-row-on { @apply bg-slate-100; }
+  .opt-name { @apply block truncate text-xs font-medium text-slate-800; }
+  .opt-desc { @apply block truncate text-2xs text-slate-400; }
+  .opt-thumb { @apply grid size-8 shrink-0 place-items-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50; }
+
+  /* 二维偏移板 / 角度盘 / 曲线编辑器 */
+  .pad { @apply relative aspect-square w-full cursor-crosshair rounded-xl border border-slate-200 bg-slate-50; }
+  .pad-dot { @apply absolute size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-slate-900 shadow-sm; }
+  .dial { @apply relative size-[86px] shrink-0 cursor-grab rounded-full border border-slate-200 bg-slate-50 active:cursor-grabbing; }
+  .curve { @apply relative h-[104px] w-full rounded-xl border border-slate-200 bg-slate-50; }
+  .curve-handle { @apply absolute size-3 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-full border-2 border-white bg-slate-900 shadow-sm active:cursor-grabbing; }
+
+  /* 时间轴 */
+  /* 注意：`group` 是标记类而不是工具类，不能 @apply（Tailwind 会直接报错），
+     需要写在 HTML 的 class 列表里。
+     标签列宽必须与标尺行的 grid 一致（132px + gap-2.5），否则标尺刻度与色块错位、
+     播放头也会偏——这是抽屉改造前就存在的对不齐问题。 */
+  .tl-row { @apply relative grid grid-cols-[132px_minmax(0,1fr)] items-center gap-2.5 rounded-lg px-1 py-1 transition-colors hover:bg-slate-50; }
+  .tl-lane { @apply relative h-7 rounded-lg border border-slate-200/70 bg-slate-100/60; }
+  .tl-bar {
+    @apply absolute top-1/2 h-5 -translate-y-1/2 cursor-grab rounded-md border border-slate-300 bg-white shadow-sm
+      transition-[box-shadow,filter] duration-150 hover:shadow-md active:cursor-grabbing;
+  }
+  .tl-bar-on { @apply border-slate-900 ring-1 ring-slate-900/10; }
+  .tl-bar-muted { @apply border-dashed border-slate-300 bg-slate-50 opacity-50; }
+  .tl-iconbtn { @apply grid size-5 shrink-0 place-items-center rounded text-2xs font-semibold text-slate-400 transition-colors hover:bg-slate-200 hover:text-slate-700; }
+  .tl-iconbtn-on { @apply bg-slate-900 text-white hover:bg-slate-900 hover:text-white; }
+
+  /* ══ 时间轴 v2：锚点、链接、循环区间、属性子轨 ══ */
+
+  /* 锚点 = 通道内部的语义时刻（emit / peak / settle）。它们是「相对节奏」的接点：
+     别的通道可以链接到某个锚点，改时长时关系不破。 */
+  .anc {
+    @apply absolute top-0 size-2 -translate-x-1/2 -translate-y-1/2 rotate-45 cursor-ew-resize border border-slate-500 bg-white shadow-sm;
+  }
+  .anc-peak { @apply border-slate-900 bg-slate-900; }
+  .anc-active { @apply ring-2 ring-slate-300; }
+
+  /* 链接：细连接线 + 接点上的链条标记 */
+  .link-line { @apply pointer-events-none absolute h-px bg-slate-400/70; }
+  .link-chip {
+    @apply absolute -translate-x-1/2 -translate-y-1/2 rounded bg-white px-1 text-[8px] font-semibold leading-[14px] text-slate-500 ring-1 ring-slate-300;
+  }
+
+  /* 循环区间：标尺上的半透明带 + 两个把手 */
+  .loop-band { @apply pointer-events-none absolute inset-y-0 bg-slate-900/[0.06]; }
+  .loop-h { @apply absolute top-0 h-full w-1.5 -translate-x-1/2 cursor-col-resize rounded-sm bg-slate-400/70 hover:bg-slate-600; }
+
+  /* 触发轨：节流窗 / 连击窗的着色 */
+  .win-throttle { @apply pointer-events-none absolute inset-y-1 rounded bg-rose-500/10 ring-1 ring-inset ring-rose-300/50; }
+  .win-combo { @apply pointer-events-none absolute inset-y-1 rounded bg-sky-500/[0.07] ring-1 ring-inset ring-sky-300/40; }
+  .ev-dot { @apply absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-slate-900 shadow-sm; }
+
+  /* 属性子轨 */
+  .sub-lane { @apply relative h-5 rounded bg-slate-50 ring-1 ring-inset ring-slate-200/80; }
+  .sub-lane-on { @apply bg-white ring-slate-900/30; }
+}

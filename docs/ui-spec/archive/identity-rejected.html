@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>身份色 + 舞台语言 · 对比</title>
+<link rel="stylesheet" href="../mockup.css" />
+<style>
+  body {
+    font-family: "SF Pro Display", "SF Pro Text", "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+  }
+  input[type="range"] { -webkit-appearance: none; appearance: none; height: 4px; border-radius: 9999px; background: #e2e8f0; }
+  .dark input[type="range"] { background: #334155; }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none; height: 14px; width: 14px; border-radius: 9999px;
+    background: #059669; border: 2px solid #fff; box-shadow: 0 1px 2px rgba(15,23,42,.15); cursor: pointer;
+  }
+  .fx { position: absolute; pointer-events: none; user-select: none; }
+</style>
+</head>
+<body class="surface-sunken p-6">
+<div class="mx-auto max-w-[1240px]">
+
+  <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+    <div class="min-w-0">
+      <h1 class="text-base font-semibold ink text-balance">Move 1 身份色 + Move 2 舞台语言</h1>
+      <p class="mt-1 max-w-3xl text-xs leading-relaxed ink-3 text-pretty">
+        左边是现状，右边是提案。骨架（slate、rounded-xl、1px 描边、shadow-sm、排版层级）完全不动，只改两件事：身份时刻换成琥珀金，预览面换成黑箱。
+      </p>
+    </div>
+    <div class="flex shrink-0 items-center gap-2">
+      <div class="seg-group">
+        <button data-skin="dark" class="seg-item">新身份 · 深色</button>
+        <button data-skin="light" class="seg-item">新身份 · 浅色</button>
+      </div>
+      <a href="workbench.html" class="btn-outline h-8 px-3 text-xs">现状工作台</a>
+    </div>
+  </div>
+
+  <!-- ═══════════ 关键差异：四组并排 ═══════════ -->
+  <section class="gal-card mb-3">
+    <div class="border-b px-4 py-3 hairline">
+      <h3 class="text-sm font-medium ink">关键差异</h3>
+      <p class="mt-0.5 text-xs ink-3">这四组不受上面的皮肤开关影响，左右两侧都固定渲染，方便直接比。</p>
+    </div>
+
+    <div class="divide-y divide-slate-200 dark:divide-slate-700">
+
+      <!-- 1. 操作栏 -->
+      <div class="grid gap-4 px-4 py-4 lg:grid-cols-2">
+        <div>
+          <div class="mb-2 text-2xs font-semibold ink-4">现状 · 强调色是黑</div>
+          <div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+            <div class="flex items-center gap-1.5">
+              <button class="ws-chip ws-chip-active">主题工作台</button>
+              <button class="ws-chip">光标皮肤</button>
+              <button class="ws-chip">应用规则</button>
+              <div class="ml-auto"><button class="btn-default h-7 px-2.5 text-2xs">保存</button></div>
+            </div>
+          </div>
+          <p class="mt-2 text-2xs leading-relaxed ink-4">黑色既是"选中"也是"主操作"也是"文字"，没有任何一处在说这是哪个产品。</p>
+        </div>
+        <div>
+          <div class="mb-2 flex items-center gap-1.5 text-2xs font-semibold ink-4">
+            提案 · 琥珀金只出现在身份时刻
+            <span class="size-2 rounded-full bg-amber-500"></span>
+          </div>
+          <div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-slate-950">
+            <div class="flex items-center gap-1.5">
+              <span class="mr-1 grid size-6 shrink-0 place-items-center rounded-full bg-amber-500 text-2xs font-bold text-slate-950">C</span>
+              <button class="nav-chip nav-chip-on">主题工作台</button>
+              <button class="nav-chip">光标皮肤</button>
+              <button class="nav-chip">应用规则</button>
+              <div class="ml-auto"><button class="btn-brand h-7 px-2.5 text-2xs">新建主题</button></div>
+            </div>
+          </div>
+          <p class="mt-2 text-2xs leading-relaxed ink-4">品牌标记、活跃导航、主操作、focus ring 四处用金，其余全灰。一眼能认出是谁。</p>
+        </div>
+      </div>
+
+      <!-- 2. 舞台（核心论点） -->
+      <div class="grid gap-4 px-4 py-4 lg:grid-cols-2">
+        <div>
+          <div class="mb-2 text-2xs font-semibold ink-4">现状 · 预览面是白卡片</div>
+          <div class="relative h-[188px] overflow-hidden rounded-xl border border-slate-200 bg-white">
+            <div class="absolute inset-0" style="background-image: radial-gradient(circle at 1px 1px, #e2e8f0 1px, transparent 0); background-size: 18px 18px;"></div>
+            <svg viewBox="0 0 128 96" class="absolute left-14 top-12 h-9 w-12" aria-hidden="true">
+              <path d="M6 6 L6 78 L25.5 60 L37.5 87 L51 81 L39 55.5 L66 54 Z" fill="#ffffff" stroke="#e2e8f0" stroke-width="2"/>
+            </svg>
+            <span class="absolute left-1/2 top-16 size-2 rounded-full bg-white ring-1 ring-slate-200"></span>
+            <span class="absolute left-[58%] top-24 size-1.5 rounded-full bg-amber-100"></span>
+            <span class="absolute left-[64%] top-14 size-2 rounded-full bg-slate-100"></span>
+            <span class="absolute right-16 bottom-12 size-1.5 rounded-full bg-white ring-1 ring-slate-200"></span>
+            <span class="absolute bottom-3 left-3 rounded-lg bg-white/90 px-2 py-1 text-2xs font-medium text-slate-500 ring-1 ring-slate-200">白皮肤 / 浅色粒子</span>
+          </div>
+          <p class="mt-2 text-2xs leading-relaxed ink-4">白色光标和浅色粒子在白底上基本看不见——这是我做原型时真撞到的问题，只能临时加"底色切换器"打补丁。</p>
+        </div>
+        <div>
+          <div class="mb-2 flex items-center gap-1.5 text-2xs font-semibold ink-4">
+            提案 · 舞台是黑箱
+            <span class="size-2 rounded-full bg-amber-500"></span>
+          </div>
+          <div id="stage" class="stage-box h-[188px]">
+            <div class="absolute inset-0 opacity-[0.18]" style="background-image: radial-gradient(circle at 1px 1px, #64748b 1px, transparent 0); background-size: 18px 18px;"></div>
+            <svg viewBox="0 0 128 96" class="absolute left-14 top-12 h-9 w-12" aria-hidden="true">
+              <path d="M6 6 L6 78 L25.5 60 L37.5 87 L51 81 L39 55.5 L66 54 Z" fill="#ffffff" stroke="#0f172a" stroke-width="2"/>
+            </svg>
+            <span class="absolute left-1/2 top-16 size-2 rounded-full bg-white"></span>
+            <span class="absolute left-[58%] top-24 size-1.5 rounded-full bg-amber-200"></span>
+            <span class="absolute left-[64%] top-14 size-2 rounded-full bg-slate-200"></span>
+            <span class="absolute right-16 bottom-12 size-1.5 rounded-full bg-white"></span>
+            <span class="stage-chrome absolute bottom-3 left-3">白皮肤 / 浅色粒子</span>
+            <span class="stage-chrome absolute bottom-3 right-3">点一下试试</span>
+          </div>
+          <p class="mt-2 text-2xs leading-relaxed ink-4">同样的素材，容器退到背景里。舞台自带一层 <code class="rounded bg-slate-100 px-1 dark:bg-slate-800">ring-1</code> 而不是 border，不和效果抢边缘。</p>
+        </div>
+      </div>
+
+      <!-- 3. 效果卡 -->
+      <div class="grid gap-4 px-4 py-4 lg:grid-cols-2">
+        <div>
+          <div class="mb-2 text-2xs font-semibold ink-4">现状 · 九色图标底</div>
+          <div class="space-y-1.5">
+            <div class="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+              <span class="grid size-8 place-items-center rounded-xl bg-amber-100 text-amber-700 text-2xs font-semibold">字</span>
+              <span class="min-w-0 flex-1"><span class="block text-sm font-medium text-slate-900">飘字</span><span class="block text-2xs text-slate-400">20 项设置</span></span>
+              <span class="switch-knob switch-on"></span>
+            </div>
+            <div class="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+              <span class="grid size-8 place-items-center rounded-xl bg-sky-100 text-sky-700 text-2xs font-semibold">粒</span>
+              <span class="min-w-0 flex-1"><span class="block text-sm font-medium text-slate-900">粒子</span><span class="block text-2xs text-slate-400">20 项设置</span></span>
+              <span class="switch-knob switch-on"></span>
+            </div>
+            <div class="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+              <span class="grid size-8 place-items-center rounded-xl bg-fuchsia-100 text-fuchsia-700 text-2xs font-semibold">贴</span>
+              <span class="min-w-0 flex-1"><span class="block text-sm font-medium text-slate-900">贴纸</span><span class="block text-2xs text-slate-400">5 项设置</span></span>
+              <span class="switch-knob"></span>
+            </div>
+          </div>
+          <p class="mt-2 text-2xs leading-relaxed ink-4">颜色不承载信息：开着的和关着的都各有一种颜色，看不出状态。</p>
+        </div>
+        <div>
+          <div class="mb-2 flex items-center gap-1.5 text-2xs font-semibold ink-4">
+            提案 · 颜色只表达状态
+            <span class="size-2 rounded-full bg-emerald-500"></span>
+          </div>
+          <div class="space-y-1.5">
+            <div class="flex items-center gap-2.5 rounded-xl border px-3 py-2.5 shadow-sm hairline surface">
+              <span class="grid size-8 place-items-center rounded-xl bg-slate-900 text-2xs font-semibold text-white dark:bg-slate-100 dark:text-slate-900">字</span>
+              <span class="min-w-0 flex-1">
+                <span class="flex items-center gap-2"><span class="text-sm font-medium ink">飘字</span><span class="inline-flex items-center gap-1 text-2xs font-semibold text-emerald-700 dark:text-emerald-400"><span class="size-1.5 rounded-full bg-emerald-500"></span>已启用</span></span>
+                <span class="block text-2xs ink-4">弹跳 · 20 项设置</span>
+              </span>
+              <span class="switch-knob switch-on"></span>
+            </div>
+            <div class="flex items-center gap-2.5 rounded-xl border px-3 py-2.5 shadow-sm hairline surface">
+              <span class="grid size-8 place-items-center rounded-xl bg-slate-900 text-2xs font-semibold text-white dark:bg-slate-100 dark:text-slate-900">粒</span>
+              <span class="min-w-0 flex-1">
+                <span class="flex items-center gap-2"><span class="text-sm font-medium ink">粒子</span><span class="inline-flex items-center gap-1 text-2xs font-semibold text-emerald-700 dark:text-emerald-400"><span class="size-1.5 rounded-full bg-emerald-500"></span>已启用</span></span>
+                <span class="block text-2xs ink-4">礼花 · 20 项设置</span>
+              </span>
+              <span class="switch-knob switch-on"></span>
+            </div>
+            <div class="flex items-center gap-2.5 rounded-xl border px-3 py-2.5 hairline surface">
+              <span class="grid size-8 place-items-center rounded-xl bg-slate-100 text-2xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">贴</span>
+              <span class="min-w-0 flex-1"><span class="block text-sm font-medium ink-2">贴纸</span><span class="block text-2xs ink-4">5 项设置</span></span>
+              <span class="switch-knob"></span>
+            </div>
+          </div>
+          <p class="mt-2 text-2xs leading-relaxed ink-4">深底 = 启用，浅灰 = 关闭，emerald 点 = 状态标记。扫一眼就知道这个动作配了几样。</p>
+        </div>
+      </div>
+
+      <!-- 4. amber 冲突的解法 -->
+      <div class="grid gap-4 px-4 py-4 lg:grid-cols-2">
+        <div>
+          <div class="mb-2 text-2xs font-semibold ink-4">冲突：amber 原本是「未保存 / 警告」</div>
+          <div class="space-y-1.5">
+            <div class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+              <span class="text-xs font-medium text-slate-700">保存</span>
+              <span class="size-1.5 rounded-full bg-amber-400"></span>
+              <span class="text-2xs text-slate-400">有未保存的更改</span>
+            </div>
+            <div class="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+              <svg class="mt-0.5 size-3.5 shrink-0 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+              <span class="text-2xs leading-relaxed text-amber-900">需要辅助功能权限</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="mb-2 text-2xs font-semibold ink-4">解法：自动保存把 amber 腾出来了</div>
+          <div class="space-y-1.5">
+            <div class="flex items-center gap-2 rounded-xl border px-3 py-2 shadow-sm hairline surface">
+              <svg class="size-3 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+              <span class="text-2xs font-medium ink-3">已保存</span>
+              <span class="h-3 w-px bg-slate-200 dark:bg-slate-700"></span>
+              <span class="text-2xs ink-4">撤销 <span class="kbd">⌘Z</span></span>
+              <span class="ml-auto text-2xs ink-4">「未保存」这个状态不存在了</span>
+            </div>
+            <div class="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-900 dark:bg-amber-950/50">
+              <svg class="mt-0.5 size-3.5 shrink-0 text-amber-600 dark:text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+              <span class="text-2xs leading-relaxed text-amber-900 dark:text-amber-200">需要辅助功能权限</span>
+            </div>
+          </div>
+          <p class="mt-2 text-2xs leading-relaxed ink-4">
+            警告保留 amber，但只以<span class="font-medium ink-2">「带图标的浅色容器」</span>出现；品牌金只以<span class="font-medium ink-2">「小面积实心填充」</span>出现。同色不同处理，不会混。
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 完整工作台 ═══════════ -->
+  <section class="gal-card mb-3 overflow-hidden">
+    <div class="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3 hairline">
+      <div class="min-w-0">
+        <h3 class="text-sm font-medium ink">完整工作台 · 提案版</h3>
+        <p class="mt-0.5 text-xs ink-3">桌面端默认深色（Move 4）；扩展端工作台默认浅色，用右上开关看另一边。</p>
+      </div>
+      <span class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2 py-0.5 text-2xs font-medium ink-3 dark:bg-slate-800">
+        <span class="size-1.5 rounded-full bg-amber-500"></span>品牌 amber-500 · <span class="size-1.5 rounded-full bg-emerald-500"></span>语义 emerald
+      </span>
+    </div>
+
+    <div class="p-4 surface-sunken">
+      <div class="overflow-hidden rounded-xl border shadow-lg hairline">
+        <!-- 标题栏 -->
+        <div class="flex h-8 items-center gap-2 border-b px-3 hairline surface">
+          <span class="flex items-center gap-1.5 pr-1">
+            <span class="size-3 rounded-full bg-rose-400"></span><span class="size-3 rounded-full bg-amber-400"></span><span class="size-3 rounded-full bg-emerald-400"></span>
+          </span>
+          <span class="grid size-6 shrink-0 place-items-center rounded-full bg-amber-500 text-2xs font-bold text-slate-950">C</span>
+          <span class="text-xs font-semibold ink">CursorDance</span>
+          <span class="ml-auto text-2xs ink-4">已是最新</span>
+        </div>
+        <!-- 操作栏 -->
+        <div class="flex flex-wrap items-center gap-2 border-b px-3 py-2 hairline surface-sunken">
+          <div class="flex min-w-0 items-center gap-1.5 overflow-x-auto">
+            <button class="nav-chip nav-chip-on">主题工作台</button>
+            <button class="nav-chip">光标皮肤</button>
+            <button class="nav-chip">应用规则</button>
+            <button class="nav-chip">键盘动效</button>
+            <button class="nav-chip">诊断面板</button>
+          </div>
+          <div class="ml-auto flex items-center gap-2">
+            <span class="inline-flex h-7 items-center gap-1.5 rounded-xl px-2.5 text-2xs shadow-sm ring-1 ring-slate-200 surface dark:ring-slate-700">
+              <svg class="size-3 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+              <span class="font-medium ink-3">已保存</span>
+              <span class="h-3 w-px bg-slate-200 dark:bg-slate-700"></span>
+              <span class="ink-4">撤销 <span class="kbd">⌘Z</span></span>
+            </span>
+            <button class="btn-outline h-7 px-2.5 text-2xs">命令 <span class="kbd ml-1.5">⌘K</span></button>
+            <button class="btn-brand h-7 px-2.5 text-2xs">AI 助手</button>
+          </div>
+        </div>
+
+        <div class="flex">
+          <!-- 侧边栏 -->
+          <aside class="w-[210px] shrink-0 border-r p-2.5 hairline surface-sunken">
+            <div class="relative mb-2">
+              <svg class="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 ink-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              <input placeholder="搜索主题" class="h-8 w-full rounded-xl border pl-8 pr-2 text-xs shadow-sm hairline surface ink placeholder:text-slate-400" />
+            </div>
+            <div class="space-y-1.5">
+              <div class="flex items-start gap-2 rounded-xl border-2 border-amber-500 px-2.5 py-2 shadow-sm surface">
+                <span class="grid size-7 shrink-0 place-items-center rounded-lg bg-amber-500 text-2xs font-bold text-slate-950">几</span>
+                <span class="min-w-0 flex-1"><span class="block truncate text-xs font-medium ink">几何</span><span class="block truncate text-2xs ink-4">方块粒子 · 几何波纹</span></span>
+              </div>
+              <div class="flex items-start gap-2 rounded-xl border px-2.5 py-2 hairline surface">
+                <span class="grid size-7 shrink-0 place-items-center rounded-lg bg-slate-100 text-2xs font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400">流</span>
+                <span class="min-w-0 flex-1"><span class="block truncate text-xs font-medium ink-2">流光</span><span class="block truncate text-2xs ink-4">轨道粒子 · 涟漪扩散</span></span>
+              </div>
+              <div class="flex items-start gap-2 rounded-xl border px-2.5 py-2 hairline surface">
+                <span class="grid size-7 shrink-0 place-items-center rounded-lg bg-slate-100 text-2xs font-medium text-slate-500 dark:bg-slate-800 dark:text-slate-400">熔</span>
+                <span class="min-w-0 flex-1"><span class="flex items-center gap-1.5"><span class="truncate text-xs font-medium ink-2">熔金</span><span class="size-1.5 shrink-0 rounded-full bg-amber-400"></span></span><span class="block truncate text-2xs ink-4">火花喷发 · 能量脉冲</span></span>
+              </div>
+            </div>
+            <button class="btn-outline mt-2.5 h-8 w-full px-3 text-xs">新建主题</button>
+          </aside>
+
+          <!-- 主区 -->
+          <div class="min-w-0 flex-1 p-2.5 surface-sunken">
+            <div class="mb-2.5 flex flex-wrap gap-2 rounded-xl border px-2.5 py-2 shadow-sm hairline surface">
+              <button class="action-tab action-tab-on">左键单击 <span class="count-badge">3</span></button>
+              <button class="action-tab">右键单击 <span class="count-badge">1</span></button>
+              <button class="action-tab">双击 <span class="text-2xs font-normal opacity-50">未配置</span></button>
+              <button class="action-tab">长按 <span class="count-badge">2</span></button>
+            </div>
+
+            <div class="grid gap-2.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+              <!-- 配置列 -->
+              <div class="space-y-2">
+                <div class="overflow-hidden rounded-xl border shadow-sm hairline surface">
+                  <div class="flex items-center gap-2.5 border-b px-3 py-2.5 hairline">
+                    <span class="grid size-8 place-items-center rounded-xl bg-slate-900 text-2xs font-semibold text-white dark:bg-slate-100 dark:text-slate-900">字</span>
+                    <span class="min-w-0 flex-1">
+                      <span class="flex items-center gap-2"><span class="text-sm font-medium ink">飘字</span><span class="inline-flex items-center gap-1 text-2xs font-semibold text-emerald-700 dark:text-emerald-400"><span class="size-1.5 rounded-full bg-emerald-500"></span>已启用</span></span>
+                      <span class="block text-2xs ink-4">弹跳 · 20 项设置</span>
+                    </span>
+                    <span class="switch-knob switch-on"></span>
+                  </div>
+                  <div class="space-y-3 px-3 py-3">
+                    <div>
+                      <div class="mb-2 text-xs font-medium ink-2">预设</div>
+                      <div class="flex flex-wrap gap-1.5">
+                        <button class="preset-chip dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">轻盈</button>
+                        <button class="preset-chip border-amber-500 bg-amber-500 text-slate-950 hover:bg-amber-400">弹跳</button>
+                        <button class="preset-chip dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">爆裂</button>
+                        <button class="preset-chip dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">打字机</button>
+                      </div>
+                    </div>
+                    <div class="space-y-2.5 border-t pt-3 hairline">
+                      <div class="grid grid-cols-[68px_minmax(0,1fr)_auto] items-center gap-2.5">
+                        <span class="text-xs font-medium ink-2">字号</span>
+                        <input type="range" min="12" max="96" value="28" />
+                        <span class="flex items-center gap-1"><input class="num-input" value="28" /><span class="text-2xs ink-4">px</span></span>
+                      </div>
+                      <div class="grid grid-cols-[68px_minmax(0,1fr)_auto] items-center gap-2.5">
+                        <span class="text-xs font-medium ink-2">时长</span>
+                        <input type="range" min="200" max="2400" value="820" />
+                        <span class="flex items-center gap-1"><input class="num-input" value="820" /><span class="text-2xs ink-4">ms</span></span>
+                      </div>
+                    </div>
+                    <button class="text-2xs font-medium ink-3 transition-colors hover:text-amber-600">显示全部 20 项 →</button>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-2.5 rounded-xl border px-3 py-2.5 hairline surface">
+                  <span class="grid size-8 place-items-center rounded-xl bg-slate-100 text-2xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">动</span>
+                  <span class="min-w-0 flex-1"><span class="block text-sm font-medium ink-2">动画</span><span class="block text-2xs ink-4">9 项设置</span></span>
+                  <span class="switch-knob"></span>
+                </div>
+                <div class="flex items-center gap-2.5 rounded-xl border px-3 py-2.5 hairline surface">
+                  <span class="grid size-8 place-items-center rounded-xl bg-slate-100 text-2xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-400">音</span>
+                  <span class="min-w-0 flex-1"><span class="block text-sm font-medium ink-2">音效</span><span class="block text-2xs ink-4">7 项设置</span></span>
+                  <span class="switch-knob"></span>
+                </div>
+              </div>
+
+              <!-- 预览列：舞台 -->
+              <div class="overflow-hidden rounded-xl border shadow-sm hairline surface">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3 hairline">
+                  <div class="min-w-0">
+                    <h3 class="text-sm font-medium ink">实时预览</h3>
+                    <div class="mt-0.5 text-xs ink-3">用正在配的手势直接触发</div>
+                  </div>
+                  <button class="btn-outline h-7 px-2.5 text-2xs">重播</button>
+                </div>
+                <div class="px-4 py-3">
+                  <div id="stage2" class="stage-box h-[248px]">
+                    <div class="absolute inset-0 opacity-[0.16]" style="background-image: radial-gradient(circle at 1px 1px, #64748b 1px, transparent 0); background-size: 18px 18px;"></div>
+                    <div id="stageHint2" class="pointer-events-none absolute inset-0 grid place-items-center">
+                      <span class="stage-chrome">在这里单击试试</span>
+                    </div>
+                  </div>
+                  <div class="mt-2.5 flex flex-wrap items-center gap-1.5">
+                    <span class="text-2xs font-medium ink-3">本次输出</span>
+                    <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-2xs font-medium ink-2 dark:bg-slate-800">飘字</span>
+                    <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-2xs font-medium ink-2 dark:bg-slate-800">粒子</span>
+                    <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-2xs font-medium ink-2 dark:bg-slate-800">波纹</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ 令牌 ═══════════ -->
+  <section class="gal-card">
+    <div class="border-b px-4 py-3 hairline">
+      <h3 class="text-sm font-medium ink">颜色只剩两类</h3>
+      <p class="mt-0.5 text-xs ink-3">品牌 + 语义。其余全是 slate。九色彩虹和"强调色=黑"都被这条规则替掉。</p>
+    </div>
+    <div class="grid gap-2 px-4 py-4 md:grid-cols-2">
+      <div class="rounded-xl border p-3 hairline">
+        <div class="mb-2 flex items-center gap-2"><span class="size-3 rounded-full bg-amber-500"></span><span class="text-2xs font-semibold ink-2">品牌 · amber-500</span></div>
+        <ul class="space-y-1 text-2xs leading-relaxed ink-3">
+          <li>· 品牌标记 / 应用图标</li>
+          <li>· 活跃工作区、选中主题</li>
+          <li>· 主操作按钮、选中的预设</li>
+          <li>· focus ring（替掉 slate-400）</li>
+        </ul>
+      </div>
+      <div class="rounded-xl border p-3 hairline">
+        <div class="mb-2 flex items-center gap-2">
+          <span class="flex gap-1"><span class="size-3 rounded-full bg-emerald-500"></span><span class="size-3 rounded-full bg-rose-500"></span><span class="size-3 rounded-full bg-sky-500"></span><span class="size-3 rounded-full bg-amber-400"></span></span>
+          <span class="text-2xs font-semibold ink-2">语义 · 四个</span>
+        </div>
+        <ul class="space-y-1 text-2xs leading-relaxed ink-3">
+          <li>· emerald — 已启用 / 成功 / 滑块</li>
+          <li>· rose — 危险 / 删除 / 错误</li>
+          <li>· sky — 信息 / AI</li>
+          <li>· amber 浅容器 — 警告（与实心品牌金区分）</li>
+        </ul>
+      </div>
+    </div>
+    <div class="border-t px-4 py-3 hairline">
+      <p class="text-2xs leading-relaxed ink-4">
+        teal 从色板移除：它原本只用来标"内置主题"和"选中指示点"，这两件事现在分别由 slate 徽标和品牌金承担。
+      </p>
+    </div>
+  </section>
+
+  <p class="mt-4 text-2xs ink-4">原型页 · 不是产品页面。</p>
+</div>
+
+<script>
+function setSkin(s) {
+  document.documentElement.classList.toggle('dark', s === 'dark');
+  document.querySelectorAll('[data-skin]').forEach((b) => {
+    b.className = 'seg-item' + (b.dataset.skin === s ? ' seg-item-on' : '');
+  });
+}
+document.querySelectorAll('[data-skin]').forEach((b) => b.addEventListener('click', () => setSkin(b.dataset.skin)));
+setSkin('dark');
+
+// 舞台点击 → 真效果（证明黑箱里浅色素材是可读的）
+function burst(stage, e) {
+  const r = stage.getBoundingClientRect();
+  const x = e.clientX - r.left, y = e.clientY - r.top;
+  const ring = document.createElement('div');
+  ring.className = 'fx rounded-full';
+  ring.style.cssText = `left:${x}px;top:${y}px;width:0;height:0;border:2px solid #f8fafc;transform:translate(-50%,-50%)`;
+  stage.appendChild(ring);
+  ring.animate([{ width: '0px', height: '0px', opacity: .9 }, { width: '150px', height: '150px', opacity: 0 }],
+    { duration: 620, easing: 'cubic-bezier(0,0,0.2,1)' }).onfinish = () => ring.remove();
+  const COLORS = ['#ffffff', '#fde68a', '#e2e8f0', '#fcd34d'];
+  for (let i = 0; i < 14; i += 1) {
+    const a = (Math.PI * 2 * i) / 14 + Math.random() * 0.4;
+    const d = 60 + Math.random() * 44;
+    const el = document.createElement('div');
+    const sz = 4 + Math.random() * 4;
+    el.className = 'fx rounded-full';
+    el.style.cssText = `left:${x}px;top:${y}px;width:${sz}px;height:${sz}px;background:${COLORS[i % COLORS.length]};transform:translate(-50%,-50%)`;
+    stage.appendChild(el);
+    el.animate([
+      { transform: 'translate(-50%,-50%) translate(0,0) scale(1)', opacity: 1 },
+      { transform: `translate(-50%,-50%) translate(${Math.cos(a) * d}px,${Math.sin(a) * d + 30}px) scale(.4)`, opacity: 0 },
+    ], { duration: 760 + Math.random() * 260, easing: 'cubic-bezier(0.2,0.6,0.3,1)' }).onfinish = () => el.remove();
+  }
+  const t = document.createElement('div');
+  t.className = 'fx';
+  t.textContent = 'Nice!';
+  t.style.cssText = `left:${x}px;top:${y}px;color:#fbbf24;font-size:24px;font-weight:700;line-height:1;transform:translate(-50%,-50%)`;
+  stage.appendChild(t);
+  t.animate([
+    { transform: 'translate(-50%,-50%) translate(0,0) scale(.6)', opacity: 0 },
+    { transform: 'translate(-50%,-50%) translate(0,-22px) scale(1.1)', opacity: 1, offset: .3 },
+    { transform: 'translate(-50%,-50%) translate(0,-64px) scale(1)', opacity: 0 },
+  ], { duration: 820, easing: 'cubic-bezier(0.2,0.7,0.3,1)' }).onfinish = () => t.remove();
+}
+['stage', 'stage2'].forEach((id) => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('click', (e) => {
+    const hint = document.getElementById('stageHint2');
+    if (hint && id === 'stage2') hint.classList.add('hidden');
+    burst(el, e);
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>托盘面板 · UI 规范</title>
+<link rel="stylesheet" href="../mockup.css" />
+<style>
+  body { font-family: "SF Pro Display", "SF Pro Text", "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif; }
+  /* 菜单栏底图：只为交代 popup 的出现位置 */
+  .menubar { background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%); }
+</style>
+</head>
+<body class="bg-slate-300 p-6 text-slate-900">
+
+<div id="proto" class="mx-auto mb-4 flex max-w-[980px] flex-wrap items-center gap-2 rounded-xl bg-slate-900 px-3 py-2"></div>
+
+<!-- 桌面 + 菜单栏，popup 从托盘图标下方展开 -->
+<div class="mx-auto max-w-[980px] overflow-hidden rounded-xl border border-slate-400/40 bg-slate-200 shadow-lg">
+  <div class="menubar flex h-6 items-center gap-3 border-b border-slate-300 px-3">
+    <span class="text-2xs font-semibold text-slate-600">Finder</span>
+    <span class="text-2xs text-slate-400">文件</span>
+    <span class="text-2xs text-slate-400">编辑</span>
+    <div class="min-w-0 flex-1"></div>
+    <span class="grid size-4 place-items-center rounded-full bg-slate-900 text-[8px] font-bold text-white" title="CursorDance">C</span>
+    <span class="text-2xs tabular-nums text-slate-500">13:47</span>
+  </div>
+
+  <!-- 舞台高度必须放得下面板本身（top-2 + 526px）——原先 520px 会把「退出 ⌘Q」整行裁掉。 -->
+  <div class="relative h-[600px] px-4 py-4">
+    <p class="max-w-[380px] text-2xs leading-relaxed text-slate-500 text-pretty">
+      托盘面板是<strong class="font-semibold text-slate-700">最高频</strong>的入口：绝大多数时候用户只想暂停一下、换套主题、或者给当前应用加条规则，不需要打开工作台。
+    </p>
+
+    <!-- popup 320 宽，锚在托盘图标下 -->
+    <div class="absolute right-6 top-2 w-[320px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
+
+      <!-- 头部：全局开关 + 状态 -->
+      <div class="flex items-center gap-2.5 border-b border-slate-100 px-3.5 py-3">
+        <span class="grid size-7 shrink-0 place-items-center rounded-xl bg-slate-950 text-2xs font-bold text-white">C</span>
+        <div class="min-w-0 flex-1">
+          <div class="text-xs font-semibold text-slate-900">CursorDance</div>
+          <div id="statusLine" class="mt-0.5 truncate text-2xs"></div>
+        </div>
+        <button id="mainToggle" class="switch-knob shrink-0" aria-label="全局开关"></button>
+      </div>
+
+      <!-- 缺权限 -->
+      <div data-show="denied" class="border-b border-amber-100 bg-amber-50 px-3.5 py-2.5">
+        <p class="text-2xs font-medium text-amber-900">未授权辅助功能</p>
+        <p class="mt-1 text-2xs leading-relaxed text-amber-800">效果不会出现在桌面上。</p>
+        <button class="btn-outline mt-2 h-7 w-full px-2.5 text-2xs">打开系统设置</button>
+      </div>
+
+      <!-- 暂停倒计时 -->
+      <div data-show="paused" class="border-b border-slate-100 bg-slate-50 px-3.5 py-2.5">
+        <div class="flex items-center gap-2">
+          <svg class="size-3.5 shrink-0 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 9v6M14 9v6"/><circle cx="12" cy="12" r="9"/></svg>
+          <span class="min-w-0 flex-1 text-2xs font-medium text-slate-700">已暂停 · 剩余 <span id="countdown" class="tabular-nums">19:42</span></span>
+          <button id="resumeBtn" class="shrink-0 text-2xs font-semibold text-slate-900 underline underline-offset-2">立即恢复</button>
+        </div>
+      </div>
+
+      <!-- 主题快切 -->
+      <div class="border-b border-slate-100 px-3.5 py-3">
+        <div class="mb-2 flex items-center justify-between">
+          <span class="text-2xs font-semibold text-slate-600">主题</span>
+          <a href="01-workbench.html" class="text-2xs font-medium text-slate-400 transition-colors hover:text-slate-700">调手感 →</a>
+        </div>
+        <div id="themeRow" class="grid grid-cols-4 gap-1.5"></div>
+      </div>
+
+      <!-- 当前前台应用 -->
+      <div class="border-b border-slate-100 px-3.5 py-3">
+        <div class="mb-2 text-2xs font-semibold text-slate-600">当前应用</div>
+        <div id="appRow"></div>
+      </div>
+
+      <!-- 临时暂停：走查里指出的缺口 -->
+      <div class="border-b border-slate-100 px-3.5 py-3">
+        <div class="mb-2 flex items-center justify-between">
+          <span class="text-2xs font-semibold text-slate-600">临时暂停</span>
+          <span class="text-2xs text-slate-400">演示时最常用</span>
+        </div>
+        <div class="grid grid-cols-3 gap-1.5">
+          <button data-pause="20" class="preset-chip justify-center">20 分钟</button>
+          <button data-pause="60" class="preset-chip justify-center">1 小时</button>
+          <button data-pause="0" class="preset-chip justify-center">直到重启</button>
+        </div>
+      </div>
+
+      <!-- 底部 -->
+      <div class="px-1.5 py-1.5">
+        <a href="01-workbench.html" class="cmdk-item"><svg class="size-3.5 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg><span class="min-w-0 flex-1">打开工作台</span><span class="kbd">⌥⌘O</span></a>
+        <a href="05-diagnostics.html" class="cmdk-item"><svg class="size-3.5 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg><span class="min-w-0 flex-1">诊断面板</span><span id="diagBadge" class="rounded-full bg-amber-50 px-1.5 py-0.5 text-2xs font-semibold text-amber-800"></span></a>
+        <a href="07-settings.html" class="cmdk-item"><svg class="size-3.5 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg><span class="min-w-0 flex-1">设置</span><span class="kbd">⌘,</span></a>
+        <button class="cmdk-item text-slate-500"><svg class="size-3.5 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg><span class="min-w-0 flex-1">退出</span><span class="kbd">⌘Q</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toastHost" class="pointer-events-none fixed left-1/2 top-4 z-50 flex -translate-x-1/2 flex-col gap-2"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const THEMES = [
+  { id: 'mono', name: '几何', color: '#0f172a' },
+  { id: 'drift', name: '流光', color: '#0d9488' },
+  { id: 'molten', name: '熔金', color: '#f59e0b' },
+  { id: 'sunset', name: '夕霞', color: '#f43f5e' },
+];
+let enabled = true, paused = false, granted = true, themeId = 'mono';
+let appRule = null;   // null | 'disabled' | 'theme'
+
+function renderStatus() {
+  const el = $('statusLine');
+  if (!granted) { el.className = 'mt-0.5 truncate text-2xs font-medium text-amber-700'; el.textContent = '需要授权才能生效'; }
+  else if (paused) { el.className = 'mt-0.5 truncate text-2xs font-medium text-slate-500'; el.textContent = '已暂停'; }
+  else if (!enabled) { el.className = 'mt-0.5 truncate text-2xs font-medium text-slate-500'; el.textContent = '已关闭'; }
+  else { el.className = 'mt-0.5 truncate text-2xs font-medium text-emerald-700'; el.textContent = '运行中 · 几何'; }
+  $('mainToggle').className = 'switch-knob shrink-0' + (enabled && !paused ? ' switch-on' : '');
+  $('diagBadge').textContent = granted ? '' : '1';
+  $('diagBadge').classList.toggle('hidden', granted);
+}
+function renderThemes() {
+  $('themeRow').innerHTML = THEMES.map((t) => `
+    <button data-theme="${t.id}" class="flex flex-col items-center gap-1 rounded-xl border px-1 py-2 transition-colors ${t.id === themeId ? 'border-slate-900 bg-white' : 'border-slate-200 bg-white hover:border-slate-300'}">
+      <span class="grid size-7 place-items-center rounded-lg text-2xs font-semibold text-white" style="background:${t.color}">${t.name[0]}</span>
+      <span class="text-2xs font-medium ${t.id === themeId ? 'text-slate-900' : 'text-slate-500'}">${t.name}</span>
+    </button>`).join('');
+  $('themeRow').querySelectorAll('[data-theme]').forEach((b) => b.addEventListener('click', () => {
+    themeId = b.dataset.theme; renderThemes(); renderStatus();
+    toast(`已切到「${THEMES.find((t) => t.id === themeId).name}」`);
+  }));
+}
+function renderApp() {
+  const label = appRule === 'disabled' ? '此应用中已关闭' : appRule === 'theme' ? '此应用使用「夕霞」' : '按全局设置';
+  $('appRow').innerHTML = `
+    <div class="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-2.5 py-2 shadow-sm">
+      <span class="grid size-7 shrink-0 place-items-center rounded-lg bg-slate-900 text-2xs font-semibold text-white">F</span>
+      <span class="min-w-0 flex-1">
+        <span class="block truncate text-xs font-medium text-slate-900">Figma</span>
+        <span class="block truncate text-2xs ${appRule ? 'text-slate-700' : 'text-slate-400'}">${label}</span>
+      </span>
+    </div>
+    <div class="mt-1.5 grid grid-cols-2 gap-1.5">
+      <button data-app="disabled" class="preset-chip justify-center${appRule === 'disabled' ? ' preset-chip-on' : ''}">在此应用关闭</button>
+      <button data-app="theme" class="preset-chip justify-center${appRule === 'theme' ? ' preset-chip-on' : ''}">换主题…</button>
+    </div>`;
+  $('appRow').querySelectorAll('[data-app]').forEach((b) => b.addEventListener('click', () => {
+    const next = b.dataset.app;
+    const before = appRule;
+    appRule = appRule === next ? null : next;
+    renderApp();
+    toast(appRule ? `已为 Figma 添加规则` : '已移除 Figma 的规则', () => { appRule = before; renderApp(); });
+  }));
+}
+
+let timer = null;
+function startPause(minutes) {
+  paused = true;
+  renderStatus(); setProtoUi('paused');
+  if (!minutes) { $('countdown').textContent = '直到重启'; return; }
+  let left = minutes * 60;
+  clearInterval(timer);
+  timer = setInterval(() => {
+    left -= 1;
+    if (left <= 0) { clearInterval(timer); paused = false; renderStatus(); setProtoUi('normal'); toast('暂停结束，已恢复'); return; }
+    $('countdown').textContent = `${String(Math.floor(left / 60)).padStart(2, '0')}:${String(left % 60).padStart(2, '0')}`;
+  }, 1000);
+  $('countdown').textContent = `${String(minutes).padStart(2, '0')}:00`;
+}
+document.querySelectorAll('[data-pause]').forEach((b) => b.addEventListener('click', () => {
+  startPause(Number(b.dataset.pause));
+  toast(b.dataset.pause === '0' ? '已暂停，直到重启' : `已暂停 ${b.dataset.pause} 分钟`);
+}));
+$('resumeBtn').addEventListener('click', () => { clearInterval(timer); paused = false; renderStatus(); setProtoUi('normal'); toast('已恢复'); });
+$('mainToggle').addEventListener('click', () => {
+  if (paused) { clearInterval(timer); paused = false; setProtoUi('normal'); }
+  else enabled = !enabled;
+  renderStatus();
+});
+
+function toast(text, undo) {
+  const el = document.createElement('div');
+  el.className = 'pointer-events-auto flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-lg';
+  el.innerHTML = `<span class="text-xs font-medium text-slate-600">${text}</span>`;
+  if (undo) {
+    const b = document.createElement('button');
+    b.className = 'text-2xs font-semibold text-slate-900 underline underline-offset-2';
+    b.textContent = '撤销';
+    b.addEventListener('click', () => { undo(); el.remove(); });
+    el.appendChild(b);
+  }
+  $('toastHost').appendChild(el);
+  setTimeout(() => el.remove(), 2400);
+}
+
+const PROTO = [['normal', '① 常规'], ['paused', '② 已暂停（倒计时）'], ['denied', '③ 未授权']];
+function setProtoUi(id) {
+  $('proto').querySelectorAll('.proto-btn').forEach((b) => {
+    const on = b.dataset.proto === id;
+    b.className = 'proto-btn h-7 rounded-lg px-2.5 text-2xs font-medium ' + (on ? 'bg-white text-slate-900' : 'text-slate-300 hover:bg-slate-800');
+  });
+  document.querySelectorAll('[data-show]').forEach((el) => el.classList.toggle('hidden', !el.dataset.show.split(' ').includes(id)));
+}
+$('proto').innerHTML = '<span class="mr-1 text-2xs font-semibold text-white">原型状态</span>'
+  + PROTO.map(([id, l]) => `<button data-proto="${id}" class="proto-btn h-7 rounded-lg px-2.5 text-2xs font-medium">${l}</button>`).join('')
+  + '<span class="ml-auto text-2xs text-slate-400">「临时暂停」是走查里指出的缺口 · 倒计时会真的走</span>';
+$('proto').querySelectorAll('[data-proto]').forEach((b) => b.addEventListener('click', () => {
+  const id = b.dataset.proto;
+  clearInterval(timer);
+  granted = id !== 'denied';
+  paused = id === 'paused';
+  enabled = true;
+  if (paused) startPause(20); else { renderStatus(); setProtoUi(id); }
+}));
+
+renderThemes(); renderApp(); renderStatus(); setProtoUi('normal');
+</script>
+</body>
+</html>

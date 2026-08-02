@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>实时预览 + 时间轴 · UX 原型</title>
+<link rel="stylesheet" href="../mockup.css" />
+<style>
+  body {
+    font-family: "SF Pro Display", "SF Pro Text", "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+  }
+  .fx { position: absolute; pointer-events: none; user-select: none; }
+  .checker {
+    background-color: #fff;
+    background-image:
+      linear-gradient(45deg, #eef2f6 25%, transparent 25%, transparent 75%, #eef2f6 75%),
+      linear-gradient(45deg, #eef2f6 25%, transparent 25%, transparent 75%, #eef2f6 75%);
+    background-size: 16px 16px; background-position: 0 0, 8px 8px;
+  }
+</style>
+</head>
+<body class="bg-slate-100 p-6 text-slate-900">
+<div class="mx-auto max-w-[1240px]">
+
+  <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+    <div class="min-w-0">
+      <h1 class="text-base font-semibold text-slate-900 text-balance">实时预览 + 时间轴</h1>
+      <p class="mt-1 max-w-3xl text-xs leading-relaxed text-slate-500 text-pretty">
+        核心改动一句话：<span class="font-medium text-slate-700">播放头可以拖，拖到哪一毫秒舞台就定格在那一帧</span>。时间轴从「播完就没了的动画」变成可编辑、可检视的时间面。
+      </p>
+    </div>
+    <div class="flex shrink-0 items-center gap-2">
+      <a href="controls.html" class="btn-outline h-8 px-3 text-xs">配置控件库</a>
+      <a href="index.html" class="btn-outline h-8 px-3 text-xs">全部原型</a>
+    </div>
+  </div>
+
+  <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_312px]">
+
+    <!-- ════ 预览轨 ════ -->
+    <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+        <div class="min-w-0">
+          <h3 class="text-sm font-medium text-slate-900">实时预览</h3>
+          <div class="mt-0.5 text-xs text-slate-500">在舞台里用正在配的手势直接触发 · 缩放 62%</div>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <div class="seg-group">
+            <button data-bg="light" class="seg-item seg-item-on">浅</button>
+            <button data-bg="dark" class="seg-item">深</button>
+            <button data-bg="checker" class="seg-item">格</button>
+          </div>
+          <button id="abBtn" class="btn-outline h-7 px-2.5 text-2xs" title="按住可对比修改前">A/B 对比</button>
+          <button id="onionBtn" class="btn-outline h-7 px-2.5 text-2xs">运动轨迹</button>
+        </div>
+      </div>
+
+      <div class="px-4 py-3">
+        <!-- 舞台：一层容器，没有内嵌画框、没有假搁板、没有假光标 -->
+        <div id="stage" class="relative h-[318px] overflow-hidden rounded-xl border border-slate-200 bg-white">
+          <div id="stageHint" class="pointer-events-none absolute inset-0 grid place-items-center text-center">
+            <div>
+              <div class="text-xs font-medium text-slate-500">在这里<span id="gestureWord">单击</span>试试</div>
+              <div class="mt-1 text-2xs text-slate-400">或拖下面的播放头逐帧检视</div>
+            </div>
+          </div>
+          <div id="onionHost" class="pointer-events-none absolute inset-0"></div>
+          <div id="fxHost" class="pointer-events-none absolute inset-0"></div>
+          <div id="abBadge" class="pointer-events-none absolute right-3 top-3 hidden rounded-lg bg-slate-900 px-2 py-1 text-2xs font-semibold text-white">修改前</div>
+        </div>
+
+        <!-- 传输控制 -->
+        <div class="mt-2.5 flex flex-wrap items-center gap-2">
+          <div class="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+            <button id="playBtn" class="grid size-7 place-items-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100" aria-label="播放/暂停">
+              <svg id="playIcon" class="size-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            </button>
+            <button id="stepBack" class="grid size-7 place-items-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100" aria-label="后退一帧">
+              <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6 9 12l6 6M8 6v12"/></svg>
+            </button>
+            <button id="stepFwd" class="grid size-7 place-items-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100" aria-label="前进一帧">
+              <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 6 6 6-6 6M16 6v12"/></svg>
+            </button>
+            <button id="replayBtn" class="grid size-7 place-items-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100" aria-label="重播">
+              <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg>
+            </button>
+          </div>
+
+          <div class="seg-group">
+            <button data-speed="1" class="seg-item seg-item-on">1×</button>
+            <button data-speed="0.5" class="seg-item">0.5×</button>
+            <button data-speed="0.25" class="seg-item">0.25×</button>
+          </div>
+
+          <button id="loopBtn" class="btn-outline h-7 px-2.5 text-2xs">循环</button>
+
+          <span class="ml-auto inline-flex h-7 items-center gap-1.5 rounded-xl bg-slate-50 px-2.5 text-2xs font-semibold tabular-nums text-slate-700 ring-1 ring-slate-200">
+            <span id="timeNow">0</span> / <span id="timeTotal">960</span> ms
+          </span>
+        </div>
+
+        <!-- ════ 时间轴 ════ -->
+        <div class="mt-2.5 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-3 py-2">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-medium text-slate-700">时间轴</span>
+              <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-2xs font-medium tabular-nums text-slate-500">总长 <span id="totalLabel">960</span>ms</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <div class="seg-group">
+                <button data-snap="20" class="seg-item seg-item-on">20ms</button>
+                <button data-snap="10" class="seg-item">10ms</button>
+                <button data-snap="0" class="seg-item">关</button>
+              </div>
+              <div class="seg-group">
+                <button data-zoom="1" class="seg-item seg-item-on">适配</button>
+                <button data-zoom="2" class="seg-item">2×</button>
+                <button data-zoom="4" class="seg-item">4×</button>
+              </div>
+              <button id="resetAll" class="text-2xs font-medium text-slate-400 transition-colors hover:text-slate-700">重置全部</button>
+            </div>
+          </div>
+
+          <div id="tlScroll" class="overflow-x-auto">
+            <div id="tlInner" class="min-w-full px-3 pb-3 pt-2">
+              <!-- 标尺 -->
+              <div class="grid grid-cols-[112px_minmax(0,1fr)] gap-2.5">
+                <div></div>
+                <div id="ruler" class="relative h-5"></div>
+              </div>
+              <!-- 轨道 -->
+              <div id="lanes" class="relative mt-1 space-y-1">
+                <div id="playhead" class="pointer-events-none absolute bottom-0 top-0 z-20 w-px bg-slate-900" style="left:112px">
+                  <span id="playheadLabel" class="absolute -top-0.5 left-1 rounded bg-slate-900 px-1 py-0.5 text-2xs font-semibold tabular-nums text-white">0ms</span>
+                </div>
+              </div>
+              <p class="mt-2 text-2xs leading-relaxed text-slate-400">
+                拖标尺或播放头 → 舞台定格该帧 · 拖色块中部改延迟 · 拖两端改时长 · 按住 ⌥ 临时关闭吸附 · S 独奏 / M 静音
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════ 改了什么 ════ -->
+    <aside class="space-y-3">
+      <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div class="border-b border-slate-100 px-4 py-3">
+          <h3 class="text-sm font-medium text-slate-900">舞台改了什么</h3>
+        </div>
+        <div class="divide-y divide-slate-100">
+          <div class="px-4 py-2.5">
+            <div class="text-xs font-medium text-slate-700">拆掉三层假家具</div>
+            <p class="mt-1 text-2xs leading-relaxed text-slate-500">
+              原来舞台里套着一个内嵌画框（<code class="rounded bg-slate-100 px-1">inset-x-8 top-20</code>）、一条假搁板、一个中心的假光标脉冲环。效果被裹在三层装饰里，还挤在一个更小的内框里。现在舞台就是效果区。
+            </p>
+          </div>
+          <div class="px-4 py-2.5">
+            <div class="text-xs font-medium text-slate-700">效果在你点的位置发生</div>
+            <p class="mt-1 text-2xs leading-relaxed text-slate-500">原来指针位置有采集但效果恒定在正中，所以看不出「点哪触发哪」。</p>
+          </div>
+          <div class="px-4 py-2.5">
+            <div class="text-xs font-medium text-slate-700">慢放 / 逐帧 / A-B 对比</div>
+            <p class="mt-1 text-2xs leading-relaxed text-slate-500">调动效必需的三件事，原来一个都没有——只有重播和循环间隔。</p>
+          </div>
+          <div class="px-4 py-2.5">
+            <div class="text-xs font-medium text-slate-700">底色可切 + 运动轨迹</div>
+            <p class="mt-1 text-2xs leading-relaxed text-slate-500">原来底色写死近白，浅色粒子看不清；轨迹（洋葱皮）让运动路径一次看全。</p>
+          </div>
+          <div class="px-4 py-2.5">
+            <div class="text-xs font-medium text-slate-700">两处装饰渐变 + 一个野生紫</div>
+            <p class="mt-1 text-2xs leading-relaxed text-slate-500">
+              舞台底和内框各有一条 <code class="rounded bg-slate-100 px-1">linear-gradient</code>（DESIGN.md 禁止），长按进度环写死 <code class="rounded bg-slate-100 px-1">#7C3AED</code> 紫色（不在色板里）。都已去掉。
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div class="border-b border-slate-100 px-4 py-3">
+          <h3 class="text-sm font-medium text-slate-900">时间轴改了什么</h3>
+          <p class="mt-0.5 text-xs text-slate-500">现有实现的拖拽、吸附、键盘、ghost 预览都保留。</p>
+        </div>
+        <div class="divide-y divide-slate-100">
+          <div class="px-4 py-2.5">
+            <div class="text-xs font-medium text-slate-700">播放头可拖，驱动舞台</div>
+            <p class="mt-1 text-2xs leading-relaxed text-slate-500">
+              原来是一次性 CSS transition 从 0 跑到宽度，不能拖、不能停，头上的标签还恒显总时长。现在它是唯一时间源。
+            </p>
+          </div>
+          <div class="px-4 py-2.5">
+            <div class="text-xs font-medium text-slate-700">色块内嵌缓动曲线</div>
+            <p class="mt-1 text-2xs leading-relaxed text-slate-500">时长可编辑，但「运动的形状」原来在任何地方都看不见。</p>
+          </div>
+          <div class="px-4 py-2.5">
+            <div class="text-xs font-medium text-slate-700">独奏 / 静音</div>
+            <p class="mt-1 text-2xs leading-relaxed text-slate-500">四条效果叠在一起时，想单独看粒子只能去关掉另外三张卡。</p>
+          </div>
+          <div class="px-4 py-2.5">
+            <div class="text-xs font-medium text-slate-700">缩放 + 吸附档位</div>
+            <p class="mt-1 text-2xs leading-relaxed text-slate-500">原来总长由最长轨道决定且不可缩放，120ms 的音效在 900ms 里只有一条缝；吸附写死 20ms。</p>
+          </div>
+          <div class="px-4 py-2.5">
+            <div class="text-xs font-medium text-slate-700">去掉六色渐变色块</div>
+            <p class="mt-1 text-2xs leading-relaxed text-slate-500">
+              原来每条轨道一个 <code class="rounded bg-slate-100 px-1">bg-gradient-to-b</code> 加六种色调（含 violet）。现在色块是白底描边，色调只保留标签前的小圆点。
+            </p>
+          </div>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <p class="mt-4 text-2xs text-slate-400">原型页 · 不是产品页面。</p>
+</div>
+
+<script>
+// ═══ 数据 ═══
+const DEFAULTS = [
+  { id: 'ripple',   label: '波纹', dot: 'bg-teal-500',   delay: 0,   dur: 620, ease: [0, 0, .2, 1] },
+  { id: 'particle', label: '粒子', dot: 'bg-sky-500',    delay: 40,  dur: 900, ease: [.2, .6, .3, 1] },
+  { id: 'text',     label: '飘字', dot: 'bg-amber-500',  delay: 80,  dur: 820, ease: [.2, .7, .3, 1] },
+  { id: 'audio',    label: '音效', dot: 'bg-rose-500',   delay: 0,   dur: 120, ease: [0, 0, 1, 1], audio: true },
+];
+let tracks = DEFAULTS.map((t) => ({ ...t, solo: false, mute: false }));
+let t = 0, playing = false, speed = 1, loop = false, snap = 20, zoom = 1;
+let onion = false, ab = false;
+let origin = { x: 0.42, y: 0.5 };
+const LANE_LABEL_W = 112;
+
+const $ = (id) => document.getElementById(id);
+const totalMs = () => Math.max(200, Math.ceil(Math.max(...tracks.map((k) => k.delay + k.dur)) / 20) * 20);
+
+// 三次贝塞尔求值（按 x 反解 t，再取 y）
+function bezier(x1, y1, x2, y2) {
+  const cx = (a, b) => (u) => 3 * (1 - u) ** 2 * u * a + 3 * (1 - u) * u * u * b + u ** 3;
+  const fx = cx(x1, x2), fy = cx(y1, y2);
+  return (x) => {
+    let lo = 0, hi = 1, u = x;
+    for (let i = 0; i < 20; i += 1) { u = (lo + hi) / 2; if (fx(u) < x) lo = u; else hi = u; }
+    return fy(u);
+  };
+}
+const easeCache = {};
+const easeOf = (k) => (easeCache[k.id] ||= bezier(...k.ease));
+
+// ═══ 舞台：把时间 t 解析成一帧（纯函数，所以拖动播放头可以精确定格） ═══
+function activeTracks() {
+  const soloed = tracks.filter((k) => k.solo);
+  return (soloed.length ? soloed : tracks).filter((k) => !k.mute);
+}
+function renderFrame(time, host) {
+  const stage = $('stage');
+  const W = stage.clientWidth, H = stage.clientHeight;
+  const x = W * origin.x, y = H * origin.y;
+  const parts = [];
+  const shift = ab ? -8 : 0;   // A/B：修改前用一组略不同的参数
+  for (const k of activeTracks()) {
+    const p0 = (time - k.delay) / k.dur;
+    if (p0 < 0 || p0 > 1) continue;
+    const p = easeOf(k)(Math.min(1, Math.max(0, p0)));
+    if (k.id === 'ripple') {
+      const r = p * (120 + shift * 2);
+      parts.push(`<div class="fx rounded-full" style="left:${x}px;top:${y}px;width:${r * 2}px;height:${r * 2}px;
+        transform:translate(-50%,-50%);border:2px solid #0d9488;opacity:${(1 - p0).toFixed(3)}"></div>`);
+    } else if (k.id === 'particle') {
+      const n = 12;
+      for (let i = 0; i < n; i += 1) {
+        const a = (Math.PI * 2 * i) / n + 0.3;
+        const d = p * (92 + shift * 3);
+        const sz = 6 - p * 2;
+        parts.push(`<div class="fx rounded-full" style="left:${x + Math.cos(a) * d}px;top:${y + Math.sin(a) * d + p * 26}px;
+          width:${sz}px;height:${sz}px;background:#0ea5e9;transform:translate(-50%,-50%);opacity:${(1 - p0 * 0.9).toFixed(3)}"></div>`);
+      }
+    } else if (k.id === 'text') {
+      const rise = p * (58 + shift * 2);
+      const op = p0 < 0.3 ? p0 / 0.3 : 1 - (p0 - 0.3) / 0.7;
+      const sc = 0.6 + Math.min(1, p * 1.6) * 0.5;
+      parts.push(`<div class="fx" style="left:${x}px;top:${y - rise}px;color:#f59e0b;font-size:${26 + shift}px;font-weight:700;
+        line-height:1;transform:translate(-50%,-50%) scale(${sc.toFixed(3)});opacity:${Math.max(0, op).toFixed(3)}">Nice!</div>`);
+    } else if (k.id === 'audio') {
+      const bars = [0, 1, 2, 3].map((b) => {
+        const h = 6 + Math.sin((p0 + b * 0.2) * Math.PI) * 10;
+        return `<span style="display:block;width:2px;height:${Math.max(3, h)}px;border-radius:9999px;background:#e11d48"></span>`;
+      }).join('');
+      parts.push(`<div class="fx" style="left:${x + 96}px;top:${y - 58}px;display:flex;align-items:flex-end;gap:2px;opacity:${(1 - p0).toFixed(3)}">${bars}</div>`);
+    }
+  }
+  host.innerHTML = parts.join('');
+}
+function paintStage() {
+  renderFrame(t, $('fxHost'));
+  if (onion) {
+    const steps = [0.15, 0.3, 0.45, 0.6, 0.75, 0.9];
+    $('onionHost').innerHTML = '';
+    steps.forEach((s) => {
+      const box = document.createElement('div');
+      box.className = 'absolute inset-0';
+      box.style.opacity = '0.16';
+      renderFrame(totalMs() * s, box);
+      $('onionHost').appendChild(box);
+    });
+  } else $('onionHost').innerHTML = '';
+  $('timeNow').textContent = Math.round(t);
+  $('playheadLabel').textContent = Math.round(t) + 'ms';
+  const laneW = lanesWidth();
+  $('playhead').style.left = (LANE_LABEL_W + 10 + (t / totalMs()) * laneW) + 'px';
+}
+
+// ═══ 播放 ═══
+let last = 0;
+function tick(now) {
+  if (!playing) return;
+  if (!last) last = now;
+  t += (now - last) * speed;
+  last = now;
+  if (t >= totalMs()) {
+    if (loop) t = 0; else { t = totalMs(); setPlaying(false); }
+  }
+  paintStage();
+  if (playing) requestAnimationFrame(tick);
+}
+function setPlaying(v) {
+  playing = v; last = 0;
+  $('playIcon').innerHTML = v ? '<path d="M7 5h4v14H7zM13 5h4v14h-4z"/>' : '<path d="M8 5v14l11-7z"/>';
+  if (v) requestAnimationFrame(tick);
+}
+$('playBtn').addEventListener('click', () => { if (t >= totalMs()) t = 0; setPlaying(!playing); });
+$('replayBtn').addEventListener('click', () => { t = 0; $('stageHint').classList.add('hidden'); setPlaying(true); });
+$('stepBack').addEventListener('click', () => { setPlaying(false); t = Math.max(0, t - 16); paintStage(); });
+$('stepFwd').addEventListener('click', () => { setPlaying(false); t = Math.min(totalMs(), t + 16); paintStage(); });
+$('loopBtn').addEventListener('click', () => {
+  loop = !loop;
+  $('loopBtn').className = 'h-7 px-2.5 text-2xs ' + (loop ? 'btn-default' : 'btn-outline');
+});
+document.querySelectorAll('[data-speed]').forEach((b) => b.addEventListener('click', () => {
+  speed = Number(b.dataset.speed);
+  document.querySelectorAll('[data-speed]').forEach((x) => x.className = 'seg-item' + (x === b ? ' seg-item-on' : ''));
+}));
+$('onionBtn').addEventListener('click', () => {
+  onion = !onion;
+  $('onionBtn').className = 'h-7 px-2.5 text-2xs ' + (onion ? 'btn-default' : 'btn-outline');
+  paintStage();
+});
+$('abBtn').addEventListener('pointerdown', () => { ab = true; $('abBadge').classList.remove('hidden'); paintStage(); });
+window.addEventListener('pointerup', () => { if (ab) { ab = false; $('abBadge').classList.add('hidden'); paintStage(); } });
+
+// 舞台点击 → 在点击处触发
+$('stage').addEventListener('click', (e) => {
+  const r = $('stage').getBoundingClientRect();
+  origin = { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height };
+  $('stageHint').classList.add('hidden');
+  t = 0; setPlaying(true);
+});
+
+// 底色
+document.querySelectorAll('[data-bg]').forEach((b) => b.addEventListener('click', () => {
+  document.querySelectorAll('[data-bg]').forEach((x) => x.className = 'seg-item' + (x === b ? ' seg-item-on' : ''));
+  const map = { light: 'bg-white', dark: 'bg-slate-900', checker: 'checker' };
+  $('stage').className = 'relative h-[318px] overflow-hidden rounded-xl border border-slate-200 ' + map[b.dataset.bg];
+}));
+
+// ═══ 时间轴 ═══
+function lanesWidth() {
+  const lane = document.querySelector('[data-lane]');
+  return lane ? lane.clientWidth : 400;
+}
+function easingSpark(k, w = 40, h = 14) {
+  const f = easeOf(k);
+  const pts = Array.from({ length: 12 }, (_, i) => {
+    const x = i / 11;
+    return `${(x * w).toFixed(1)},${(h - 1 - f(x) * (h - 2)).toFixed(1)}`;
+  }).join(' ');
+  return `<svg viewBox="0 0 ${w} ${h}" class="h-3 w-10 shrink-0" aria-hidden="true"><polyline points="${pts}" fill="none" stroke="#94a3b8" stroke-width="1.2"/></svg>`;
+}
+function renderTimeline() {
+  const T = totalMs();
+  $('totalLabel').textContent = T;
+  $('timeTotal').textContent = T;
+  $('tlInner').style.width = zoom === 1 ? '100%' : `${zoom * 100}%`;
+
+  // 标尺
+  const step = T > 1200 ? 200 : 100;
+  const ticks = [];
+  for (let ms = 0; ms <= T; ms += step) ticks.push(ms);
+  $('ruler').innerHTML = ticks.map((ms) => `
+    <div class="absolute bottom-0 flex flex-col items-center" style="left:${(ms / T) * 100}%;transform:translateX(${ms === 0 ? '0' : ms === T ? '-100%' : '-50%'})">
+      <span class="h-2.5 w-px bg-slate-400"></span>
+      <span class="mt-0.5 text-2xs leading-none tabular-nums text-slate-500">${ms}</span>
+    </div>`).join('')
+    + ticks.slice(0, -1).map((ms) => `<div class="absolute bottom-0 h-1.5 w-px bg-slate-300/70" style="left:${((ms + step / 2) / T) * 100}%"></div>`).join('');
+
+  // 轨道
+  const soloed = tracks.some((k) => k.solo);
+  const rows = tracks.map((k) => {
+    const muted = k.mute || (soloed && !k.solo);
+    return `<div class="tl-row" data-row="${k.id}">
+      <div class="flex items-center gap-1.5">
+        <span class="size-1.5 shrink-0 rounded-full ${k.dot}"></span>
+        <span class="min-w-0 flex-1 truncate text-2xs font-semibold ${muted ? 'text-slate-400' : 'text-slate-700'}">${k.label}</span>
+        <button class="tl-iconbtn ${k.solo ? 'tl-iconbtn-on' : ''}" data-solo="${k.id}" title="独奏 (S)">S</button>
+        <button class="tl-iconbtn ${k.mute ? 'tl-iconbtn-on' : ''}" data-mute="${k.id}" title="静音 (M)">M</button>
+        ${(k.delay !== DEFAULTS.find((d) => d.id === k.id).delay || k.dur !== DEFAULTS.find((d) => d.id === k.id).dur)
+          ? `<button class="tl-iconbtn" data-reset="${k.id}" title="重置">×</button>` : '<span class="size-5 shrink-0"></span>'}
+      </div>
+      <div class="tl-lane" data-lane data-lane-id="${k.id}">
+        ${ticks.map((ms) => `<div class="pointer-events-none absolute inset-y-0 w-px bg-slate-200/70" style="left:${(ms / T) * 100}%"></div>`).join('')}
+        <div class="tl-bar ${muted ? 'tl-bar-muted' : ''}" data-bar="${k.id}"
+             style="left:${(k.delay / T) * 100}%;width:${Math.max(1.2, (k.dur / T) * 100)}%">
+          <span class="pointer-events-none absolute inset-0 flex items-center justify-center gap-1 px-1">
+            ${(k.dur / T) > 0.22 ? easingSpark(k) : ''}
+            ${(k.dur / T) > 0.14 ? `<span class="text-2xs font-semibold tabular-nums text-slate-500">${k.dur}ms</span>` : ''}
+          </span>
+          <span class="absolute inset-y-0 left-0 w-1.5 cursor-col-resize" data-edge="l" data-edge-id="${k.id}"></span>
+          <span class="absolute inset-y-0 right-0 w-1.5 cursor-col-resize" data-edge="r" data-edge-id="${k.id}"></span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  $('lanes').innerHTML = `<div id="playhead" class="pointer-events-none absolute bottom-0 top-0 z-20 w-px bg-slate-900" style="left:${LANE_LABEL_W}px">
+      <span id="playheadLabel" class="absolute -top-0.5 left-1 rounded bg-slate-900 px-1 py-0.5 text-2xs font-semibold tabular-nums text-white">0ms</span>
+    </div>` + rows;
+  bindTimeline();
+  paintStage();
+}
+
+function msFromClientX(clientX) {
+  const lane = document.querySelector('[data-lane]');
+  const r = lane.getBoundingClientRect();
+  return Math.max(0, Math.min(totalMs(), ((clientX - r.left) / r.width) * totalMs()));
+}
+function quantize(ms, alt) {
+  if (!snap || alt) return Math.round(ms);
+  return Math.round(ms / snap) * snap;
+}
+function bindTimeline() {
+  // 拖标尺 / 轨道空白 → 移动播放头
+  const scrubFrom = (el) => {
+    el.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('[data-bar]')) return;
+      setPlaying(false);
+      el.setPointerCapture(e.pointerId);
+      const move = (ev) => { t = quantize(msFromClientX(ev.clientX), ev.altKey); paintStage(); };
+      move(e);
+      const up = () => { el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); };
+      el.addEventListener('pointermove', move);
+      el.addEventListener('pointerup', up);
+    });
+  };
+  scrubFrom($('ruler'));
+  document.querySelectorAll('[data-lane]').forEach(scrubFrom);
+
+  // 拖色块中部 → 改延迟
+  document.querySelectorAll('[data-bar]').forEach((bar) => {
+    bar.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('[data-edge]')) return;
+      e.stopPropagation();
+      const k = tracks.find((x) => x.id === bar.dataset.bar);
+      const startMs = msFromClientX(e.clientX), startDelay = k.delay;
+      bar.setPointerCapture(e.pointerId);
+      const move = (ev) => {
+        const d = msFromClientX(ev.clientX) - startMs;
+        k.delay = Math.max(0, quantize(startDelay + d, ev.altKey));
+        renderTimeline();
+      };
+      const up = () => { bar.removeEventListener('pointermove', move); bar.removeEventListener('pointerup', up); };
+      bar.addEventListener('pointermove', move);
+      bar.addEventListener('pointerup', up);
+    });
+  });
+  // 拖两端 → 改时长
+  document.querySelectorAll('[data-edge]').forEach((h) => {
+    h.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      const k = tracks.find((x) => x.id === h.dataset.edgeId);
+      const isLeft = h.dataset.edge === 'l';
+      const startMs = msFromClientX(e.clientX), d0 = k.delay, du0 = k.dur;
+      h.setPointerCapture(e.pointerId);
+      const move = (ev) => {
+        const d = msFromClientX(ev.clientX) - startMs;
+        if (isLeft) {
+          const nd = Math.max(0, quantize(d0 + d, ev.altKey));
+          k.dur = Math.max(40, du0 - (nd - d0));
+          k.delay = nd;
+        } else {
+          k.dur = Math.max(40, quantize(du0 + d, ev.altKey));
+        }
+        renderTimeline();
+      };
+      const up = () => { h.removeEventListener('pointermove', move); h.removeEventListener('pointerup', up); };
+      h.addEventListener('pointermove', move);
+      h.addEventListener('pointerup', up);
+    });
+  });
+  document.querySelectorAll('[data-solo]').forEach((b) => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const k = tracks.find((x) => x.id === b.dataset.solo); k.solo = !k.solo; renderTimeline();
+  }));
+  document.querySelectorAll('[data-mute]').forEach((b) => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const k = tracks.find((x) => x.id === b.dataset.mute); k.mute = !k.mute; renderTimeline();
+  }));
+  document.querySelectorAll('[data-reset]').forEach((b) => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const d = DEFAULTS.find((x) => x.id === b.dataset.reset);
+    const k = tracks.find((x) => x.id === b.dataset.reset);
+    k.delay = d.delay; k.dur = d.dur; renderTimeline();
+  }));
+}
+document.querySelectorAll('[data-snap]').forEach((b) => b.addEventListener('click', () => {
+  snap = Number(b.dataset.snap);
+  document.querySelectorAll('[data-snap]').forEach((x) => x.className = 'seg-item' + (x === b ? ' seg-item-on' : ''));
+}));
+document.querySelectorAll('[data-zoom]').forEach((b) => b.addEventListener('click', () => {
+  zoom = Number(b.dataset.zoom);
+  document.querySelectorAll('[data-zoom]').forEach((x) => x.className = 'seg-item' + (x === b ? ' seg-item-on' : ''));
+  renderTimeline();
+}));
+$('resetAll').addEventListener('click', () => {
+  tracks = DEFAULTS.map((x) => ({ ...x, solo: false, mute: false }));
+  renderTimeline();
+});
+window.addEventListener('resize', () => renderTimeline());
+renderTimeline();
+paintStage();
+</script>
+</body>
+</html>

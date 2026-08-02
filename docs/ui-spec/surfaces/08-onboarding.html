@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>首次启动引导 · UI 规范</title>
+<link rel="stylesheet" href="../mockup.css" />
+<style>
+  body { font-family: "SF Pro Display", "SF Pro Text", "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif; }
+  .fx { position: absolute; pointer-events: none; user-select: none; }
+</style>
+</head>
+<body class="bg-slate-200 p-6 text-slate-900">
+
+<div id="proto" class="mx-auto mb-4 flex max-w-[720px] flex-wrap items-center gap-2 rounded-xl bg-slate-900 px-3 py-2"></div>
+
+<!-- 独立的首启窗口。不是遮罩教程：教程会被跳过，而这三步每一步都有实际产出 -->
+<div class="mx-auto flex h-[560px] max-w-[720px] flex-col overflow-hidden rounded-xl border border-slate-300 bg-white shadow-lg">
+  <header class="flex h-8 shrink-0 items-center gap-2 border-b border-slate-200 bg-white pl-3">
+    <span class="flex items-center gap-1.5 pr-2">
+      <span class="size-3 rounded-full bg-rose-400"></span><span class="size-3 rounded-full bg-amber-400"></span><span class="size-3 rounded-full bg-emerald-400"></span>
+    </span>
+    <span class="grid size-5 place-items-center rounded-full bg-slate-950 text-[9px] font-semibold text-white">C</span>
+    <span class="text-xs font-semibold text-slate-900">欢迎使用 CursorDance</span>
+    <button id="skipAll" class="ml-auto mr-3 text-2xs font-medium text-slate-400 transition-colors hover:text-slate-700">跳过引导</button>
+  </header>
+
+  <!-- 进度：三步，每步都能看出「做完了什么」 -->
+  <div class="shrink-0 border-b border-slate-100 px-5 py-3">
+    <div id="steps" class="flex items-center gap-2"></div>
+  </div>
+
+  <div class="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-5">
+
+    <!-- ① 授权 -->
+    <section data-step="1" class="m-auto w-full space-y-3">
+      <div>
+        <h2 class="text-base font-semibold text-slate-900 text-balance">先授权，它才能看到你的鼠标</h2>
+        <p class="mt-1 max-w-lg text-xs leading-relaxed text-slate-500 text-pretty">
+          CursorDance 需要「辅助功能」权限来接收全局的鼠标和键盘事件。它<span class="font-medium text-slate-700">不读取内容</span>，只知道你在哪按了哪个键。
+        </p>
+      </div>
+
+      <div id="grantBox" class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm"></div>
+
+      <div class="rounded-xl bg-slate-50 px-3 py-2.5">
+        <p class="text-2xs leading-relaxed text-slate-500">
+          不授权也能用：工作台里的预览、光标皮肤的校准、键盘动效的屏幕预览全部可用，只是效果不会出现在桌面上。
+          <button data-goto="2" class="font-medium text-slate-900 underline underline-offset-2">先跳过，稍后再授权</button>
+        </p>
+      </div>
+    </section>
+
+    <!-- ② 选主题（并排试） -->
+    <section data-step="2" class="m-auto w-full hidden space-y-3">
+      <div>
+        <h2 class="text-base font-semibold text-slate-900 text-balance">挑一套手感</h2>
+        <p class="mt-1 max-w-lg text-xs leading-relaxed text-slate-500 text-pretty">
+          点两个卡片可以<span class="font-medium text-slate-700">并排对比</span>——同一次点击同时触发两套主题，这比一个个切换快得多。
+        </p>
+      </div>
+
+      <div id="themePick" class="grid gap-2 sm:grid-cols-2"></div>
+
+      <div id="compare" class="hidden">
+        <div class="mb-1.5 flex items-center justify-between">
+          <span class="text-2xs font-semibold text-slate-600">并排试 · 在任意一侧点击</span>
+          <button id="clearCompare" class="text-2xs font-medium text-slate-400 underline underline-offset-2 hover:text-slate-700">取消对比</button>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div class="relative h-[132px] overflow-hidden rounded-xl border border-slate-200 bg-white" data-stage="a">
+            <span class="absolute left-2 top-2 rounded bg-slate-900 px-1.5 py-0.5 text-2xs font-medium text-white" data-stage-label="a"></span>
+          </div>
+          <div class="relative h-[132px] overflow-hidden rounded-xl border border-slate-200 bg-white" data-stage="b">
+            <span class="absolute left-2 top-2 rounded bg-slate-900 px-1.5 py-0.5 text-2xs font-medium text-white" data-stage-label="b"></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ③ 一次成功的触发 -->
+    <section data-step="3" class="m-auto w-full hidden space-y-3">
+      <div>
+        <h2 class="text-base font-semibold text-slate-900 text-balance">现在真的点一下</h2>
+        <p class="mt-1 max-w-lg text-xs leading-relaxed text-slate-500 text-pretty">
+          装完却不知道它有没有在工作，是这类工具最常见的流失点。这一步必须让你<span class="font-medium text-slate-700">亲眼看到一次效果</span>才算完成。
+        </p>
+      </div>
+
+      <div id="tryStage" class="relative h-[196px] overflow-hidden rounded-xl border-2 border-dashed border-slate-300 bg-slate-50">
+        <div id="tryHint" class="pointer-events-none absolute inset-0 grid place-items-center text-center">
+          <div>
+            <div class="text-xs font-medium text-slate-500">在这块区域里点一下</div>
+            <div class="mt-1 text-2xs text-slate-400">还需要 <span id="needLeft">3</span> 次</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tryDone" class="hidden rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+        <p class="flex items-center gap-2 text-xs font-medium text-emerald-900">
+          <svg class="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+          看到了，它在工作
+        </p>
+        <p class="mt-1 text-2xs leading-relaxed text-emerald-800">
+          之后它会驻留在菜单栏。想调手感就从托盘打开工作台；不想要了在托盘里一键暂停。
+        </p>
+      </div>
+    </section>
+
+    <!-- ④ 完成 -->
+    <section data-step="4" class="m-auto w-full hidden space-y-3">
+      <div class="rounded-xl border border-slate-200 bg-white p-4 text-center shadow-sm">
+        <div class="mx-auto grid size-11 place-items-center rounded-full bg-slate-900 text-white">
+          <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+        <h2 class="mt-3 text-base font-semibold text-slate-900">好了</h2>
+        <p class="mx-auto mt-1.5 max-w-sm text-xs leading-relaxed text-slate-500 text-pretty">
+          主题「<span id="pickedName" class="font-medium text-slate-700">几何</span>」已启用。菜单栏图标里可以随时暂停、换主题、打开工作台。
+        </p>
+        <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
+          <a href="01-workbench.html" class="btn-default h-8 px-3 text-xs">打开工作台调手感</a>
+          <a href="09-popup.html" class="btn-outline h-8 px-3 text-xs">看看托盘面板</a>
+        </div>
+      </div>
+      <div class="rounded-xl bg-slate-50 px-3 py-2.5">
+        <p class="text-2xs leading-relaxed text-slate-500">
+          三个不自明的功能，等你用到时会就地提示一次，不在这里堆教程：
+          <span class="font-medium text-slate-700">光标皮肤的准星测试</span>、
+          <span class="font-medium text-slate-700">时间轴的锚点链接</span>、
+          <span class="font-medium text-slate-700">字段标签可横向拖动改值</span>。
+        </p>
+      </div>
+    </section>
+  </div>
+
+  <!-- 底部导航 -->
+  <div class="flex shrink-0 items-center gap-2 border-t border-slate-100 bg-slate-50/60 px-5 py-3">
+    <button id="backBtn" class="btn-ghost h-8 px-3 text-xs">上一步</button>
+    <span id="stepNote" class="min-w-0 flex-1 truncate text-2xs text-slate-400"></span>
+    <button id="nextBtn" class="btn-default h-8 px-4 text-xs">继续</button>
+  </div>
+</div>
+
+<div id="toastHost" class="pointer-events-none fixed left-1/2 top-4 z-50 flex -translate-x-1/2 flex-col gap-2"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const STEP_LABEL = ['授权', '选主题', '试一下'];
+const THEMES = [
+  { id: 'mono', name: '几何', desc: '方块粒子 · 几何波纹', color: '#0f172a' },
+  { id: 'drift', name: '流光', desc: '轨道粒子 · 涟漪扩散', color: '#0d9488' },
+  { id: 'molten', name: '熔金', desc: '火花喷发 · 能量脉冲', color: '#f59e0b' },
+  { id: 'sunset', name: '夕霞', desc: '钻石飘落 · 回声涟漪', color: '#f43f5e' },
+];
+let step = 1, granted = false, picked = ['mono'], tryCount = 0;
+
+function renderSteps() {
+  $('steps').innerHTML = STEP_LABEL.map((label, i) => {
+    const n = i + 1;
+    const done = step > n || (n === 3 && tryCount >= 3);
+    const cur = step === n;
+    return `<div class="flex items-center gap-2">
+        <span class="grid size-5 shrink-0 place-items-center rounded-full text-2xs font-semibold ${done ? 'bg-slate-900 text-white' : cur ? 'bg-white text-slate-900 ring-2 ring-slate-900' : 'bg-slate-100 text-slate-400'}">
+          ${done ? '<svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M20 6 9 17l-5-5"/></svg>' : n}
+        </span>
+        <span class="text-2xs font-medium ${cur ? 'text-slate-900' : done ? 'text-slate-600' : 'text-slate-400'}">${label}</span>
+      </div>` + (n < 3 ? '<span class="h-px w-6 bg-slate-200"></span>' : '');
+  }).join('');
+}
+function renderGrant() {
+  $('grantBox').innerHTML = granted
+    ? `<div class="flex items-center gap-2.5">
+        <span class="grid size-8 shrink-0 place-items-center rounded-xl bg-emerald-50 text-emerald-600"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg></span>
+        <div class="min-w-0"><div class="text-xs font-medium text-slate-900">已授权</div><div class="mt-0.5 text-2xs text-slate-500">全局捕获已启动，无需重启</div></div>
+      </div>`
+    : `<div class="flex items-start gap-2.5">
+        <span class="mt-0.5 grid size-8 shrink-0 place-items-center rounded-xl bg-amber-50 text-amber-600"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg></span>
+        <div class="min-w-0 flex-1">
+          <div class="text-xs font-medium text-slate-900">还没有授权</div>
+          <p class="mt-1 text-2xs leading-relaxed text-slate-500">系统会弹一次确认框。勾上列表里的 CursorDance 即可，授权状态这里会自动变。</p>
+          <button id="grantBtn" class="btn-default mt-2 h-7 px-2.5 text-2xs">打开系统设置</button>
+        </div>
+      </div>`;
+  $('grantBox').querySelector('#grantBtn')?.addEventListener('click', () => {
+    granted = true; renderGrant(); renderSteps(); syncNav();
+    toast('已检测到授权');
+  });
+}
+function renderThemes() {
+  $('themePick').innerHTML = THEMES.map((t) => {
+    const on = picked.includes(t.id);
+    const idx = picked.indexOf(t.id);
+    return `<button data-pick="${t.id}" class="relative flex items-start gap-2.5 rounded-xl border px-3 py-2.5 text-left shadow-sm transition-colors ${on ? 'border-slate-900' : 'border-slate-200 hover:border-slate-300'}">
+        <span class="grid size-8 shrink-0 place-items-center rounded-xl text-2xs font-semibold text-white" style="background:${t.color}">${t.name[0]}</span>
+        <span class="min-w-0 flex-1">
+          <span class="block text-xs font-medium text-slate-900">${t.name}</span>
+          <span class="mt-0.5 block text-2xs text-slate-500">${t.desc}</span>
+        </span>
+        ${on ? `<span class="absolute right-2 top-2 rounded-full bg-slate-900 px-1.5 py-0.5 text-2xs font-semibold text-white">${picked.length > 1 ? (idx === 0 ? 'A' : 'B') : '已选'}</span>` : ''}
+      </button>`;
+  }).join('');
+  $('themePick').querySelectorAll('[data-pick]').forEach((b) => b.addEventListener('click', () => {
+    const id = b.dataset.pick;
+    if (picked.includes(id)) picked = picked.filter((x) => x !== id);
+    else if (picked.length >= 2) picked = [picked[1], id];
+    else picked.push(id);
+    if (!picked.length) picked = [id];
+    renderThemes(); renderCompare();
+  }));
+}
+function renderCompare() {
+  const on = picked.length === 2;
+  $('compare').classList.toggle('hidden', !on);
+  if (!on) return;
+  ['a', 'b'].forEach((k, i) => {
+    const t = THEMES.find((x) => x.id === picked[i]);
+    document.querySelector(`[data-stage-label="${k}"]`).textContent = t.name;
+  });
+}
+function burst(stage, x, y, color) {
+  const ring = document.createElement('div');
+  ring.className = 'fx rounded-full';
+  ring.style.cssText = `left:${x}px;top:${y}px;width:0;height:0;border:2px solid ${color};transform:translate(-50%,-50%)`;
+  stage.appendChild(ring);
+  ring.animate([{ width: '0px', height: '0px', opacity: .9 }, { width: '110px', height: '110px', opacity: 0 }],
+    { duration: 620, easing: 'cubic-bezier(0,0,0.2,1)' }).onfinish = () => ring.remove();
+  for (let i = 0; i < 10; i += 1) {
+    const a = (Math.PI * 2 * i) / 10 + 0.3, d = 40 + Math.random() * 26;
+    const el = document.createElement('div');
+    el.className = 'fx rounded-full';
+    el.style.cssText = `left:${x}px;top:${y}px;width:5px;height:5px;background:${color};transform:translate(-50%,-50%)`;
+    stage.appendChild(el);
+    el.animate([
+      { transform: 'translate(-50%,-50%) translate(0,0) scale(1)', opacity: 1 },
+      { transform: `translate(-50%,-50%) translate(${Math.cos(a) * d}px,${Math.sin(a) * d + 18}px) scale(.4)`, opacity: 0 },
+    ], { duration: 700, easing: 'cubic-bezier(0.2,0.6,0.3,1)' }).onfinish = () => el.remove();
+  }
+}
+document.querySelectorAll('[data-stage]').forEach((st) => st.addEventListener('click', (e) => {
+  const r = st.getBoundingClientRect();
+  const i = st.dataset.stage === 'a' ? 0 : 1;
+  const t = THEMES.find((x) => x.id === picked[i]);
+  // 两侧同时触发，才叫「并排对比」
+  document.querySelectorAll('[data-stage]').forEach((other, j) => {
+    const or = other.getBoundingClientRect();
+    const tj = THEMES.find((x) => x.id === picked[j]);
+    burst(other, e.clientX - r.left, e.clientY - r.top, tj ? tj.color : t.color);
+  });
+}));
+$('tryStage').addEventListener('click', (e) => {
+  const r = $('tryStage').getBoundingClientRect();
+  const t = THEMES.find((x) => x.id === picked[0]);
+  burst($('tryStage'), e.clientX - r.left, e.clientY - r.top, t.color);
+  tryCount += 1;
+  $('needLeft').textContent = Math.max(0, 3 - tryCount);
+  if (tryCount >= 3) {
+    $('tryHint').classList.add('hidden');
+    $('tryDone').classList.remove('hidden');
+    renderSteps(); syncNav();
+  }
+});
+
+function syncNav() {
+  $('backBtn').disabled = step === 1;
+  $('backBtn').classList.toggle('opacity-40', step === 1);
+  const last = step === 4;
+  $('nextBtn').textContent = last ? '完成' : step === 3 ? '完成引导' : '继续';
+  const blocked = step === 3 && tryCount < 3;
+  $('nextBtn').disabled = blocked;
+  $('nextBtn').classList.toggle('opacity-50', blocked);
+  $('stepNote').textContent = step === 1
+    ? (granted ? '已授权，可以继续' : '未授权也可以继续，效果只在预览里可见')
+    : step === 2 ? (picked.length === 2 ? `正在对比 ${picked.length} 套` : '可以再点一个卡片做并排对比')
+    : step === 3 ? (tryCount >= 3 ? '完成' : '点 3 次确认你确实看到了效果')
+    : '';
+  $('pickedName').textContent = THEMES.find((t) => t.id === picked[0]).name;
+}
+function go(n) {
+  step = Math.max(1, Math.min(4, n));
+  document.querySelectorAll('[data-step]').forEach((s) => s.classList.toggle('hidden', Number(s.dataset.step) !== step));
+  renderSteps(); syncNav();
+}
+$('nextBtn').addEventListener('click', () => go(step + 1));
+$('backBtn').addEventListener('click', () => go(step - 1));
+$('skipAll').addEventListener('click', () => { go(4); toast('已跳过引导，可在设置里重新运行'); });
+$('clearCompare').addEventListener('click', () => { picked = [picked[0]]; renderThemes(); renderCompare(); syncNav(); });
+document.querySelectorAll('[data-goto]').forEach((b) => b.addEventListener('click', () => go(Number(b.dataset.goto))));
+
+function toast(text) {
+  const el = document.createElement('div');
+  el.className = 'pointer-events-auto rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 shadow-lg';
+  el.textContent = text;
+  $('toastHost').appendChild(el);
+  setTimeout(() => el.remove(), 2200);
+}
+
+const PROTO = [['s1', '① 授权'], ['s2', '② 选主题'], ['s3', '③ 试一下'], ['s4', '④ 完成']];
+$('proto').innerHTML = '<span class="mr-1 text-2xs font-semibold text-white">原型状态</span>'
+  + PROTO.map(([id, l]) => `<button data-proto="${id}" class="proto-btn h-7 rounded-lg px-2.5 text-2xs font-medium">${l}</button>`).join('')
+  + '<span class="ml-auto text-2xs text-slate-400">选两个主题可并排对比 · 第 3 步必须真的点出效果才能完成</span>';
+$('proto').querySelectorAll('[data-proto]').forEach((b) => b.addEventListener('click', () => {
+  $('proto').querySelectorAll('.proto-btn').forEach((x) => {
+    const on = x === b;
+    x.className = 'proto-btn h-7 rounded-lg px-2.5 text-2xs font-medium ' + (on ? 'bg-white text-slate-900' : 'text-slate-300 hover:bg-slate-800');
+  });
+  const n = Number(b.dataset.proto.slice(1));
+  if (n >= 3) tryCount = n === 4 ? 3 : 0;
+  if (n >= 2) picked = n === 2 ? ['mono', 'drift'] : ['mono'];
+  granted = n >= 2;
+  renderGrant(); renderThemes(); renderCompare(); go(n);
+}));
+
+renderGrant(); renderThemes(); renderCompare(); go(1);
+$('proto').querySelector('[data-proto="s1"]').click();
+</script>
+</body>
+</html>

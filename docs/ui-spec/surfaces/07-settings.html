@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>全局设置 · UI 规范</title>
+<link rel="stylesheet" href="../mockup.css" />
+<script src="../controls.js"></script>
+<style>
+  body { font-family: "SF Pro Display", "SF Pro Text", "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif; }
+</style>
+</head>
+<body class="bg-slate-200 p-6 text-slate-900">
+
+<div id="proto" class="mx-auto mb-4 flex max-w-[880px] flex-wrap items-center gap-2 rounded-xl bg-slate-900 px-3 py-2"></div>
+
+<!-- 独立的偏好设置窗口（⌘,），不套工作台外壳 -->
+<div class="mx-auto flex h-[720px] max-w-[880px] flex-col overflow-hidden rounded-xl border border-slate-300 bg-white shadow-lg">
+  <header class="flex h-8 shrink-0 items-center gap-2 border-b border-slate-200 bg-white pl-3">
+    <span class="flex items-center gap-1.5 pr-2">
+      <span class="size-3 rounded-full bg-rose-400"></span><span class="size-3 rounded-full bg-amber-400"></span><span class="size-3 rounded-full bg-emerald-400"></span>
+    </span>
+    <span class="text-xs font-semibold text-slate-900">设置</span>
+    <span class="ml-auto mr-3 text-2xs text-slate-400">⌘, 打开 · 改动即时生效</span>
+  </header>
+
+  <div class="flex min-h-0 flex-1">
+    <!-- 分区导航 -->
+    <nav id="nav" class="w-[168px] shrink-0 space-y-0.5 border-r border-slate-200 bg-slate-50 p-2"></nav>
+
+    <div class="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+      <!-- ══ 显示与多屏 ══ -->
+      <section data-sec="display" class="space-y-3">
+        <div>
+          <h2 class="text-sm font-medium text-slate-900">显示与多屏</h2>
+          <p class="mt-0.5 text-xs leading-relaxed text-slate-500">
+            走查时发现整套稿子从没考虑多屏：键盘动效的屏幕预览、光标皮肤的准星测试、应用规则的点选，都默认只有一块屏。这里是它的归属。
+          </p>
+        </div>
+
+        <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+          <div class="text-xs font-medium text-slate-600">效果出现在</div>
+          <div class="mt-2 grid gap-2 sm:grid-cols-3" id="screenMode"></div>
+          <!-- 多屏示意：选中的屏高亮 -->
+          <div class="mt-3 flex items-end gap-2 rounded-xl bg-slate-50 px-3 py-3">
+            <div data-mon="main" class="relative h-[76px] w-[124px] rounded-lg border-2 border-slate-300 bg-white transition-colors">
+              <span class="absolute inset-x-0 top-0 h-2 rounded-t bg-slate-100"></span>
+              <span class="absolute bottom-1 left-1/2 -translate-x-1/2 text-2xs font-medium text-slate-500">主屏 · 2×</span>
+              <span data-fx="main" class="absolute left-6 top-7 hidden size-2 rounded-full bg-slate-900"></span>
+            </div>
+            <div data-mon="side" class="relative h-[58px] w-[96px] rounded-lg border-2 border-slate-300 bg-white transition-colors">
+              <span class="absolute inset-x-0 top-0 h-1.5 rounded-t bg-slate-100"></span>
+              <span class="absolute bottom-1 left-1/2 -translate-x-1/2 text-2xs font-medium text-slate-500">副屏 · 1×</span>
+              <span data-fx="side" class="absolute left-5 top-5 hidden size-2 rounded-full bg-slate-900"></span>
+            </div>
+            <p class="ml-2 max-w-[220px] text-2xs leading-relaxed text-slate-500" id="monHint"></p>
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+          <div class="ctl-row-wide">
+            <span class="ctl-label">尺寸换算</span>
+            <div id="dprSel"></div>
+          </div>
+          <p class="mt-2 text-2xs leading-relaxed text-slate-400">
+            两块屏缩放不同时，48px 的光标在 2× 屏上物理尺寸只有 1× 屏的一半。「跟随各屏缩放」保证物理大小一致，「按主屏统一」保证像素值一致。
+          </p>
+        </div>
+
+        <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+          <div class="ctl-row">
+            <span class="ctl-label ctl-label-scrub" data-scrub="uiScale">界面缩放</span>
+            <div id="uiScale" data-slider data-min="80" data-max="140" data-value="100" data-default="100" data-ticks="80,100,120,140" data-snap="1"></div>
+            <span class="ctl-value"><span data-out="uiScale">100</span>%</span>
+          </div>
+          <p class="mt-2 text-2xs leading-relaxed text-slate-400">
+            窗口窄于 1200px 时三列会退化成两列、时间轴抽屉默认折叠——这条退化策略也在这里生效。
+          </p>
+        </div>
+      </section>
+
+      <!-- ══ 输入 ══ -->
+      <section data-sec="input" class="hidden space-y-3">
+        <div>
+          <h2 class="text-sm font-medium text-slate-900">输入</h2>
+          <p class="mt-0.5 text-xs leading-relaxed text-slate-500">全局输入捕获与中文输入法的处理。</p>
+        </div>
+
+        <div data-show="denied" class="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+          <svg class="mt-0.5 size-4 shrink-0 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+          <div class="min-w-0">
+            <div class="text-xs font-medium text-amber-900">辅助功能未授权，全局捕获无法启动</div>
+            <p class="mt-1 text-2xs leading-relaxed text-amber-800">
+              日志里的表现是 <code class="rounded bg-white/60 px-1">UIOHOOK_ERROR_AXAPI_DISABLED</code>。授权后无需重启。
+            </p>
+            <button class="btn-outline mt-2 h-7 px-2.5 text-2xs">打开系统设置 → 隐私与安全 → 辅助功能</button>
+          </div>
+        </div>
+
+        <div class="space-y-1.5 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+          <button class="switch-row" data-flag><span class="min-w-0 text-left"><span class="block text-xs font-medium text-slate-700">输入法组字期间不显示字符</span><span class="mt-0.5 block text-2xs leading-relaxed text-slate-400">中文输入时 keydown 序列不可靠，只在最终上屏时显示那个字</span></span><span class="switch-knob switch-on"></span></button>
+          <button class="switch-row" data-flag><span class="min-w-0 text-left"><span class="block text-xs font-medium text-slate-700">忽略密码框与安全输入</span><span class="mt-0.5 block text-2xs leading-relaxed text-slate-400">系统进入安全输入模式时自动停止捕获</span></span><span class="switch-knob switch-on"></span></button>
+          <button class="switch-row" data-flag><span class="min-w-0 text-left"><span class="block text-xs font-medium text-slate-700">全屏应用中暂停</span><span class="mt-0.5 block text-2xs leading-relaxed text-slate-400">看视频、玩游戏、放幻灯片时自动让路</span></span><span class="switch-knob"></span></button>
+        </div>
+
+        <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+          <div class="ctl-row">
+            <span class="ctl-label ctl-label-scrub" data-scrub="budget">效果预算</span>
+            <div id="budget" data-slider data-min="12" data-max="96" data-value="48" data-default="48" data-ticks="24,48,72" data-snap="1"></div>
+            <span class="ctl-value"><span data-out="budget">48</span> 个</span>
+          </div>
+          <p class="mt-2 text-2xs leading-relaxed text-slate-400">
+            同时存在的效果上限，鼠标与键盘<span class="font-medium text-slate-600">共享</span>这一份预算。诊断面板的水位条读的就是它。
+          </p>
+        </div>
+      </section>
+
+      <!-- ══ 数据与隐私 ══ -->
+      <section data-sec="privacy" class="hidden space-y-3">
+        <div>
+          <h2 class="text-sm font-medium text-slate-900">数据与隐私</h2>
+          <p class="mt-0.5 text-xs leading-relaxed text-slate-500">诊断采集与 AI 请求各自的数据边界。</p>
+        </div>
+
+        <div class="space-y-1.5 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+          <button class="switch-row" data-flag><span class="min-w-0 text-left"><span class="block text-xs font-medium text-slate-700">诊断采集</span><span class="mt-0.5 block text-2xs leading-relaxed text-slate-400">记录每次触发的裁决过程，只写本地，不上传</span></span><span class="switch-knob switch-on"></span></button>
+          <button class="switch-row" data-flag><span class="min-w-0 text-left"><span class="block text-xs font-medium text-slate-700">AI 请求里带上应用名</span><span class="mt-0.5 block text-2xs leading-relaxed text-slate-400">关闭时发送为「某应用」。开启后发送真实名称（如 Figma），建议更准</span></span><span class="switch-knob"></span></button>
+        </div>
+
+        <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+          <div class="text-xs font-medium text-slate-600">配置与素材位置</div>
+          <code class="mt-1.5 block truncate rounded-lg bg-slate-50 px-2 py-1.5 font-mono text-2xs text-slate-600">~/Library/Application Support/CursorDance/config.json</code>
+          <div class="mt-2.5 flex flex-wrap gap-1.5">
+            <button class="btn-outline h-7 px-2.5 text-2xs">在 Finder 中显示</button>
+            <button class="btn-outline h-7 px-2.5 text-2xs">导出全部主题</button>
+            <button class="btn-ghost h-7 px-2.5 text-2xs text-rose-600 hover:bg-rose-50">重置全部设置</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══ 快捷键 ══ -->
+      <section data-sec="keys" class="hidden space-y-3">
+        <div>
+          <h2 class="text-sm font-medium text-slate-900">快捷键</h2>
+          <p class="mt-0.5 text-xs leading-relaxed text-slate-500">点一行再按组合键即可改。冲突会当场提示。</p>
+        </div>
+        <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div id="keyList" class="divide-y divide-slate-100"></div>
+        </div>
+        <p class="text-2xs leading-relaxed text-slate-400">
+          全局快捷键（在任何应用中都生效）只有「暂停 / 恢复效果」一个，其余都限定在 CursorDance 窗口内，避免抢占系统热键。
+        </p>
+      </section>
+
+      <!-- ══ 关于 ══ -->
+      <section data-sec="about" class="hidden space-y-3">
+        <div>
+          <h2 class="text-sm font-medium text-slate-900">关于</h2>
+        </div>
+        <div class="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white px-3 shadow-sm">
+          <div class="flex items-center justify-between py-2 text-2xs"><span class="text-slate-500">版本</span><span class="font-medium tabular-nums text-slate-700">1.4.2 (2891)</span></div>
+          <div class="flex items-center justify-between py-2 text-2xs"><span class="text-slate-500">平台</span><span class="font-medium text-slate-700">macOS 15.5 · arm64</span></div>
+          <div class="flex items-center justify-between py-2 text-2xs"><span class="text-slate-500">系统光标替换</span><span class="font-medium text-emerald-700">supported · 随应用打包的原生 helper</span></div>
+          <div class="flex items-center justify-between py-2 text-2xs"><span class="text-slate-500">更新</span><span class="font-medium text-slate-700">已是最新</span></div>
+        </div>
+        <div class="space-y-1.5 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+          <button class="switch-row" data-flag><span class="min-w-0 text-left"><span class="block text-xs font-medium text-slate-700">开机自启</span></span><span class="switch-knob switch-on"></span></button>
+          <button class="switch-row" data-flag><span class="min-w-0 text-left"><span class="block text-xs font-medium text-slate-700">启动时只驻留托盘</span><span class="mt-0.5 block text-2xs leading-relaxed text-slate-400">不打开工作台窗口</span></span><span class="switch-knob switch-on"></span></button>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div id="toastHost" class="pointer-events-none fixed left-1/2 top-4 z-50 flex -translate-x-1/2 flex-col gap-2"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+function toast(text) {
+  const el = document.createElement('div');
+  el.className = 'pointer-events-auto rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 shadow-lg';
+  el.textContent = text;
+  $('toastHost').appendChild(el);
+  setTimeout(() => el.remove(), 2200);
+}
+
+const SECTIONS = [['display', '显示与多屏'], ['input', '输入'], ['privacy', '数据与隐私'], ['keys', '快捷键'], ['about', '关于']];
+let sec = 'display';
+function renderNav() {
+  $('nav').innerHTML = SECTIONS.map(([id, label]) => `
+    <button data-sec-btn="${id}" class="flex w-full items-center rounded-lg px-2.5 py-1.5 text-left text-xs font-medium transition-colors ${id === sec ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:bg-white/70'}">${label}</button>`).join('');
+  $('nav').querySelectorAll('[data-sec-btn]').forEach((b) => b.addEventListener('click', () => {
+    sec = b.dataset.secBtn;
+    renderNav();
+    document.querySelectorAll('[data-sec]').forEach((s) => s.classList.toggle('hidden', s.dataset.sec !== sec));
+  }));
+}
+
+// 多屏策略
+const MODES = [
+  ['mouse', '鼠标所在屏', '跟着指针走', ['main', 'side']],
+  ['main', '仅主屏', '副屏保持干净', ['main']],
+  ['all', '所有屏', '多机位录屏', ['main', 'side']],
+];
+let mode = 'mouse';
+function renderMode() {
+  $('screenMode').innerHTML = MODES.map(([id, name, desc]) => `
+    <button data-mode="${id}" class="mode-card${id === mode ? ' mode-card-on' : ''}">
+      <span class="mode-dot${id === mode ? ' mode-dot-on' : ''}"></span>
+      <span class="min-w-0"><span class="block text-xs font-medium text-slate-900">${name}</span><span class="mt-1 block text-2xs leading-relaxed text-slate-500 text-pretty">${desc}</span></span>
+    </button>`).join('');
+  const active = MODES.find((m) => m[0] === mode)[3];
+  ['main', 'side'].forEach((k) => {
+    const on = active.includes(k) && !(mode === 'mouse' && k === 'side');
+    document.querySelector(`[data-mon="${k}"]`).className = document.querySelector(`[data-mon="${k}"]`).className
+      .replace(/border-slate-\d+/, on ? 'border-slate-900' : 'border-slate-300');
+    document.querySelector(`[data-fx="${k}"]`).classList.toggle('hidden', !active.includes(k));
+  });
+  $('monHint').textContent = mode === 'mouse'
+    ? '指针在主屏时只有主屏出效果；移到副屏就跟过去。默认，也最省性能。'
+    : mode === 'main' ? '无论指针在哪，只有主屏出效果。适合副屏做参考屏。'
+    : '两块屏同时出效果。多机位录制时用，代价是预算翻倍。';
+  $('screenMode').querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => {
+    mode = b.dataset.mode; renderMode(); toast('已更新多屏策略');
+  }));
+}
+
+// 快捷键表
+const KEYS = [
+  ['暂停 / 恢复效果', '⌥⌘P', true],
+  ['打开工作台', '⌥⌘O', true],
+  ['撤销', '⌘Z', false],
+  ['重做', '⌘⇧Z', false],
+  ['命令面板', '⌘K', false],
+  ['AI 助手', '⌘J', false],
+  ['切换工作区', '⌘1–5', false],
+];
+function renderKeys() {
+  $('keyList').innerHTML = KEYS.map(([label, key, global], i) => `
+    <div class="flex items-center gap-3 px-3 py-2">
+      <span class="min-w-0 flex-1 truncate text-xs text-slate-700">${label}</span>
+      ${global ? '<span class="shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-2xs font-medium text-slate-500">全局</span>' : ''}
+      <button data-key="${i}" class="shrink-0 rounded-lg border border-slate-200 bg-white px-2 py-1 shadow-sm transition-colors hover:border-slate-400">
+        ${key.split('').map((c) => `<span class="kbd">${c}</span>`).join('')}
+      </button>
+    </div>`).join('');
+  $('keyList').querySelectorAll('[data-key]').forEach((b) => b.addEventListener('click', () => {
+    b.innerHTML = '<span class="text-2xs font-medium text-slate-900">按下组合键…</span>';
+    const onKey = (e) => {
+      e.preventDefault();
+      if (['Meta', 'Control', 'Alt', 'Shift'].includes(e.key)) return;
+      document.removeEventListener('keydown', onKey, true);
+      if (e.key === 'Escape') { renderKeys(); return; }
+      const combo = [e.metaKey && '⌘', e.ctrlKey && '⌃', e.altKey && '⌥', e.shiftKey && '⇧', e.key.length === 1 ? e.key.toUpperCase() : e.key].filter(Boolean);
+      KEYS[Number(b.dataset.key)][1] = combo.join('');
+      renderKeys();
+      toast('已更新快捷键');
+    };
+    document.addEventListener('keydown', onKey, true);
+  }));
+}
+
+document.querySelectorAll('[data-flag]').forEach((b) => b.addEventListener('click', () => {
+  b.querySelector('.switch-knob').classList.toggle('switch-on');
+  toast('已更新');
+}));
+
+// 原型状态
+const PROTO = [['granted', '① 已授权'], ['denied', '② 未授权']];
+function setProto(id) {
+  $('proto').querySelectorAll('.proto-btn').forEach((b) => {
+    const on = b.dataset.proto === id;
+    b.className = 'proto-btn h-7 rounded-lg px-2.5 text-2xs font-medium ' + (on ? 'bg-white text-slate-900' : 'text-slate-300 hover:bg-slate-800');
+  });
+  document.querySelectorAll('[data-show]').forEach((el) => el.classList.toggle('hidden', !el.dataset.show.split(' ').includes(id)));
+}
+$('proto').innerHTML = '<span class="mr-1 text-2xs font-semibold text-white">原型状态</span>'
+  + PROTO.map(([id, l]) => `<button data-proto="${id}" class="proto-btn h-7 rounded-lg px-2.5 text-2xs font-medium">${l}</button>`).join('')
+  + '<span class="ml-auto text-2xs text-slate-400">多屏策略、输入法、采集开关、退化策略都归到这里</span>';
+$('proto').querySelectorAll('[data-proto]').forEach((b) => b.addEventListener('click', () => setProto(b.dataset.proto)));
+
+renderNav(); renderMode(); renderKeys();
+Ctl.mountSliders();
+Ctl.select($('dprSel'), {
+  options: [{ label: '跟随各屏缩放', desc: '物理大小一致' }, { label: '按主屏统一', desc: '像素值一致' }],
+  value: '跟随各屏缩放',
+  onChange: () => toast('已更新尺寸换算'),
+});
+setProto('granted');
+</script>
+</body>
+</html>

@@ -1,0 +1,927 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>键盘动效 · UX 原型</title>
+<link rel="stylesheet" href="../mockup.css" />
+<style>
+  body {
+    font-family: "SF Pro Display", "SF Pro Text", "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+  }
+  .key-glyph { position: absolute; line-height: 1; pointer-events: none; user-select: none; white-space: pre; }
+</style>
+</head>
+<body class="bg-slate-200 p-6 text-slate-900">
+
+<div id="proto"></div>
+<div id="app"></div>
+
+<template id="page">
+
+      <!-- 页头 -->
+      <div class="mb-2.5 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div class="min-w-0">
+          <h1 class="text-base font-semibold text-slate-900 text-balance">键盘动效</h1>
+          <p id="pageDesc" class="mt-1 max-w-2xl text-xs leading-relaxed text-slate-500 text-pretty">
+            按键时在屏幕上显示按下的字符。点一下预览再打字，就能看到桌面上的真实效果。
+          </p>
+        </div>
+        <div class="flex shrink-0 flex-wrap items-center gap-2">
+          <div class="flex h-8 items-center gap-2 rounded-xl bg-white px-2.5 text-xs text-slate-600 shadow-sm ring-1 ring-slate-200">
+            <span id="enableKnob" class="relative inline-flex h-4 w-7 shrink-0 items-center rounded-full bg-slate-950"><span class="ml-3.5 size-3 rounded-full bg-white shadow-sm"></span></span>
+            <span class="font-medium">启用动效</span>
+          </div>
+          <button id="resetBtn" class="btn-ghost h-8 px-3 text-xs">
+            <svg class="mr-1.5 size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg>
+            恢复默认
+          </button>
+        </div>
+      </div>
+
+      <!-- 缺权限 -->
+      <div data-show="denied" class="mb-2.5 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+        <svg class="mt-0.5 size-4 shrink-0 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+        <div class="min-w-0">
+          <div class="text-xs font-medium text-amber-900">需要辅助功能权限才能捕获全局按键</div>
+          <p class="mt-1 text-2xs leading-relaxed text-amber-800">
+            授权前动效只在下方预览里生效，桌面上不会出现。预览本身不需要权限，可以先把外观调好。
+          </p>
+          <button class="mt-2 inline-flex items-center gap-1 text-2xs font-medium text-amber-900 underline underline-offset-2 transition-colors hover:text-amber-700">
+            打开系统设置 → 隐私与安全 → 辅助功能
+            <svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div id="mainGrid" class="grid gap-2.5 xl:grid-cols-[minmax(0,1fr)_360px]">
+
+        <!-- ════ 左：屏幕预览 + 语义分层 ════ -->
+        <div class="space-y-2.5">
+          <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+              <div class="min-w-0">
+                <h3 class="text-sm font-medium text-slate-900">屏幕预览</h3>
+                <div class="mt-0.5 text-xs text-slate-500">按 50% 缩放模拟整块屏幕 · 在页面任意处打字都会触发</div>
+              </div>
+              <div class="flex flex-wrap items-center gap-2">
+                <div class="seg-group">
+                  <button data-wall="light" class="seg-item">浅色桌面</button>
+                  <button data-wall="dark" class="seg-item">深色桌面</button>
+                </div>
+                <span id="liveCount" class="inline-flex h-7 items-center gap-1.5 rounded-xl bg-slate-50 px-2.5 text-2xs font-semibold tabular-nums text-slate-600 ring-1 ring-slate-200">
+                  同显 <span id="countNow">0</span>/<span id="countMax">30</span>
+                </span>
+                <span class="inline-flex h-7 items-center gap-1.5 rounded-xl bg-slate-50 px-2.5 text-2xs font-medium text-slate-500 ring-1 ring-slate-200">
+                  连击
+                  <span class="flex items-center gap-0.5">
+                    <span class="combo-dot size-1.5 rounded-full bg-slate-200"></span>
+                    <span class="combo-dot size-1.5 rounded-full bg-slate-200"></span>
+                    <span class="combo-dot size-1.5 rounded-full bg-slate-200"></span>
+                    <span class="combo-dot size-1.5 rounded-full bg-slate-200"></span>
+                    <span class="combo-dot size-1.5 rounded-full bg-slate-200"></span>
+                  </span>
+                </span>
+              </div>
+            </div>
+
+            <div class="px-4 py-3">
+              <!-- 屏幕框：四条边可点选入场边；内部可拖停留位置 -->
+              <div class="relative">
+                <div id="screen" tabindex="0"
+                  class="relative h-[404px] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
+                  <!-- 桌面底图（功能性参照物，用来判断字符在真实桌面上看不看得清） -->
+                  <div id="wallpaper" class="absolute inset-0">
+                    <div class="absolute inset-x-0 top-0 h-5 bg-white/70"></div>
+                    <div class="absolute left-8 top-12 h-40 w-64 rounded-lg border border-slate-200 bg-white/80"></div>
+                    <div class="absolute right-10 top-24 h-48 w-72 rounded-lg border border-slate-200 bg-white/60"></div>
+                    <div class="absolute inset-x-0 bottom-0 h-8 bg-white/50"></div>
+                  </div>
+
+                  <!-- 键位散开带 -->
+                  <div id="spreadBand" class="pointer-events-none absolute hidden">
+                    <div class="absolute inset-0 rounded-lg border border-dashed border-slate-300/80"></div>
+                    <div id="bandSamples" class="absolute inset-0"></div>
+                    <div class="absolute -top-5 left-0 rounded bg-white/90 px-1.5 py-0.5 text-2xs font-medium text-slate-500 ring-1 ring-slate-200">按键位散开</div>
+                  </div>
+
+                  <!-- 停留位置 / 起始位置手柄 -->
+                  <div id="restHandle" class="absolute z-10 -translate-x-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing">
+                    <div class="grid size-5 place-items-center rounded-full border-2 border-white bg-slate-950 shadow-sm ring-1 ring-slate-300">
+                      <span class="size-1.5 rounded-full bg-white"></span>
+                    </div>
+                    <div id="restLabel" class="absolute left-1/2 top-6 -translate-x-1/2 whitespace-nowrap rounded bg-white/90 px-1.5 py-0.5 text-2xs font-medium text-slate-600 ring-1 ring-slate-200">停留位置</div>
+                  </div>
+
+                  <!-- 入场提示 -->
+                  <div id="typeHint" class="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 text-center">
+                    <span class="rounded-lg bg-white/85 px-3 py-1.5 text-xs font-medium text-slate-500 ring-1 ring-slate-200">直接开始打字</span>
+                  </div>
+
+                  <div id="offBadge" class="pointer-events-none absolute inset-0 hidden place-items-center bg-white/70">
+                    <span class="rounded-xl bg-white px-3 py-2 text-xs font-medium text-slate-500 shadow-sm ring-1 ring-slate-200">动效已关闭</span>
+                  </div>
+                </div>
+
+                <!-- 四条边：入场边选择 -->
+                <button data-edge="top" class="edge-btn left-1/2 top-0 h-6 w-24 -translate-x-1/2 -translate-y-1/2">上</button>
+                <button data-edge="bottom" class="edge-btn bottom-0 left-1/2 h-6 w-24 -translate-x-1/2 translate-y-1/2">下</button>
+                <button data-edge="left" class="edge-btn left-0 top-1/2 h-20 w-7 -translate-x-1/2 -translate-y-1/2">左</button>
+                <button data-edge="right" class="edge-btn right-0 top-1/2 h-20 w-7 -translate-y-1/2 translate-x-1/2">右</button>
+              </div>
+
+              <p class="mt-2.5 text-2xs leading-relaxed text-slate-400">
+                点四周的「上／下／左／右」选择字符从哪条边飞入；拖动圆点调整<span id="handleHintWord">停留位置</span>。
+              </p>
+            </div>
+          </section>
+
+          <!-- 语义分层：把不可见的分级规则变成带实时样例的图例 -->
+          <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+              <div class="min-w-0">
+                <h3 class="text-sm font-medium text-slate-900">语义分层</h3>
+                <div class="mt-0.5 text-xs text-slate-500">四类按键用不同强度呈现，打字和快捷键一眼能分开</div>
+              </div>
+              <button id="semanticToggle" class="flex h-8 items-center gap-2 rounded-xl bg-slate-50 px-2.5 text-xs text-slate-600 ring-1 ring-slate-200">
+                <span id="semanticKnob" class="relative inline-flex h-4 w-7 shrink-0 items-center rounded-full bg-slate-950"><span class="ml-3.5 size-3 rounded-full bg-white shadow-sm"></span></span>
+                <span class="font-medium">已开启</span>
+              </button>
+            </div>
+            <div class="grid gap-1.5 px-4 py-3 sm:grid-cols-2">
+              <div class="legend-row" data-kind="character">
+                <span class="legend-sample" data-sample="a">a</span>
+                <span class="min-w-0 flex-1">
+                  <span class="block text-xs font-medium text-slate-800">字符</span>
+                  <span class="block text-2xs text-slate-400">基准大小与时长</span>
+                </span>
+              </div>
+              <div class="legend-row" data-kind="shortcut">
+                <span class="legend-sample" data-sample="⌘K">⌘K</span>
+                <span class="min-w-0 flex-1">
+                  <span class="block text-xs font-medium text-slate-800">快捷键</span>
+                  <span class="block text-2xs text-slate-400">放大 18% · 居中 · 更快消失</span>
+                </span>
+              </div>
+              <div class="legend-row" data-kind="modifier">
+                <span class="legend-sample" data-sample="⇧">⇧</span>
+                <span class="min-w-0 flex-1">
+                  <span class="block text-xs font-medium text-slate-800">单独修饰键</span>
+                  <span class="block text-2xs text-slate-400">缩小 28% · 更淡 · 一闪而过</span>
+                </span>
+              </div>
+              <div class="legend-row" data-kind="special">
+                <span class="legend-sample" data-sample="↩">↩</span>
+                <span class="min-w-0 flex-1">
+                  <span class="block text-xs font-medium text-slate-800">特殊键</span>
+                  <span class="block text-2xs text-slate-400">略大 8% · 略快</span>
+                </span>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- ════ 右：外观 / 位置 / 内容 / 精调 ════ -->
+        <aside class="space-y-2.5">
+
+          <!-- 外观 -->
+          <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="border-b border-slate-100 px-4 py-3">
+              <h3 class="text-sm font-medium text-slate-900">外观</h3>
+              <div class="mt-0.5 text-xs text-slate-500">先挑一个预设，再微调</div>
+            </div>
+            <div class="space-y-3.5 px-4 py-3">
+              <div class="grid grid-cols-2 gap-2" id="presetGrid"></div>
+
+              <div class="border-t border-slate-100 pt-3.5">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-medium text-slate-600">颜色</span>
+                  <span id="colorReadout" class="text-2xs font-medium tabular-nums text-slate-400">#F59E0B</span>
+                </div>
+                <div class="mt-2 flex flex-wrap gap-1.5" id="colorRow"></div>
+              </div>
+
+              <div>
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-medium text-slate-600">字号</span>
+                  <span class="text-2xs font-semibold tabular-nums text-slate-600"><span id="sizeReadout">48</span> px</span>
+                </div>
+                <div id="sizeRange" data-slider data-min="16" data-max="120" data-value="48" data-default="48" class="mt-2.5"></div>
+              </div>
+
+              <div>
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-medium text-slate-600">不透明度</span>
+                  <span class="text-2xs font-semibold tabular-nums text-slate-600"><span id="opacityReadout">90</span>%</span>
+                </div>
+                <div id="opacityRange" data-slider data-min="10" data-max="100" data-value="90" data-default="90" class="mt-2.5"></div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <label class="grid gap-1.5">
+                  <span class="text-xs font-medium text-slate-600">粗细</span>
+                  <div id="weightSel"></div>
+                </label>
+                <label class="grid gap-1.5">
+                  <span class="text-xs font-medium text-slate-600">字体</span>
+                  <div id="familySel"></div>
+                </label>
+              </div>
+
+              <div class="border-t border-slate-100 pt-3.5">
+                <button id="glowToggle" class="flex w-full items-center justify-between gap-2">
+                  <span class="min-w-0 text-left">
+                    <span class="block text-xs font-medium text-slate-600">发光</span>
+                    <span class="mt-0.5 block text-2xs text-slate-400">浅色桌面上更容易看清</span>
+                  </span>
+                  <span id="glowKnob" class="relative inline-flex h-4 w-7 shrink-0 items-center rounded-full bg-slate-300"><span class="ml-0.5 size-3 rounded-full bg-white shadow-sm"></span></span>
+                </button>
+                <div id="glowFields" class="mt-2.5 hidden">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-slate-600">发光半径</span>
+                    <span class="text-2xs font-semibold tabular-nums text-slate-600"><span id="glowReadout">8</span> px</span>
+                  </div>
+                  <div id="glowRange" data-slider data-min="1" data-max="30" data-value="8" data-default="8" class="mt-2.5"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 位置 -->
+          <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="border-b border-slate-100 px-4 py-3">
+              <h3 class="text-sm font-medium text-slate-900">位置</h3>
+              <div class="mt-0.5 text-xs text-slate-500">也可以直接在预览里拖</div>
+            </div>
+            <div class="space-y-3.5 px-4 py-3">
+              <div>
+                <span class="text-xs font-medium text-slate-600">入场边</span>
+                <div class="mt-2 grid grid-cols-4 gap-1.5" id="edgeRow"></div>
+              </div>
+
+              <div>
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-xs font-medium text-slate-600">水平分布</span>
+                  <span id="spreadNote" class="text-2xs text-slate-400"></span>
+                </div>
+                <div class="mt-2 seg-group w-full" id="spreadSeg">
+                  <button data-spread="keyboardLayout" class="seg-item flex-1 justify-center">按键位散开</button>
+                  <button data-spread="center" class="seg-item flex-1 justify-center">固定一处</button>
+                </div>
+                <p id="spreadHint" class="mt-1.5 text-2xs leading-relaxed text-slate-400">
+                  按 QWERTY 键位把字符横向铺开：按 Q 出现在左边，按 P 出现在右边。
+                </p>
+              </div>
+
+              <div id="restField">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-medium text-slate-600">停留距离</span>
+                  <span class="text-2xs font-semibold tabular-nums text-slate-600"><span id="bounceReadout">140</span> px</span>
+                </div>
+                <div id="bounceRange" data-slider data-min="40" data-max="400" data-value="140" data-default="140" class="mt-2.5"></div>
+                <p class="mt-1.5 text-2xs leading-relaxed text-slate-400">字符飞入后停在距入场边多远的位置。</p>
+              </div>
+
+              <div id="rainFields" class="hidden space-y-3.5">
+                <div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-slate-600">重力</span>
+                    <span class="text-2xs font-semibold tabular-nums text-slate-600"><span id="gravityReadout">0.5</span></span>
+                  </div>
+                  <div id="gravityRange" data-slider data-min="0" data-max="10" data-value="5" data-default="5" class="mt-2.5"></div>
+                  <p class="mt-1.5 text-2xs leading-relaxed text-slate-400">越大末段坠落越急。</p>
+                </div>
+                <div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-medium text-slate-600">风力</span>
+                    <span class="text-2xs font-semibold tabular-nums text-slate-600"><span id="windReadout">0.0</span></span>
+                  </div>
+                  <div id="windRange" data-slider data-min="-10" data-max="10" data-value="0" data-default="0" data-bipolar="1" data-ticks="-10,0,10" class="mt-2.5"></div>
+                  <p class="mt-1.5 text-2xs leading-relaxed text-slate-400">下落时的横向漂移，负值向左。</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 内容 -->
+          <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="border-b border-slate-100 px-4 py-3">
+              <h3 class="text-sm font-medium text-slate-900">显示内容</h3>
+              <div class="mt-0.5 text-xs text-slate-500">决定按下的键显示成什么</div>
+            </div>
+            <div class="space-y-3 px-4 py-3">
+              <div>
+                <span class="text-xs font-medium text-slate-600">显示模式</span>
+                <div class="mt-2 seg-group w-full" id="modeSeg">
+                  <button data-mode="typed" class="seg-item flex-1 justify-center">真实输入</button>
+                  <button data-mode="physical" class="seg-item flex-1 justify-center">物理键名</button>
+                </div>
+                <p id="modeHint" class="mt-1.5 text-2xs leading-relaxed text-slate-400">
+                  ⇧+1 显示为 <span class="font-medium text-slate-600">!</span>，和你实际打出的字一致。
+                </p>
+              </div>
+              <div class="space-y-1.5 border-t border-slate-100 pt-3">
+                <button class="switch-row" data-flag="modifiers"><span>显示单独修饰键</span><span class="switch-knob switch-on"></span></button>
+                <button class="switch-row" data-flag="combo"><span>输入节奏加成</span><span class="switch-knob switch-on"></span></button>
+                <button class="switch-row" data-flag="uppercase"><span>强制大写</span><span class="switch-knob"></span></button>
+              </div>
+            </div>
+          </section>
+
+          <!-- 精调 -->
+          <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <button id="advToggle" class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50">
+              <div class="min-w-0">
+                <h3 class="text-sm font-medium text-slate-900">精调</h3>
+                <div class="mt-0.5 text-xs text-slate-500">时长、缓动、节流上限</div>
+              </div>
+              <svg id="advChevron" class="size-4 shrink-0 text-slate-400 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div id="advBody" class="hidden space-y-3.5 border-t border-slate-100 px-4 py-3">
+              <div>
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-medium text-slate-600">持续时长</span>
+                  <span class="text-2xs font-semibold tabular-nums text-slate-600"><span id="durReadout">900</span> ms</span>
+                </div>
+                <div id="durRange" data-slider data-min="200" data-max="2000" data-value="900" data-default="900" class="mt-2.5"></div>
+              </div>
+              <label class="grid gap-1.5">
+                <span class="text-xs font-medium text-slate-600">入场缓动</span>
+                <div id="easingSel"></div>
+                <span class="text-2xs leading-relaxed text-slate-400">弹跳风格自带多段振荡，这一项主要影响入场那一小段。</span>
+              </label>
+              <div class="border-t border-slate-100 pt-3.5">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-medium text-slate-600">同键冷却</span>
+                  <span class="text-2xs font-semibold tabular-nums text-slate-600"><span id="coolReadout">35</span> ms</span>
+                </div>
+                <div id="coolRange" data-slider data-min="0" data-max="500" data-value="35" data-default="35" class="mt-2.5"></div>
+                <p class="mt-1.5 text-2xs leading-relaxed text-slate-400">太低会在长按时刷屏，太高会吞掉自动重复。</p>
+              </div>
+              <div>
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-medium text-slate-600">最大同显</span>
+                  <span class="text-2xs font-semibold tabular-nums text-slate-600"><span id="maxReadout">30</span> 个</span>
+                </div>
+                <div id="maxRange" data-slider data-min="1" data-max="50" data-value="30" data-default="30" class="mt-2.5"></div>
+                <p class="mt-1.5 text-2xs leading-relaxed text-slate-400">达到上限后新按键会被丢弃，预览顶部的「同显」能看到实时数量。</p>
+              </div>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </template>
+
+<script src="../controls.js"></script>
+<script src="../shell.js"></script>
+<script>
+mountShell({ active: 'keyboard', mainClass: 'min-w-0 flex-1 overflow-y-auto bg-slate-50 px-3 py-3',
+  proto: [['bounce', '① 键帽弹跳'], ['rain', '② 雨滴 · 深色桌面'], ['off', '③ 已关闭'], ['denied', '④ 缺少辅助功能权限']],
+  hint: '点一下屏幕预览，然后直接打字 · 试试 ⌘K、⇧、⏎ 看语义分层',
+  onProto: (id) => onProtoState(id) });
+</script>
+<script>
+const $ = (id) => document.getElementById(id);
+
+// ── 配置（字段名与 KeyFeedbackConfigV4 对齐）
+const DEFAULTS = {
+  enabled: true, animationStyle: 'bounce', originEdge: 'bottom', originMapping: 'keyboardLayout',
+  globalOffsetX: 0.5, globalOffsetY: 0.08, fontSize: 48, fontWeight: '加粗', fontFamily: '系统默认',
+  color: '#F59E0B', opacity: 90, uppercase: false, showModifierKeys: true, keyDisplayMode: 'typed',
+  semanticStyles: true, typingCombo: true, duration: 900, easing: '弹跳', scale: 1,
+  bounceHeight: 140, gravity: 0.3, wind: 0, glow: false, glowColor: '#FBBF24', glowRadius: 8,
+  cooldownMs: 35, maxSimultaneous: 30, delay: 0,
+};
+let cfg = { ...DEFAULTS };
+
+const PRESETS = [
+  { id: 'keycap', name: '键帽弹跳', desc: '从下方弹起', patch: { animationStyle: 'bounce', originEdge: 'bottom', originMapping: 'keyboardLayout', bounceHeight: 140, globalOffsetY: 0.08, fontSize: 48, duration: 900, color: '#F59E0B', glow: false } },
+  { id: 'rain', name: '雨滴坠落', desc: '从顶部落下', patch: { animationStyle: 'raindrop', originEdge: 'top', originMapping: 'keyboardLayout', gravity: 0.5, wind: 0, fontSize: 44, duration: 1100, color: '#0EA5E9', glow: false } },
+  { id: 'slide', name: '侧边滑入', desc: '从左侧推入', patch: { animationStyle: 'bounce', originEdge: 'left', originMapping: 'center', globalOffsetX: 0.12, globalOffsetY: 0.82, bounceHeight: 90, fontSize: 36, duration: 800, color: '#0D9488', glow: false } },
+  { id: 'flash', name: '中央闪现', desc: '大字快闪', patch: { animationStyle: 'bounce', originEdge: 'bottom', originMapping: 'center', globalOffsetX: 0.5, globalOffsetY: 0.42, bounceHeight: 40, fontSize: 76, duration: 460, color: '#F43F5E', glow: true, glowRadius: 14, glowColor: '#FDA4AF' } },
+];
+const COLORS = ['#F59E0B', '#0EA5E9', '#0D9488', '#F43F5E', '#8B5CF6', '#FFFFFF', '#0F172A'];
+const EDGES = [['bottom', '下'], ['top', '上'], ['left', '左'], ['right', '右']];
+
+// ── QWERTY 归一化 X（镜像 key-layout-map.ts 的表）
+const LAYOUT_X = {};
+[['Backquote','Digit1','Digit2','Digit3','Digit4','Digit5','Digit6','Digit7','Digit8','Digit9','Digit0','Minus','Equal','Backspace'],
+ ['Tab','KeyQ','KeyW','KeyE','KeyR','KeyT','KeyY','KeyU','KeyI','KeyO','KeyP','BracketLeft','BracketRight','Backslash'],
+ ['CapsLock','KeyA','KeyS','KeyD','KeyF','KeyG','KeyH','KeyJ','KeyK','KeyL','Semicolon','Quote','Enter']].forEach((row) => {
+  row.forEach((code, i) => { LAYOUT_X[code] = Math.min(0.93, i * (0.93 / (row.length - 1))); });
+});
+[['ShiftLeft',0.05],['KeyZ',0.12],['KeyX',0.19],['KeyC',0.26],['KeyV',0.33],['KeyB',0.40],['KeyN',0.47],['KeyM',0.54],
+ ['Comma',0.61],['Period',0.68],['Slash',0.75],['ShiftRight',0.88],
+ ['ControlLeft',0.03],['AltLeft',0.10],['MetaLeft',0.17],['Space',0.50],['MetaRight',0.80],['AltRight',0.87],['ControlRight',0.93],
+ ['ArrowLeft',0.73],['ArrowDown',0.80],['ArrowUp',0.80],['ArrowRight',0.87],['Escape',0.00]].forEach(([c, x]) => { LAYOUT_X[c] = x; });
+
+const MODIFIER_CODES = new Set(['ShiftLeft','ShiftRight','ControlLeft','ControlRight','AltLeft','AltRight','MetaLeft','MetaRight']);
+const MODIFIER_GLYPH = { ShiftLeft:'⇧', ShiftRight:'⇧', ControlLeft:'⌃', ControlRight:'⌃', AltLeft:'⌥', AltRight:'⌥', MetaLeft:'⌘', MetaRight:'⌘' };
+const SPECIAL_GLYPH = { Backspace:'⌫', Enter:'↩', Tab:'⇥', Space:'␣', Escape:'⎋', ArrowLeft:'←', ArrowRight:'→', ArrowUp:'↑', ArrowDown:'↓' };
+const PHYSICAL_NAME = { Backspace:'⌫', Enter:'↩', Tab:'⇥', Space:'␣', Escape:'⎋' };
+
+function semanticKind(e) {
+  if (MODIFIER_CODES.has(e.code)) return 'modifier';
+  if (e.metaKey || e.ctrlKey || e.altKey) return 'shortcut';
+  if (SPECIAL_GLYPH[e.code]) return 'special';
+  return 'character';
+}
+function displayLabel(e) {
+  if (MODIFIER_CODES.has(e.code)) return cfg.showModifierKeys ? MODIFIER_GLYPH[e.code] : null;
+  if (SPECIAL_GLYPH[e.code]) return SPECIAL_GLYPH[e.code];
+  const prefix = (e.metaKey ? '⌘' : '') + (e.ctrlKey ? '⌃' : '') + (e.altKey ? '⌥' : '') + ((e.shiftKey && (e.metaKey||e.ctrlKey||e.altKey)) ? '⇧' : '');
+  if (cfg.keyDisplayMode === 'physical') {
+    const base = PHYSICAL_NAME[e.code] || (e.code.startsWith('Key') ? e.code.slice(3) : e.code.startsWith('Digit') ? e.code.slice(5) : e.key.toUpperCase());
+    return prefix + base;
+  }
+  if (e.key.length === 1) return prefix ? prefix + e.key.toUpperCase() : e.key;
+  return null;
+}
+
+// ── 语义分层：与 deriveRenderConfig 的系数一致
+function derive(base, kind, comboLevel) {
+  let n = { ...base };
+  if (base.semanticStyles) {
+    if (kind === 'shortcut') n = { ...n, originMapping: 'center', globalOffsetX: 0.5, globalOffsetY: 0.5, fontSize: base.fontSize * 1.18, duration: Math.round(base.duration * 0.72), opacity: Math.min(100, base.opacity + 8) };
+    else if (kind === 'modifier') n = { ...n, fontSize: base.fontSize * 0.72, duration: Math.round(base.duration * 0.55), opacity: Math.max(45, Math.round(base.opacity * 0.72)) };
+    else if (kind === 'special') n = { ...n, fontSize: base.fontSize * 1.08, duration: Math.round(base.duration * 0.82), opacity: Math.min(100, base.opacity + 4) };
+  }
+  if (base.typingCombo && kind === 'character' && comboLevel > 0) {
+    const b = Math.min(comboLevel, 5);
+    n = { ...n, scale: n.scale * (1 + b * 0.035), opacity: Math.min(100, n.opacity + b * 2), glow: n.glow || b >= 3, glowRadius: Math.max(n.glowRadius, 6 + b * 2) };
+  }
+  return n;
+}
+
+// ── 渲染（keyframes 与运行时同构，尺寸按预览缩放）
+const SCREEN_REF_W = 1440;
+let active = 0, combo = { count: 0, at: 0 }, lastKeyAt = {};
+
+function render(label, code, c) {
+  const screen = $('screen');
+  const W = screen.clientWidth, H = screen.clientHeight;
+  const S = W / SCREEN_REF_W;
+  const fontSize = c.fontSize * c.scale * S;
+  const half = fontSize / 2;
+  const edge = c.originEdge, vertical = edge === 'bottom' || edge === 'top';
+  const layoutX = LAYOUT_X[code] ?? 0.5;
+  let startX, startY, dx = 0, dy = 0;
+  const bounce = c.animationStyle === 'bounce';
+  const restDist = c.bounceHeight * S;
+
+  if (edge === 'bottom') {
+    startX = c.originMapping === 'center' ? W * c.globalOffsetX : W * layoutX;
+    startY = H + half;
+    dy = bounce ? -(restDist + H * c.globalOffsetY + half) : -(H + fontSize * 2);
+  } else if (edge === 'top') {
+    startX = c.originMapping === 'center' ? W * c.globalOffsetX : W * layoutX;
+    startY = -half;
+    dy = bounce ? (restDist + H * c.globalOffsetY + half) : (H + fontSize * 2);
+  } else if (edge === 'left') {
+    startX = -half;
+    startY = c.originMapping === 'center' ? H * c.globalOffsetY : H * 0.5;
+    dx = bounce ? (restDist + W * c.globalOffsetX + half) : (W + fontSize * 2);
+  } else {
+    startX = W + half;
+    startY = c.originMapping === 'center' ? H * c.globalOffsetY : H * 0.5;
+    dx = bounce ? -(restDist + W * c.globalOffsetX + half) : -(W + fontSize * 2);
+  }
+  const jitter = (Math.random() * 40 - 20) * S;
+  if (vertical) dy += dy >= 0 ? jitter : -jitter; else dx += dx >= 0 ? jitter : -jitter;
+
+  const el = document.createElement('div');
+  el.className = 'key-glyph';
+  el.textContent = c.uppercase ? label.toUpperCase() : label;
+  const weights = { '标准': 400, '中等': 500, '半粗': 600, '加粗': 700 };
+  const families = { '系统默认': 'system-ui, -apple-system, sans-serif', 'SF Mono': '"SF Mono", Menlo, monospace', 'SF Pro Rounded': '"SF Pro Rounded", system-ui, sans-serif', 'Helvetica Neue': '"Helvetica Neue", Helvetica, Arial, sans-serif' };
+  el.style.left = startX + 'px'; el.style.top = startY + 'px';
+  el.style.fontSize = fontSize + 'px';
+  el.style.fontWeight = weights[c.fontWeight] || 700;
+  el.style.fontFamily = families[c.fontFamily] || 'system-ui, sans-serif';
+  el.style.color = c.color;
+  el.style.opacity = String(c.opacity / 100);
+  if (c.glow) el.style.textShadow = `0 0 ${c.glowRadius * S * 2}px ${c.glowColor}`;
+
+  const target = c.opacity / 100;
+  let frames;
+  if (c.animationStyle === 'raindrop') {
+    const boost = c.gravity * 0.5;
+    const windDist = (vertical ? W : H) * 0.3 * c.wind;
+    const fdx = dx * (1 + boost) + (vertical ? windDist : 0);
+    const fdy = dy * (1 + boost) + (vertical ? 0 : windDist);
+    frames = [
+      { opacity: 0, transform: 'translate(-50%,-50%) translate(0,0)' },
+      { opacity: target, transform: `translate(-50%,-50%) translate(${dx * 0.2}px,${dy * 0.2}px)`, offset: 0.2 },
+      { opacity: target, transform: `translate(-50%,-50%) translate(${dx * 0.5 + (vertical ? windDist * 0.3 : 0)}px,${dy * 0.5 + (vertical ? 0 : windDist * 0.3)}px)`, offset: 0.6 },
+      { opacity: 0, transform: `translate(-50%,-50%) translate(${fdx}px,${fdy}px)` },
+    ];
+  } else {
+    const ease = 'cubic-bezier(0.4, 0, 0.2, 1)';
+    frames = [
+      { opacity: 0, transform: 'translate(-50%,-50%) translate(0,0) scale(0.4)', easing: ease },
+      { opacity: target, transform: `translate(-50%,-50%) translate(${dx * 0.12}px,${dy * 0.12}px) scale(0.82)`, offset: 0.12, easing: ease },
+      { opacity: target, transform: `translate(-50%,-50%) translate(${dx * 1.06}px,${dy * 1.06}px) scale(1.18)`, offset: 0.42, easing: ease },
+      { transform: `translate(-50%,-50%) translate(${dx * 0.94}px,${dy * 0.94}px) scale(0.96)`, offset: 0.6, easing: ease },
+      { transform: `translate(-50%,-50%) translate(${dx * 1.02}px,${dy * 1.02}px) scale(1.04)`, offset: 0.74, easing: ease },
+      { opacity: target, transform: `translate(-50%,-50%) translate(${dx}px,${dy}px) scale(1)`, offset: 0.85, easing: ease },
+      { opacity: 0, transform: `translate(-50%,-50%) translate(${dx}px,${dy}px) scale(1)` },
+    ];
+  }
+  // 缓动只作用在「入场那一段」，整条动画必须走 linear。
+  //
+  // 踩过的坑：把 `弹跳`（cubic-bezier(0.34,1.56,0.64,1)）当成整条动画的 timing
+  // function 时，这条曲线中段 y > 1，缓动后的进度会提前冲过 1 并钳在最后一帧上——
+  // 而最后一帧是 opacity:0，于是字符全程几乎不可见。keyframe 的 offset 语义要求
+  // 整体 linear，各段自己的 easing 才能生效。
+  const EASINGS = { '弹跳': 'cubic-bezier(0.34,1.56,0.64,1)', '缓出': 'ease-out', '缓入': 'ease-in', '缓入缓出': 'ease-in-out', '弹性': 'cubic-bezier(0.68,-0.55,0.27,1.55)', '线性': 'linear' };
+  frames[0] = { ...frames[0], easing: EASINGS[c.easing] || 'ease-out' };
+  screen.appendChild(el);
+  active += 1; syncCount();
+  const anim = el.animate(frames, { duration: c.duration, easing: 'linear', delay: c.delay, fill: 'forwards' });
+  const done = () => { el.remove(); active = Math.max(0, active - 1); syncCount(); };
+  anim.addEventListener('finish', done, { once: true });
+  anim.addEventListener('cancel', done, { once: true });
+}
+
+function syncCount() {
+  $('countNow').textContent = active;
+  $('countMax').textContent = cfg.maxSimultaneous;
+  $('liveCount').className = 'inline-flex h-7 items-center gap-1.5 rounded-xl px-2.5 text-2xs font-semibold tabular-nums ring-1 '
+    + (active >= cfg.maxSimultaneous ? 'bg-amber-50 text-amber-800 ring-amber-200' : 'bg-slate-50 text-slate-600 ring-slate-200');
+}
+function syncCombo(level) {
+  document.querySelectorAll('.combo-dot').forEach((d, i) => {
+    d.className = 'combo-dot size-1.5 rounded-full ' + (i < level ? 'bg-emerald-500' : 'bg-slate-200');
+  });
+}
+function flashLegend(kind) {
+  document.querySelectorAll('.legend-row').forEach((row) => {
+    row.classList.toggle('legend-row-hit', row.dataset.kind === kind && cfg.semanticStyles);
+  });
+  clearTimeout(flashLegend.t);
+  flashLegend.t = setTimeout(() => document.querySelectorAll('.legend-row').forEach((r) => r.classList.remove('legend-row-hit')), 420);
+}
+
+// ── 键盘输入
+//
+// 监听绑在 document 上，而不是预览 div：真实产品用 uiohook 做全局捕获，
+// 页面任意处打字都该触发。绑在 div 上时，只要点过滑块或预设卡焦点就跑了，
+// 之后打字毫无反应且没有任何提示。表单控件里的输入需要排除。
+document.addEventListener('keydown', (e) => {
+  const t = e.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+  if (['Tab', 'Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Backspace'].includes(e.code)) e.preventDefault();
+  if (!cfg.enabled) return;
+  $('typeHint').classList.add('hidden');
+  const now = performance.now();
+  if (now - (lastKeyAt[e.code] || 0) < cfg.cooldownMs) return;
+  lastKeyAt[e.code] = now;
+  if (active >= cfg.maxSimultaneous) { syncCount(); return; }
+  const label = displayLabel(e);
+  if (label === null) return;
+  const kind = semanticKind(e);
+  let level = 0;
+  if (cfg.typingCombo && kind === 'character') {
+    combo.count = now - combo.at <= 260 ? Math.min(combo.count + 1, 8) : 1;
+    combo.at = now;
+    level = Math.max(0, combo.count - 1);
+  } else { combo = { count: 0, at: 0 }; }
+  syncCombo(Math.min(level, 5));
+  flashLegend(kind);
+  render(label, e.code, derive(cfg, kind, level));
+});
+setInterval(() => { if (performance.now() - combo.at > 500 && combo.count) { combo = { count: 0, at: 0 }; syncCombo(0); } }, 300);
+$('screen').addEventListener('click', () => $('screen').focus());
+
+// ── 停留位置手柄
+function handlePos() {
+  const screen = $('screen'), W = screen.clientWidth, H = screen.clientHeight;
+  const edge = cfg.originEdge, layout = cfg.originMapping === 'keyboardLayout';
+  const rain = cfg.animationStyle === 'raindrop';
+  if (edge === 'bottom' || edge === 'top') {
+    const x = layout ? W * 0.5 : W * cfg.globalOffsetX;
+    const d = rain ? 0 : cfg.bounceHeight * (W / SCREEN_REF_W) + H * cfg.globalOffsetY;
+    return { x, y: edge === 'bottom' ? H - d : d };
+  }
+  // 横向入场：键位映射是**横向**位置映射，对纵轴没有语义，所以这里回落到
+  // globalOffsetY（= center 行为），而不是钉在屏幕中线。
+  // 这与运行时 key-feedback.ts 的修法一致——那边原先硬编码 screenH * 0.5，
+  // 导致 globalOffsetY 被静默忽略、控件点了没反应。稿子必须与之同步，
+  // 否则重构时会照着稿子把那个缺陷重新实现一遍。
+  const y = H * cfg.globalOffsetY;
+  const d = rain ? 0 : cfg.bounceHeight * (W / SCREEN_REF_W) + W * cfg.globalOffsetX;
+  return { x: edge === 'left' ? d : W - d, y };
+}
+function syncHandle() {
+  const p = handlePos(), h = $('restHandle');
+  h.style.left = p.x + 'px'; h.style.top = p.y + 'px';
+  const rain = cfg.animationStyle === 'raindrop';
+  const layout = cfg.originMapping === 'keyboardLayout';
+  const word = rain ? '起始位置' : '停留位置';
+  // 只有纵向入场时键位才决定横向；横向入场时它完全不起作用，
+  // 再挂这句会让人以为键位仍在生效，然后反复去调一个空操作。
+  const verticalEntry = cfg.originEdge === 'bottom' || cfg.originEdge === 'top';
+  $('restLabel').textContent = word + (layout && verticalEntry ? '（键位决定横向）' : '');
+  $('handleHintWord').textContent = word;
+  h.classList.toggle('hidden', rain && layout);
+  // 键位散开带
+  const band = $('spreadBand'), screen = $('screen');
+  const vertical = cfg.originEdge === 'bottom' || cfg.originEdge === 'top';
+  const show = layout && vertical;
+  band.classList.toggle('hidden', !show);
+  if (show) {
+    const W = screen.clientWidth, H = screen.clientHeight, S = W / SCREEN_REF_W;
+    const fs = cfg.fontSize * S;
+    band.style.left = '0px'; band.style.width = W + 'px';
+    band.style.height = (fs * 1.6) + 'px';
+    // 雨滴贯穿整屏、没有停留点，把散开带贴在入场边内侧显示，
+    // 否则 p.y 会落在 0 或 H 上、字样一半跑到画框外。
+    const bandCenter = cfg.animationStyle === 'raindrop'
+      ? (cfg.originEdge === 'top' ? fs * 1.2 : H - fs * 1.2)
+      : p.y;
+    band.style.top = (bandCenter - fs * 0.8) + 'px';
+    $('bandSamples').innerHTML = ['KeyQ','KeyE','KeyT','KeyU','KeyO','KeyP'].map((code, i) => {
+      const label = ['q','e','t','u','o','p'][i];
+      return `<span style="position:absolute;left:${LAYOUT_X[code] * 100}%;top:50%;transform:translate(-50%,-50%);font-size:${fs}px;line-height:1;color:${cfg.color};opacity:.22;font-weight:700">${label}</span>`;
+    }).join('');
+  }
+}
+let dragging = false;
+$('restHandle').addEventListener('mousedown', (e) => { dragging = true; e.preventDefault(); });
+window.addEventListener('mouseup', () => { if (dragging) { dragging = false; toast('已更新位置'); } });
+window.addEventListener('mousemove', (e) => {
+  if (!dragging) return;
+  const screen = $('screen'), r = screen.getBoundingClientRect();
+  const W = screen.clientWidth, H = screen.clientHeight, S = W / SCREEN_REF_W;
+  const x = Math.max(0, Math.min(W, e.clientX - r.left));
+  const y = Math.max(0, Math.min(H, e.clientY - r.top));
+  const edge = cfg.originEdge, layout = cfg.originMapping === 'keyboardLayout';
+  if (edge === 'bottom' || edge === 'top') {
+    if (!layout) cfg.globalOffsetX = x / W;
+    const d = edge === 'bottom' ? H - y : y;
+    cfg.globalOffsetY = Math.max(0, (d - cfg.bounceHeight * S) / H);
+  } else {
+    if (!layout) cfg.globalOffsetY = y / H;
+    const d = edge === 'left' ? x : W - x;
+    cfg.globalOffsetX = Math.max(0, (d - cfg.bounceHeight * S) / W);
+  }
+  syncHandle();
+});
+
+// ── 控件装配
+function buildPresets() {
+  $('presetGrid').innerHTML = PRESETS.map((p) => `
+    <button data-preset="${p.id}" class="preset-tile">
+      <span class="preset-stage"><span class="preset-glyph">A</span></span>
+      <span class="preset-meta">
+        <span class="preset-name">${p.name}</span>
+        <span class="preset-desc">${p.desc}</span>
+      </span>
+    </button>`).join('');
+  document.querySelectorAll('[data-preset]').forEach((btn) => btn.addEventListener('click', () => {
+    const p = PRESETS.find((x) => x.id === btn.dataset.preset);
+    const before = { ...cfg };
+    cfg = { ...cfg, ...p.patch };
+    syncAll(); toast(`已套用「${p.name}」`, before);
+  }));
+  animatePresetTiles();
+}
+function animatePresetTiles() {
+  document.querySelectorAll('[data-preset]').forEach((btn, i) => {
+    const glyph = btn.querySelector('.preset-glyph');
+    const p = PRESETS[i];
+    const run = () => {
+      const rain = p.patch.animationStyle === 'raindrop';
+      const from = p.patch.originEdge;
+      const vec = { bottom: [0, 22], top: [0, -22], left: [-22, 0], right: [22, 0] }[from] || [0, 22];
+      glyph.style.color = p.patch.color;
+      const frames = rain
+        ? [{ opacity: 0, transform: `translate(${vec[0]}px,${vec[1]}px)` }, { opacity: 1, transform: 'translate(0,0)', offset: .35 }, { opacity: 0, transform: `translate(${-vec[0]}px,${-vec[1]}px)` }]
+        : [{ opacity: 0, transform: `translate(${vec[0]}px,${vec[1]}px) scale(.5)` }, { opacity: 1, transform: 'translate(0,0) scale(1.12)', offset: .45 }, { opacity: 1, transform: 'translate(0,0) scale(1)', offset: .7 }, { opacity: 0, transform: 'translate(0,0) scale(1)' }];
+      glyph.animate(frames, { duration: p.patch.duration || 900, easing: 'cubic-bezier(0.34,1.56,0.64,1)' });
+    };
+    run();
+    setInterval(run, 1900 + i * 130);
+  });
+}
+function buildColors() {
+  $('colorRow').innerHTML = COLORS.map((c) => `
+    <button data-color="${c}" class="color-swatch" style="background:${c}" aria-label="颜色 ${c}"></button>`).join('');
+  document.querySelectorAll('[data-color]').forEach((b) => b.addEventListener('click', () => {
+    const before = { ...cfg }; cfg.color = b.dataset.color; syncAll(); toast('已更新颜色', before);
+  }));
+}
+function buildEdges() {
+  $('edgeRow').innerHTML = EDGES.map(([v, l]) => `<button data-edge2="${v}" class="edge-chip">${l}</button>`).join('');
+  document.querySelectorAll('[data-edge2]').forEach((b) => b.addEventListener('click', () => setEdge(b.dataset.edge2)));
+}
+function setEdge(edge) {
+  const before = { ...cfg };
+  cfg.originEdge = edge;
+  syncAll(); toast('已更新入场边', before);
+}
+document.querySelectorAll('[data-edge]').forEach((b) => b.addEventListener('click', () => setEdge(b.dataset.edge)));
+document.querySelectorAll('[data-spread]').forEach((b) => b.addEventListener('click', () => {
+  const before = { ...cfg }; cfg.originMapping = b.dataset.spread; syncAll(); toast('已更新水平分布', before);
+}));
+document.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => {
+  const before = { ...cfg }; cfg.keyDisplayMode = b.dataset.mode; syncAll(); toast('已更新显示模式', before);
+}));
+document.querySelectorAll('[data-wall]').forEach((b) => b.addEventListener('click', () => { cfg._wall = b.dataset.wall; syncAll(); }));
+document.querySelectorAll('[data-flag]').forEach((b) => b.addEventListener('click', () => {
+  const before = { ...cfg };
+  const key = { modifiers: 'showModifierKeys', combo: 'typingCombo', uppercase: 'uppercase' }[b.dataset.flag];
+  cfg[key] = !cfg[key]; syncAll(); toast('已更新', before);
+}));
+$('semanticToggle').addEventListener('click', () => { const before = { ...cfg }; cfg.semanticStyles = !cfg.semanticStyles; syncAll(); toast('已更新语义分层', before); });
+$('glowToggle').addEventListener('click', () => { const before = { ...cfg }; cfg.glow = !cfg.glow; syncAll(); toast('已更新发光', before); });
+$('enableKnob').parentElement.addEventListener('click', () => { const before = { ...cfg }; cfg.enabled = !cfg.enabled; onProtoState(cfg.enabled ? 'bounce' : 'off'); toast('已更新开关', before); });
+$('resetBtn').addEventListener('click', () => { const before = { ...cfg }; cfg = { ...DEFAULTS, _wall: cfg._wall }; syncAll(); toast('已恢复默认', before); });
+$('advToggle').addEventListener('click', () => {
+  const open = $('advBody').classList.toggle('hidden') === false;
+  $('advChevron').classList.toggle('rotate-180', open);
+});
+
+// 滑块与下拉统一走共享控件实现（Ctl），不再各页手写原生控件
+const SL = {};
+const SLIDER_SPEC = [
+  ['sizeRange', 'fontSize', 'sizeReadout'],
+  ['opacityRange', 'opacity', 'opacityReadout'],
+  ['glowRange', 'glowRadius', 'glowReadout'],
+  ['bounceRange', 'bounceHeight', 'bounceReadout'],
+  ['durRange', 'duration', 'durReadout'],
+  ['coolRange', 'cooldownMs', 'coolReadout'],
+  ['maxRange', 'maxSimultaneous', 'maxReadout'],
+];
+SLIDER_SPEC.forEach(([id, key, out]) => {
+  SL[id] = Ctl.slider($(id), {
+    onChange: (v) => { cfg[key] = v; if (out) $(out).textContent = v; },
+    onCommit: () => { syncAll(); toast('已更新'); },
+  });
+});
+// 重力与风力按 1/10 存储：滑块整数刻度，显示保留一位
+SL.gravityRange = Ctl.slider($('gravityRange'), {
+  format: (v) => (v / 10).toFixed(1),
+  onChange: (v) => { cfg.gravity = v / 10; $('gravityReadout').textContent = (v / 10).toFixed(1); },
+  onCommit: () => { syncAll(); },
+});
+SL.windRange = Ctl.slider($('windRange'), {
+  format: (v) => (v / 10).toFixed(1),
+  onChange: (v) => { cfg.wind = v / 10; $('windReadout').textContent = (v / 10).toFixed(1); },
+  onCommit: () => { syncAll(); },
+});
+
+const WEIGHTS = ['标准', '中等', '半粗', '加粗'];
+const FAMILIES = [
+  ['系统默认', 'system-ui, -apple-system, sans-serif'],
+  ['SF Mono', '"SF Mono", Menlo, monospace'],
+  ['SF Pro Rounded', '"SF Pro Rounded", system-ui, sans-serif'],
+  ['Helvetica Neue', '"Helvetica Neue", Helvetica, Arial, sans-serif'],
+];
+const EASINGS = [
+  ['弹跳', [.34, 1.56, .64, 1], '过冲 9.8%'],
+  ['缓出', [0, 0, .2, 1], ''],
+  ['缓入', [.4, 0, 1, 1], ''],
+  ['缓入缓出', [.4, 0, .2, 1], ''],
+  ['弹性', [.22, 1, .36, 1.18], '过冲 1.8%'],
+  ['线性', [0, 0, 1, 1], ''],
+];
+const SEL = {};
+SEL.weight = Ctl.select($('weightSel'), {
+  options: WEIGHTS.map((w) => ({ label: w })), value: cfg.fontWeight,
+  onChange: (v) => { cfg.fontWeight = v; syncAll(); },
+});
+SEL.family = Ctl.select($('familySel'), {
+  // 字体选项用该字体渲染样张，比四个词有用
+  options: FAMILIES.map(([n, stack]) => ({ label: n, side: `<span style="font-family:${stack}">Nice! 123</span>` })),
+  value: cfg.fontFamily,
+  onChange: (v) => { cfg.fontFamily = v; syncAll(); },
+});
+SEL.easing = Ctl.select($('easingSel'), {
+  // 缓动选项画出曲线并标注过冲——「弹跳 / 缓出 / 弹性」是看不出区别的词
+  options: EASINGS.map(([n, pts, desc]) => ({ label: n, desc, thumb: Ctl.curveThumb(pts) })),
+  value: cfg.easing,
+  onChange: (v) => { cfg.easing = v; syncAll(); },
+});
+
+// ── toast + 撤销
+function toast(text, before) {
+  const host = $('toastHost');
+  const el = document.createElement('div');
+  el.className = 'pointer-events-auto flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-lg';
+  el.innerHTML = `<span class="text-xs font-medium text-slate-600">${text}</span>`;
+  if (before) {
+    const btn = document.createElement('button');
+    btn.className = 'text-2xs font-semibold text-slate-900 underline underline-offset-2';
+    btn.textContent = '撤销';
+    btn.addEventListener('click', () => { cfg = before; syncAll(); el.remove(); });
+    el.appendChild(btn);
+  }
+  host.appendChild(el);
+  setTimeout(() => el.remove(), 2600);
+}
+
+// ── 同步 UI
+function syncAll() {
+  const rain = cfg.animationStyle === 'raindrop';
+  const vertical = cfg.originEdge === 'bottom' || cfg.originEdge === 'top';
+
+  document.querySelectorAll('[data-preset]').forEach((b) => {
+    const p = PRESETS.find((x) => x.id === b.dataset.preset);
+    const on = Object.entries(p.patch).every(([k, v]) => cfg[k] === v);
+    b.classList.toggle('preset-tile-on', on);
+  });
+  document.querySelectorAll('[data-color]').forEach((b) => b.classList.toggle('color-swatch-on', b.dataset.color === cfg.color));
+  $('colorReadout').textContent = cfg.color;
+  document.querySelectorAll('[data-edge2]').forEach((b) => b.classList.toggle('edge-chip-on', b.dataset.edge2 === cfg.originEdge));
+  document.querySelectorAll('[data-edge]').forEach((b) => b.classList.toggle('edge-btn-on', b.dataset.edge === cfg.originEdge));
+  document.querySelectorAll('[data-spread]').forEach((b) => b.className = 'seg-item flex-1 justify-center' + (b.dataset.spread === cfg.originMapping ? ' seg-item-on' : ''));
+  document.querySelectorAll('[data-mode]').forEach((b) => b.className = 'seg-item flex-1 justify-center' + (b.dataset.mode === cfg.keyDisplayMode ? ' seg-item-on' : ''));
+  document.querySelectorAll('[data-wall]').forEach((b) => b.className = 'seg-item' + ((cfg._wall || 'light') === b.dataset.wall ? ' seg-item-on' : ''));
+
+  // 键位散开只在上／下入场时生效——运行时对左／右入场忽略键位映射，这里如实禁用
+  const spreadOk = vertical;
+  $('spreadSeg').classList.toggle('opacity-50', !spreadOk);
+  $('spreadSeg').classList.toggle('pointer-events-none', !spreadOk);
+  $('spreadNote').textContent = spreadOk ? '' : '仅上／下入场可用';
+  $('spreadHint').textContent = spreadOk
+    ? '按 QWERTY 键位把字符横向铺开：按 Q 出现在左边，按 P 出现在右边。'
+    : '左／右入场时字符固定在垂直中线附近，键位散开不生效。';
+
+  $('restField').classList.toggle('hidden', rain);
+  $('rainFields').classList.toggle('hidden', !rain);
+  $('gravityReadout').textContent = cfg.gravity.toFixed(1);
+  $('windReadout').textContent = cfg.wind.toFixed(1);
+  SL.gravityRange?.set(Math.round(cfg.gravity * 10));
+  SL.windRange?.set(Math.round(cfg.wind * 10));
+
+  const put = (id, out, v) => { SL[id]?.set(v); if (out) $(out).textContent = v; };
+  put('sizeRange', 'sizeReadout', Math.round(cfg.fontSize));
+  put('opacityRange', 'opacityReadout', cfg.opacity);
+  put('bounceRange', 'bounceReadout', cfg.bounceHeight);
+  put('durRange', 'durReadout', cfg.duration);
+  put('coolRange', 'coolReadout', cfg.cooldownMs);
+  put('maxRange', 'maxReadout', cfg.maxSimultaneous);
+  put('glowRange', 'glowReadout', cfg.glowRadius);
+  SEL.weight?.set(cfg.fontWeight); SEL.family?.set(cfg.fontFamily); SEL.easing?.set(cfg.easing);
+
+  $('glowFields').classList.toggle('hidden', !cfg.glow);
+  knob($('glowKnob'), cfg.glow);
+  knob($('semanticKnob'), cfg.semanticStyles);
+  knob($('enableKnob'), cfg.enabled);
+  $('semanticToggle').lastElementChild.textContent = cfg.semanticStyles ? '已开启' : '已关闭';
+  document.querySelectorAll('[data-flag]').forEach((b) => {
+    const key = { modifiers: 'showModifierKeys', combo: 'typingCombo', uppercase: 'uppercase' }[b.dataset.flag];
+    b.querySelector('.switch-knob').className = 'switch-knob' + (cfg[key] ? ' switch-on' : '');
+  });
+  $('modeHint').innerHTML = cfg.keyDisplayMode === 'typed'
+    ? '⇧+1 显示为 <span class="font-medium text-slate-600">!</span>，和你实际打出的字一致。'
+    : '⇧+1 显示为 <span class="font-medium text-slate-600">1</span>，保留物理键名，适合演示快捷键。';
+
+  // 语义分层样例的相对大小
+  const rel = { character: 1, shortcut: 1.18, modifier: 0.72, special: 1.08 };
+  document.querySelectorAll('.legend-row').forEach((row) => {
+    const s = row.querySelector('.legend-sample');
+    const k = row.dataset.kind;
+    const factor = cfg.semanticStyles ? rel[k] : 1;
+    s.style.fontSize = (13 * factor) + 'px';
+    s.style.color = cfg.color;
+    s.style.opacity = cfg.semanticStyles && k === 'modifier' ? '.62' : '1';
+    row.classList.toggle('opacity-60', !cfg.semanticStyles);
+  });
+
+  // 桌面底图
+  const dark = (cfg._wall || 'light') === 'dark';
+  $('screen').classList.toggle('bg-slate-100', !dark);
+  $('screen').classList.toggle('bg-slate-800', dark);
+  $('wallpaper').innerHTML = dark
+    ? '<div class="absolute inset-x-0 top-0 h-5 bg-slate-900/70"></div><div class="absolute left-8 top-12 h-40 w-64 rounded-lg border border-slate-700 bg-slate-900/70"></div><div class="absolute right-10 top-24 h-48 w-72 rounded-lg border border-slate-700 bg-slate-900/50"></div><div class="absolute inset-x-0 bottom-0 h-8 bg-slate-900/60"></div>'
+    : '<div class="absolute inset-x-0 top-0 h-5 bg-white/70"></div><div class="absolute left-8 top-12 h-40 w-64 rounded-lg border border-slate-200 bg-white/80"></div><div class="absolute right-10 top-24 h-48 w-72 rounded-lg border border-slate-200 bg-white/60"></div><div class="absolute inset-x-0 bottom-0 h-8 bg-white/50"></div>';
+
+  syncCount(); syncHandle();
+}
+function knob(el, on) {
+  el.className = 'relative inline-flex h-4 w-7 shrink-0 items-center rounded-full ' + (on ? 'bg-slate-950' : 'bg-slate-300');
+  el.firstElementChild.className = (on ? 'ml-3.5' : 'ml-0.5') + ' size-3 rounded-full bg-white shadow-sm';
+}
+
+// ── 原型状态
+function onProtoState(s) {
+  if (s === 'bounce') cfg = { ...DEFAULTS, _wall: 'light' };
+  if (s === 'rain') cfg = { ...DEFAULTS, ...PRESETS[1].patch, _wall: 'dark' };
+  if (s === 'off') cfg = { ...cfg, enabled: false };
+  if (s === 'denied') cfg = { ...DEFAULTS, _wall: cfg._wall || 'light', enabled: true };
+  $('offBadge').classList.toggle('hidden', cfg.enabled);
+  $('offBadge').classList.toggle('grid', !cfg.enabled);
+  $('mainGrid').classList.toggle('opacity-60', !cfg.enabled);
+  $('typeHint').classList.toggle('hidden', !cfg.enabled);
+  $('pageDesc').textContent = cfg.enabled
+    ? '按键时在屏幕上显示按下的字符。点一下预览再打字，就能看到桌面上的真实效果。'
+    : '动效已关闭。打开开关后按键会在屏幕上显示字符。';
+  syncAll();
+}
+
+buildPresets(); buildColors(); buildEdges();
+</script>
+</body>
+</html>

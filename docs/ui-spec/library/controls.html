@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>配置控件库 · UX 原型</title>
+<link rel="stylesheet" href="../mockup.css" />
+<script src="../controls.js"></script>
+<style>
+  body {
+    font-family: "SF Pro Display", "SF Pro Text", "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+  }
+</style>
+</head>
+<body class="bg-slate-100 p-6 text-slate-900">
+<div class="mx-auto max-w-[1180px]">
+
+  <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+    <div class="min-w-0">
+      <h1 class="text-base font-semibold text-slate-900 text-balance">配置控件库</h1>
+      <p class="mt-1 max-w-3xl text-xs leading-relaxed text-slate-500 text-pretty">
+        全部可交互。手感细节是重点：拖柄 hover 放大、拖拽出数值气泡、标签可横向 scrub、双击回默认值、与默认不同时标点、越界自动 clamp。
+      </p>
+    </div>
+    <div class="flex shrink-0 items-center gap-2">
+      <a href="components.html" class="btn-outline h-8 px-3 text-xs">通用组件库</a>
+      <a href="../index.html" class="btn-outline h-8 px-3 text-xs">← 规范首页</a>
+    </div>
+  </div>
+
+  <!-- ══ 字段行解剖 ══ -->
+  <section class="mb-3 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div class="border-b border-slate-100 px-4 py-3">
+      <h3 class="text-sm font-medium text-slate-900">字段行的节奏</h3>
+      <p class="mt-0.5 text-xs text-slate-500">密集面板的「工整感」几乎全部来自这一条：三列网格，标签定宽 92px，数值列右对齐 tabular-nums。</p>
+    </div>
+    <div class="px-4 py-4">
+      <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3">
+        <div class="grid grid-cols-[92px_minmax(0,1fr)_74px] gap-3 pb-2 text-2xs font-semibold text-slate-400">
+          <span>标签 92px</span><span>控件 1fr</span><span class="text-right">数值 74px</span>
+        </div>
+        <div class="ctl-row" data-demo-row>
+          <span class="ctl-label ctl-label-scrub" data-scrub="demo">时长<span class="ctl-dirty" data-dirty="demo" hidden></span></span>
+          <div class="sl" data-slider data-id="demo" data-min="200" data-max="2400" data-value="820" data-default="820" data-step="10" data-ticks="600,1200,1800"></div>
+          <span class="ctl-value"><span data-out="demo">820</span> ms</span>
+        </div>
+        <p class="mt-2.5 text-2xs leading-relaxed text-slate-400">
+          试试：按住「时长」两个字左右拖 · 拖柄上双击回默认 · 改成非默认值后标签后面出现小点
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <div class="grid gap-3 lg:grid-cols-2">
+
+    <!-- ══ 滑块家族 ══ -->
+    <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div class="border-b border-slate-100 px-4 py-3">
+        <h3 class="text-sm font-medium text-slate-900">滑块家族</h3>
+        <p class="mt-0.5 text-xs text-slate-500">现在全站只有一种 ControlSlider，这五种缺一个都得用两个字段凑。</p>
+      </div>
+      <div class="space-y-4 px-4 py-4">
+
+        <div class="ctl-row">
+          <span class="ctl-label ctl-label-scrub" data-scrub="a">字号<span class="ctl-dirty" data-dirty="a" hidden></span></span>
+          <div class="sl" data-slider data-id="a" data-min="12" data-max="96" data-value="28" data-default="28" data-step="1"></div>
+          <span class="ctl-value"><span data-out="a">28</span> px</span>
+        </div>
+
+        <div>
+          <div class="ctl-row">
+            <span class="ctl-label ctl-label-scrub" data-scrub="b">重力<span class="ctl-dirty" data-dirty="b" hidden></span></span>
+            <div class="sl" data-slider data-id="b" data-min="0" data-max="10" data-value="3" data-default="3" data-step="1" data-ticks="0,2,4,6,8,10" data-snap="1"></div>
+            <span class="ctl-value"><span data-out="b">3</span></span>
+          </div>
+          <p class="mt-1.5 pl-[104px] text-2xs text-slate-400">带刻度吸附：拖到刻度附近自动贴合，按住 ⌥ 临时关闭吸附。</p>
+        </div>
+
+        <div>
+          <div class="ctl-row">
+            <span class="ctl-label ctl-label-scrub" data-scrub="c">风力<span class="ctl-dirty" data-dirty="c" hidden></span></span>
+            <div class="sl" data-slider data-id="c" data-min="-10" data-max="10" data-value="0" data-default="0" data-step="1" data-bipolar="1" data-ticks="-10,0,10"></div>
+            <span class="ctl-value"><span data-out="c">0.0</span></span>
+          </div>
+          <p class="mt-1.5 pl-[104px] text-2xs text-slate-400">双向：填充从中心向两侧长，负值向左。原来只能靠「5 为无风」这种说明打补丁。</p>
+        </div>
+
+        <div>
+          <div class="ctl-row">
+            <span class="ctl-label">粒子大小</span>
+            <div class="sl" data-slider data-id="d" data-min="2" data-max="40" data-value="8" data-value2="14" data-default="8" data-default2="14" data-step="1" data-dual="1"></div>
+            <span class="ctl-value"><span data-out="d">8–14</span> px</span>
+          </div>
+          <p class="mt-1.5 pl-[104px] text-2xs text-slate-400">双拖柄区间：粒子系统需要「在 8–14 之间随机」，现在只能写死一个值。</p>
+        </div>
+
+        <div>
+          <div class="ctl-row">
+            <span class="ctl-label">扩散半径</span>
+            <div class="sl" data-slider data-id="e" data-min="20" data-max="320" data-value="96" data-default="96" data-step="4"></div>
+            <span class="ctl-value"><span data-out="e">96</span> px</span>
+          </div>
+          <div class="ctl-row mt-2">
+            <span class="ctl-label text-slate-500">↳ 抖动</span>
+            <div class="sl" data-slider data-id="e2" data-min="0" data-max="100" data-value="20" data-default="0" data-step="5"></div>
+            <span class="ctl-value">± <span data-out="e2">20</span>%</span>
+          </div>
+          <p class="mt-1.5 pl-[104px] text-2xs text-slate-400">值 + 抖动：一组两行，比「最小值/最大值」两个独立字段更贴合心智。</p>
+        </div>
+
+        <div class="ctl-row opacity-50">
+          <span class="ctl-label">发光半径</span>
+          <div class="sl" data-slider data-id="f" data-min="1" data-max="30" data-value="8" data-default="8" data-disabled="1"></div>
+          <span class="ctl-value"><span data-out="f">8</span> px</span>
+        </div>
+        <p class="-mt-2 pl-[104px] text-2xs text-slate-400">禁用态：轨道与拖柄同时降饱和，不只是 opacity。</p>
+      </div>
+    </section>
+
+    <!-- ══ 数值 / 步进 / 快捷键 ══ -->
+    <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div class="border-b border-slate-100 px-4 py-3">
+        <h3 class="text-sm font-medium text-slate-900">数值输入</h3>
+        <p class="mt-0.5 text-xs text-slate-500">51 个滑块里近半是精确值，必须能直接输入。</p>
+      </div>
+      <div class="space-y-4 px-4 py-4">
+        <div class="ctl-row-wide">
+          <span class="ctl-label">冷却</span>
+          <div class="flex items-center gap-2">
+            <div class="group relative">
+              <input data-num-input data-min="0" data-max="500" value="35"
+                class="h-8 w-24 rounded-xl border border-slate-200 bg-white pl-2 pr-10 text-xs font-semibold tabular-nums text-slate-800 shadow-sm focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200" />
+              <span class="pointer-events-none absolute right-6 top-1/2 -translate-y-1/2 text-2xs text-slate-400">ms</span>
+              <span class="absolute right-1 top-1/2 flex -translate-y-1/2 flex-col opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                <button data-step-up class="grid h-3 w-4 place-items-center rounded-sm text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="增加">
+                  <svg class="size-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m6 15 6-6 6 6"/></svg>
+                </button>
+                <button data-step-down class="grid h-3 w-4 place-items-center rounded-sm text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="减少">
+                  <svg class="size-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+              </span>
+            </div>
+            <span class="text-2xs text-slate-400">↑↓ ±1 · Shift ±10 · 越界自动 clamp</span>
+          </div>
+        </div>
+
+        <div class="ctl-row-wide">
+          <span class="ctl-label">触发快捷键</span>
+          <button data-keycap class="inline-flex h-8 items-center gap-1.5 rounded-xl border border-dashed border-slate-300 bg-white px-2.5 text-2xs font-medium text-slate-500 shadow-sm transition-colors hover:border-slate-400 hover:text-slate-700">
+            点击后按下组合键
+          </button>
+        </div>
+
+        <div class="border-t border-slate-100 pt-4">
+          <div class="ctl-row-wide">
+            <span class="ctl-label">颜色</span>
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <button data-color="#F59E0B" class="size-7 rounded-lg border-2 border-slate-950 shadow-sm ring-2 ring-slate-300" style="background:#F59E0B" aria-label="琥珀"></button>
+                <button data-color="#0EA5E9" class="size-7 rounded-lg border border-slate-200 shadow-sm" style="background:#0EA5E9" aria-label="天蓝"></button>
+                <button data-color="#0D9488" class="size-7 rounded-lg border border-slate-200 shadow-sm" style="background:#0D9488" aria-label="青绿"></button>
+                <button data-color="#F43F5E" class="size-7 rounded-lg border border-slate-200 shadow-sm" style="background:#F43F5E" aria-label="玫红"></button>
+                <button data-color="#FFFFFF" class="size-7 rounded-lg border border-slate-200 shadow-sm" style="background:#FFFFFF" aria-label="白"></button>
+                <button data-color="#0F172A" class="size-7 rounded-lg border border-slate-200 shadow-sm" style="background:#0F172A" aria-label="近黑"></button>
+                <span class="mx-1 h-5 w-px bg-slate-200"></span>
+                <input data-hex value="#F59E0B" class="h-7 w-[86px] rounded-lg border border-slate-200 bg-white px-2 text-2xs font-semibold uppercase tabular-nums text-slate-700 shadow-sm" />
+                <button class="grid size-7 place-items-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-sm transition-colors hover:bg-slate-50" aria-label="吸管取色" title="从屏幕取色">
+                  <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m14 6 4 4M5 19l1-4 8-8 3 3-8 8z"/></svg>
+                </button>
+              </div>
+              <div class="ctl-row mt-2.5">
+                <span class="text-2xs font-medium text-slate-500">不透明度</span>
+                <div class="sl" data-slider data-id="op" data-min="10" data-max="100" data-value="90" data-default="90" data-step="1"></div>
+                <span class="ctl-value"><span data-out="op">90</span>%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ 下拉：带预览的选项 ══ -->
+    <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div class="border-b border-slate-100 px-4 py-3">
+        <h3 class="text-sm font-medium text-slate-900">下拉：选项自己长成结果的样子</h3>
+        <p class="mt-0.5 text-xs text-slate-500">「弹跳 / 缓出 / 弹性」是六个看不出区别的词。画出来就不用猜。</p>
+      </div>
+      <div class="space-y-3 px-4 py-4">
+        <div class="ctl-row-wide">
+          <span class="ctl-label">缓动曲线</span>
+          <div class="relative">
+            <div id="sel-easing"></div>
+          </div>
+        </div>
+
+        <div class="ctl-row-wide">
+          <span class="ctl-label">粒子形状</span>
+          <div class="relative">
+            <div id="sel-shape"></div>
+          </div>
+        </div>
+
+        <div class="ctl-row-wide">
+          <span class="ctl-label">字体</span>
+          <div class="relative">
+            <div id="sel-font"></div>
+          </div>
+        </div>
+
+        <div class="ctl-row-wide">
+          <span class="ctl-label">触发区域</span>
+          <div class="relative">
+            <div id="sel-zone"></div>
+          </div>
+        </div>
+        <p class="text-2xs leading-relaxed text-slate-400">
+          选项超过 8 条时顶部自动出现搜索框；分组用分隔线 + 组标题；键盘 ↑↓ 选择、↵ 确认、esc 关闭。
+        </p>
+      </div>
+    </section>
+
+    <!-- ══ 二维 / 角度 / 曲线 ══ -->
+    <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div class="border-b border-slate-100 px-4 py-3">
+        <h3 class="text-sm font-medium text-slate-900">二维、角度、曲线</h3>
+        <p class="mt-0.5 text-xs text-slate-500">这三类现在都被拆成两个滑块或六个词，是最该换掉的。</p>
+      </div>
+      <div class="grid gap-4 px-4 py-4 sm:grid-cols-2">
+        <div>
+          <div class="mb-2 flex items-baseline justify-between">
+            <span class="ctl-label">偏移</span>
+            <span class="text-2xs font-semibold tabular-nums text-slate-700">X <span data-out="padx">50</span>% · Y <span data-out="pady">42</span>%</span>
+          </div>
+          <div class="pad" data-pad>
+            <div class="pointer-events-none absolute left-1/2 top-0 h-full w-px bg-slate-200"></div>
+            <div class="pointer-events-none absolute left-0 top-1/2 h-px w-full bg-slate-200"></div>
+            <div class="pad-dot" data-pad-dot style="left:50%;top:42%"></div>
+          </div>
+          <p class="mt-1.5 text-2xs leading-relaxed text-slate-400">替掉「水平偏移 / 垂直偏移」两个滑块——而且那两个滑块的含义还会随入场边翻转。</p>
+        </div>
+
+        <div>
+          <div class="mb-2 flex items-baseline justify-between">
+            <span class="ctl-label">发射角度</span>
+            <span class="text-2xs font-semibold tabular-nums text-slate-700"><span data-out="ang">45</span>°</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="dial" data-dial>
+              <div class="pointer-events-none absolute inset-2 rounded-full border border-dashed border-slate-200"></div>
+              <div class="pointer-events-none absolute left-1/2 top-1/2 h-px w-[34px] origin-left bg-slate-900" data-dial-arm style="transform:rotate(45deg)"></div>
+              <div class="pointer-events-none absolute left-1/2 top-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-slate-900"></div>
+              <div class="absolute size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-slate-900 shadow-sm" data-dial-knob></div>
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap gap-1.5">
+                <button data-ang="0" class="preset-chip">0°</button>
+                <button data-ang="45" class="preset-chip preset-chip-on">45°</button>
+                <button data-ang="90" class="preset-chip">90°</button>
+                <button data-ang="180" class="preset-chip">180°</button>
+              </div>
+              <p class="mt-2 text-2xs leading-relaxed text-slate-400">拖动转盘或点预设。按住 Shift 以 15° 吸附。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="sm:col-span-2">
+          <div class="mb-2 flex items-baseline justify-between">
+            <span class="ctl-label">自定义缓动</span>
+            <span class="text-2xs font-semibold tabular-nums text-slate-700" data-out="bez">cubic-bezier(0.34, 1.56, 0.64, 1)</span>
+          </div>
+          <div class="curve" data-curve>
+            <svg class="absolute inset-0 size-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+              <line x1="0" y1="100" x2="100" y2="100" stroke="#e2e8f0" stroke-width="0.6" />
+              <line x1="0" y1="0" x2="0" y2="100" stroke="#e2e8f0" stroke-width="0.6" />
+              <line x1="0" y1="20" x2="100" y2="20" stroke="#eef2f6" stroke-width="0.6" stroke-dasharray="2 2" />
+              <path data-curve-path d="" fill="none" stroke="#0f172a" stroke-width="1.4" vector-effect="non-scaling-stroke" />
+              <line data-curve-l1 stroke="#cbd5e1" stroke-width="0.8" stroke-dasharray="2 2" />
+              <line data-curve-l2 stroke="#cbd5e1" stroke-width="0.8" stroke-dasharray="2 2" />
+            </svg>
+            <div class="curve-handle" data-curve-h="1"></div>
+            <div class="curve-handle" data-curve-h="2"></div>
+          </div>
+          <p class="mt-1.5 text-2xs leading-relaxed text-slate-400">
+            曲线超出顶部虚线即为过冲。<span class="font-medium text-slate-600">这正是键盘动效那个 bug 的成因</span>——过冲曲线被当成整条动画的 timing function，进度冲过 1 后钳在最后一帧。画出来就一眼看见。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ 开关 / 单选 / 复选 ══ -->
+    <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm lg:col-span-2">
+      <div class="border-b border-slate-100 px-4 py-3">
+        <h3 class="text-sm font-medium text-slate-900">开关、单选卡、复选</h3>
+      </div>
+      <div class="grid gap-4 px-4 py-4 lg:grid-cols-3">
+        <div class="space-y-1.5">
+          <div class="text-2xs font-semibold text-slate-400">带说明的开关</div>
+          <button class="switch-row" data-sw><span class="min-w-0 text-left"><span class="block text-xs font-medium text-slate-700">语义分层</span><span class="mt-0.5 block text-2xs text-slate-400">快捷键与修饰键用不同强度</span></span><span class="switch-knob switch-on"></span></button>
+          <button class="switch-row" data-sw><span class="min-w-0 text-left"><span class="block text-xs font-medium text-slate-700">输入节奏加成</span><span class="mt-0.5 block text-2xs text-slate-400">连打时逐级增强</span></span><span class="switch-knob switch-on"></span></button>
+          <button class="switch-row" data-sw><span class="min-w-0 text-left"><span class="block text-xs font-medium text-slate-700">强制大写</span><span class="mt-0.5 block text-2xs text-slate-400">全部显示为大写形式</span></span><span class="switch-knob"></span></button>
+        </div>
+
+        <div class="space-y-1.5">
+          <div class="text-2xs font-semibold text-slate-400">单选卡（带图标与描述）</div>
+          <button data-radio class="mode-card w-full mode-card-on">
+            <span class="mode-dot mode-dot-on"></span>
+            <span class="min-w-0"><span class="block text-xs font-medium text-slate-900">按键位散开</span><span class="mt-1 block text-2xs leading-relaxed text-slate-500">按 Q 出现在左边，按 P 在右边</span></span>
+          </button>
+          <button data-radio class="mode-card w-full">
+            <span class="mode-dot"></span>
+            <span class="min-w-0"><span class="block text-xs font-medium text-slate-900">固定一处</span><span class="mt-1 block text-2xs leading-relaxed text-slate-500">所有按键都从同一点飞入</span></span>
+          </button>
+        </div>
+
+        <div class="space-y-1.5">
+          <div class="text-2xs font-semibold text-slate-400">复选（含半选）</div>
+          <button data-check class="flex w-full items-center gap-2.5 rounded-lg px-1 py-1.5 text-left transition-colors hover:bg-slate-50">
+            <span class="grid size-4 shrink-0 place-items-center rounded border border-slate-950 bg-slate-950 text-white">
+              <svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M20 6 9 17l-5-5"/></svg>
+            </span>
+            <span class="text-xs font-medium text-slate-700">左键单击</span>
+          </button>
+          <button data-check class="flex w-full items-center gap-2.5 rounded-lg px-1 py-1.5 text-left transition-colors hover:bg-slate-50">
+            <span class="grid size-4 shrink-0 place-items-center rounded border border-slate-950 bg-slate-950 text-white">
+              <span class="h-0.5 w-2 rounded-full bg-white"></span>
+            </span>
+            <span class="text-xs font-medium text-slate-700">应用到全部动作 <span class="text-2xs font-normal text-slate-400">（3 / 5 已选）</span></span>
+          </button>
+          <button data-check class="flex w-full items-center gap-2.5 rounded-lg px-1 py-1.5 text-left transition-colors hover:bg-slate-50">
+            <span class="grid size-4 shrink-0 place-items-center rounded border border-slate-300 bg-white"></span>
+            <span class="text-xs font-medium text-slate-700">滚轮</span>
+          </button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <p class="mt-4 text-2xs text-slate-400">原型页 · 不是产品页面。</p>
+</div>
+
+<script>
+// 滑块 / 下拉 / 数值框全部来自共享实现 controls.js（对应 src/components/ui/*）。
+// 这一页原先自带一套实现，于是「控件库」和「四个界面」各跑一套代码——正是要避免的分叉。
+const state = {};
+const SPEC = {
+  demo: { out: 'demo', dirty: 'demo' },
+  a: { out: 'a', dirty: 'a' },
+  b: { out: 'b', dirty: 'b' },
+  c: { out: 'c', dirty: 'c', format: (v) => (v / 10).toFixed(1) },
+  d: { out: 'd', format: (v, v2) => `${v}–${v2}` },
+  e: { out: 'e' },
+  e2: { out: 'e2' },
+  f: { out: 'f' },
+  op: { out: 'op' },
+};
+document.querySelectorAll('[data-slider]').forEach((el) => {
+  const id = el.dataset.id;
+  const spec = SPEC[id] || {};
+  const outEl = document.querySelector(`[data-out="${spec.out || id}"]`);
+  const dirtyEl = spec.dirty ? document.querySelector(`[data-dirty="${spec.dirty}"]`) : null;
+  el.id = el.id || `sl-${id}`;
+  const scrubEl = document.querySelector(`[data-scrub="${id}"]`);
+  if (scrubEl) scrubEl.dataset.scrub = el.id;   // scrub 按元素 id 关联
+  const api = Ctl.slider(el, {
+    format: spec.format,
+    onChange: (v, v2) => {
+      if (outEl) outEl.textContent = (spec.format || ((a, b) => (b !== undefined ? `${a}–${b}` : a)))(v, v2);
+      if (dirtyEl) dirtyEl.hidden = String(v) === el.dataset.default;
+    },
+  });
+  state[id] = api;
+});
+
+
+
+// ═══ 数值输入 ═══
+document.querySelectorAll('[data-num-input]').forEach((old) => {
+  const host = document.createElement('div');
+  old.parentElement.replaceWith(host);
+  Ctl.number(host, { min: Number(old.dataset.min), max: Number(old.dataset.max), unit: 'ms', value: Number(old.value) });
+});
+
+// ═══ 快捷键捕获 ═══
+document.querySelectorAll('[data-keycap]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    btn.textContent = '按下组合键…';
+    btn.className = 'inline-flex h-8 items-center gap-1.5 rounded-xl border-2 border-slate-950 bg-white px-2.5 text-2xs font-medium text-slate-900 shadow-sm';
+    const onKey = (e) => {
+      e.preventDefault();
+      if (e.key === 'Escape') { reset(); return; }
+      const parts = [e.metaKey && '⌘', e.ctrlKey && '⌃', e.altKey && '⌥', e.shiftKey && '⇧'].filter(Boolean);
+      const k = e.key.length === 1 ? e.key.toUpperCase() : e.key;
+      if (['Meta', 'Control', 'Alt', 'Shift'].includes(e.key)) return;
+      btn.innerHTML = parts.map((p) => `<span class="kbd">${p}</span>`).join('') + `<span class="kbd">${k}</span>`;
+      btn.className = 'inline-flex h-8 items-center gap-1 rounded-xl border border-slate-200 bg-white px-2 shadow-sm';
+      document.removeEventListener('keydown', onKey, true);
+    };
+    const reset = () => {
+      btn.textContent = '点击后按下组合键';
+      btn.className = 'inline-flex h-8 items-center gap-1.5 rounded-xl border border-dashed border-slate-300 bg-white px-2.5 text-2xs font-medium text-slate-500 shadow-sm transition-colors hover:border-slate-400 hover:text-slate-700';
+      document.removeEventListener('keydown', onKey, true);
+    };
+    document.addEventListener('keydown', onKey, true);
+  });
+});
+
+// ═══ 颜色 ═══
+document.querySelectorAll('[data-color]').forEach((b) => b.addEventListener('click', () => {
+  document.querySelectorAll('[data-color]').forEach((x) => { x.className = 'size-7 rounded-lg border border-slate-200 shadow-sm'; });
+  b.className = 'size-7 rounded-lg border-2 border-slate-950 shadow-sm ring-2 ring-slate-300';
+  document.querySelector('[data-hex]').value = b.dataset.color;
+}));
+
+// ═══ 下拉：带预览的选项 ═══
+const EASINGS = [
+  ['线性', 'linear', [0, 0, 1, 1]],
+  ['缓出', 'ease-out', [0, 0, .2, 1]],
+  ['缓入', 'ease-in', [.4, 0, 1, 1]],
+  ['缓入缓出', 'ease-in-out', [.4, 0, .2, 1]],
+  ['弹跳', '过冲 9.8%', [.34, 1.56, .64, 1]],
+  ['弹性', '过冲 1.8%', [.22, 1, .36, 1.18]],
+];
+const SHAPES = [
+  ['圆点', '<circle cx="12" cy="12" r="6" fill="#0f172a"/>'],
+  ['方块', '<rect x="6" y="6" width="12" height="12" rx="2" fill="#0f172a"/>'],
+  ['星形', '<path d="M12 4l2.4 6.2H21l-5.3 3.7 2 6.1L12 16.4 6.3 20l2-6.1L3 10.2h6.6z" fill="#0f172a"/>'],
+  ['钻石', '<path d="M12 4l7 8-7 8-7-8z" fill="#0f172a"/>'],
+];
+const FONTS = [
+  ['系统默认', 'system-ui, -apple-system, sans-serif'],
+  ['SF Mono', '"SF Mono", Menlo, monospace'],
+  ['SF Pro Rounded', '"SF Pro Rounded", system-ui, sans-serif'],
+  ['Helvetica Neue', '"Helvetica Neue", Helvetica, Arial, sans-serif'],
+];
+const ZONES = [
+  ['整屏', '不限制触发位置'],
+  ['中心区域', '只在屏幕中部 60% 内触发'],
+  ['边缘', '只在屏幕外缘 20% 内触发'],
+];
+
+// 四个下拉全部走共享 Ctl.select：选项自带缩略图 / 描述 / 右侧样张
+Ctl.select(document.getElementById('sel-easing'), {
+  options: EASINGS.map(([label, desc, pts]) => ({ label, desc, thumb: Ctl.curveThumb(pts) })),
+  value: '弹跳',
+});
+Ctl.select(document.getElementById('sel-shape'), {
+  options: SHAPES.map(([label]) => ({ label, thumb: Ctl.shapeThumb(label) })),
+  value: '圆点',
+});
+Ctl.select(document.getElementById('sel-font'), {
+  options: FONTS.map(([label, stack]) => ({ label, side: `<span style="font-family:${stack}">Nice! 123</span>` })),
+  value: '系统默认',
+});
+Ctl.select(document.getElementById('sel-zone'), {
+  options: ZONES.map(([label, desc]) => ({ label, desc })),
+  value: '整屏',
+});
+
+// ═══ 二维板 ═══
+(() => {
+  const pad = document.querySelector('[data-pad]'), dot = document.querySelector('[data-pad-dot]');
+  let drag = false;
+  const set = (e) => {
+    const r = pad.getBoundingClientRect();
+    const x = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+    const y = Math.max(0, Math.min(1, (e.clientY - r.top) / r.height));
+    dot.style.left = x * 100 + '%'; dot.style.top = y * 100 + '%';
+    document.querySelector('[data-out="padx"]').textContent = Math.round(x * 100);
+    document.querySelector('[data-out="pady"]').textContent = Math.round(y * 100);
+  };
+  pad.addEventListener('pointerdown', (e) => { drag = true; pad.setPointerCapture(e.pointerId); set(e); });
+  pad.addEventListener('pointermove', (e) => { if (drag) set(e); });
+  pad.addEventListener('pointerup', () => { drag = false; });
+})();
+
+// ═══ 角度盘 ═══
+(() => {
+  const dial = document.querySelector('[data-dial]');
+  const arm = document.querySelector('[data-dial-arm]'), knob = document.querySelector('[data-dial-knob]');
+  let drag = false;
+  const apply = (deg) => {
+    arm.style.transform = `rotate(${deg}deg)`;
+    const rad = (deg * Math.PI) / 180, R = 34;
+    knob.style.left = `calc(50% + ${Math.cos(rad) * R}px)`;
+    knob.style.top = `calc(50% + ${Math.sin(rad) * R}px)`;
+    document.querySelector('[data-out="ang"]').textContent = Math.round((deg + 360) % 360);
+    document.querySelectorAll('[data-ang]').forEach((b) => b.classList.toggle('preset-chip-on', Number(b.dataset.ang) === ((deg + 360) % 360)));
+  };
+  const set = (e) => {
+    const r = dial.getBoundingClientRect();
+    let deg = (Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2)) * 180) / Math.PI;
+    if (e.shiftKey) deg = Math.round(deg / 15) * 15;
+    apply(Math.round(deg));
+  };
+  dial.addEventListener('pointerdown', (e) => { drag = true; dial.setPointerCapture(e.pointerId); set(e); });
+  dial.addEventListener('pointermove', (e) => { if (drag) set(e); });
+  dial.addEventListener('pointerup', () => { drag = false; });
+  document.querySelectorAll('[data-ang]').forEach((b) => b.addEventListener('click', () => apply(Number(b.dataset.ang))));
+  apply(45);
+})();
+
+// ═══ 贝塞尔曲线编辑器 ═══
+(() => {
+  const box = document.querySelector('[data-curve]');
+  const path = box.querySelector('[data-curve-path]');
+  const l1 = box.querySelector('[data-curve-l1]'), l2 = box.querySelector('[data-curve-l2]');
+  const h1 = box.querySelector('[data-curve-h="1"]'), h2 = box.querySelector('[data-curve-h="2"]');
+  let pts = [.34, 1.56, .64, 1];
+  const Y = (v) => 100 - v * 80 - 10;   // v=0 → y=90, v=1 → y=10（顶部留 10 给过冲）
+  const X = (v) => v * 100;
+  function paintCurve() {
+    const [x1, y1, x2, y2] = pts;
+    path.setAttribute('d', `M0 ${Y(0)} C ${X(x1)} ${Y(y1)}, ${X(x2)} ${Y(y2)}, 100 ${Y(1)}`);
+    l1.setAttribute('x1', 0); l1.setAttribute('y1', Y(0)); l1.setAttribute('x2', X(x1)); l1.setAttribute('y2', Y(y1));
+    l2.setAttribute('x1', 100); l2.setAttribute('y1', Y(1)); l2.setAttribute('x2', X(x2)); l2.setAttribute('y2', Y(y2));
+    h1.style.left = X(x1) + '%'; h1.style.top = Y(y1) + '%';
+    h2.style.left = X(x2) + '%'; h2.style.top = Y(y2) + '%';
+    const over = y1 > 1 || y2 > 1;
+    path.setAttribute('stroke', over ? '#d97706' : '#0f172a');
+    document.querySelector('[data-out="bez"]').textContent =
+      `cubic-bezier(${pts.map((p) => p.toFixed(2)).join(', ')})` + (over ? ' · 有过冲' : '');
+  }
+  [h1, h2].forEach((h, i) => {
+    h.addEventListener('pointerdown', (e) => {
+      e.preventDefault(); h.setPointerCapture(e.pointerId);
+      const move = (ev) => {
+        const r = box.getBoundingClientRect();
+        const x = Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width));
+        const yPx = (ev.clientY - r.top) / r.height * 100;
+        const v = (90 - yPx) / 80;
+        pts[i * 2] = x;
+        pts[i * 2 + 1] = Math.max(-0.4, Math.min(1.6, v));
+        paintCurve();
+      };
+      const up = () => { h.removeEventListener('pointermove', move); h.removeEventListener('pointerup', up); };
+      h.addEventListener('pointermove', move);
+      h.addEventListener('pointerup', up);
+    });
+  });
+  paintCurve();
+})();
+
+// ═══ 开关 / 单选 / 复选 ═══
+document.querySelectorAll('[data-sw]').forEach((b) => b.addEventListener('click', () => {
+  b.querySelector('.switch-knob').classList.toggle('switch-on');
+}));
+document.querySelectorAll('[data-radio]').forEach((b) => b.addEventListener('click', () => {
+  document.querySelectorAll('[data-radio]').forEach((x) => {
+    x.classList.remove('mode-card-on');
+    x.querySelector('.mode-dot').classList.remove('mode-dot-on');
+  });
+  b.classList.add('mode-card-on');
+  b.querySelector('.mode-dot').classList.add('mode-dot-on');
+}));
+</script>
+</body>
+</html>

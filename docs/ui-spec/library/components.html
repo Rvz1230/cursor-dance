@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>通用组件库 · UX 原型</title>
+<link rel="stylesheet" href="../mockup.css" />
+<script src="../controls.js"></script>
+<style>
+  body {
+    font-family: "SF Pro Display", "SF Pro Text", "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+  }
+</style>
+</head>
+<body class="surface-sunken p-6">
+
+<div class="mx-auto max-w-[1080px]">
+
+  <!-- ══ PageHeader：这一块本身就是要抽出来的组件 ══ -->
+  <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+    <div class="min-w-0">
+      <h1 class="text-base font-semibold ink text-balance">通用组件库</h1>
+      <p class="mt-1 max-w-2xl text-xs leading-relaxed ink-3 text-pretty">
+        补齐三个新模块里反复手写的组件，统一反馈渠道，并验证深色模式的语义令牌层。
+      </p>
+    </div>
+    <div class="flex shrink-0 items-center gap-2">
+      <div class="seg-group">
+        <button data-mode="light" class="seg-item">浅色</button>
+        <button data-mode="dark" class="seg-item">深色</button>
+      </div>
+      <a href="../index.html" class="btn-outline h-8 px-3 text-xs dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">← 规范首页</a>
+    </div>
+  </div>
+
+  <div class="space-y-3">
+
+    <!-- ── 1. 新增组件 ── -->
+    <section class="gal-card">
+      <div class="border-b px-4 py-3 hairline">
+        <h3 class="text-sm font-medium ink">新增组件</h3>
+        <p class="mt-0.5 text-xs ink-3">这五个现在每处都在手写，抽出来后新页面不必再重复一遍。</p>
+      </div>
+      <div class="space-y-4 px-4 py-4">
+
+        <!-- EmptyState -->
+        <div>
+          <div class="mb-2 flex items-baseline gap-2">
+            <span class="text-xs font-medium ink-2">EmptyState</span>
+            <span class="text-2xs ink-4">现有 3 处手写：应用规则 / 效果卡空态 / 主题库</span>
+          </div>
+          <div class="grid gap-2 md:grid-cols-3">
+            <div class="rounded-xl border border-dashed px-4 py-6 text-center hairline">
+              <div class="mx-auto grid size-10 place-items-center rounded-full surface ink-4 shadow-sm ring-1 ring-slate-200 dark:ring-slate-700">
+                <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
+              </div>
+              <p class="mt-3 text-xs font-medium ink-2">还没有内容</p>
+              <p class="mx-auto mt-1.5 max-w-[220px] text-2xs leading-relaxed ink-3">一句话说明这里会出现什么。</p>
+              <button class="btn-default mt-3 h-7 px-2.5 text-2xs">主操作</button>
+            </div>
+            <div class="rounded-xl border border-dashed px-4 py-6 text-center hairline">
+              <div class="mx-auto grid size-10 place-items-center rounded-full surface ink-4 shadow-sm ring-1 ring-slate-200 dark:ring-slate-700">
+                <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              </div>
+              <p class="mt-3 text-xs font-medium ink-2">没有匹配结果</p>
+              <p class="mx-auto mt-1.5 max-w-[220px] text-2xs leading-relaxed ink-3">换个关键词，或清空筛选条件。</p>
+              <button class="btn-outline mt-3 h-7 px-2.5 text-2xs dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">清空筛选</button>
+            </div>
+            <div class="rounded-xl border border-dashed px-4 py-6 text-center hairline">
+              <div class="mx-auto grid size-10 place-items-center rounded-full bg-amber-50 text-amber-600 ring-1 ring-amber-200 dark:bg-amber-950 dark:ring-amber-900">
+                <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+              </div>
+              <p class="mt-3 text-xs font-medium ink-2">需要系统授权</p>
+              <p class="mx-auto mt-1.5 max-w-[220px] text-2xs leading-relaxed ink-3">授权后这里会列出可用内容。</p>
+              <button class="btn-outline mt-3 h-7 px-2.5 text-2xs dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">打开系统设置</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Segmented + NumberField -->
+        <div class="grid gap-4 border-t pt-4 hairline md:grid-cols-2">
+          <div>
+            <div class="mb-2 flex items-baseline gap-2">
+              <span class="text-xs font-medium ink-2">Segmented</span>
+              <span class="text-2xs ink-4">三个原型里用了 4 次，项目里还没有</span>
+            </div>
+            <div class="space-y-2">
+              <div class="seg-group">
+                <button class="seg-item seg-item-on">试用</button>
+                <button class="seg-item">校准</button>
+              </div>
+              <div class="seg-group w-full">
+                <button class="seg-item flex-1 justify-center seg-item-on">真实输入</button>
+                <button class="seg-item flex-1 justify-center">物理键名</button>
+              </div>
+              <div class="seg-group">
+                <button class="seg-item">启用</button>
+                <button class="seg-item seg-item-on">关闭</button>
+                <button class="seg-item">主题 ▾</button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="mb-2 flex items-baseline gap-2">
+              <span class="text-xs font-medium ink-2">NumberField</span>
+              <span class="text-2xs ink-4">51 个滑块里近半是精确值，读数须可输入</span>
+            </div>
+            <div class="space-y-2.5">
+              <div class="grid grid-cols-[72px_minmax(0,1fr)_auto] items-center gap-2.5">
+                <span class="text-xs font-medium ink-2">时长</span>
+                <div data-slider data-min="200" data-max="2000" data-value="820" data-default="820"></div>
+                <span class="flex items-center gap-1"><input class="num-input dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200" value="820" /><span class="text-2xs ink-4">ms</span></span>
+              </div>
+              <div class="grid grid-cols-[72px_minmax(0,1fr)_auto] items-center gap-2.5">
+                <span class="text-xs font-medium ink-2">字号</span>
+                <div data-slider data-min="12" data-max="96" data-value="28" data-default="28"></div>
+                <span class="flex items-center gap-1"><input class="num-input dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200" value="28" /><span class="text-2xs ink-4">px</span></span>
+              </div>
+              <p class="text-2xs leading-relaxed ink-4">拖滑块改读数，改读数也回写滑块；超范围自动 clamp。</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Skeleton -->
+        <div class="border-t pt-4 hairline">
+          <div class="mb-2 flex items-baseline gap-2">
+            <span class="text-xs font-medium ink-2">Skeleton</span>
+            <span class="text-2xs ink-4">替掉 DeferredPanelFallback 的居中 spinner —— 现在懒加载时页面看起来像空了</span>
+          </div>
+          <div class="grid gap-2 md:grid-cols-2">
+            <div class="gal-card p-3">
+              <div class="flex items-center gap-2.5">
+                <div class="skel size-8 rounded-xl"></div>
+                <div class="min-w-0 flex-1 space-y-1.5">
+                  <div class="skel h-3 w-24"></div>
+                  <div class="skel h-2.5 w-40"></div>
+                </div>
+              </div>
+              <div class="mt-3 space-y-2">
+                <div class="skel h-7 w-full"></div>
+                <div class="skel h-7 w-full"></div>
+              </div>
+            </div>
+            <div class="grid place-items-center rounded-xl border border-dashed hairline">
+              <div class="flex items-center gap-2 text-xs ink-4">
+                <svg class="size-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a9 9 0 1 0 9 9"/></svg>
+                现在的样子：一个转圈
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 2. 反馈渠道分工 ── -->
+    <section class="gal-card">
+      <div class="border-b px-4 py-3 hairline">
+        <h3 class="text-sm font-medium ink">反馈渠道：三套并存 → 定死分工</h3>
+        <p class="mt-0.5 text-xs ink-3">现在 toast、InlineStatus、各面板手写的 tone map 三套混用。</p>
+      </div>
+      <div class="space-y-3 px-4 py-4">
+        <div class="grid gap-2 md:grid-cols-3">
+          <div class="rounded-xl border p-3 hairline">
+            <div class="text-2xs font-semibold ink-2">Toast · 一次性结果</div>
+            <p class="mt-1 text-2xs leading-relaxed ink-3">操作成功／失败，带撤销。2.6s 自动消失。</p>
+            <div class="mt-2.5 flex items-center gap-3 rounded-xl border px-3 py-2 shadow-sm hairline surface">
+              <span class="text-xs font-medium ink-2">已套用预设 礼花</span>
+              <button class="text-2xs font-semibold underline underline-offset-2 ink">撤销</button>
+            </div>
+          </div>
+          <div class="rounded-xl border p-3 hairline">
+            <div class="text-2xs font-semibold ink-2">InlineStatus · 持续状态</div>
+            <p class="mt-1 text-2xs leading-relaxed ink-3">缺权限、平台不支持。不会自动消失。</p>
+            <div class="mt-2.5 flex items-start gap-2 rounded-xl bg-amber-50 px-3 py-2 dark:bg-amber-950/50">
+              <svg class="mt-0.5 size-3.5 shrink-0 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+              <span class="text-2xs leading-relaxed text-amber-900 dark:text-amber-200">Windows 暂不支持替换系统光标。</span>
+            </div>
+          </div>
+          <div class="rounded-xl border p-3 hairline">
+            <div class="text-2xs font-semibold ink-2">字段内联 · 校验错误</div>
+            <p class="mt-1 text-2xs leading-relaxed ink-3">紧邻出错的那个输入框，不飘到别处。</p>
+            <div class="mt-2.5">
+              <input value="" placeholder="匹配值" class="h-8 w-full rounded-xl border border-rose-300 bg-white px-2 text-xs text-slate-700 shadow-sm dark:bg-slate-900 dark:text-slate-200" />
+              <p class="mt-1.5 text-2xs font-medium text-rose-600 dark:text-rose-400">请填写匹配值</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 3. 图标色：改前 / 改后 ── -->
+    <section class="gal-card">
+      <div class="border-b px-4 py-3 hairline">
+        <h3 class="text-sm font-medium ink">面板图标色：9 种强调色 → 统一 slate</h3>
+        <p class="mt-0.5 text-xs ink-3">
+          DESIGN.md 写明「功能色仅用于语义目的」「每视图只用一个强调色」，而 PANEL_META 给 9 个面板配了 9 种颜色，其中 fuchsia / violet / cyan 根本不在色板里。
+        </p>
+      </div>
+      <div class="grid gap-4 px-4 py-4 md:grid-cols-2">
+        <div>
+          <div class="mb-2 text-2xs font-semibold ink-4">改前</div>
+          <!-- data-antipattern：这一组是故意的反例对照组，check-ui-spec.mjs 按该标记放行 -->
+          <div data-antipattern="nine-color-icon-tone" class="flex flex-wrap gap-1.5">
+            <span data-antipattern class="grid size-9 place-items-center rounded-xl bg-emerald-100 text-emerald-700">触</span>
+            <span data-antipattern class="grid size-9 place-items-center rounded-xl bg-amber-100 text-amber-700">字</span>
+            <span data-antipattern class="grid size-9 place-items-center rounded-xl bg-sky-100 text-sky-700">粒</span>
+            <span data-antipattern class="grid size-9 place-items-center rounded-xl bg-teal-100 text-teal-700">波</span>
+            <span data-antipattern class="grid size-9 place-items-center rounded-xl bg-rose-100 text-rose-700">音</span>
+            <span data-antipattern class="grid size-9 place-items-center rounded-xl bg-cyan-100 text-cyan-700">动</span>
+            <span data-antipattern class="grid size-9 place-items-center rounded-xl bg-fuchsia-100 text-fuchsia-700">贴</span>
+            <span data-antipattern class="grid size-9 place-items-center rounded-xl bg-slate-200 text-slate-700">标</span>
+            <span data-antipattern class="grid size-9 place-items-center rounded-xl bg-violet-100 text-violet-700">键</span>
+          </div>
+          <p class="mt-2 text-2xs leading-relaxed ink-4">八张卡排一列就是八种颜色，颜色不承载信息。</p>
+        </div>
+        <div>
+          <div class="mb-2 text-2xs font-semibold ink-4">改后 · 颜色只表达「已启用」</div>
+          <div class="flex flex-wrap gap-1.5">
+            <span class="grid size-9 place-items-center rounded-xl bg-slate-900 text-white">触</span>
+            <span class="grid size-9 place-items-center rounded-xl bg-slate-900 text-white">字</span>
+            <span class="grid size-9 place-items-center rounded-xl bg-slate-900 text-white">粒</span>
+            <span class="grid size-9 place-items-center rounded-xl bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">波</span>
+            <span class="grid size-9 place-items-center rounded-xl bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">音</span>
+            <span class="grid size-9 place-items-center rounded-xl bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">动</span>
+            <span class="grid size-9 place-items-center rounded-xl bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">贴</span>
+            <span class="grid size-9 place-items-center rounded-xl bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">标</span>
+            <span class="grid size-9 place-items-center rounded-xl bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">键</span>
+          </div>
+          <p class="mt-2 flex items-center gap-1.5 text-2xs leading-relaxed ink-4">
+            <span class="inline-flex items-center gap-1 text-2xs font-semibold text-emerald-700 dark:text-emerald-400"><span class="size-1.5 rounded-full bg-emerald-500"></span>已启用</span>
+            用一个 emerald 点表达，深色底 = 启用，浅灰 = 关闭。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 4. 可访问性 ── -->
+    <section class="gal-card">
+      <div class="border-b px-4 py-3 hairline">
+        <h3 class="text-sm font-medium ink">可访问性：hover 才出现 → 常显</h3>
+        <p class="mt-0.5 text-xs ink-3">
+          至少 4 处只在 hover 时可达（theme-card 的重命名与更多菜单、规则行的编辑与删除）。键盘和触控板用户发现不了。
+        </p>
+      </div>
+      <div class="grid gap-4 px-4 py-4 md:grid-cols-2">
+        <div>
+          <div class="mb-2 text-2xs font-semibold ink-4">改前 · 鼠标移上去才出现</div>
+          <div class="group flex items-center gap-2.5 rounded-xl border px-3 py-2.5 shadow-sm hairline surface">
+            <span class="grid size-8 place-items-center rounded-xl bg-slate-100 text-slate-500 dark:bg-slate-800">▣</span>
+            <span class="min-w-0 flex-1 text-xs font-medium ink-2">夕霞</span>
+            <button data-antipattern class="rounded-lg px-2 py-1 text-2xs font-medium opacity-0 transition-opacity ink-3 group-hover:opacity-100">编辑</button>
+            <button data-antipattern class="grid size-6 place-items-center rounded-lg opacity-0 transition-opacity ink-4 group-hover:opacity-100">⋯</button>
+          </div>
+          <p data-antipattern class="mt-2 text-2xs leading-relaxed ink-4">已机械检测：<code class="rounded bg-slate-100 px-1 dark:bg-slate-800">opacity-0 …group-hover:opacity-100</code> 已进 <code class="rounded bg-slate-100 px-1 dark:bg-slate-800">check-design-tokens.mjs</code> 与 <code class="rounded bg-slate-100 px-1 dark:bg-slate-800">check-ui-spec.mjs</code>；带 <code class="rounded bg-slate-100 px-1 dark:bg-slate-800">group-focus-within</code> 的可 Tab 到，不算违规。</p>
+        </div>
+        <div>
+          <div class="mb-2 text-2xs font-semibold ink-4">改后 · 常显、可 Tab 到</div>
+          <div class="flex items-center gap-2.5 rounded-xl border px-3 py-2.5 shadow-sm hairline surface">
+            <span class="grid size-8 place-items-center rounded-xl bg-slate-100 text-slate-500 dark:bg-slate-800">▣</span>
+            <span class="min-w-0 flex-1 text-xs font-medium ink-2">夕霞</span>
+            <span class="size-1.5 rounded-full bg-amber-400" title="有未保存的改动"></span>
+            <button class="rounded-lg px-2 py-1 text-2xs font-medium ink-3 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800">编辑</button>
+            <button class="grid size-6 place-items-center rounded-lg ink-4 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="更多操作">⋯</button>
+          </div>
+          <p class="mt-2 text-2xs leading-relaxed ink-4">拖拽排序另配 <span class="kbd dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">⌥↑</span> <span class="kbd dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">⌥↓</span> 键盘替代。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 5. 快捷键 ── -->
+    <section class="gal-card">
+      <div class="border-b px-4 py-3 hairline">
+        <h3 class="text-sm font-medium ink">快捷键：从零到一套</h3>
+        <p class="mt-0.5 text-xs ink-3">现在整个 renderer 里 0 个 keydown 监听，主进程只有托盘菜单。</p>
+      </div>
+      <div class="grid gap-2 px-4 py-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="flex items-center justify-between rounded-xl border px-3 py-2 hairline"><span class="text-2xs ink-2">撤销上一步</span><span class="kbd dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">⌘Z</span></div>
+        <div class="flex items-center justify-between rounded-xl border px-3 py-2 hairline"><span class="text-2xs ink-2">命令面板</span><span class="kbd dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">⌘K</span></div>
+        <div class="flex items-center justify-between rounded-xl border px-3 py-2 hairline"><span class="text-2xs ink-2">切换工作区</span><span class="kbd dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">⌘1–5</span></div>
+        <div class="flex items-center justify-between rounded-xl border px-3 py-2 hairline"><span class="text-2xs ink-2">新建主题</span><span class="kbd dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">⌘N</span></div>
+        <div class="flex items-center justify-between rounded-xl border px-3 py-2 hairline"><span class="text-2xs ink-2">AI 助手</span><span class="kbd dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">⌘J</span></div>
+        <div class="flex items-center justify-between rounded-xl border border-dashed px-3 py-2 hairline"><span class="text-2xs ink-4">保存 ⌘S</span><span class="text-2xs font-medium ink-4">不再需要 · 自动保存</span></div>
+      </div>
+    </section>
+
+    <!-- ── 6. 深色令牌层 ── -->
+    <section class="gal-card">
+      <div class="border-b px-4 py-3 hairline">
+        <h3 class="text-sm font-medium ink">深色模式：先加一层语义令牌</h3>
+        <p class="mt-0.5 text-xs ink-3">
+          现在全站直接写死 <code class="rounded bg-slate-100 px-1 dark:bg-slate-800">bg-white</code> / <code class="rounded bg-slate-100 px-1 dark:bg-slate-800">text-slate-900</code>，无法整体切换。先定义语义层，再机械替换。整页右上角的开关就走这一层。
+        </p>
+      </div>
+      <div class="px-4 py-4">
+        <div class="overflow-hidden rounded-xl border hairline">
+          <table class="w-full text-left">
+            <thead class="surface-sunken">
+              <tr>
+                <th class="px-3 py-2 text-2xs font-semibold ink-3">语义名</th>
+                <th class="px-3 py-2 text-2xs font-semibold ink-3">浅色</th>
+                <th class="px-3 py-2 text-2xs font-semibold ink-3">深色</th>
+                <th class="px-3 py-2 text-2xs font-semibold ink-3">用途</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
+              <tr><td class="px-3 py-2 text-2xs font-medium ink-2">surface</td><td class="px-3 py-2 text-2xs ink-3">white</td><td class="px-3 py-2 text-2xs ink-3">slate-900</td><td class="px-3 py-2 text-2xs ink-4">卡片 / 面板底</td></tr>
+              <tr><td class="px-3 py-2 text-2xs font-medium ink-2">surface-sunken</td><td class="px-3 py-2 text-2xs ink-3">slate-50</td><td class="px-3 py-2 text-2xs ink-3">slate-950</td><td class="px-3 py-2 text-2xs ink-4">页面底 / 次级面板</td></tr>
+              <tr><td class="px-3 py-2 text-2xs font-medium ink-2">hairline</td><td class="px-3 py-2 text-2xs ink-3">slate-200</td><td class="px-3 py-2 text-2xs ink-3">slate-700</td><td class="px-3 py-2 text-2xs ink-4">1px 描边</td></tr>
+              <tr><td class="px-3 py-2 text-2xs font-medium ink-2">ink / ink-2 / ink-3 / ink-4</td><td class="px-3 py-2 text-2xs ink-3">900 / 600 / 500 / 400</td><td class="px-3 py-2 text-2xs ink-3">100 / 300 / 400 / 500</td><td class="px-3 py-2 text-2xs ink-4">标题 / 标签 / 描述 / 辅助</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="mt-2.5 text-2xs leading-relaxed ink-4">
+          功能色（emerald / rose / amber / teal / sky）在深色下换成 <code class="rounded bg-slate-100 px-1 dark:bg-slate-800">-400</code> 字色 + <code class="rounded bg-slate-100 px-1 dark:bg-slate-800">-950</code> 底色，保持对比度。这一步做完，其余页面是机械替换。
+        </p>
+      </div>
+    </section>
+
+    <!-- ── 7. 清理 ── -->
+    <section class="gal-card">
+      <div class="border-b px-4 py-3 hairline">
+        <h3 class="text-sm font-medium ink">清理项</h3>
+      </div>
+      <div class="divide-y divide-slate-200 px-4 dark:divide-slate-700">
+        <div class="flex items-start gap-3 py-3">
+          <span class="mt-0.5 inline-flex shrink-0 items-center rounded-full bg-rose-50 px-2 py-0.5 text-2xs font-semibold text-rose-700 dark:bg-rose-950 dark:text-rose-300">删</span>
+          <div class="min-w-0">
+            <div class="text-xs font-medium ink-2">Panel 的 <code class="rounded bg-slate-100 px-1 dark:bg-slate-800">enabled</code> 死参数</div>
+            <p class="mt-0.5 text-2xs leading-relaxed ink-3">解构成 <code class="rounded bg-slate-100 px-1 dark:bg-slate-800">_enabled</code> 后从未使用，但有 5 处在传它，读代码的人会以为它能置灰面板。</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-3 py-3">
+          <span class="mt-0.5 inline-flex shrink-0 items-center rounded-full bg-amber-50 px-2 py-0.5 text-2xs font-semibold text-amber-800 dark:bg-amber-950 dark:text-amber-300">推</span>
+          <div class="min-w-0">
+            <div class="text-xs font-medium ink-2">IconButton 只有 2 个使用者</div>
+            <p class="mt-0.5 text-2xs leading-relaxed ink-3">其余图标按钮全在各处手写。要么全站换过去，要么删掉这个组件。</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-3 py-3">
+          <span class="mt-0.5 inline-flex shrink-0 items-center rounded-full bg-amber-50 px-2 py-0.5 text-2xs font-semibold text-amber-800 dark:bg-amber-950 dark:text-amber-300">推</span>
+          <div class="min-w-0">
+            <div class="text-xs font-medium ink-2">Tabs 只有 1 个使用者</div>
+            <p class="mt-0.5 text-2xs leading-relaxed ink-3">新增的 Segmented 覆盖了大部分场景；Tabs 保留给真正的多页签容器。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <p class="mt-4 text-2xs ink-4">原型页 · 不是产品页面。改动后重新编译样式见 index。</p>
+</div>
+
+<script>
+function setMode(m) {
+  document.documentElement.classList.toggle('dark', m === 'dark');
+  document.querySelectorAll('[data-mode]').forEach((b) => {
+    b.className = 'seg-item' + (b.dataset.mode === m ? ' seg-item-on' : '');
+  });
+}
+document.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
+setMode('light');
+// 滑块用共享实现装配，读数由 Ctl 回填
+window.addEventListener('load', () => {
+  document.querySelectorAll('[data-slider]').forEach((el) => {
+    const num = el.closest('.grid')?.querySelector('.num-input');
+    Ctl.slider(el, { onChange: (v) => { if (num) num.value = v; } });
+  });
+});
+</script>
+</body>
+</html>

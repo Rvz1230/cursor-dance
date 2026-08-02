@@ -1,0 +1,1257 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>主题工作台 · UX 原型</title>
+<link rel="stylesheet" href="../mockup.css" />
+<style>
+  body {
+    font-family: "SF Pro Display", "SF Pro Text", "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+  }
+  .fx { position: absolute; pointer-events: none; user-select: none; }
+  .checker {
+    background-color: #fff;
+    background-image:
+      linear-gradient(45deg, #eef2f6 25%, transparent 25%, transparent 75%, #eef2f6 75%),
+      linear-gradient(45deg, #eef2f6 25%, transparent 25%, transparent 75%, #eef2f6 75%);
+    background-size: 16px 16px; background-position: 0 0, 8px 8px;
+  }
+</style>
+</head>
+<body class="bg-slate-200 p-6 text-slate-900">
+
+<div id="proto"></div>
+<div id="app"></div>
+
+<template id="page">
+
+      <!-- 动作标签：带已启用效果数 -->
+      <div class="shrink-0 px-3 pt-3">
+        <div class="rounded-xl border border-slate-200 bg-white px-2.5 py-2.5 shadow-sm">
+          <div id="actionTabs" class="-mx-1 flex gap-2 overflow-x-auto px-1"></div>
+        </div>
+      </div>
+
+      <div id="cols" class="grid min-h-0 flex-1 gap-1.5 px-3 pt-2.5" style="grid-template-columns: minmax(0,1.05fr) 4px minmax(0,1.25fr)">
+
+        <!-- 配置列 -->
+        <div class="min-h-0 space-y-2 overflow-y-auto pr-1" id="cardCol"></div>
+
+        <!--
+          列宽分隔条。真实代码 useWorkbenchColumnLayout 早就有 startResizeColumns，
+          稿子原先只画了三个布局预设按钮、没有分隔条——按稿子重构会把这个已工作的
+          功能删掉。预设保留为快捷入口，拖拽是自由档。
+          4px 宽与真实代码 getWorkbenchGridTemplate 里的 "4px" 轨道一致。
+        -->
+        <div
+          id="colSplit"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="拖动调整配置列与预览列的宽度"
+          tabindex="0"
+          class="group relative -mx-1 w-1.5 cursor-col-resize self-stretch rounded-full focus-visible:outline-none"
+        >
+          <span class="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-slate-200 transition-colors group-hover:bg-slate-400 group-focus-visible:bg-slate-500"></span>
+        </div>
+
+        <!-- 预览列：舞台占满全高 -->
+        <div class="flex min-h-0 flex-col">
+          <section class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-2.5">
+              <div class="min-w-0">
+                <h3 class="text-sm font-medium text-slate-900">实时预览</h3>
+                <div class="mt-0.5 text-xs text-slate-500">点击舞台触发 · 拖播放头定格任意毫秒</div>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <div class="seg-group">
+                  <button data-bg="light" class="seg-item seg-item-on">浅</button>
+                  <button data-bg="dark" class="seg-item">深</button>
+                  <button data-bg="checker" class="seg-item">格</button>
+                </div>
+                <button id="onionBtn" class="btn-outline h-7 px-2.5 text-2xs" title="洋葱皮：叠加多帧看运动路径">轨迹</button>
+                <button id="abBtn" class="btn-outline h-7 px-2.5 text-2xs" title="按住对比修改前">A/B</button>
+              </div>
+            </div>
+
+            <div class="flex min-h-0 flex-1 flex-col px-4 pt-3">
+              <div id="stage" class="relative min-h-0 flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white">
+                <div id="stageHint" class="pointer-events-none absolute inset-0 grid place-items-center text-center">
+                  <div>
+                    <div class="text-xs font-medium text-slate-500">在这里<span id="hintGesture">单击</span>试试</div>
+                    <div class="mt-1 text-2xs text-slate-400">或拖下面的播放头逐帧检视</div>
+                  </div>
+                </div>
+                <div id="onionHost" class="pointer-events-none absolute inset-0"></div>
+                <div id="fxHost" class="pointer-events-none absolute inset-0"></div>
+                <div id="abBadge" class="pointer-events-none absolute right-3 top-3 hidden rounded-lg bg-slate-900 px-2 py-1 text-2xs font-semibold text-white">修改前</div>
+              </div>
+            </div>
+            </div>
+
+            <!-- 传输控制 -->
+            <div class="flex flex-wrap items-center gap-2 px-4 py-2.5">
+              <div class="flex items-center gap-0.5 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+                <button id="playBtn" class="grid size-7 place-items-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100" aria-label="播放/暂停">
+                  <svg id="playIcon" class="size-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                </button>
+                <button id="stepBack" class="grid size-7 place-items-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100" aria-label="后退一帧">
+                  <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 6 9 12l6 6M8 6v12"/></svg>
+                </button>
+                <button id="stepFwd" class="grid size-7 place-items-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100" aria-label="前进一帧">
+                  <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 6 6 6-6 6M16 6v12"/></svg>
+                </button>
+                <button id="replayBtn" class="grid size-7 place-items-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100" aria-label="重播">
+                  <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg>
+                </button>
+              </div>
+              <div class="seg-group">
+                <button data-speed="1" class="seg-item seg-item-on">1×</button>
+                <button data-speed="0.5" class="seg-item">0.5×</button>
+                <button data-speed="0.25" class="seg-item">0.25×</button>
+              </div>
+              <button id="loopBtn" class="btn-outline h-7 px-2.5 text-2xs" title="只循环标尺上选中的区间">循环区间</button>
+              <!--
+                自动重播与「循环区间」是两回事，所以是两个控件：
+                循环区间 = 反复播标尺上选中的那一段，段与段之间不留空隙；
+                自动重播 = 整条播完后隔一段时间再来一次，模拟「用户隔一会儿点一下」。
+                调手感时需要的是后者——效果之间要有间隔才看得出单次的样子。
+                间隔档位（2400/1200/600ms）与真实代码 INTERVAL_PRESETS 对齐。
+              -->
+              <button id="autoBtn" class="btn-outline h-7 px-2.5 text-2xs" title="整条播完后自动再来一次">自动重播</button>
+              <div id="autoIntervalGroup" class="seg-group hidden" aria-label="自动重播间隔">
+                <button data-interval="2400" class="seg-item">慢</button>
+                <button data-interval="1200" class="seg-item seg-item-on">标准</button>
+                <button data-interval="600" class="seg-item">快</button>
+              </div>
+              <span class="ml-auto inline-flex h-7 items-center gap-1 rounded-xl bg-slate-50 px-2.5 text-2xs font-semibold tabular-nums text-slate-700 ring-1 ring-slate-200">
+                <span id="timeNow">0</span><span class="text-slate-400">/</span><span id="timeTotal">960</span><span class="font-normal text-slate-400">ms</span>
+              </span>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-1.5 border-t border-slate-100 px-4 py-2">
+              <span class="text-2xs font-medium text-slate-500">本次输出</span>
+              <div id="outputTags" class="flex flex-wrap gap-1.5"></div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- ══ 底部抽屉：时间轴需要的是水平空间，所以横跨两列 ══ -->
+      <div id="drawer" class="shrink-0 border-t border-slate-200 bg-white">
+        <div id="drawerGrip" class="group flex h-2.5 cursor-row-resize items-center justify-center" title="拖动调整高度">
+          <span class="h-0.5 w-10 rounded-full bg-slate-200 transition-colors group-hover:bg-slate-400"></span>
+        </div>
+        <div class="flex flex-wrap items-center justify-between gap-2 px-3 pb-2">
+          <div class="flex min-w-0 items-center gap-2">
+            <button id="drawerToggle" class="grid size-5 place-items-center rounded text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700" aria-label="折叠时间轴">
+              <svg id="drawerChevron" class="size-3.5 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <span class="text-xs font-medium text-slate-700">时间轴</span>
+            <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-2xs font-medium tabular-nums text-slate-500">总长 <span id="totalLabel">960</span>ms</span>
+            <span id="drawerSummary" class="truncate text-2xs text-slate-400"></span>
+          </div>
+          <div class="flex flex-wrap items-center gap-1.5">
+            <div class="seg-group">
+                    <button data-snap="20" class="seg-item seg-item-on">20</button>
+                    <button data-snap="10" class="seg-item">10</button>
+                    <button data-snap="0" class="seg-item">关</button>
+                  </div>
+                  <div class="seg-group">
+                    <button data-zoom="1" class="seg-item seg-item-on">适配</button>
+                    <button data-zoom="2" class="seg-item">2×</button>
+                    <button data-zoom="4" class="seg-item">4×</button>
+                  </div>
+            <button id="copyRhythm" class="text-2xs font-medium text-slate-400 transition-colors hover:text-slate-700" title="把这套时间关系套用到其他动作">复制节奏</button>
+          </div>
+        </div>
+        <div id="drawerBody" class="grid gap-2.5 px-3 pb-3" style="grid-template-columns: minmax(0,1fr) 296px; height: 236px">
+          <div id="tlScroll" class="min-h-0 overflow-auto rounded-xl border border-slate-200 bg-white px-3 py-2">
+            <div id="tlInner" class="min-w-full">
+              <div class="grid grid-cols-[132px_minmax(0,1fr)] gap-2.5 px-1">
+                <div></div>
+                <div id="ruler" class="relative h-6 cursor-col-resize"></div>
+              </div>
+              <div id="lanes" class="relative mt-1 space-y-1"></div>
+              <p class="mt-2 text-2xs leading-relaxed text-slate-400">
+                拖色块中部改偏移 · 拖两端改时长 · 拖到别人的<span class="mx-0.5 inline-block size-1.5 rotate-45 bg-slate-900 align-middle"></span>锚点上会<span class="font-medium text-slate-600">建立链接</span> · ⌥ 解除吸附 · S 独奏 / M 静音
+              </p>
+            </div>
+          </div>
+          <div id="inspector" class="min-h-0 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/60 px-3 py-2.5"></div>
+        </div>
+      </div>
+
+    </template>
+
+<script src="../controls.js"></script>
+<script src="../shell.js"></script>
+<script>
+mountShell({ active: 'workbench', mainClass: 'flex min-w-0 flex-1 flex-col overflow-hidden bg-slate-50',
+  proto: [['normal', '① 常规'], ['collapsed', '② 侧边栏折叠'], ['cmdk', '③ 命令面板 ⌘K']],
+  hint: '舞台可点击触发 · 拖播放头定格 · 拖色块到锚点建立链接 · 预设 chip 可点 · ⌘Z 撤销',
+  onProto: (id) => {
+    if (id === 'collapsed') setSidebar(true);
+    else if (id === 'cmdk') { setSidebar(false); toggleCmdk(true); }
+    else { setSidebar(false); toggleCmdk(false); }
+  } });
+// 布局预设 + 自由拖拽：外壳出按钮，页面出实现（列宽是页面自己的事）
+//
+// 权重与夹取区间照 useWorkbenchColumnLayout.ts 的模型来：预设只是权重的三个档位，
+// 拖分隔条是连续档。拖过之后不再高亮任何预设——当前比例已经不是那三档里的任何一个，
+// 继续亮着会谎报状态。
+const LAYOUTS = { config: [1.6, 1], split: [1, 1], preview: [0.8, 1.7] };
+const COL_MIN = 0.62, COL_MAX = 1.9;
+const clampCol = (v) => Math.min(COL_MAX, Math.max(COL_MIN, v));
+let weights = [...LAYOUTS.config];
+let layout = 'config';
+
+function applyCols() {
+  document.getElementById('cols').style.gridTemplateColumns =
+    `minmax(0,${weights[0]}fr) 4px minmax(0,${weights[1]}fr)`;
+}
+function syncLayout() {
+  applyCols();
+  document.querySelectorAll('[data-shell-layout]').forEach((b) => b.classList.toggle('layout-btn-on', b.dataset.shellLayout === layout));
+}
+document.querySelectorAll('[data-shell-layout]').forEach((b) => b.addEventListener('click', () => {
+  layout = b.dataset.shellLayout;
+  weights = [...LAYOUTS[layout]];
+  syncLayout();
+}));
+
+// 拖分隔条：按像素位移换算权重增量，与真实代码一致地用「总权重守恒」的方式挪，
+// 这样另一列不会被挤没。
+function startColDrag(startX) {
+  const total = weights[0] + weights[1];
+  const gridW = document.getElementById('cols').clientWidth || 1;
+  const start = [...weights];
+  const onMove = (e) => {
+    const deltaWeight = ((e.clientX ?? startX) - startX) / gridW * total;
+    const left = clampCol(start[0] + deltaWeight);
+    weights = [left, clampCol(total - left)];
+    layout = '';            // 已是自定义比例，不再谎称命中某个预设
+    applyCols();
+    document.querySelectorAll('[data-shell-layout]').forEach((b) => b.classList.remove('layout-btn-on'));
+  };
+  const onUp = () => {
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    window.removeEventListener('pointercancel', onUp);
+    toast('已调整列宽', () => { weights = [...start]; applyCols(); });
+  };
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('pointercancel', onUp);
+}
+document.getElementById('colSplit').addEventListener('pointerdown', (e) => { e.preventDefault(); startColDrag(e.clientX); });
+// 键盘可达：分隔条不能只能用鼠标拖（决策 #4 同源——操作不得只有一种到达方式）
+document.getElementById('colSplit').addEventListener('keydown', (e) => {
+  const step = e.shiftKey ? 0.12 : 0.04;
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  e.preventDefault();
+  const total = weights[0] + weights[1];
+  const left = clampCol(weights[0] + (e.key === 'ArrowRight' ? step : -step));
+  weights = [left, clampCol(total - left)];
+  layout = '';
+  applyCols();
+  document.querySelectorAll('[data-shell-layout]').forEach((b) => b.classList.remove('layout-btn-on'));
+});
+</script>
+<script>
+const $ = (id) => document.getElementById(id);
+
+const ICONS = {
+  trigger: '<path d="M3 3l7.5 18 2.5-7.5L21 11z"/>',
+  text: '<path d="M4 7V5h16v2M9 19h6M12 5v14"/>',
+  animation: '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l3 3M15 15l3 3M18 6l-3 3M9 15l-3 3"/>',
+  image: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="m21 15-5-5L5 21"/>',
+  particle: '<circle cx="6" cy="6" r="2"/><circle cx="18" cy="9" r="2"/><circle cx="9" cy="17" r="2"/><circle cx="17" cy="18" r="1.5"/>',
+  ripple: '<circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="7" stroke-dasharray="3 3"/><circle cx="12" cy="12" r="11" stroke-dasharray="2 4"/>',
+  audio: '<path d="M11 5 6 9H3v6h3l5 4zM16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/>',
+  cursor: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
+};
+
+// ── 数据模型：每张卡 = 图标 + 预设组 + 常用字段 + 全部字段数
+//    字段数取自真实实现（TextFeedbackCard 20 项、ParticleFeedbackCard 20 项…）
+const CARDS = [
+  { key: 'trigger', name: '触发行为', always: true, total: 3, presets: ['即时', '蓄力', '节流'], preset: '即时',
+    fields: [
+      { label: '触发区域', type: 'select', value: '整屏', options: ['整屏', '中心区域', '边缘'] },
+      { label: '节流间隔', type: 'num', value: 60, min: 0, max: 500, unit: 'ms' },
+      { label: '连击窗口', type: 'num', value: 900, min: 200, max: 2000, unit: 'ms' },
+    ] },
+  { key: 'text', name: '飘字', on: true, total: 20, presets: ['轻盈', '弹跳', '爆裂', '打字机'], preset: '弹跳',
+    groups: [['入场', ['起始缩放', '入场缓动', '入场延迟', '起始不透明度']],
+             ['出场', ['淡出时长', '出场缓动', '结束缩放']],
+             ['随机', ['位置抖动', '字号抖动', '角度抖动']],
+             ['高级', ['层级', '混合模式', '字体', '描边宽度', '描边颜色']]],
+    fields: [
+      { label: '文案', type: 'text', value: 'Nice!', src: 'preset' },
+      { label: '字号', type: 'num', value: 28, min: 12, max: 96, unit: 'px', src: 'custom', presetValue: 32 },
+      { label: '颜色', type: 'color', value: '#F59E0B', src: 'preset' },
+      { label: '上浮距离', type: 'num', value: 64, min: 10, max: 240, unit: 'px', src: 'ai', presetValue: 48 },
+      { label: '时长', type: 'num', value: 820, min: 200, max: 2400, unit: 'ms', src: 'preset' },
+    ] },
+  { key: 'animation', name: '动画', total: 9, presets: ['脉冲', '抖动', '缩放'], preset: '脉冲', fields: [] },
+  { key: 'image', name: '贴纸', total: 5, presets: ['原样', '旋入', '弹入'], preset: '原样', fields: [] },
+  { key: 'particle', name: '粒子', on: true, total: 20, presets: ['礼花', '火花', '尘埃', '气泡'], preset: '礼花',
+    groups: [['发射', ['发射角度', '角度范围', '初速度', '错峰间隔']],
+             ['运动', ['阻尼', '旋转速度', '末端缩放']],
+             ['随机', ['大小抖动', '速度抖动', '寿命抖动']],
+             ['高级', ['层级', '混合模式', '拖尾长度']]],
+    fields: [
+      { label: '数量', type: 'num', value: 14, min: 1, max: 60, unit: '个' },
+      { label: '形状', type: 'select', value: '圆点', options: ['圆点', '方块', '星形', '钻石'] },
+      { label: '颜色', type: 'color', value: '#0EA5E9' },
+      { label: '扩散半径', type: 'num', value: 96, min: 20, max: 320, unit: 'px' },
+      { label: '重力', type: 'num', value: 3, min: 0, max: 10, unit: '' },
+    ] },
+  { key: 'ripple', name: '波纹', on: true, total: 7, presets: ['涟漪', '脉冲', '回声'], preset: '涟漪',
+    fields: [
+      { label: '颜色', type: 'color', value: '#0D9488' },
+      { label: '最大半径', type: 'num', value: 120, min: 20, max: 400, unit: 'px' },
+      { label: '线宽', type: 'num', value: 2, min: 1, max: 8, unit: 'px' },
+      { label: '时长', type: 'num', value: 620, min: 150, max: 2000, unit: 'ms' },
+    ] },
+  { key: 'audio', name: '音效', total: 7, presets: ['清脆', '低沉', '水滴'], preset: '清脆', fields: [] },
+  { key: 'cursor', name: '光标反馈', total: 7, presets: ['跟随状态', '按下缩小', '按下高亮'], preset: '跟随状态', fields: [] },
+];
+
+const ACTIONS = [
+  { id: 'leftClick', label: '左键单击', gesture: '单击', enabled: 3 },
+  { id: 'rightClick', label: '右键单击', gesture: '右键单击', enabled: 1 },
+  { id: 'doubleClick', label: '双击', gesture: '双击', enabled: 0 },
+  { id: 'longPress', label: '长按', gesture: '长按', enabled: 2 },
+  { id: 'wheel', label: '滚轮', gesture: '滚动', enabled: 0 },
+];
+let actionId = 'leftClick';
+
+
+
+
+// ── 渲染：动作标签
+function renderActions() {
+  $('actionTabs').innerHTML = ACTIONS.map((a) => `
+    <button data-action="${a.id}" class="action-tab${a.id === actionId ? ' action-tab-on' : ''}">
+      ${a.label}
+      ${a.enabled ? `<span class="count-badge">${a.enabled}</span>` : '<span class="text-2xs font-normal opacity-50">未配置</span>'}
+    </button>`).join('');
+  document.querySelectorAll('[data-action]').forEach((b) => b.addEventListener('click', () => {
+    actionId = b.dataset.action; renderActions(); syncHint();
+  }));
+}
+
+
+// ── 渲染：效果卡
+function renderCards() {
+  $('cardCol').innerHTML = CARDS.map((c) => {
+    const on = c.always || c.on;
+    if (!on) {
+      // 未启用 → 收成一行
+      return `<div class="cfg-card">
+        <div class="cfg-head">
+          <span class="cfg-icon"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${ICONS[c.key]}</svg></span>
+          <span class="min-w-0 flex-1">
+            <span class="cfg-name">${c.name}</span>
+            <span class="ml-2 text-2xs text-slate-400">${c.total} 项设置</span>
+          </span>
+          <button data-toggle="${c.key}" class="switch-knob" aria-label="启用${c.name}"></button>
+        </div>
+      </div>`;
+    }
+    const fields = c.fields.length ? c.fields.map((f, i) => renderField(c.key, f, i)).join('') : '';
+    const shown = c.fields.length;
+    return `<div class="cfg-card cfg-card-on">
+      <div class="cfg-head border-b border-slate-100">
+        <span class="cfg-icon cfg-icon-on"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${ICONS[c.key]}</svg></span>
+        <span class="min-w-0 flex-1">
+          <span class="flex items-center gap-2">
+            <span class="cfg-name">${c.name}</span>
+            ${c.always ? '' : '<span class="on-dot"><span class="size-1.5 rounded-full bg-emerald-500"></span>已启用</span>'}
+          </span>
+          <span class="cfg-sum block">${(() => {
+            const changed = (c.fields || []).filter((f) => f.src === 'custom' || f.src === 'ai').length;
+            return `${c.preset}${changed ? ` · <span class="text-slate-500">${changed} 项已改</span>` : ''} · ${c.total} 项设置`;
+          })()}</span>
+        </span>
+        ${(() => {
+          // 「重置这张卡」只在真有改动时出现——没有改动时它是空操作，
+          // 摆一个点了没反应的按钮比不摆更糟（同 README 决策 #4 的精神）。
+          const changed = (c.fields || []).filter((f) => f.src === 'custom' || f.src === 'ai').length;
+          return changed
+            ? `<button data-cardreset="${c.key}" class="shrink-0 rounded-lg px-2 py-1 text-2xs font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900" title="把这张卡的 ${changed} 项改动恢复到预设值">重置</button>`
+            : '';
+        })()}
+        <button data-cardfold="${c.key}" class="grid size-6 shrink-0 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700" aria-label="${c.folded ? '展开' : '折叠'}${c.name}" title="${c.folded ? '展开' : '折叠'}这张卡">
+          <svg class="size-3.5 transition-transform ${c.folded ? '' : 'rotate-90'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+        ${c.always ? '' : `<button data-toggle="${c.key}" class="switch-knob switch-on" aria-label="关闭${c.name}"></button>`}
+      </div>
+      <div class="space-y-3 px-3 py-3${c.folded ? ' hidden' : ''}">
+        <div>
+          <div class="mb-2 flex items-center gap-1.5">
+            <span class="field-label">预设</span>
+            <span class="text-2xs text-slate-400">点一下填一组参数，再微调</span>
+          </div>
+          <div class="flex flex-wrap gap-1.5">
+            ${(() => {
+              const changed = (c.fields || []).some((f) => f.src === 'custom' || f.src === 'ai');
+              return c.presets.map((p) => {
+                const on = p === c.preset;
+                // 套了预设又手改过，chip 不能继续假装「就是这个预设」
+                return `<button data-preset="${c.key}|${p}" class="preset-chip${on ? ' preset-chip-on' : ''}">${p}${on && changed ? '<span class="ml-1 font-normal opacity-70">·已改</span>' : ''}</button>`;
+              }).join('') + (changed ? `<button data-represet="${c.key}" class="preset-chip border-dashed">回到「${c.preset}」</button>` : '');
+            })()}
+          </div>
+        </div>
+        ${fields ? `<div class="space-y-2.5 border-t border-slate-100 pt-3">${fields}</div>` : ''}
+        ${c.total > shown ? `
+          <div class="border-t border-slate-100 pt-2.5">
+            <button data-more="${c.key}" class="flex w-full items-center gap-1.5 text-2xs font-medium text-slate-500 transition-colors hover:text-slate-900">
+              <svg class="size-3 transition-transform ${c.more ? 'rotate-90' : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 6 6 6-6 6"/></svg>
+              其余 ${c.total - shown} 项
+              <span class="ml-auto inline-flex items-center gap-1 font-normal text-slate-400">按 <span class="kbd">⌘K</span> 可直接搜字段</span>
+            </button>
+            ${c.more && c.groups ? `<div class="mt-2 space-y-1.5">
+              ${c.groups.map(([g, fields]) => `
+                <div class="rounded-lg bg-slate-50 px-2.5 py-2">
+                  <div class="text-2xs font-semibold text-slate-500">${g} <span class="font-normal text-slate-400">${fields.length}</span></div>
+                  <div class="mt-1.5 flex flex-wrap gap-1">
+                    ${fields.map((f) => `<span class="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-2xs text-slate-600">${f}</span>`).join('')}
+                  </div>
+                </div>`).join('')}
+            </div>` : ''}
+          </div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+  bindCardEvents();
+  bindCardChrome();
+}
+
+// 折叠与重置。两者都是「卡级」操作，与效果开关分开：
+// 折叠只影响视觉密度（配置仍然生效），关闭才是不出效果。把它们混成一个控件
+// 会让「我只是想少占点地方」变成「我把效果关了」。
+function bindCardChrome() {
+  document.querySelectorAll('[data-cardfold]').forEach((b) => b.addEventListener('click', () => {
+    const c = CARDS.find((x) => x.key === b.dataset.cardfold);
+    c.folded = !c.folded;
+    renderCards();
+  }));
+  document.querySelectorAll('[data-cardreset]').forEach((b) => b.addEventListener('click', () => {
+    const c = CARDS.find((x) => x.key === b.dataset.cardreset);
+    const before = c.fields.map((f) => ({ value: f.value, src: f.src }));
+    const n = before.filter((s) => s.src === 'custom' || s.src === 'ai').length;
+    c.fields.forEach((f) => {
+      if (f.src !== 'custom' && f.src !== 'ai') return;
+      if (f.presetValue !== undefined) f.value = f.presetValue;
+      f.src = 'preset';
+    });
+    renderCards(); renderOutputs(); renderTimeline();
+    toast(`已重置「${c.name}」· ${n} 项回到「${c.preset}」`, () => {
+      c.fields.forEach((f, i) => { f.value = before[i].value; f.src = before[i].src; });
+      renderCards(); renderOutputs(); renderTimeline();
+    });
+  }));
+}
+
+const SRC = {
+  preset:  ['bg-slate-300', '来自预设'],
+  ai:      ['bg-sky-400', 'AI 建议'],
+  custom:  ['bg-slate-900', '你改过'],
+};
+function srcDot(cardKey, f) {
+  const meta = SRC[f.src];
+  if (!meta) return '';
+  const revert = f.presetValue !== undefined ? ` · 双击回到预设值 ${f.presetValue}` : '';
+  return `<span data-revert="${cardKey}|${f.label}" class="size-1.5 shrink-0 rounded-full ${meta[0]}" title="${meta[1]}${revert}"></span>`;
+}
+function renderField(cardKey, f, i) {
+  const id = `f-${cardKey}-${i}`;
+  if (f.type === 'num') {
+    // 共享滑块 + 可编辑读数：标签可 scrub、拖柄出气泡、双击回默认
+    return `<div class="ctl-row">
+      <span class="field-label ctl-label-scrub" data-scrub="${id}">${f.label}${srcDot(cardKey, f)}</span>
+      <div id="${id}" data-slider data-min="${f.min}" data-max="${f.max}" data-value="${f.value}"
+           data-default="${f.presetValue ?? f.value}" data-field="${cardKey}|${f.label}"></div>
+      <span class="ctl-value"><span data-out="${id}">${f.value}</span>${f.unit ? ` ${f.unit}` : ''}</span>
+    </div>`;
+  }
+  if (f.type === 'select') {
+    return `<div class="ctl-row-wide">
+      <span class="field-label">${f.label}${srcDot(cardKey, f)}</span>
+      <div id="${id}" data-select="${cardKey}|${f.label}"></div>
+    </div>`;
+  }
+  if (f.type === 'color') {
+    const palette = ['#F59E0B', '#0EA5E9', '#0D9488', '#F43F5E', '#8B5CF6', '#0F172A'];
+    return `<div class="grid grid-cols-[104px_minmax(0,1fr)] items-center gap-2.5">
+      <span class="field-label">${f.label}${srcDot(cardKey, f)}</span>
+      <span class="flex flex-wrap gap-1.5">
+        ${palette.map((p) => `<button data-color="${cardKey}|${p}" class="size-6 rounded-lg border ${p === f.value ? 'border-slate-950 ring-2 ring-slate-300' : 'border-slate-200'} shadow-sm" style="background:${p}" aria-label="颜色 ${p}"></button>`).join('')}
+      </span>
+    </div>`;
+  }
+  return `<div class="grid grid-cols-[104px_minmax(0,1fr)] items-center gap-2.5">
+    <span class="field-label">${f.label}${srcDot(cardKey, f)}</span>
+    <input value="${f.value}" class="h-8 rounded-xl border border-slate-200 bg-white px-2 text-xs text-slate-700 shadow-sm" />
+  </div>`;
+}
+
+function mountCardControls() {
+  // 形状类字段画出图形，其余给纯文字选项——都走同一个下拉实现
+  document.querySelectorAll('[data-select]').forEach((el) => {
+    if (el.dataset.mounted) return;
+    el.dataset.mounted = '1';
+    const [key, label] = el.dataset.select.split('|');
+    const c = CARDS.find((x) => x.key === key);
+    const f = c.fields.find((x) => x.label === label);
+    const isShape = label === '形状';
+    Ctl.select(el, {
+      options: f.options.map((o) => ({ label: o, thumb: isShape ? Ctl.shapeThumb(o) : undefined })),
+      value: f.value,
+      onChange: (v) => {
+        const before = f.value;
+        f.value = v; f.src = 'custom';
+        renderCards();
+        const undo = () => { f.value = before; renderCards(); return () => { f.value = v; renderCards(); return undo; }; };
+        toast(`「${c.name} · ${label}」已改为 ${v}`, undo);
+      },
+    });
+  });
+  document.querySelectorAll('[data-slider]:not([data-mounted])').forEach((el) => {
+    el.dataset.mounted = '1';
+    const out = document.querySelector(`[data-out="${el.id}"]`);
+    const [key, label] = (el.dataset.field || '').split('|');
+    const c = CARDS.find((x) => x.key === key);
+    const f = c?.fields.find((x) => x.label === label);
+    Ctl.slider(el, {
+      onChange: (v) => { if (out) out.textContent = v; if (f) f.value = v; },
+      onCommit: (v) => {
+        if (!f) return;
+        if (f.presetValue === undefined) f.presetValue = v;
+        f.src = 'custom';
+        renderCards(); touch();
+      },
+    });
+  });
+}
+
+function bindCardEvents() {
+  mountCardControls();
+  document.querySelectorAll('[data-toggle]').forEach((b) => b.addEventListener('click', () => {
+    const c = CARDS.find((x) => x.key === b.dataset.toggle);
+    const before = { on: !!c.on, links: CH.map((x) => ({ id: x.id, ref: x.ref, off: x.off })) };
+    // 必须在翻转开关**之前**固化链接：之后再算 startOf 会走「目标已关闭」的降级
+    // 路径，固化下来的是 off 而不是原本的绝对位置，色块会跳到时间轴开头。
+    const broken = c.on ? breakLinksTo(c.key) : [];
+    c.on = !c.on;
+    const act = ACTIONS.find((a) => a.id === actionId);
+    act.enabled = CARDS.filter((x) => !x.always && x.on).length;
+    renderCards(); renderActions(); renderOutputs(); renderTimeline();
+    const after = { on: c.on, links: CH.map((x) => ({ id: x.id, ref: x.ref, off: x.off })) };
+    const apply = (snap) => {
+      c.on = snap.on;
+      snap.links.forEach((l) => { const ch = CH.find((x) => x.id === l.id); if (ch) { ch.ref = l.ref; ch.off = l.off; } });
+      act.enabled = CARDS.filter((x) => !x.always && x.on).length;
+      renderCards(); renderActions(); renderOutputs(); renderTimeline();
+    };
+    // 撤销函数返回重做函数，⌘⇧Z 才有东西可用
+    const restore = () => { apply(before); return () => { apply(after); return restore; }; };
+    toast(`${c.on ? '已启用' : '已关闭'}「${c.name}」`
+      + (broken.length ? ` · ${broken.join('、')}的链接已固化为绝对时间` : ''), restore);
+  }));
+  document.querySelectorAll('[data-more]').forEach((b) => b.addEventListener('click', () => {
+    const c = CARDS.find((x) => x.key === b.dataset.more);
+    c.more = !c.more;
+    renderCards();
+  }));
+  document.querySelectorAll('[data-represet]').forEach((b) => b.addEventListener('click', () => {
+    const c = CARDS.find((x) => x.key === b.dataset.represet);
+    const before = (c.fields || []).map((f) => ({ f, v: f.value, src: f.src }));
+    (c.fields || []).forEach((f) => {
+      if ((f.src === 'custom' || f.src === 'ai') && f.presetValue !== undefined) { f.value = f.presetValue; f.src = 'preset'; }
+    });
+    renderCards();
+    const undo = () => { before.forEach(({ f, v, src }) => { f.value = v; f.src = src; }); renderCards(); return () => { document.querySelector(`[data-represet="${c.key}"]`)?.click(); return undo; }; };
+    toast(`「${c.name}」已回到预设 ${c.preset}`, undo);
+  }));
+  document.querySelectorAll('[data-revert]').forEach((el) => el.addEventListener('dblclick', (e) => {
+    e.stopPropagation();
+    const [key, label] = el.dataset.revert.split('|');
+    const c = CARDS.find((x) => x.key === key);
+    const f = c.fields.find((x) => x.label === label);
+    if (f.presetValue === undefined) return;
+    const before = { v: f.value, src: f.src };
+    f.value = f.presetValue; f.src = 'preset';
+    renderCards();
+    toast(`「${label}」已回到预设值 ${f.presetValue}`, () => { f.value = before.v; f.src = before.src; renderCards(); });
+  }));
+  document.querySelectorAll('[data-preset]').forEach((b) => b.addEventListener('click', () => {
+    const [key, p] = b.dataset.preset.split('|');
+    const c = CARDS.find((x) => x.key === key);
+    const before = c.preset;
+    c.preset = p;
+    (c.fields || []).forEach((f) => { if (f.src === 'custom' || f.src === 'ai') f.src = 'preset'; });
+    renderCards();
+    const undo = () => { c.preset = before; renderCards(); return () => { c.preset = p; renderCards(); return undo; }; };
+    toast(`「${c.name}」已套用预设 ${p}`, undo);
+  }));
+  document.querySelectorAll('[data-color]').forEach((b) => b.addEventListener('click', () => {
+    const [key, color] = b.dataset.color.split('|');
+    const c = CARDS.find((x) => x.key === key);
+    const f = c.fields.find((x) => x.type === 'color');
+    const before = f.value; f.value = color;
+    c.tweaked = true;
+    renderCards();
+    const undo = () => { f.value = before; renderCards(); return () => { f.value = color; renderCards(); return undo; }; };
+    toast(`「${c.name}」颜色已更新`, undo);
+  }));
+}
+
+// ── 输出标签
+function renderOutputs() {
+  const on = CARDS.filter((c) => !c.always && c.on);
+  $('outputTags').innerHTML = on.length
+    ? on.map((c) => `<span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-2xs font-medium text-slate-600">
+        <svg class="size-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">${ICONS[c.key]}</svg>${c.name}</span>`).join('')
+    : '<span class="text-2xs text-slate-400">还没有开启任何效果 —— 打开下方任意一张卡</span>';
+}
+
+// ══════════════════════════════════════════════════════════════════
+// 预览 + 时间轴
+//
+// 功能层的重构（不是给旧结构换皮）：
+//  1. 通道不再是「有起点和长度的黑盒」，而是暴露语义**锚点**（emit / peak /
+//     spread / onset）。锚点是节奏的接点。
+//  2. 通道的起点可以**链接到别人的锚点**（相对时间），而不是各写一个绝对延迟。
+//     这样改一个时长，其余通道的节奏关系不会散。
+//  3. 每条通道的**属性各有自己的曲线**（半径 / 位移 / 缩放 / 不透明度），
+//     在属性子轨里可见可编。原来 7 段弹簧只存在于运行时代码里。
+//  4. **重复 / 错峰**是轨道属性：粒子数 × 错峰间隔在色块里画成刻度，
+//     不再是一个看不见的乘数。
+//  5. 触发本身（节流窗 / 连击窗 / 第二次点击）和效果放在**同一把标尺**上。
+//  6. 舞台与时间轴共用**唯一播放头**：任意毫秒可定格，可只循环一段区间。
+// ══════════════════════════════════════════════════════════════════
+
+const CH_DEFAULT = [
+  { id: 'ripple', label: '波纹', ref: 'trigger', off: 0, dur: 620,
+    anchors: [['emit', 0], ['peak', 0.62]],
+    curves: { 半径: [0, 0, .2, 1], 不透明度: [.4, 0, 1, 1] }, main: '半径' },
+  { id: 'particle', label: '粒子', ref: 'ripple.peak', off: 0, dur: 900,
+    anchors: [['emit', 0], ['spread', 0.55]],
+    curves: { 扩散: [.2, .6, .3, 1], 不透明度: [.3, 0, 1, 1] }, main: '扩散',
+    repeat: { n: 14, stagger: 10 } },
+  { id: 'text', label: '飘字', ref: 'ripple.peak', off: 40, dur: 820,
+    anchors: [['in', 0], ['peak', 0.3]],
+    curves: { 上浮: [.2, .7, .3, 1], 缩放: [.34, 1.56, .64, 1], 不透明度: [.4, 0, .6, 1] }, main: '上浮' },
+  { id: 'audio', label: '音效', ref: 'trigger', off: 0, dur: 120,
+    anchors: [['onset', 0]], curves: { 音量: [0, 0, 1, 1] }, main: '音量' },
+];
+const clone = (a) => a.map((c) => ({ ...c, anchors: c.anchors.map((x) => [...x]), curves: Object.fromEntries(Object.entries(c.curves).map(([k, v]) => [k, [...v]])), repeat: c.repeat ? { ...c.repeat } : undefined }));
+let CH = clone(CH_DEFAULT);
+let CH_BEFORE = clone(CH_DEFAULT);   // A/B 参照
+
+const TRIGGER = { throttle: 60, comboWindow: 900, secondClick: 260 };
+let t = 0, playing = false, speed = 1, snap = 20, zoom = 1;
+let onion = false, ab = false, loopOn = false, loopIn = 0, loopOut = 0;
+let selCh = 'text', selProp = '上浮';
+let origin = { x: 0.44, y: 0.52 };
+const LABEL_W = 132, LABEL_GAP = 10;   // 与 .tl-row 的 grid 与 gap 严格一致，否则标尺与色块错位
+
+// 三次贝塞尔：按 x 二分反解再取 y
+function bez(p) {
+  const [x1, y1, x2, y2] = p;
+  const f = (a, b) => (u) => 3 * (1 - u) ** 2 * u * a + 3 * (1 - u) * u * u * b + u ** 3;
+  const fx = f(x1, x2), fy = f(y1, y2);
+  return (x) => { let lo = 0, hi = 1, u = x; for (let i = 0; i < 18; i += 1) { u = (lo + hi) / 2; if (fx(u) < x) lo = u; else hi = u; } return fy(u); };
+}
+const bezCache = new Map();
+const easeOf = (p) => { const k = p.join(','); if (!bezCache.has(k)) bezCache.set(k, bez(p)); return bezCache.get(k); };
+
+const cardOn = (id) => { const c = CARDS.find((x) => x.key === id); return c ? (c.always || c.on) : false; };
+// 独奏优先于静音：有独奏时只播独奏的；否则排除静音的
+function chList(set) {
+  const on = (set || CH).filter((c) => cardOn(c.id));
+  const soloed = on.filter((c) => c.solo);
+  return (soloed.length ? soloed : on).filter((c) => !c.mute);
+}
+// 时间轴要把静音轨也画出来（只是标成静音），所以另给一个「全部可见轨道」
+const chLanes = (set) => (set || CH).filter((c) => cardOn(c.id));
+function anchorAt(ch, name) { const a = ch.anchors.find((x) => x[0] === name); return a ? a[1] : 0; }
+// 目标通道被关掉时，把链接固化成当时的绝对时间并明确告知。
+// 原来 startOf 里静默 fallback，色块会跳位置且不给任何解释。
+function breakLinksTo(deadId) {
+  const broken = [];
+  for (const ch of CH) {
+    if (ch.ref === 'trigger' || ch.ref.split('.')[0] !== deadId) continue;
+    const abs = Math.round(startOf(ch));
+    ch.ref = 'trigger';
+    ch.off = abs;
+    broken.push(ch.label);
+  }
+  return broken;
+}
+// 拒绝环：A 链到 B、B 又链回 A 会让节奏无解
+function wouldCycle(ch, ref) {
+  let cur = ref.split('.')[0];
+  const seen = new Set([ch.id]);
+  while (cur) {
+    if (seen.has(cur)) return true;
+    seen.add(cur);
+    const next = CH.find((x) => x.id === cur);
+    if (!next || next.ref === 'trigger') return false;
+    cur = next.ref.split('.')[0];
+  }
+  return false;
+}
+function startOf(ch, set, seen) {
+  const list = set || CH;
+  const guard = seen || new Set();
+  if (guard.has(ch.id)) return 0;
+  guard.add(ch.id);
+  if (ch.ref === 'trigger') return Math.max(0, ch.off);
+  const [tid, aname] = ch.ref.split('.');
+  const target = list.find((x) => x.id === tid);
+  if (!target || !cardOn(tid)) return Math.max(0, ch.off);
+  return Math.max(0, startOf(target, list, guard) + target.dur * anchorAt(target, aname) + ch.off);
+}
+function totalOf(set) {
+  const list = chList(set);
+  const ends = list.map((c) => startOf(c, set) + c.dur + (c.repeat ? c.repeat.n * c.repeat.stagger : 0));
+  return Math.max(400, Math.ceil(Math.max(TRIGGER.comboWindow, ...ends, 0) / 20) * 20);
+}
+const totalMs = () => totalOf(CH);
+
+// ── 舞台：一帧 = 时间的纯函数，所以拖播放头能精确定格
+function renderFrame(time, host, set) {
+  const list = chList(set);
+  const st = $('stage');
+  const W = st.clientWidth, H = st.clientHeight;
+  const x = W * origin.x, y = H * origin.y;
+  const out = [];
+  for (const ch of list) {
+    const s = startOf(ch, set);
+    const E = (k) => easeOf(ch.curves[k] || [0, 0, 1, 1]);
+    if (ch.id === 'particle' && ch.repeat) {
+      for (let i = 0; i < ch.repeat.n; i += 1) {
+        const p0 = (time - s - i * ch.repeat.stagger) / ch.dur;
+        if (p0 < 0 || p0 > 1) continue;
+        const a = (Math.PI * 2 * i) / ch.repeat.n + 0.3;
+        const d = E('扩散')(p0) * 88;
+        const al = 1 - E('不透明度')(p0);
+        const sz = 6 - p0 * 2.5;
+        out.push(`<div class="fx rounded-full" style="left:${(x + Math.cos(a) * d).toFixed(1)}px;top:${(y + Math.sin(a) * d + p0 * 24).toFixed(1)}px;width:${sz.toFixed(1)}px;height:${sz.toFixed(1)}px;background:#0ea5e9;transform:translate(-50%,-50%);opacity:${Math.max(0, al).toFixed(3)}"></div>`);
+      }
+      continue;
+    }
+    const p0 = (time - s) / ch.dur;
+    if (p0 < 0 || p0 > 1) continue;
+    if (ch.id === 'ripple') {
+      const r = E('半径')(p0) * 104;
+      out.push(`<div class="fx rounded-full" style="left:${x}px;top:${y}px;width:${(r * 2).toFixed(1)}px;height:${(r * 2).toFixed(1)}px;transform:translate(-50%,-50%);border:2px solid #0d9488;opacity:${(1 - E('不透明度')(p0)).toFixed(3)}"></div>`);
+    } else if (ch.id === 'text') {
+      const rise = E('上浮')(p0) * 54;
+      const sc = 0.6 + E('缩放')(p0) * 0.5;
+      const al = p0 < 0.28 ? p0 / 0.28 : 1 - (p0 - 0.28) / 0.72;
+      out.push(`<div class="fx" style="left:${x}px;top:${(y - rise).toFixed(1)}px;color:#f59e0b;font-size:24px;font-weight:700;line-height:1;transform:translate(-50%,-50%) scale(${sc.toFixed(3)});opacity:${Math.max(0, al).toFixed(3)}">Nice!</div>`);
+    } else if (ch.id === 'audio') {
+      const bars = [0, 1, 2, 3].map((b) => `<span style="display:block;width:2px;height:${Math.max(3, 5 + Math.sin((p0 + b * 0.2) * Math.PI) * 9).toFixed(1)}px;border-radius:9999px;background:#e11d48"></span>`).join('');
+      out.push(`<div class="fx" style="left:${(x + 84).toFixed(0)}px;top:${(y - 52).toFixed(0)}px;display:flex;align-items:flex-end;gap:2px;opacity:${(1 - p0).toFixed(3)}">${bars}</div>`);
+    }
+  }
+  host.innerHTML = out.join('');
+}
+function paintStage() {
+  const set = ab ? CH_BEFORE : CH;
+  renderFrame(t, $('fxHost'), set);
+  if (onion) {
+    $('onionHost').innerHTML = '';
+    [0.15, 0.3, 0.45, 0.6, 0.75, 0.9].forEach((f) => {
+      const box = document.createElement('div');
+      box.className = 'absolute inset-0';
+      box.style.opacity = '0.15';
+      renderFrame(totalOf(set) * f, box, set);
+      $('onionHost').appendChild(box);
+    });
+  } else $('onionHost').innerHTML = '';
+  $('timeNow').textContent = Math.round(t);
+  const ph = $('playhead');
+  const laneEl = document.querySelector('[data-lane]');
+  if (ph && laneEl) {
+    // 用实测偏移而不是 LABEL_W 常量：标尺行与轨道行的内边距曾经不一致，
+    // 常量算出来的播放头会偏几像素，且改一次布局就会再错一次。
+    const off = laneEl.getBoundingClientRect().left - $('lanes').getBoundingClientRect().left;
+    ph.style.left = (off + (t / totalMs()) * laneEl.clientWidth) + 'px';
+    ph.querySelector('span').textContent = Math.round(t) + 'ms';
+  }
+}
+
+// ── 传输
+let last = 0;
+let autoReplay = false, autoInterval = 1200, autoTimer = null;
+function tick(now) {
+  if (!playing) return;
+  if (!last) last = now;
+  t += (now - last) * speed; last = now;
+  const hi = loopOn ? loopOut : totalMs();
+  const lo = loopOn ? loopIn : 0;
+  if (t >= hi) {
+    if (loopOn) t = lo;
+    else if (autoReplay) {
+      // 停在末帧、等一个间隔再从头来。用 setTimeout 而不是把间隔算进 t，
+      // 这样播放头会真的停在末尾让人看清收尾，而不是一闪就跳回去。
+      t = hi; paintStage(); setPlaying(false);
+      autoTimer = setTimeout(() => { if (!autoReplay) return; t = 0; setPlaying(true); }, autoInterval);
+      return;
+    } else { t = hi; setPlaying(false); }
+  }
+  paintStage();
+  if (playing) requestAnimationFrame(tick);
+}
+function setPlaying(v) {
+  playing = v; last = 0;
+  $('playIcon').innerHTML = v ? '<path d="M7 5h4v14H7zM13 5h4v14h-4z"/>' : '<path d="M8 5v14l11-7z"/>';
+  if (v) requestAnimationFrame(tick);
+}
+$('playBtn').addEventListener('click', () => { if (t >= totalMs()) t = loopOn ? loopIn : 0; setPlaying(!playing); });
+$('replayBtn').addEventListener('click', () => { t = loopOn ? loopIn : 0; $('stageHint').classList.add('hidden'); setPlaying(true); });
+function syncAuto() {
+  $('autoBtn').className = 'h-7 px-2.5 text-2xs ' + (autoReplay ? 'btn-default' : 'btn-outline');
+  // 间隔档位只在自动重播开着时出现——关着的时候它是空控件
+  $('autoIntervalGroup').classList.toggle('hidden', !autoReplay);
+}
+$('autoBtn').addEventListener('click', () => {
+  autoReplay = !autoReplay;
+  if (!autoReplay && autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
+  syncAuto();
+  if (autoReplay) {
+    $('stageHint').classList.add('hidden');
+    if (!playing) { t = loopOn ? loopIn : 0; setPlaying(true); }
+  }
+  toast(autoReplay ? `已开启自动重播 · 间隔 ${autoInterval}ms` : '已关闭自动重播');
+});
+document.querySelectorAll('[data-interval]').forEach((b) => b.addEventListener('click', () => {
+  autoInterval = Number(b.dataset.interval);
+  document.querySelectorAll('[data-interval]').forEach((x) => x.className = 'seg-item' + (x === b ? ' seg-item-on' : ''));
+  toast(`自动重播间隔 ${autoInterval}ms`);
+}));
+syncAuto();
+$('stepBack').addEventListener('click', () => { setPlaying(false); t = Math.max(0, t - 16); paintStage(); });
+$('stepFwd').addEventListener('click', () => { setPlaying(false); t = Math.min(totalMs(), t + 16); paintStage(); });
+document.querySelectorAll('[data-speed]').forEach((b) => b.addEventListener('click', () => {
+  speed = Number(b.dataset.speed);
+  document.querySelectorAll('[data-speed]').forEach((x) => x.className = 'seg-item' + (x === b ? ' seg-item-on' : ''));
+}));
+$('loopBtn').addEventListener('click', () => {
+  loopOn = !loopOn;
+  if (loopOn && loopOut <= loopIn) { loopIn = Math.round(totalMs() * 0.2); loopOut = Math.round(totalMs() * 0.7); }
+  $('loopBtn').className = 'h-7 px-2.5 text-2xs ' + (loopOn ? 'btn-default' : 'btn-outline');
+  renderTimeline();
+});
+$('onionBtn').addEventListener('click', () => {
+  onion = !onion;
+  $('onionBtn').className = 'h-7 px-2.5 text-2xs ' + (onion ? 'btn-default' : 'btn-outline');
+  paintStage();
+});
+$('abBtn').addEventListener('pointerdown', () => { ab = true; $('abBadge').classList.remove('hidden'); paintStage(); });
+window.addEventListener('pointerup', () => { if (ab) { ab = false; $('abBadge').classList.add('hidden'); paintStage(); } });
+$('copyRhythm').addEventListener('click', () => toast('已把这套时间关系复制到「右键单击」「长按」'));
+$('stage').addEventListener('click', (e) => {
+  const r = $('stage').getBoundingClientRect();
+  origin = { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height };
+  $('stageHint').classList.add('hidden');
+  t = loopOn ? loopIn : 0; setPlaying(true);
+});
+// 底色只切换「底色类」，绝不重建整串 className。
+// 舞台的高度来自 min-h-0 flex-1（它就是这样撑到 ~300px 的）；
+// 原先这里把 className 重写成含 h-[212px] 的字面量，一点底色就把 flex 尺寸冲掉、
+// 舞台缩回 212px 且不可逆——而 212px 正是时间轴改成底部抽屉要消除的那个数。
+const STAGE_BGS = { light: 'bg-white', dark: 'bg-slate-900', checker: 'checker' };
+document.querySelectorAll('[data-bg]').forEach((b) => b.addEventListener('click', () => {
+  document.querySelectorAll('[data-bg]').forEach((x) => x.className = 'seg-item' + (x === b ? ' seg-item-on' : ''));
+  const stage = $('stage');
+  stage.classList.remove(...Object.values(STAGE_BGS));
+  stage.classList.add(STAGE_BGS[b.dataset.bg]);
+}));
+
+// ── 时间轴
+function laneW() { const l = document.querySelector('[data-lane]'); return l ? l.clientWidth : 360; }
+function areaPath(curve, w, h) {
+  const f = easeOf(curve);
+  const pts = Array.from({ length: 16 }, (_, i) => { const x = i / 15; return `${(x * w).toFixed(2)},${(h - f(x) * h).toFixed(2)}`; });
+  return `M0,${h} L${pts.join(' L')} L${w},${h} Z`;
+}
+// 循环区间必须跟着总长收缩，否则关掉最长的通道后区间会落在总长之外、播放卡死
+function clampLoop() {
+  const T = totalMs();
+  loopOut = Math.min(loopOut, T);
+  loopIn = Math.max(0, Math.min(loopIn, loopOut - 40));
+  if (loopOut - loopIn < 40) { loopIn = Math.max(0, T - 40); loopOut = T; }
+}
+function renderTimeline() {
+  clampLoop();
+  const T = totalMs();
+  $('totalLabel').textContent = T; $('timeTotal').textContent = T;
+  $('tlInner').style.width = zoom === 1 ? '100%' : `${zoom * 100}%`;
+  const step = T > 1400 ? 200 : 100;
+  const ticks = []; for (let ms = 0; ms <= T; ms += step) ticks.push(ms);
+
+  $('ruler').innerHTML =
+    (loopOn ? `<div class="loop-band" style="left:${(loopIn / T) * 100}%;width:${((loopOut - loopIn) / T) * 100}%"></div>
+       <div class="loop-h" data-loop="in" style="left:${(loopIn / T) * 100}%"></div>
+       <div class="loop-h" data-loop="out" style="left:${(loopOut / T) * 100}%"></div>` : '')
+    + ticks.map((ms) => `<div class="absolute bottom-0 flex flex-col items-center" style="left:${(ms / T) * 100}%;transform:translateX(${ms === 0 ? '0' : ms === T ? '-100%' : '-50%'})">
+        <span class="h-2.5 w-px bg-slate-400"></span>
+        <span class="mt-0.5 text-2xs leading-none tabular-nums text-slate-500">${ms}</span></div>`).join('')
+    + ticks.slice(0, -1).map((ms) => `<div class="absolute bottom-0 h-1.5 w-px bg-slate-300/70" style="left:${((ms + step / 2) / T) * 100}%"></div>`).join('');
+
+  const pct = (ms) => (ms / T) * 100;
+  // 触发轨：节流窗 / 连击窗 / 事件点，与效果同一把标尺
+  let html = `<div class="tl-row group">
+      <div class="flex items-center gap-1.5">
+        <span class="size-1.5 shrink-0 rounded-full bg-slate-900"></span>
+        <span class="truncate text-2xs font-semibold text-slate-700">触发</span>
+      </div>
+      <div class="tl-lane" data-lane>
+        <div class="win-combo" style="left:0;width:${pct(TRIGGER.comboWindow)}%"></div>
+        <div class="win-throttle" style="left:0;width:${pct(TRIGGER.throttle)}%"></div>
+        <span class="ev-dot" style="left:0"></span>
+        <span class="ev-dot opacity-40" style="left:${pct(TRIGGER.secondClick)}%"></span>
+        <span class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-2xs text-slate-400">节流 ${TRIGGER.throttle}ms · 连击窗 ${TRIGGER.comboWindow}ms</span>
+      </div>
+    </div>`;
+
+  for (const ch of chLanes()) {
+    const s = startOf(ch);
+    const linked = ch.ref !== 'trigger';
+    const sel = selCh === ch.id;
+    const soloedAny = CH.some((c) => c.solo && cardOn(c.id));
+    const muted = ch.mute || (soloedAny && !ch.solo);
+    const dirty = JSON.stringify([ch.ref, ch.off, ch.dur]) !== JSON.stringify((() => { const d = CH_DEFAULT.find((x) => x.id === ch.id); return [d.ref, d.off, d.dur]; })());
+    const wPct = Math.max(1.4, pct(ch.dur));
+    html += `<div class="tl-row group" data-row="${ch.id}">
+      <div class="flex items-center gap-1">
+        <button class="grid size-4 shrink-0 place-items-center rounded text-slate-400 hover:text-slate-700" data-expand="${ch.id}" aria-label="展开属性轨">
+          <svg class="size-3 transition-transform ${sel ? 'rotate-90' : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 6 6 6-6 6"/></svg>
+        </button>
+        <span class="truncate text-2xs font-semibold ${muted ? 'text-slate-400' : sel ? 'text-slate-900' : 'text-slate-600'}">${ch.label}</span>
+        ${linked ? '<span class="shrink-0 text-2xs text-slate-400" title="已链接到锚点">⛓</span>' : ''}
+        <span class="ml-auto flex shrink-0 items-center gap-0.5">
+          ${dirty ? `<button class="tl-iconbtn" data-reset-ch="${ch.id}" title="重置为默认">×</button>` : ''}
+          <button class="tl-iconbtn ${ch.solo ? 'tl-iconbtn-on' : ''}" data-solo="${ch.id}" title="独奏：只播这一条">S</button>
+          <button class="tl-iconbtn ${ch.mute ? 'tl-iconbtn-on' : ''}" data-mute="${ch.id}" title="静音：排除这一条">M</button>
+        </span>
+      </div>
+      <div class="tl-lane" data-lane data-lane-id="${ch.id}">
+        ${ticks.map((ms) => `<div class="pointer-events-none absolute inset-y-0 w-px bg-slate-200/60" style="left:${pct(ms)}%"></div>`).join('')}
+        ${linked ? `<div class="link-line" style="left:${pct(startOf(CH.find((x) => x.id === ch.ref.split('.')[0])) + CH.find((x) => x.id === ch.ref.split('.')[0]).dur * anchorAt(CH.find((x) => x.id === ch.ref.split('.')[0]), ch.ref.split('.')[1]))}%;width:${Math.max(0, pct(ch.off))}%;top:2px"></div>
+             <span class="link-chip" style="left:${pct(s)}%;top:2px">${ch.off === 0 ? '⛓' : (ch.off > 0 ? '+' : '') + ch.off}</span>` : ''}
+        <div class="tl-bar ${muted ? 'tl-bar-muted' : ''} ${sel ? 'tl-bar-on' : ''}" data-bar="${ch.id}" style="left:${pct(s)}%;width:${wPct}%">
+          <svg class="pointer-events-none absolute inset-0 size-full" viewBox="0 0 100 20" preserveAspectRatio="none" aria-hidden="true">
+            <path d="${areaPath(ch.curves[ch.main] || [0, 0, 1, 1], 100, 20)}" fill="#0f172a" fill-opacity="0.07"/>
+          </svg>
+          ${ch.repeat ? Array.from({ length: ch.repeat.n }, (_, i) => {
+            const off = (i * ch.repeat.stagger / ch.dur) * 100;
+            return off > 98 ? '' : `<span class="pointer-events-none absolute inset-y-0.5 w-px bg-slate-900/15" style="left:${off}%"></span>`;
+          }).join('') : ''}
+          ${wPct > 16 ? `<span class="pointer-events-none absolute inset-y-0 right-1 flex items-center text-2xs font-semibold tabular-nums text-slate-500">${ch.dur}ms</span>` : ''}
+          ${ch.anchors.map(([name, at]) => `<span class="anc ${name === 'peak' || name === 'spread' ? 'anc-peak' : ''}" data-anc="${ch.id}.${name}" style="left:${at * 100}%" title="${name}"></span>`).join('')}
+          <span class="absolute inset-y-0 left-0 w-1.5 cursor-col-resize" data-edge="l" data-edge-id="${ch.id}"></span>
+          <span class="absolute inset-y-0 right-0 w-1.5 cursor-col-resize" data-edge="r" data-edge-id="${ch.id}"></span>
+        </div>
+      </div>
+    </div>`;
+  }
+  $('lanes').innerHTML = `<div id="playhead" class="pointer-events-none absolute -top-1 bottom-0 z-20 w-px bg-slate-900" style="left:0px">
+      <span class="absolute -top-0.5 left-1 rounded bg-slate-900 px-1 py-0.5 text-2xs font-semibold tabular-nums text-white">0ms</span></div>` + html;
+  bindTimeline();
+  renderInspector();
+  paintStage();
+}
+
+function msFromX(clientX) {
+  const l = document.querySelector('[data-lane]');
+  const r = l.getBoundingClientRect();
+  return Math.max(0, Math.min(totalMs(), ((clientX - r.left) / r.width) * totalMs()));
+}
+const q = (ms, alt) => (!snap || alt ? Math.round(ms) : Math.round(ms / snap) * snap);
+
+// 拖色块时找最近的「别人的锚点」，命中就建立链接
+function nearestAnchor(ch, absStart) {
+  let best = null;
+  for (const other of chLanes()) {
+    if (other.id === ch.id) continue;
+    for (const [name, at] of other.anchors) {
+      const ms = startOf(other) + other.dur * at;
+      const d = Math.abs(ms - absStart);
+      if (d <= totalMs() * 0.02 && (!best || d < best.d)) best = { ref: `${other.id}.${name}`, ms, d };
+    }
+  }
+  return best;
+}
+function bindTimeline() {
+  const scrub = (el) => el.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('[data-bar],[data-loop]')) return;
+    setPlaying(false);
+    el.setPointerCapture(e.pointerId);
+    const mv = (ev) => { t = q(msFromX(ev.clientX), ev.altKey); paintStage(); };
+    mv(e);
+    const up = () => { el.removeEventListener('pointermove', mv); el.removeEventListener('pointerup', up); };
+    el.addEventListener('pointermove', mv); el.addEventListener('pointerup', up);
+  });
+  scrub($('ruler'));
+  document.querySelectorAll('[data-lane]').forEach(scrub);
+
+  document.querySelectorAll('[data-loop]').forEach((h) => h.addEventListener('pointerdown', (e) => {
+    e.stopPropagation(); h.setPointerCapture(e.pointerId);
+    const which = h.dataset.loop;
+    const mv = (ev) => {
+      const ms = q(msFromX(ev.clientX), ev.altKey);
+      if (which === 'in') loopIn = Math.min(ms, loopOut - 40); else loopOut = Math.max(ms, loopIn + 40);
+      renderTimeline();
+    };
+    const up = () => { h.removeEventListener('pointermove', mv); h.removeEventListener('pointerup', up); };
+    h.addEventListener('pointermove', mv); h.addEventListener('pointerup', up);
+  }));
+
+  document.querySelectorAll('[data-bar]').forEach((bar) => bar.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('[data-edge]')) return;
+    e.stopPropagation();
+    const ch = CH.find((x) => x.id === bar.dataset.bar);
+    selCh = ch.id; selProp = ch.main;
+    const m0 = msFromX(e.clientX), s0 = startOf(ch);
+    bar.setPointerCapture(e.pointerId);
+    const mv = (ev) => {
+      const want = Math.max(0, q(s0 + (msFromX(ev.clientX) - m0), ev.altKey));
+      let hit = ev.altKey ? null : nearestAnchor(ch, want);
+      if (hit && wouldCycle(ch, hit.ref)) { hit = null; cycleWarn(ch, want); }
+      if (hit) { ch.ref = hit.ref; ch.off = q(want - hit.ms, false); }
+      else { ch.ref = 'trigger'; ch.off = want; }
+      renderTimeline();
+    };
+    const up = () => { bar.removeEventListener('pointermove', mv); bar.removeEventListener('pointerup', up); touch(); };
+    bar.addEventListener('pointermove', mv); bar.addEventListener('pointerup', up);
+    renderTimeline();
+  }));
+
+  document.querySelectorAll('[data-edge]').forEach((h) => h.addEventListener('pointerdown', (e) => {
+    e.stopPropagation();
+    const ch = CH.find((x) => x.id === h.dataset.edgeId);
+    const isL = h.dataset.edge === 'l';
+    const m0 = msFromX(e.clientX), off0 = ch.off, dur0 = ch.dur;
+    h.setPointerCapture(e.pointerId);
+    const mv = (ev) => {
+      const d = msFromX(ev.clientX) - m0;
+      if (isL) { const no = q(off0 + d, ev.altKey); ch.dur = Math.max(40, dur0 - (no - off0)); ch.off = no; }
+      else ch.dur = Math.max(40, q(dur0 + d, ev.altKey));
+      renderTimeline();
+    };
+    const up = () => { h.removeEventListener('pointermove', mv); h.removeEventListener('pointerup', up); touch(); };
+    h.addEventListener('pointermove', mv); h.addEventListener('pointerup', up);
+  }));
+
+  document.querySelectorAll('[data-expand]').forEach((b) => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const id = b.dataset.expand;
+    selCh = selCh === id ? '' : id;
+    const ch = CH.find((x) => x.id === id);
+    if (selCh) selProp = ch.main;
+    renderTimeline();
+  }));
+  document.querySelectorAll('[data-mute]').forEach((b) => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const ch = CH.find((x) => x.id === b.dataset.mute);
+    ch.mute = !ch.mute;
+    renderTimeline();
+  }));
+  document.querySelectorAll('[data-solo]').forEach((b) => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const ch = CH.find((x) => x.id === b.dataset.solo);
+    const was = ch.solo;
+    CH.forEach((c) => { c.solo = false; });
+    ch.solo = !was;
+    renderTimeline();
+  }));
+  document.querySelectorAll('[data-reset-ch]').forEach((b) => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const d = CH_DEFAULT.find((x) => x.id === b.dataset.resetCh);
+    const ch = CH.find((x) => x.id === b.dataset.resetCh);
+    ch.ref = d.ref; ch.off = d.off; ch.dur = d.dur;
+    renderTimeline(); touch();
+  }));
+}
+document.querySelectorAll('[data-snap]').forEach((b) => b.addEventListener('click', () => {
+  snap = Number(b.dataset.snap);
+  document.querySelectorAll('[data-snap]').forEach((x) => x.className = 'seg-item' + (x === b ? ' seg-item-on' : ''));
+}));
+document.querySelectorAll('[data-zoom]').forEach((b) => b.addEventListener('click', () => {
+  zoom = Number(b.dataset.zoom);
+  document.querySelectorAll('[data-zoom]').forEach((x) => x.className = 'seg-item' + (x === b ? ' seg-item-on' : ''));
+  renderTimeline();
+}));
+
+// ── 属性子轨 + 曲线编辑
+function renderInspector() {
+  const ch = CH.find((x) => x.id === selCh);
+  if (!ch || !cardOn(ch.id)) {
+    $('inspector').innerHTML = '<p class="text-2xs text-slate-400">点通道名前的箭头展开它的属性轨——每个属性各有一条曲线，原来这些曲线只存在于运行时代码里。</p>';
+    return;
+  }
+  if (!ch.curves[selProp]) selProp = ch.main;
+  const keys = Object.keys(ch.curves);
+  $('inspector').innerHTML = `
+    <div class="flex items-center justify-between gap-2">
+      <span class="text-2xs font-semibold text-slate-600">${ch.label} · 属性轨</span>
+      <span class="text-2xs tabular-nums text-slate-400" id="bezOut">cubic-bezier(${ch.curves[selProp].map((v) => v.toFixed(2)).join(', ')})</span>
+    </div>
+    <div class="mt-2 grid gap-2 sm:grid-cols-[minmax(0,1fr)_112px]">
+      <div class="space-y-1">
+        ${keys.map((k) => `
+          <button class="flex w-full items-center gap-2 text-left" data-prop="${k}">
+            <span class="w-14 shrink-0 truncate text-2xs ${k === selProp ? 'font-semibold text-slate-800' : 'text-slate-500'}">${k}</span>
+            <span class="sub-lane ${k === selProp ? 'sub-lane-on' : ''} min-w-0 flex-1">
+              <svg class="absolute inset-0 size-full" viewBox="0 0 100 20" preserveAspectRatio="none" aria-hidden="true">
+                <path d="${areaPath(ch.curves[k], 100, 20)}" fill="#0f172a" fill-opacity="${k === selProp ? 0.12 : 0.06}"/>
+              </svg>
+            </span>
+            ${(ch.curves[k][1] > 1 || ch.curves[k][3] > 1) ? '<span class="shrink-0 rounded bg-amber-50 px-1 text-2xs font-medium text-amber-700">过冲</span>' : '<span class="w-6 shrink-0"></span>'}
+          </button>`).join('')}
+      </div>
+      <div class="relative h-[68px] rounded-lg border border-slate-200 bg-white" data-curve>
+        <svg class="absolute inset-0 size-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <line x1="0" y1="90" x2="100" y2="90" stroke="#e2e8f0" stroke-width="0.8"/>
+          <line x1="0" y1="10" x2="100" y2="10" stroke="#eef2f6" stroke-width="0.8" stroke-dasharray="3 3"/>
+          <path data-cp d="" fill="none" stroke="#0f172a" stroke-width="1.6" vector-effect="non-scaling-stroke"/>
+        </svg>
+        <span class="curve-handle" data-ch-h="1"></span>
+        <span class="curve-handle" data-ch-h="2"></span>
+      </div>
+    </div>`;
+  document.querySelectorAll('[data-prop]').forEach((b) => b.addEventListener('click', () => { selProp = b.dataset.prop; renderInspector(); }));
+  bindCurve(ch);
+}
+function bindCurve(ch) {
+  const box = $('inspector').querySelector('[data-curve]');
+  if (!box) return;
+  const path = box.querySelector('[data-cp]');
+  const hs = [box.querySelector('[data-ch-h="1"]'), box.querySelector('[data-ch-h="2"]')];
+  const Y = (v) => 90 - v * 80, X = (v) => v * 100;
+  function paintCurve() {
+    const p = ch.curves[selProp];
+    path.setAttribute('d', `M0 ${Y(0)} C ${X(p[0])} ${Y(p[1])}, ${X(p[2])} ${Y(p[3])}, 100 ${Y(1)}`);
+    hs[0].style.left = X(p[0]) + '%'; hs[0].style.top = Y(p[1]) + '%';
+    hs[1].style.left = X(p[2]) + '%'; hs[1].style.top = Y(p[3]) + '%';
+    const over = p[1] > 1 || p[3] > 1;
+    path.setAttribute('stroke', over ? '#d97706' : '#0f172a');
+    const out = $('bezOut');
+    if (out) out.textContent = `cubic-bezier(${p.map((v) => v.toFixed(2)).join(', ')})` + (over ? ' · 过冲' : '');
+  }
+  hs.forEach((h, i) => h.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); e.stopPropagation(); h.setPointerCapture(e.pointerId);
+    const mv = (ev) => {
+      const r = box.getBoundingClientRect();
+      const x = Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width));
+      const v = (90 - ((ev.clientY - r.top) / r.height) * 100) / 80;
+      const p = ch.curves[selProp];
+      p[i * 2] = x; p[i * 2 + 1] = Math.max(-0.3, Math.min(1.6, v));
+      bezCache.clear();
+      paintCurve();
+      $('inspector').querySelectorAll('[data-prop]').forEach((b) => {
+        if (b.dataset.prop !== selProp) return;
+        b.querySelector('path').setAttribute('d', areaPath(ch.curves[selProp], 100, 20));
+      });
+      const bar = document.querySelector(`[data-bar="${ch.id}"] path`);
+      if (bar && ch.main === selProp) bar.setAttribute('d', areaPath(ch.curves[selProp], 100, 20));
+      paintStage();
+    };
+    const up = () => { h.removeEventListener('pointermove', mv); h.removeEventListener('pointerup', up); touch(); };
+    h.addEventListener('pointermove', mv); h.addEventListener('pointerup', up);
+  }));
+  paintCurve();
+}
+
+let cycleWarnAt = 0;
+function cycleWarn(ch, want) {
+  const now = performance.now();
+  if (now - cycleWarnAt < 1800) return;
+  cycleWarnAt = now;
+  toast(`不能链接：会和「${ch.label}」形成环，已按绝对时间放置`);
+}
+
+// ── 抽屉：折叠与拖高度
+let drawerOpen = true, drawerH = 236;
+function syncDrawer() {
+  const body = $('drawerBody');
+  body.classList.toggle('hidden', !drawerOpen);
+  body.style.height = drawerH + 'px';
+  $('drawerChevron').classList.toggle('-rotate-90', !drawerOpen);
+  $('drawerToggle').setAttribute('aria-label', drawerOpen ? '折叠时间轴' : '展开时间轴');
+  // 折叠时把关键信息提到标题行，否则抽屉收起来就完全失去上下文
+  const list = chLanes();
+  $('drawerSummary').textContent = drawerOpen
+    ? ''
+    : `${list.length} 条轨道 · ${list.filter((c) => c.ref !== 'trigger').length} 条已链接 · 播放头 ${Math.round(t)}ms`;
+  if (drawerOpen) renderTimeline();
+}
+$('drawerToggle').addEventListener('click', () => { drawerOpen = !drawerOpen; syncDrawer(); });
+$('drawerGrip').addEventListener('pointerdown', (e) => {
+  if (!drawerOpen) return;
+  $('drawerGrip').setPointerCapture(e.pointerId);
+  const y0 = e.clientY, h0 = drawerH;
+  const mv = (ev) => { drawerH = Math.max(150, Math.min(460, h0 - (ev.clientY - y0))); syncDrawer(); };
+  const up = () => { $('drawerGrip').removeEventListener('pointermove', mv); $('drawerGrip').removeEventListener('pointerup', up); };
+  $('drawerGrip').addEventListener('pointermove', mv);
+  $('drawerGrip').addEventListener('pointerup', up);
+});
+
+// ── 把所有字段注册进 ⌘K：390 个配置决策的可发现性，靠搜索而不是分组
+function registerFields() {
+  const items = [];
+  for (const c of CARDS) {
+    const shown = (c.fields || []).map((f) => f.label);
+    const hidden = (c.groups || []).flatMap(([, fs]) => fs);
+    for (const label of [...shown, ...hidden]) {
+      const inGroup = !shown.includes(label);
+      items.push([`${c.name} · ${label}`, inGroup ? '其余项' : '', () => revealField(c.key, label, inGroup)]);
+    }
+  }
+  registerCommands('字段', items);
+}
+function revealField(cardKey, label, inGroup) {
+  const c = CARDS.find((x) => x.key === cardKey);
+  if (!c.always && !c.on) { c.on = true; renderTimeline(); }   // 字段所在的效果没开就先开
+  if (inGroup) c.more = true;
+  renderCards(); renderOutputs();
+  const card = [...document.querySelectorAll('.cfg-card')].find((el) => el.textContent.includes(c.name));
+  if (!card) return;
+  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // 命中的字段闪一下：跳过去还得自己找是没闭环的
+  const hit = [...card.querySelectorAll('span, div')].find((el) => el.children.length === 0 && el.textContent.trim() === label);
+  const target = hit?.closest('.ctl-row, .ctl-row-wide, .grid') || hit;
+  if (target) {
+    target.classList.add('ring-2', 'ring-slate-400', 'rounded-lg');
+    setTimeout(() => target.classList.remove('ring-2', 'ring-slate-400', 'rounded-lg'), 1400);
+  }
+}
+
+function syncHint() {
+  const a = ACTIONS.find((x) => x.id === actionId);
+  $('hintGesture').textContent = a.gesture;
+  $('stageHint').classList.remove('hidden');
+  renderTimeline();
+}
+window.addEventListener('resize', () => renderTimeline());
+
+// ── 布局预设
+
+
+
+
+
+
+renderActions(); renderCards(); renderOutputs(); syncHint(); syncLayout(); syncDrawer(); registerFields();
+</script>
+</body>
+</html>

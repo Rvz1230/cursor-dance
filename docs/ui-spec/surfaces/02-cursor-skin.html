@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>光标皮肤 · UX 原型</title>
+<link rel="stylesheet" href="../mockup.css" />
+<style>
+  body {
+    font-family: "SF Pro Display", "SF Pro Text", "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+  }
+  /* 舞台内隐藏系统光标——与运行时 cd-hide-native-cursor 同一策略 */
+  #stage.live { cursor: none; }
+  /* 棋盘底：功能性透明指示，不是装饰性渐变 */
+  .checker {
+    background-color: #fff;
+    background-image:
+      linear-gradient(45deg, #eef2f6 25%, transparent 25%, transparent 75%, #eef2f6 75%),
+      linear-gradient(45deg, #eef2f6 25%, transparent 25%, transparent 75%, #eef2f6 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 8px 8px;
+  }
+</style>
+</head>
+<body class="bg-slate-200 p-6 text-slate-900">
+
+<div id="proto"></div>
+<div id="app"></div>
+
+<template id="page">
+
+      <!-- 页头 -->
+      <div class="mb-2.5 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div class="min-w-0">
+          <h1 class="text-base font-semibold text-slate-900 text-balance">光标皮肤</h1>
+          <p data-show="try calibrate" class="mt-1 max-w-2xl text-xs leading-relaxed text-slate-500 text-pretty">
+            上传图片替换鼠标指针。在舞台里移动鼠标即可实时试用，改动自动保存。
+          </p>
+          <p data-show="empty" class="mt-1 max-w-2xl text-xs leading-relaxed text-slate-500 text-pretty">
+            先上传一张主皮肤，之后就能在舞台里试用、并用准星测试校准指向点。
+          </p>
+        </div>
+        <div class="flex shrink-0 flex-wrap items-center gap-2">
+          <!-- 没有素材时不摆「启用皮肤」和「重置」：不给无事可做的控件 -->
+          <div data-show="try calibrate" class="flex h-8 items-center gap-2 rounded-xl bg-white px-2.5 text-xs text-slate-600 shadow-sm ring-1 ring-slate-200">
+            <span class="relative inline-flex h-4 w-7 shrink-0 items-center rounded-full bg-slate-950"><span class="ml-3.5 size-3 rounded-full bg-white shadow-sm"></span></span>
+            <span class="font-medium">启用皮肤</span>
+          </div>
+          <button class="btn-outline h-8 px-3 text-xs">
+            <svg class="mr-1.5 size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M7 8l5-5 5 5M5 21h14"/></svg>
+            批量导入
+          </button>
+          <button data-show="try calibrate" class="btn-ghost h-8 px-3 text-xs">
+            <svg class="mr-1.5 size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg>
+            重置
+          </button>
+        </div>
+      </div>
+
+      <div class="grid gap-2.5 xl:grid-cols-[minmax(0,1fr)_360px]">
+
+        <!-- ════ 舞台 ════ -->
+        <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+            <div class="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1" data-show="try calibrate">
+              <button data-goto="try" class="seg h-7 rounded-lg px-3 text-xs font-medium">试用</button>
+              <button data-goto="calibrate" class="seg h-7 rounded-lg px-3 text-xs font-medium">校准</button>
+            </div>
+            <div data-show="empty" class="text-sm font-medium text-slate-900">上传主皮肤</div>
+            <div class="flex items-center gap-2" data-show="try">
+              <span class="text-2xs font-medium text-slate-500">底色</span>
+              <div class="flex items-center gap-1.5">
+                <button data-bg="light" class="bg-swatch size-6 rounded-lg border bg-white" aria-label="浅色底"></button>
+                <button data-bg="dark" class="bg-swatch size-6 rounded-lg border bg-slate-900" aria-label="深色底"></button>
+                <button data-bg="color" class="bg-swatch size-6 rounded-lg border bg-sky-600" aria-label="彩色底"></button>
+                <button data-bg="checker" class="bg-swatch checker size-6 rounded-lg border" aria-label="棋盘底"></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="px-4 py-3">
+
+            <!-- 试用模式 -->
+            <div data-show="try">
+              <div id="stage" class="relative h-[380px] overflow-hidden rounded-xl border border-slate-200 bg-white">
+                <!-- 唯一的引导语，鼠标进入后淡出，避免和道具标签重复占视觉 -->
+                <div id="stageHint" class="pointer-events-none absolute inset-x-0 top-7 text-center text-xs font-medium text-slate-400 transition-opacity duration-150">
+                  在这块区域内移动鼠标，皮肤会实时跟随
+                </div>
+
+                <!-- 道具：拖拽触发 grabbing -->
+                <div id="dragBlock" class="absolute left-20 top-[135px] grid h-[88px] w-32 select-none place-items-center rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-600 shadow-sm">
+                  拖我
+                  <span class="text-2xs font-normal text-slate-400">触发「拖拽中」</span>
+                </div>
+
+                <!-- 道具：准星（与拖拽方块同一条水平轴） -->
+                <div id="aimTarget" class="absolute right-28 top-[147px] grid size-16 place-items-center rounded-full border border-dashed border-slate-300">
+                  <span class="grid size-9 place-items-center rounded-full border border-slate-300">
+                    <span class="size-1.5 rounded-full bg-rose-500"></span>
+                  </span>
+                  <span class="absolute -bottom-6 whitespace-nowrap text-2xs font-medium text-slate-400">用尖端点圆心</span>
+                </div>
+
+                <!-- 软件光标（运行时同一渲染方式：图片 + 指向点偏移） -->
+                <div id="liveCursor" class="pointer-events-none absolute left-0 top-0 hidden"></div>
+              </div>
+
+              <!-- 两条状态带：一条讲校准结果，一条讲当前状态。都是读数，不是说明书。 -->
+              <div class="mt-2.5 grid gap-2.5 sm:grid-cols-2">
+                <div class="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+                  <div class="min-w-0 flex-1">
+                    <div class="text-xs font-medium text-slate-600">准星测试</div>
+                    <p class="mt-0.5 text-2xs leading-relaxed text-slate-500">点击上报的坐标就是指向点真实位置，偏差即误差。</p>
+                  </div>
+                  <div class="flex shrink-0 flex-col items-end gap-1.5">
+                    <span id="aimResult" class="inline-flex items-center gap-1.5 rounded-lg bg-white px-2 py-1 text-2xs font-semibold text-slate-500 ring-1 ring-slate-200">
+                      还没测过
+                    </span>
+                    <button id="aimFix" class="btn-outline hidden h-7 px-2.5 text-2xs">按测量结果修正</button>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+                  <div class="min-w-0 flex-1">
+                    <div class="text-xs font-medium text-slate-600">状态触发</div>
+                    <p class="mt-0.5 text-2xs leading-relaxed text-slate-500">拖动方块会切到「拖拽中」，走运行时同一套状态机。</p>
+                  </div>
+                  <span id="stateNow" class="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-white px-2 py-1 text-2xs font-semibold text-slate-600 ring-1 ring-slate-200">
+                    <span class="size-1.5 rounded-full bg-emerald-500"></span> 当前状态 · 普通
+                  </span>
+                </div>
+              </div>
+
+              <!--
+                待分配托盘放在左栏而不是右栏：它是素材暂存区，跟舞台同属"操作面",
+                而且拖到右栏槽位是自然的左→右方向。
+              -->
+              <div class="mt-2.5 flex items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-2.5">
+                <div class="grid size-12 shrink-0 cursor-grab place-items-center rounded-xl border border-slate-200 bg-white shadow-sm">
+                  <svg viewBox="0 0 128 96" class="h-6 w-8 slot-glyph-alt"></svg>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="text-xs font-medium text-slate-600">待分配 <span class="tabular-nums">1</span></div>
+                  <p class="mt-0.5 text-2xs leading-relaxed text-slate-500">批量导入里没能按文件名认出的素材。拖到右侧槽位即可使用。</p>
+                </div>
+                <button class="shrink-0 text-2xs font-medium text-slate-400 transition-colors hover:text-rose-500">清空</button>
+              </div>
+            </div>
+
+            <!-- 校准模式 -->
+            <div data-show="calibrate">
+              <div id="calibStage" class="relative h-[380px] overflow-hidden rounded-xl border border-slate-200 bg-white">
+                <div class="absolute inset-0" style="background-image: radial-gradient(circle at 1px 1px, #e2e8f0 1px, transparent 0); background-size: 18px 18px;"></div>
+                <!-- 图片真实边界（非正方形素材必须贴边界，不能用正方形盒子） -->
+                <div id="calibImageBox" class="absolute border border-dashed border-slate-300">
+                  <svg id="calibGlyph" viewBox="0 0 128 96" class="size-full"></svg>
+                </div>
+                <div id="calibPin" class="absolute size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-rose-500 shadow-sm ring-1 ring-rose-200"></div>
+                <div id="calibGuideX" class="pointer-events-none absolute top-0 h-full w-px bg-rose-200"></div>
+                <div id="calibGuideY" class="pointer-events-none absolute left-0 h-px w-full bg-rose-200"></div>
+                <div class="pointer-events-none absolute bottom-4 left-4 rounded-lg bg-white/90 px-2.5 py-1.5 text-2xs text-slate-500 ring-1 ring-slate-200">
+                  拖动红点 · 方向键微调 1px · Shift+方向键 10px
+                </div>
+                <div class="pointer-events-none absolute right-4 top-4 rounded-lg bg-white/90 px-2.5 py-1.5 text-2xs font-semibold tabular-nums text-slate-600 ring-1 ring-slate-200">
+                  指向点 <span id="calibReadout">6, 6</span>
+                </div>
+                <div class="pointer-events-none absolute bottom-4 right-4 rounded-lg bg-white/90 px-2.5 py-1.5 text-2xs text-slate-400 ring-1 ring-slate-200">
+                  虚线为图片真实边界
+                </div>
+              </div>
+              <div class="mt-2.5 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+                <span class="text-2xs font-medium text-slate-600">快速定位</span>
+                <button data-preset="tip" class="btn-outline h-7 px-2.5 text-2xs">左上尖端</button>
+                <button data-preset="center" class="btn-outline h-7 px-2.5 text-2xs">中心</button>
+                <button data-preset="bottom" class="btn-outline h-7 px-2.5 text-2xs">底部中心</button>
+                <span class="ml-auto text-2xs text-slate-400">按原图像素显示 · 内部按比例存储，改尺寸不会失准</span>
+              </div>
+            </div>
+
+            <!-- 空状态 -->
+            <div data-show="empty">
+              <div class="grid h-[380px] place-items-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50">
+                <div class="max-w-sm px-6 text-center">
+                  <div class="mx-auto grid size-12 place-items-center rounded-full bg-white text-slate-400 shadow-sm ring-1 ring-slate-200">
+                    <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l7.5 18 2.5-7.5L21 11z"/></svg>
+                  </div>
+                  <p class="mt-3.5 text-sm font-semibold text-slate-900">把图片拖到这里</p>
+                  <p class="mx-auto mt-1.5 text-xs leading-relaxed text-slate-500 text-pretty">
+                    先上传一张主皮肤。之后 10 个状态默认继承它，需要时逐个派生成独立素材。
+                  </p>
+                  <div class="mt-4 flex items-center justify-center gap-2">
+                    <button class="btn-default h-8 px-3 text-xs">选择文件</button>
+                    <button class="btn-outline h-8 px-3 text-xs">批量导入</button>
+                  </div>
+                  <p class="mt-3 text-2xs text-slate-400">PNG / WebP / SVG，单张不超过 300 KB</p>
+                </div>
+              </div>
+              <div class="mt-2.5 flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-2xs leading-relaxed text-slate-500">
+                <svg class="mt-0.5 size-3.5 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                <span>macOS 会隐藏系统光标、用你的皮肤完全替代。Windows 暂时保留系统光标，皮肤作为跟随层叠加显示。</span>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ════ 右栏 ════ -->
+        <aside class="space-y-2.5">
+
+          <!-- ════ 皮肤槽位：完整状态体系 ════
+            原先只有 2 个槽位（主皮肤 + 拖拽中），理由是「桌面运行时只识别这两种」。
+            但那是**当前能力**的限制，不是这套皮肤体系应有的样子——
+            一套光标皮肤本来就该覆盖文本、手指、滚动、精确选择等形态。
+
+            所以这里按完整体系设计，并把可达性如实标在每一行上：
+            「现在生效」= 当前运行时真能产出；「待系统能力」= 配置会存下来，
+            能力就绪后自动生效。**不生效的槽位必须标出来**，
+            否则用户会配了一堆然后以为坏了；但也**不能因此不给**，
+            否则这套皮肤永远只能做两种形态。
+          -->
+          <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="border-b border-slate-100 px-4 py-3">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <h3 class="text-sm font-medium text-slate-900">皮肤槽位</h3>
+                  <div id="slotSummary" class="mt-0.5 text-xs text-slate-500"></div>
+                </div>
+                <button id="deriveAll" class="btn-outline h-7 shrink-0 px-2.5 text-2xs" title="把所有继承中的状态一次性派生成独立副本，再逐个改">全部派生</button>
+              </div>
+              <label class="mt-2.5 flex cursor-pointer items-center gap-2">
+                <input id="onlyEffective" type="checkbox" class="size-3.5 rounded border-slate-300 accent-slate-900" />
+                <span class="text-2xs text-slate-500">只看现在能生效的状态</span>
+              </label>
+            </div>
+            <div id="slotList" class="max-h-[420px] space-y-2.5 overflow-y-auto px-4 py-3"></div>
+          </section>
+
+          <!-- 属性 -->
+          <section data-show="try calibrate" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="border-b border-slate-100 px-4 py-3">
+              <h3 class="text-sm font-medium text-slate-900">主皮肤 · 属性</h3>
+              <div class="mt-0.5 text-xs text-slate-500">改动即时生效，可撤销</div>
+            </div>
+            <div class="space-y-4 px-4 py-3">
+              <div>
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-medium text-slate-600">显示尺寸</span>
+                  <span class="text-2xs font-semibold tabular-nums text-slate-600"><span id="sizeReadout">48</span> px</span>
+                </div>
+                <div id="sizeRange" data-slider data-min="24" data-max="72" data-value="48" data-default="48" data-ticks="32,48,64" data-snap="1" class="mt-2.5"></div>
+                <div class="mt-1 flex justify-between text-2xs tabular-nums text-slate-400">
+                  <span>24</span><span>32</span><span>48</span><span>64</span><span>72</span>
+                </div>
+              </div>
+
+              <div class="border-t border-slate-100 pt-3.5">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-xs font-medium text-slate-600">指向点</span>
+                  <span class="text-2xs font-semibold tabular-nums text-slate-600">
+                    <span id="hotspotReadout">6, 6</span>
+                  </span>
+                </div>
+                <p class="mt-1 text-2xs leading-relaxed text-slate-400">系统判定点击的那一个像素。</p>
+                <div class="mt-2.5 flex flex-wrap gap-2">
+                  <button data-goto="calibrate" class="btn-default h-7 px-2.5 text-2xs">在舞台上校准</button>
+                  <button data-preset="tip" class="btn-outline h-7 px-2.5 text-2xs">左上尖端</button>
+                  <button data-preset="center" class="btn-outline h-7 px-2.5 text-2xs">中心</button>
+                </div>
+                <details class="mt-2.5">
+                  <summary class="cursor-pointer text-2xs font-medium text-slate-500 transition-colors hover:text-slate-700">精确值</summary>
+                  <div class="mt-2 grid grid-cols-2 gap-2">
+                    <label class="grid gap-1"><span class="text-2xs font-medium text-slate-500">X</span>
+                      <input id="hotX" type="number" value="6" min="0" max="127" class="h-8 rounded-xl border border-slate-200 bg-white px-2 text-center text-xs tabular-nums text-slate-700 shadow-sm" /></label>
+                    <label class="grid gap-1"><span class="text-2xs font-medium text-slate-500">Y</span>
+                      <input id="hotY" type="number" value="6" min="0" max="95" class="h-8 rounded-xl border border-slate-200 bg-white px-2 text-center text-xs tabular-nums text-slate-700 shadow-sm" /></label>
+                  </div>
+                </details>
+              </div>
+
+              <div class="flex items-center justify-between border-t border-slate-100 pt-3.5">
+                <div>
+                  <div class="text-xs font-medium text-slate-600">校准状态</div>
+                  <div id="calibStatus" class="mt-0.5 text-2xs text-slate-400">未测试，去舞台点一次准星</div>
+                </div>
+                <button class="btn-ghost h-7 px-2.5 text-2xs">清除皮肤</button>
+              </div>
+            </div>
+          </section>
+
+          <section data-show="empty" class="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center">
+            <p class="text-xs font-medium text-slate-500">尺寸与指向点</p>
+            <p class="mx-auto mt-1.5 max-w-[220px] text-2xs leading-relaxed text-slate-400">上传主皮肤后在这里调整，并用准星测试验证。</p>
+          </section>
+
+        </aside>
+      </div>
+    </template>
+
+<script src="../controls.js"></script>
+<script src="../shell.js"></script>
+<script>
+mountShell({ active: 'cursor-skin', mainClass: 'min-w-0 flex-1 overflow-y-auto bg-slate-50 px-3 py-3',
+  proto: [['try', '① 试用（已配置）'], ['calibrate', '② 校准指向点'], ['empty', '③ 空状态（首次进入）']],
+  hint: '舞台内移动鼠标可实时预览 · 点准星圆心可测偏差 · 拖动方块可触发状态切换',
+  onProto: (id) => onProtoState(id) });
+</script>
+<script>
+// ── 素材（内联 SVG 代替上传的图片，尺寸 128×96：故意用非正方形素材展示信箱边距处理）
+const SRC_W = 128, SRC_H = 96;
+const GLYPH = '<path d="M6 6 L6 78 L25.5 60 L37.5 87 L51 81 L39 55.5 L66 54 Z" fill="#020617" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"/>';
+const GLYPH_GRAB = '<g fill="#0d9488" stroke="#ffffff" stroke-width="3" stroke-linejoin="round">'
+  + '<rect x="24" y="40" width="56" height="42" rx="14"/><rect x="30" y="24" width="14" height="26" rx="7"/>'
+  + '<rect x="47" y="18" width="14" height="32" rx="7"/><rect x="64" y="24" width="14" height="26" rx="7"/></g>';
+const GLYPH_ALT = '<g fill="#f59e0b" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"><path d="M64 14 L78 50 L114 50 L84 70 L96 92 L64 74 L32 92 L44 70 L14 50 L50 50 Z"/></g>';
+document.querySelectorAll('.slot-glyph').forEach(el => el.innerHTML = GLYPH);
+document.querySelectorAll('.slot-glyph-grab').forEach(el => el.innerHTML = GLYPH_GRAB);
+document.querySelectorAll('.slot-glyph-alt').forEach(el => el.innerHTML = GLYPH_ALT);
+
+// ── 状态
+let hotspot = { x: 6, y: 6 };   // 原图像素；内部按 x/SRC_W 归一化存储
+let displaySize = 48;           // 长边显示尺寸
+let grabbing = false;
+let lastDelta = null;
+
+const $ = (id) => document.getElementById(id);
+const stage = $('stage');
+const liveCursor = $('liveCursor');
+
+// 渲染尺寸：长边 = displaySize，短边等比。指向点按同一比例换算，不存在信箱错位。
+function scale() { return displaySize / Math.max(SRC_W, SRC_H); }
+function renderW() { return SRC_W * scale(); }
+function renderH() { return SRC_H * scale(); }
+
+function paintCursor() {
+  liveCursor.style.width = renderW() + 'px';
+  liveCursor.style.height = renderH() + 'px';
+  liveCursor.innerHTML = '<svg viewBox="0 0 128 96" class="size-full">' + (grabbing ? GLYPH_GRAB : GLYPH) + '</svg>';
+}
+// 必须用 let 在 syncReadouts 之前声明：Ctl.slider 会在构造时同步跑一次 paint() →
+// onChange → syncReadouts()，那一刻 sizeSlider 还没赋值。写成后置的 `const` 时
+// 下面的 `sizeSlider?.set()` 并不能救场——可选链只防 null/undefined，
+// 不防「const 在初始化前被访问」的 TDZ ReferenceError。那个错会让本页脚本
+// 从这里整段停掉：滑块、指向点输入、预设、底色切换全部是死的（README 教训 #0 的第三次复发）。
+let sizeSlider = null;
+function syncReadouts() {
+  $('hotspotReadout').textContent = Math.round(hotspot.x) + ', ' + Math.round(hotspot.y);
+  $('calibReadout').textContent = Math.round(hotspot.x) + ', ' + Math.round(hotspot.y);
+  $('hotX').value = Math.round(hotspot.x);
+  $('hotY').value = Math.round(hotspot.y);
+  $('sizeReadout').textContent = displaySize;
+  sizeSlider?.set(displaySize);
+  paintCursor();
+  paintCalib();
+}
+
+// ── 舞台：软件光标跟随（与运行时相同：位置 = 指针 - 指向点偏移）
+stage.addEventListener('mouseenter', () => {
+  stage.classList.add('live');
+  liveCursor.classList.remove('hidden');
+  $('stageHint').classList.add('opacity-0');
+});
+stage.addEventListener('mouseleave', () => {
+  stage.classList.remove('live');
+  liveCursor.classList.add('hidden');
+  $('stageHint').classList.remove('opacity-0');
+  grabbing = false; setStateChip();
+});
+stage.addEventListener('mousemove', (e) => {
+  const r = stage.getBoundingClientRect();
+  liveCursor.style.transform = 'translate3d(' + (e.clientX - r.left - hotspot.x * scale()) + 'px,' + (e.clientY - r.top - hotspot.y * scale()) + 'px,0)';
+});
+
+// ── 道具：拖拽方块触发 grabbing
+const dragBlock = $('dragBlock');
+let blockDrag = null;
+dragBlock.addEventListener('mousedown', (e) => {
+  blockDrag = { ox: e.offsetX, oy: e.offsetY };
+  grabbing = true; setStateChip(); paintCursor();
+  e.preventDefault();
+});
+window.addEventListener('mousemove', (e) => {
+  if (!blockDrag) return;
+  const r = stage.getBoundingClientRect();
+  dragBlock.style.left = (e.clientX - r.left - blockDrag.ox) + 'px';
+  dragBlock.style.top = (e.clientY - r.top - blockDrag.oy) + 'px';
+});
+window.addEventListener('mouseup', () => {
+  if (blockDrag) { blockDrag = null; grabbing = false; setStateChip(); paintCursor(); }
+});
+function setStateChip() {
+  // 语义色只有四个（emerald 已启用 / rose 危险 / sky 信息 / amber 警告）。
+  // 「拖拽中」属于信息态 → sky，不再用调色板外的 teal。
+  $('stateNow').innerHTML = '<span class="size-1.5 rounded-full ' + (grabbing ? 'bg-sky-500' : 'bg-emerald-500')
+    + '"></span> 当前状态 · ' + (grabbing ? '拖拽中' : '普通');
+}
+
+// ════ 光标状态体系 ════════════════════════════════════════
+//
+// 分组不是为了好看：11 个状态平铺是一堵墙，而它们天然分成几个「同一类形态」的族。
+// 用户配皮肤时是按族想的（「我要一套手型」），不是按字母序想的。
+//
+// reach 三档，直说当前运行时能不能产出这个状态：
+//   'now'  现在就生效
+//   'cap'  待系统能力（配置会存下来，能力就绪后自动生效）
+// 只有两档实义，第三档没有必要——「永远不可能」的状态就不该出现在这个列表里。
+const CURSOR_GROUPS = [
+  { id: 'base', name: '基础', hint: '其他状态的继承源', states: [
+    { id: 'default', name: '普通', detail: '默认指针，识别不出状态时用', reach: 'now', master: true },
+  ] },
+  { id: 'text', name: '文本', hint: '可编辑与可选中的文字', states: [
+    { id: 'text', name: '文本选择', detail: '输入框、编辑器、文本区域', reach: 'cap' },
+  ] },
+  { id: 'point', name: '指向', hint: '可点击的东西', states: [
+    { id: 'pointer', name: '可点击', detail: '按钮、链接、菜单项', reach: 'cap' },
+    { id: 'help', name: '帮助', detail: '帮助提示、说明图标', reach: 'cap' },
+  ] },
+  { id: 'drag', name: '拖拽与滚动', hint: '手型与滚动形态', states: [
+    { id: 'grab', name: '可拖拽', detail: '悬在可拖对象上（张开的手）', reach: 'cap' },
+    { id: 'grabbing', name: '拖拽中', detail: '按住并移动（握起的手）', reach: 'now' },
+    { id: 'scroll', name: '滚动', detail: '可滚动区域内', reach: 'cap' },
+  ] },
+  { id: 'precise', name: '精确操作', hint: '需要看清落点的形态', states: [
+    { id: 'crosshair', name: '十字准星', detail: '取色、框选、精确定位', reach: 'cap' },
+    { id: 'resize', name: '缩放', detail: '拖拽边缘改变尺寸', reach: 'cap' },
+  ] },
+  { id: 'status', name: '状态反馈', hint: '不是位置而是状态', states: [
+    { id: 'busy', name: '忙碌', detail: '加载中、等待响应', reach: 'cap' },
+    { id: 'notAllowed', name: '不可用', detail: '禁用目标、无效放置区', reach: 'cap' },
+  ] },
+];
+
+// 每个状态画一个能认出来的形状——列表要读起来像「一套光标」，
+// 而不是一排文字加一排一样的方块。
+const STATE_GLYPH = {
+  default: '<path d="M6 3 L6 20 L10.5 15.5 L13 21 L15.5 20 L13 14.5 L19 14 Z" fill="currentColor"/>',
+  text: '<path d="M9 4h6M9 20h6M12 4v16" stroke="currentColor" stroke-width="2" fill="none"/>',
+  pointer: '<path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V11m0-1.5a1.5 1.5 0 0 1 3 0V12m0-1a1.5 1.5 0 0 1 3 0v4a5 5 0 0 1-5 5h-1.5a5 5 0 0 1-5-5v-3" stroke="currentColor" stroke-width="1.6" fill="none"/>',
+  help: '<path d="M6 3 L6 18 L10 14.5 L12 19 L14 18 L12 13.5 L17 13 Z" fill="currentColor"/><path d="M16 17.5h.01M15 15a1.4 1.4 0 1 1 1.4 1.4" stroke="currentColor" stroke-width="1.6" fill="none"/>',
+  grab: '<path d="M8 12V6.5a1.5 1.5 0 0 1 3 0V12m0-2a1.5 1.5 0 0 1 3 0v2m0-1.5a1.5 1.5 0 0 1 3 0V16a4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4v-4a1.5 1.5 0 0 1 3 0" stroke="currentColor" stroke-width="1.6" fill="none"/>',
+  grabbing: '<path d="M7 13v-1.5a1.5 1.5 0 0 1 3 0V13m0-1a1.5 1.5 0 0 1 3 0v1m0-.5a1.5 1.5 0 0 1 3 0V16a4 4 0 0 1-4 4h-2a4 4 0 0 1-4-4v-3a1.5 1.5 0 0 1 3 0" stroke="currentColor" stroke-width="1.6" fill="none"/>',
+  scroll: '<circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M12 7.5v9M9.5 10 12 7.5 14.5 10M9.5 14 12 16.5 14.5 14" stroke="currentColor" stroke-width="1.6" fill="none"/>',
+  crosshair: '<path d="M12 3v6M12 15v6M3 12h6M15 12h6" stroke="currentColor" stroke-width="1.8" fill="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/>',
+  resize: '<path d="M4 9V4h5M20 15v5h-5M4 4l6 6M20 20l-6-6" stroke="currentColor" stroke-width="1.8" fill="none"/>',
+  busy: '<circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.6" fill="none" opacity="0.3"/><path d="M12 4a8 8 0 0 1 8 8" stroke="currentColor" stroke-width="2" fill="none"/>',
+  notAllowed: '<circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M7 17 17 7" stroke="currentColor" stroke-width="1.8" fill="none"/>',
+};
+
+const REACH_BADGE = {
+  now: '<span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-2xs font-medium text-emerald-800"><span class="size-1.5 rounded-full bg-emerald-500"></span>现在生效</span>',
+  cap: '<span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-slate-100 px-1.5 py-0.5 text-2xs font-medium text-slate-500" title="配置会保存下来；等运行时具备识别该状态的能力后自动生效">待系统能力</span>',
+};
+
+// 槽位状态：'inherit' 继承主皮肤 · 'own' 独立素材
+const slotMode = {};
+CURSOR_GROUPS.forEach((g) => g.states.forEach((st) => { slotMode[st.id] = st.master ? 'own' : 'inherit'; }));
+slotMode.grabbing = 'own';   // 演示：已经配过一个独立覆盖
+let onlyEffective = false;
+
+function hasMaster() { return document.body.dataset.proto !== 'empty'; }
+
+function renderSlots() {
+  const master = hasMaster();
+  const visible = (st) => !onlyEffective || st.reach === 'now';
+
+  $('slotList').innerHTML = CURSOR_GROUPS.map((g) => {
+    const states = g.states.filter(visible);
+    if (!states.length) return '';
+    return `<div>
+      <div class="mb-1.5 flex items-baseline gap-2 px-0.5">
+        <span class="text-2xs font-semibold text-slate-500">${g.name}</span>
+        <span class="text-2xs text-slate-400">${g.hint}</span>
+        <span class="ml-auto text-2xs tabular-nums text-slate-300">${states.length}</span>
+      </div>
+      <div class="space-y-1">
+        ${states.map((st) => slotRow(st, master)).join('')}
+      </div>
+    </div>`;
+  }).join('');
+
+  // 摘要：一句话说清「配了几个」和「几个还不生效」，
+  // 而不是在每一行重复同一句警告（重复即噪音）
+  const all = CURSOR_GROUPS.flatMap((g) => g.states);
+  const own = all.filter((st) => !st.master && slotMode[st.id] === 'own').length;
+  const pending = all.filter((st) => st.reach === 'cap').length;
+  $('slotSummary').innerHTML = master
+    ? `主皮肤 + ${own} 个独立覆盖 · <span class="text-slate-400">${pending} 个状态待系统能力</span>`
+    : '还没有主皮肤';
+  $('deriveAll').disabled = !master;
+  $('deriveAll').classList.toggle('opacity-40', !master);
+}
+
+function slotRow(st, master) {
+  const mode = slotMode[st.id];
+  const glyph = STATE_GLYPH[st.id] || STATE_GLYPH.default;
+  const dimmed = st.reach === 'cap';
+
+  if (st.master) {
+    return master
+      ? `<div class="flex items-center gap-3 rounded-xl border-2 border-slate-950 bg-white px-3 py-2.5 shadow-sm">
+          <span class="grid size-11 shrink-0 place-items-center rounded-xl border border-slate-200 bg-white text-slate-900">
+            <svg viewBox="0 0 24 24" class="size-5">${glyph}</svg>
+          </span>
+          <span class="min-w-0 flex-1">
+            <span class="flex items-center gap-2">
+              <span class="truncate text-sm font-medium text-slate-900">${st.name}</span>
+              <span class="inline-flex shrink-0 items-center rounded-full bg-slate-900 px-1.5 py-0.5 text-2xs font-medium text-white">必需</span>
+            </span>
+            <span class="mt-0.5 block truncate text-2xs tabular-nums text-slate-400">arrow.png · 128×96 · 12 KB</span>
+          </span>
+          ${REACH_BADGE.now}
+        </div>`
+      : `<div class="flex items-center gap-3 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 px-3 py-2.5">
+          <span class="grid size-11 shrink-0 place-items-center rounded-xl border border-dashed border-slate-300 bg-white text-slate-300">
+            <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          </span>
+          <span class="min-w-0 flex-1">
+            <span class="block text-sm font-medium text-slate-900">${st.name}</span>
+            <span class="mt-0.5 block text-2xs text-slate-500">上传后其他状态就能继承它</span>
+          </span>
+          <button class="btn-outline h-7 shrink-0 px-2.5 text-2xs">上传</button>
+        </div>`;
+  }
+
+  return `<div class="flex items-center gap-3 rounded-xl border px-3 py-2.5 ${mode === 'own' ? 'border-slate-300 bg-white shadow-sm' : 'border-slate-200 bg-slate-50/60'}">
+    <span class="grid size-11 shrink-0 place-items-center rounded-xl border bg-white ${mode === 'own' ? 'border-slate-200' : 'border-dashed border-slate-200'} ${dimmed ? 'text-slate-400' : 'text-slate-800'}">
+      <svg viewBox="0 0 24 24" class="size-5">${glyph}</svg>
+    </span>
+    <span class="min-w-0 flex-1">
+      <span class="flex items-center gap-2">
+        <span class="truncate text-sm font-medium ${master ? 'text-slate-900' : 'text-slate-400'}">${st.name}</span>
+        ${REACH_BADGE[st.reach]}
+      </span>
+      <span class="mt-0.5 block truncate text-2xs text-slate-400">${mode === 'own' ? '独立素材 · ' + st.id + '.png' : '继承主皮肤 · ' + st.detail}</span>
+    </span>
+    <span class="inline-flex shrink-0 items-center gap-1 rounded-xl border border-slate-200 bg-white p-0.5">
+      <button data-mode="${st.id}|inherit" class="h-6 rounded-lg px-2 text-2xs font-medium ${mode === 'inherit' ? 'bg-slate-950 text-white shadow-sm' : 'text-slate-500'}" ${master ? '' : 'disabled'}>继承</button>
+      <button data-mode="${st.id}|own" class="h-6 rounded-lg px-2 text-2xs font-medium ${mode === 'own' ? 'bg-slate-950 text-white shadow-sm' : 'text-slate-500'}" ${master ? '' : 'disabled'}>独立</button>
+    </span>
+  </div>`;
+}
+
+$('slotList').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-mode]');
+  if (!btn || btn.disabled) return;
+  const [id, mode] = btn.dataset.mode.split('|');
+  if (slotMode[id] === mode) return;
+  const before = slotMode[id];
+  slotMode[id] = mode;
+  renderSlots();
+  const label = CURSOR_GROUPS.flatMap((g) => g.states).find((st) => st.id === id).name;
+  toast(mode === 'own' ? `「${label}」已派生独立素材` : `「${label}」改回继承主皮肤`, () => { slotMode[id] = before; renderSlots(); });
+});
+
+$('deriveAll').addEventListener('click', () => {
+  const before = { ...slotMode };
+  const changed = CURSOR_GROUPS.flatMap((g) => g.states).filter((st) => !st.master && slotMode[st.id] === 'inherit');
+  if (!changed.length) { toast('所有状态都已经是独立素材了'); return; }
+  changed.forEach((st) => { slotMode[st.id] = 'own'; });
+  renderSlots();
+  toast(`已派生 ${changed.length} 个独立素材`, () => { Object.assign(slotMode, before); renderSlots(); });
+});
+
+$('onlyEffective').addEventListener('change', (e) => { onlyEffective = e.target.checked; renderSlots(); });
+
+// ── 准星测试：点击上报坐标即指向点真实位置，偏差 = 误差
+$('aimTarget').addEventListener('click', (e) => {
+  const t = $('aimTarget').getBoundingClientRect();
+  const cx = t.left + t.width / 2, cy = t.top + t.height / 2;
+  const dx = e.clientX - cx, dy = e.clientY - cy;
+  const dist = Math.round(Math.hypot(dx, dy));
+  lastDelta = { dx, dy };
+  const ok = dist <= 4;
+  $('aimResult').className = 'inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-2xs font-semibold ring-1 '
+    + (ok ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-amber-50 text-amber-800 ring-amber-200');
+  $('aimResult').textContent = ok ? ('✓ 偏差 ' + dist + ' px · 指向点准确') : ('偏差 ' + dist + ' px · 指向点可能偏了');
+  $('aimFix').classList.toggle('hidden', ok);
+  $('calibStatus').textContent = ok ? ('已校准 · 偏差 ' + dist + ' px') : ('偏差 ' + dist + ' px，建议修正');
+  $('calibStatus').className = 'mt-0.5 text-2xs ' + (ok ? 'text-emerald-700' : 'text-amber-700');
+});
+$('aimFix').addEventListener('click', () => {
+  if (!lastDelta) return;
+  const prev = snapshot();
+  hotspot.x = Math.max(0, Math.min(SRC_W - 1, hotspot.x - lastDelta.dx / scale()));
+  hotspot.y = Math.max(0, Math.min(SRC_H - 1, hotspot.y - lastDelta.dy / scale()));
+  syncReadouts();
+  showToast('已按测量结果修正指向点', `${Math.round(hotspot.x)}, ${Math.round(hotspot.y)}`, prev);
+  $('aimResult').className = 'inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2 py-1 text-2xs font-semibold text-slate-600 ring-1 ring-slate-200';
+  $('aimResult').textContent = '已按测量结果修正，再测一次确认';
+  $('aimFix').classList.add('hidden');
+});
+
+// ── 校准舞台：图片贴真实边界 + 可拖图钉
+const CAL_ZOOM = 3.1;
+function paintCalib() {
+  const box = $('calibImageBox'), pin = $('calibPin'), st = $('calibStage');
+  if (!box || !st) return;
+  const w = SRC_W * CAL_ZOOM, h = SRC_H * CAL_ZOOM;
+  const left = (st.clientWidth - w) / 2, top = (st.clientHeight - h) / 2;
+  box.style.width = w + 'px'; box.style.height = h + 'px';
+  box.style.left = left + 'px'; box.style.top = top + 'px';
+  $('calibGlyph').innerHTML = GLYPH;
+  const px = left + hotspot.x * CAL_ZOOM, py = top + hotspot.y * CAL_ZOOM;
+  pin.style.left = px + 'px'; pin.style.top = py + 'px';
+  $('calibGuideX').style.left = px + 'px';
+  $('calibGuideY').style.top = py + 'px';
+}
+let pinning = false, pinPrev = null;
+$('calibStage').addEventListener('mousedown', (e) => { pinning = true; pinPrev = snapshot(); movePin(e); });
+window.addEventListener('mousemove', (e) => { if (pinning) movePin(e); });
+window.addEventListener('mouseup', () => {
+  if (!pinning) return;
+  pinning = false;
+  showToast('已更新指向点', `${Math.round(hotspot.x)}, ${Math.round(hotspot.y)}`, pinPrev);
+  pinPrev = null;
+});
+function movePin(e) {
+  const st = $('calibStage'), r = st.getBoundingClientRect();
+  const w = SRC_W * CAL_ZOOM, h = SRC_H * CAL_ZOOM;
+  const left = (st.clientWidth - w) / 2, top = (st.clientHeight - h) / 2;
+  hotspot.x = Math.max(0, Math.min(SRC_W - 1, (e.clientX - r.left - left) / CAL_ZOOM));
+  hotspot.y = Math.max(0, Math.min(SRC_H - 1, (e.clientY - r.top - top) / CAL_ZOOM));
+  syncReadouts();
+}
+
+// ── 自动保存 + 撤销：没有保存按钮，每次改动落一条可撤销的 toast
+let undoSnapshot = null;
+const snapshot = () => ({ hotspot: { ...hotspot }, displaySize });
+// 反馈统一走外壳 toast。这里原先自带一套页内 toast，迁到共享外壳后 $('toastUndo')
+// 变成 null，从那一行起本页脚本全部没执行（滑块、预设、精确值输入都是死的）。
+function showToast(title, desc, prev) {
+  undoSnapshot = prev || null;
+  toast(desc ? `${title} · ${desc}` : title, prev ? () => {
+    hotspot = { ...prev.hotspot };
+    displaySize = prev.displaySize;
+    syncReadouts();
+  } : undefined);
+}
+
+// ── 预设 / 尺寸 / 精确值
+document.querySelectorAll('[data-preset]').forEach((btn) => btn.addEventListener('click', () => {
+  const prev = snapshot();
+  const p = btn.dataset.preset;
+  if (p === 'tip') hotspot = { x: 6, y: 6 };
+  if (p === 'center') hotspot = { x: SRC_W / 2, y: SRC_H / 2 };
+  if (p === 'bottom') hotspot = { x: SRC_W / 2, y: SRC_H - 1 };
+  syncReadouts();
+  showToast('已更新指向点', `${btn.textContent.trim()} · ${Math.round(hotspot.x)}, ${Math.round(hotspot.y)}`, prev);
+}));
+let sizePrev = null;
+sizeSlider = Ctl.slider($('sizeRange'), {
+  onChange: (v) => { if (!sizePrev) sizePrev = snapshot(); displaySize = v; syncReadouts(); },
+  onCommit: () => { showToast('已更新显示尺寸', `${displaySize} px`, sizePrev); sizePrev = null; },
+});
+$('hotX').addEventListener('input', (e) => { hotspot.x = Number(e.target.value) || 0; syncReadouts(); });
+$('hotY').addEventListener('input', (e) => { hotspot.y = Number(e.target.value) || 0; syncReadouts(); });
+
+// ── 底色
+const STAGE_BGS = { light: 'bg-white', dark: 'bg-slate-900', color: 'bg-sky-600', checker: 'checker' };
+document.querySelectorAll('.bg-swatch').forEach((btn) => btn.addEventListener('click', () => {
+  document.querySelectorAll('.bg-swatch').forEach((b) => b.classList.remove('border-slate-950', 'ring-2', 'ring-slate-300'));
+  btn.classList.add('border-slate-950', 'ring-2', 'ring-slate-300');
+  // 同 01：只换底色类。重建整串 className 会把布局类一起重写，
+  // 布局一改就会静默失配（01 就是这样把舞台压回 212px 的）。
+  stage.classList.remove(...Object.values(STAGE_BGS));
+  stage.classList.add(STAGE_BGS[btn.dataset.bg]);
+}));
+
+// ── 原型状态切换
+function onProtoState(s) {
+  document.querySelectorAll('.seg').forEach((b) => {
+    const on = b.dataset.goto === s;
+    b.className = 'seg h-7 rounded-lg px-3 text-xs font-medium ' + (on ? 'bg-slate-950 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900');
+  });
+  if (s === 'calibrate') paintCalib();
+  // 空状态下没有主皮肤，槽位行要相应变成不可操作
+  renderSlots();
+}
+
+syncReadouts();
+setStateChip();
+renderSlots();
+document.querySelector('[data-bg="light"]').classList.add('border-slate-950', 'ring-2', 'ring-slate-300');
+</script>
+</body>
+</html>

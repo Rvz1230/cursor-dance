@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CursorDance · 前端重构 UI 规范</title>
+<link rel="stylesheet" href="mockup.css" />
+<style>
+  body { font-family: "SF Pro Display", "SF Pro Text", "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif; }
+</style>
+</head>
+<body class="bg-slate-100 p-8 text-slate-900">
+<div class="mx-auto max-w-[980px]">
+
+  <header class="mb-5">
+    <div class="flex items-center gap-2.5">
+      <span class="grid size-8 place-items-center rounded-xl bg-slate-950 text-xs font-semibold text-white">C</span>
+      <div class="min-w-0">
+        <h1 class="text-base font-semibold text-slate-900 text-balance">前端重构 UI 规范</h1>
+        <p class="mt-0.5 text-xs leading-relaxed text-slate-500 text-pretty">
+          每页均可点击、交互真实、参数与运行时对齐。设计语言沿用 <code class="rounded bg-white px-1 ring-1 ring-slate-200">DESIGN.md</code> 现状。
+        </p>
+      </div>
+    </div>
+  </header>
+
+  <!-- 五个界面 -->
+  <section class="mb-3 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+      <div>
+        <h2 class="text-sm font-medium text-slate-900">界面</h2>
+        <p class="mt-0.5 text-xs text-slate-500">五个工作区 + 工作台内的 AI 面板 + 三个独立窗口 / 面板。前六页共用 <code class="rounded bg-slate-100 px-1">shell.js</code>。</p>
+      </div>
+      <span class="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-2xs font-medium tabular-nums text-slate-600">9 页</span>
+    </div>
+    <div class="divide-y divide-slate-100">
+      <a href="surfaces/01-workbench.html" class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50">
+        <span class="grid size-8 shrink-0 place-items-center rounded-xl bg-slate-900 text-2xs font-semibold text-white">01</span>
+        <span class="min-w-0 flex-1">
+          <span class="flex flex-wrap items-center gap-2">
+            <span class="text-sm font-medium text-slate-900">主题工作台</span>
+            <span class="inline-flex items-center rounded-full bg-slate-900 px-1.5 py-0.5 text-2xs font-semibold text-white">最大一批</span>
+          </span>
+          <span class="mt-0.5 block text-2xs leading-relaxed text-slate-500">
+            效果预设层 · 未启用效果收成一行 · 可交互舞台 · 锚点链接时间轴 · 属性曲线子轨 · 布局预设
+          </span>
+        </span>
+        <svg class="size-4 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+      <a href="surfaces/02-cursor-skin.html" class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50">
+        <span class="grid size-8 shrink-0 place-items-center rounded-xl bg-slate-100 text-2xs font-semibold text-slate-600">02</span>
+        <span class="min-w-0 flex-1">
+          <span class="block text-sm font-medium text-slate-900">光标皮肤</span>
+          <span class="mt-0.5 block text-2xs leading-relaxed text-slate-500">真沙盒试用舞台 · 准星测试量化指向点误差 · 校准大画布 · 主皮肤 + 覆盖槽位</span>
+        </span>
+        <svg class="size-4 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+      <a href="surfaces/03-app-rules.html" class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50">
+        <span class="grid size-8 shrink-0 place-items-center rounded-xl bg-slate-100 text-2xs font-semibold text-slate-600">03</span>
+        <span class="min-w-0 flex-1">
+          <span class="block text-sm font-medium text-slate-900">应用规则</span>
+          <span class="mt-0.5 block text-2xs leading-relaxed text-slate-500">默认行为 + 例外清单（消掉优先级）· 应用选择器三入口 · 底部常驻裁决条</span>
+        </span>
+        <svg class="size-4 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+      <a href="surfaces/04-keyboard.html" class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50">
+        <span class="grid size-8 shrink-0 place-items-center rounded-xl bg-slate-100 text-2xs font-semibold text-slate-600">04</span>
+        <span class="min-w-0 flex-1">
+          <span class="block text-sm font-medium text-slate-900">键盘动效</span>
+          <span class="mt-0.5 block text-2xs leading-relaxed text-slate-500">可打字的屏幕预览 · 直接操作定位 · 语义分层带实时样例 · 连击指示</span>
+        </span>
+        <svg class="size-4 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+      <a href="surfaces/05-diagnostics.html" class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50">
+        <span class="grid size-8 shrink-0 place-items-center rounded-xl bg-slate-100 text-2xs font-semibold text-slate-600">05</span>
+        <span class="min-w-0 flex-1">
+          <span class="flex flex-wrap items-center gap-2">
+            <span class="text-sm font-medium text-slate-900">诊断面板</span>
+            <span class="inline-flex items-center rounded-full bg-amber-50 px-1.5 py-0.5 text-2xs font-semibold text-amber-800">本轮新增</span>
+          </span>
+          <span class="mt-0.5 block text-2xs leading-relaxed text-slate-500">之前一直缺这一页 · 事件流 + 过滤 + 预算水位 + 丢弃原因</span>
+        </span>
+        <svg class="size-4 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+      <a href="surfaces/06-ai.html" class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50">
+        <span class="grid size-8 shrink-0 place-items-center rounded-xl bg-slate-100 text-2xs font-semibold text-slate-600">06</span>
+        <span class="min-w-0 flex-1">
+          <span class="flex flex-wrap items-center gap-2">
+            <span class="text-sm font-medium text-slate-900">AI 助手</span>
+            <span class="inline-flex items-center rounded-full bg-amber-50 px-1.5 py-0.5 text-2xs font-semibold text-amber-800">本轮新增</span>
+            <span class="inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-2xs font-medium text-slate-600">工作台内的面板</span>
+          </span>
+          <span class="mt-0.5 block text-2xs leading-relaxed text-slate-500">
+            只提案不写入 · 五种 op 的逐项 diff · 冲突标记 · 诊断驱动排障 · 预算收益 · 可存为预设
+          </span>
+        </span>
+        <svg class="size-4 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+      <a href="surfaces/07-settings.html" class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50">
+        <span class="grid size-8 shrink-0 place-items-center rounded-xl bg-slate-100 text-2xs font-semibold text-slate-600">07</span>
+        <span class="min-w-0 flex-1">
+          <span class="flex flex-wrap items-center gap-2">
+            <span class="text-sm font-medium text-slate-900">全局设置</span>
+            <span class="inline-flex items-center rounded-full bg-amber-50 px-1.5 py-0.5 text-2xs font-semibold text-amber-800">本轮新增</span>
+            <span class="inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-2xs font-medium text-slate-600">独立窗口 ⌘,</span>
+          </span>
+          <span class="mt-0.5 block text-2xs leading-relaxed text-slate-500">多屏策略（带示意图）· 缩放换算 · 输入法处理 · 共享效果预算 · 可改快捷键 · 数据与隐私</span>
+        </span>
+        <svg class="size-4 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+      <a href="surfaces/08-onboarding.html" class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50">
+        <span class="grid size-8 shrink-0 place-items-center rounded-xl bg-slate-100 text-2xs font-semibold text-slate-600">08</span>
+        <span class="min-w-0 flex-1">
+          <span class="flex flex-wrap items-center gap-2">
+            <span class="text-sm font-medium text-slate-900">首次启动引导</span>
+            <span class="inline-flex items-center rounded-full bg-amber-50 px-1.5 py-0.5 text-2xs font-semibold text-amber-800">本轮新增</span>
+            <span class="inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-2xs font-medium text-slate-600">独立窗口</span>
+          </span>
+          <span class="mt-0.5 block text-2xs leading-relaxed text-slate-500">三步都有实际产出 · 主题并排对比 · 第 3 步必须真的点出效果才算完成</span>
+        </span>
+        <svg class="size-4 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+      <a href="surfaces/09-popup.html" class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50">
+        <span class="grid size-8 shrink-0 place-items-center rounded-xl bg-slate-100 text-2xs font-semibold text-slate-600">09</span>
+        <span class="min-w-0 flex-1">
+          <span class="flex flex-wrap items-center gap-2">
+            <span class="text-sm font-medium text-slate-900">托盘面板</span>
+            <span class="inline-flex items-center rounded-full bg-amber-50 px-1.5 py-0.5 text-2xs font-semibold text-amber-800">本轮新增</span>
+            <span class="inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-2xs font-medium text-slate-600">320px 面板</span>
+          </span>
+          <span class="mt-0.5 block text-2xs leading-relaxed text-slate-500">最高频入口 · 主题快切 · 为当前应用加规则 · 临时暂停 20 分钟/1 小时（走查缺口）</span>
+        </span>
+        <svg class="size-4 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </div>
+  </section>
+
+  <!-- 组件规范 -->
+  <section class="mb-3 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div class="border-b border-slate-100 px-4 py-3">
+      <h2 class="text-sm font-medium text-slate-900">组件规范</h2>
+      <p class="mt-0.5 text-xs text-slate-500">先做这两批，四个界面才有统一的地基。</p>
+    </div>
+    <div class="divide-y divide-slate-100">
+      <a href="library/controls.html" class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50">
+        <span class="grid size-8 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600">
+          <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8h16M4 16h16"/><circle cx="9" cy="8" r="2.5" fill="#fff"/><circle cx="16" cy="16" r="2.5" fill="#fff"/></svg>
+        </span>
+        <span class="min-w-0 flex-1">
+          <span class="block text-sm font-medium text-slate-900">配置控件</span>
+          <span class="mt-0.5 block text-2xs leading-relaxed text-slate-500">滑块五态 · 标签 scrub · 带预览的下拉 · 二维板 · 角度盘 · 贝塞尔编辑器 · 字段行节奏</span>
+        </span>
+        <svg class="size-4 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+      <a href="library/components.html" class="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50">
+        <span class="grid size-8 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600">
+          <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        </span>
+        <span class="min-w-0 flex-1">
+          <span class="block text-sm font-medium text-slate-900">通用组件</span>
+          <span class="mt-0.5 block text-2xs leading-relaxed text-slate-500">PageHeader · EmptyState · Segmented · NumberField · Skeleton · 反馈三分工 · 深色令牌层</span>
+        </span>
+        <svg class="size-4 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </div>
+  </section>
+
+  <!-- 留档 -->
+  <section class="mb-3 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div class="border-b border-slate-100 px-4 py-3">
+      <h2 class="text-sm font-medium text-slate-900">留档</h2>
+      <p class="mt-0.5 text-xs text-slate-500">不进实施范围，备查。</p>
+    </div>
+    <div class="divide-y divide-slate-100">
+      <a href="archive/identity-rejected.html" class="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-slate-50">
+        <span class="inline-flex shrink-0 items-center rounded-full bg-rose-50 px-2 py-0.5 text-2xs font-semibold text-rose-700">已否决</span>
+        <span class="min-w-0 flex-1 text-xs text-slate-600">琥珀金身份色 + 深色舞台 + 桌面默认深色</span>
+        <svg class="size-3.5 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+      <a href="archive/preview-timeline-rationale.html" class="flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-slate-50">
+        <span class="inline-flex shrink-0 items-center rounded-full bg-slate-100 px-2 py-0.5 text-2xs font-semibold text-slate-600">已并入 01</span>
+        <span class="min-w-0 flex-1 text-xs text-slate-600">时间轴与预览改动的逐条对照（原来怎样 / 为什么改）</span>
+        <svg class="size-3.5 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </div>
+  </section>
+
+  <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+    <p class="text-xs font-medium text-slate-700">实施顺序、每页对应的真实代码、已定产品决策、以及 6 个与 UI 无关但需一并修掉的运行时缺陷，见 <code class="rounded bg-slate-100 px-1">README.md</code>。</p>
+    <p class="mt-1.5 text-2xs leading-relaxed text-slate-500">
+      改动任何 HTML 后重新编译样式：<code class="rounded bg-slate-100 px-1.5 py-0.5">npx tailwindcss -c docs/ui-spec/tailwind.config.cjs -i docs/ui-spec/_src.css -o docs/ui-spec/mockup.css --minify</code>
+    </p>
+  </div>
+
+  <p class="mt-4 text-2xs text-slate-400">原型页 · 不是产品页面。</p>
+</div>
+</body>
+</html>

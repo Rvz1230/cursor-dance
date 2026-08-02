@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>诊断面板 · UI 规范</title>
+<link rel="stylesheet" href="../mockup.css" />
+<style>
+  body { font-family: "SF Pro Display", "SF Pro Text", "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif; }
+</style>
+</head>
+<body class="bg-slate-200 p-6 text-slate-900">
+
+<div id="proto"></div>
+<div id="app"></div>
+
+<template id="page">
+  <div class="mx-auto flex max-w-[1180px] flex-col gap-2.5">
+
+    <!-- 页头 -->
+    <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+      <div class="min-w-0">
+        <h1 class="text-base font-semibold text-slate-900 text-balance">诊断面板</h1>
+        <p class="mt-1 max-w-2xl text-xs leading-relaxed text-slate-500 text-pretty">
+          回答「效果为什么没出来」。裁决链在最上面，日志在下面。
+        </p>
+      </div>
+      <div class="flex shrink-0 flex-wrap items-center gap-2">
+        <button id="captureToggle" class="flex h-8 items-center gap-2 rounded-xl bg-white px-2.5 text-xs text-slate-600 shadow-sm ring-1 ring-slate-200">
+          <span id="captureKnob" class="switch-knob switch-on"></span>
+          <span class="font-medium">采集</span>
+        </button>
+        <button id="copyReport" class="btn-outline h-8 px-3 text-xs">
+          <svg class="mr-1.5 size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M15 5H5v10"/></svg>
+          复制诊断报告
+        </button>
+        <button id="clearBtn" class="btn-ghost h-8 px-3 text-xs">清空</button>
+      </div>
+    </div>
+
+    <!-- 缺调试开关 -->
+    <div data-show="off" class="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+      <svg class="mt-0.5 size-4 shrink-0 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+      <div class="min-w-0">
+        <div class="text-xs font-medium text-amber-900">采集已关闭</div>
+        <p class="mt-1 text-2xs leading-relaxed text-amber-800">开启后会记录每次触发的裁决过程。它只写本地，不上传。</p>
+        <button id="enableCapture" class="btn-outline mt-2 h-7 px-2.5 text-2xs">开启采集</button>
+      </div>
+    </div>
+
+    <!-- 运行时错误 -->
+    <div data-show="error" class="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5">
+      <div class="flex items-start gap-2.5">
+        <svg class="mt-0.5 size-4 shrink-0 text-rose-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+        <div class="min-w-0 flex-1">
+          <div class="text-xs font-medium text-rose-900">运行时报错 2 条</div>
+          <ul class="mt-1.5 space-y-1">
+            <li class="truncate font-mono text-2xs text-rose-800">macOS 原生 cursor 显隐切换失败: helper exited (code 1)</li>
+            <li class="truncate font-mono text-2xs text-rose-800">audio decode failed: sounds/pop.wav</li>
+          </ul>
+        </div>
+        <button class="btn-outline h-7 shrink-0 px-2.5 text-2xs">清除报错</button>
+      </div>
+    </div>
+
+    <!-- ① 裁决链：最近一次触发 -->
+    <section data-show="events error" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
+        <div class="min-w-0">
+          <h3 class="text-sm font-medium text-slate-900">最近一次触发</h3>
+          <div class="mt-0.5 text-xs text-slate-500">把散落在 8 处的 <code class="rounded bg-slate-100 px-1">action.skip</code> 收成一条可读的漏斗</div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="verdict" class="inline-flex h-7 items-center gap-1.5 rounded-xl px-2.5 text-2xs font-semibold"></span>
+          <span class="text-2xs tabular-nums text-slate-400" id="verdictAt">刚刚</span>
+        </div>
+      </div>
+      <div class="px-4 py-4">
+        <div id="funnel" class="flex flex-wrap items-stretch gap-1.5"></div>
+        <div id="funnelDetail" class="mt-3 grid gap-1 rounded-xl bg-slate-50 px-3 py-2.5 sm:grid-cols-2"></div>
+      </div>
+    </section>
+
+    <div data-show="events error" class="grid gap-2.5 lg:grid-cols-[minmax(0,1fr)_300px]">
+
+      <!-- ② 事件流：按一次触发折叠成一组 -->
+      <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-2.5">
+          <div class="flex items-center gap-2">
+            <h3 class="text-sm font-medium text-slate-900">事件流</h3>
+            <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-2xs font-medium tabular-nums text-slate-500"><span id="evCount">0</span> 组</span>
+          </div>
+          <div class="flex flex-wrap items-center gap-1.5">
+            <button id="holdBtn" class="btn-outline h-7 px-2.5 text-2xs" title="暂停后新事件仍在采集，只是列表不再自动滚动">暂停滚动</button>
+            <div class="seg-group" id="resultFilter">
+              <button data-res="all" class="seg-item seg-item-on">全部</button>
+              <button data-res="fire" class="seg-item">已发射</button>
+              <button data-res="skip" class="seg-item">被跳过</button>
+            </div>
+            <div class="seg-group" id="scopeFilter">
+              <button data-scope="all" class="seg-item seg-item-on">全部域</button>
+              <button data-scope="action" class="seg-item">action</button>
+              <button data-scope="audio" class="seg-item">audio</button>
+              <button data-scope="pointer" class="seg-item">pointer</button>
+            </div>
+          </div>
+        </div>
+        <div id="reasonChip" class="hidden items-center gap-2 border-b border-slate-100 bg-slate-50 px-4 py-1.5">
+          <span class="text-2xs text-slate-500">只看被<span id="reasonChipName" class="font-medium text-slate-700"></span>拦下的</span>
+          <button id="reasonChipClear" class="ml-auto text-2xs font-medium text-slate-500 underline underline-offset-2 hover:text-slate-900">清除</button>
+        </div>
+        <div id="stream" class="max-h-[430px] divide-y divide-slate-100 overflow-y-auto"></div>
+      </section>
+
+      <!-- ③ 水位 + 漏斗统计 -->
+      <aside class="space-y-2.5">
+        <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div class="border-b border-slate-100 px-4 py-2.5">
+            <h3 class="text-sm font-medium text-slate-900">预算水位</h3>
+            <p class="mt-0.5 text-xs text-slate-500">运行时一直在按这些上限限流，界面上原来完全看不到。</p>
+          </div>
+          <div class="space-y-3 px-4 py-3" id="meters"></div>
+        </section>
+
+        <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div class="border-b border-slate-100 px-4 py-2.5">
+            <h3 class="text-sm font-medium text-slate-900">拦截分布</h3>
+            <p class="mt-0.5 text-xs text-slate-500">最近 <span class="tabular-nums">40</span> 次触发</p>
+          </div>
+          <div class="space-y-2 px-4 py-3" id="reasons"></div>
+        </section>
+
+        <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div class="border-b border-slate-100 px-4 py-2.5">
+            <h3 class="text-sm font-medium text-slate-900">环境</h3>
+          </div>
+          <div class="divide-y divide-slate-100 px-4 text-2xs">
+            <div class="flex items-center justify-between py-1.5"><span class="text-slate-500">平台</span><span class="font-medium tabular-nums text-slate-700">macOS 15.5 · arm64</span></div>
+            <div class="flex items-center justify-between py-1.5"><span class="text-slate-500">版本</span><span class="font-medium tabular-nums text-slate-700">1.4.2 (2891)</span></div>
+            <div class="flex items-center justify-between py-1.5"><span class="text-slate-500">辅助功能</span><span class="font-medium text-emerald-700">已授权</span></div>
+            <div class="flex items-center justify-between py-1.5"><span class="text-slate-500">系统光标替换</span><span class="font-medium text-emerald-700">supported</span></div>
+            <div class="flex items-center justify-between py-1.5"><span class="text-slate-500">当前主题</span><span class="font-medium text-slate-700">几何</span></div>
+            <div class="flex items-center justify-between py-1.5"><span class="text-slate-500">前台应用</span><span class="font-medium text-slate-700">Figma</span></div>
+          </div>
+        </section>
+      </aside>
+    </div>
+
+    <!-- 空状态 -->
+    <section data-show="off" class="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-10 text-center">
+      <div class="mx-auto grid size-10 place-items-center rounded-full bg-slate-100 text-slate-400">
+        <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h4l3 8 4-16 3 8h4"/></svg>
+      </div>
+      <p class="mt-3 text-xs font-medium text-slate-600">还没有诊断事件</p>
+      <p class="mx-auto mt-1.5 max-w-sm text-2xs leading-relaxed text-slate-500">
+        开启采集后，在桌面上点一下鼠标或敲一个键，这里会记录整条裁决过程。
+      </p>
+    </section>
+  </div>
+</template>
+
+<script src="../controls.js"></script>
+<script src="../shell.js"></script>
+<script>
+mountShell({ active: 'diagnostics',
+  proto: [['events', '① 有事件'], ['error', '② 含运行时报错'], ['off', '③ 未开启采集']],
+  hint: '点事件组可展开原始字段 · 筛选按结果与域 · 裁决链每一格可点',
+  onProto: (id) => onProtoState(id) });
+</script>
+<script>
+// ── 裁决链：与 action-trigger-pipeline.ts 的实际顺序一致
+const STEPS = [
+  { k: 'ready', label: '就绪', detail: '引擎已初始化、配置已加载', reason: 'not-ready' },
+  { k: 'rule', label: '应用规则', detail: '当前前台应用是否被规则禁用', reason: 'site-disabled' },
+  { k: 'zone', label: '触发区域', detail: '指针是否落在配置的触发区内', reason: 'trigger-zone-filtered' },
+  { k: 'config', label: '配置解析', detail: '动作与状态绑定能否解析出配置', reason: 'missing-resolved-action-config' },
+  { k: 'budget', label: '效果预算', detail: '同时存在的效果数是否已达上限', reason: 'budget-exhausted' },
+  { k: 'fire', label: '发射', detail: '进入 visual-effects 渲染', reason: null },
+];
+const REASON_LABEL = {
+  'not-ready': '引擎未就绪',
+  'site-disabled': '被应用规则禁用',
+  'trigger-zone-filtered': '不在触发区域内',
+  'missing-source-action-config': '源动作配置缺失',
+  'missing-resolved-action-config': '解析后配置缺失',
+  'budget-exhausted': '效果预算已满',
+  'throttled': '被节流吃掉',
+};
+
+// ── 模拟事件（一次触发 = 一组，含 action.* 与 audio.*）
+const GROUPS = [
+  { at: '刚刚', trigger: 'leftClick', stop: null, host: 'Figma', theme: '几何', zone: '整屏', target: 'canvas',
+    logs: [['action.resolve', 'actionId=leftClick state=default'], ['action.schedule', 'delay=0'], ['audio.decision', 'blend=layer volume=0.7'], ['action.fire', 'outputs=飘字,粒子,波纹'], ['audio.play', 'sounds/pop.wav']] },
+  { at: '2 秒前', trigger: 'leftClick', stop: 'zone', host: 'Figma', theme: '几何', zone: '中心区域', target: 'sidebar',
+    logs: [['action.skip', 'reason=trigger-zone-filtered target=sidebar']] },
+  { at: '4 秒前', trigger: 'wheel', stop: 'config', host: 'Figma', theme: '几何', zone: '整屏', target: 'canvas',
+    logs: [['action.skip', 'reason=missing-resolved-action-config actionId=wheel']] },
+  { at: '9 秒前', trigger: 'leftClick', stop: null, host: 'Figma', theme: '几何', zone: '整屏', target: 'canvas',
+    logs: [['action.resolve', 'actionId=leftClick'], ['action.fire', 'outputs=飘字,波纹'], ['audio.skip', 'reason=cooldown']] },
+  { at: '15 秒前', trigger: 'leftClick', stop: 'rule', host: 'Keynote', theme: '几何', zone: '整屏', target: 'slide',
+    logs: [['action.skip', 'reason=site-disabled host=Keynote']] },
+  { at: '21 秒前', trigger: 'doubleClick', stop: 'budget', host: 'Figma', theme: '几何', zone: '整屏', target: 'canvas',
+    logs: [['action.skip', 'reason=budget-exhausted active=48/48']] },
+  { at: '28 秒前', trigger: 'longPress', stop: null, host: 'Figma', theme: '几何', zone: '整屏', target: 'canvas',
+    logs: [['action.resolve', 'actionId=longPress'], ['action.fire', 'outputs=粒子']] },
+];
+const REASON_STATS = [['trigger-zone-filtered', 11], ['site-disabled', 6], ['budget-exhausted', 4], ['missing-resolved-action-config', 2], ['throttled', 2]];
+const METERS = [
+  { label: '同时存在的效果', now: 31, max: 48 },
+  { label: '键盘字符', now: 4, max: 30 },
+  { label: '音频并发', now: 1, max: 4 },
+];
+
+let selected = 0, resFilter = 'all', scopeFilter = 'all', reasonFilter = null, capturing = true, held = false;
+// 点拦截分布会顺带把结果筛选切到「被跳过」；取消时必须还原成点之前的值，
+// 否则筛完再取消会剩下一个粘住的 skip 筛选，看起来像「事件流丢了几条」。
+let resFilterBeforeReason = null;
+function syncResultFilterUI() {
+  document.querySelectorAll('#resultFilter [data-res]').forEach((x) => {
+    x.className = 'seg-item' + (x.dataset.res === resFilter ? ' seg-item-on' : '');
+  });
+}
+
+const $ = (id) => document.getElementById(id);
+
+function renderFunnel() {
+  const g = GROUPS[selected];
+  const stopIdx = g.stop ? STEPS.findIndex((s) => s.k === g.stop) : STEPS.length - 1;
+  const fired = !g.stop;
+  $('verdict').className = 'inline-flex h-7 items-center gap-1.5 rounded-xl px-2.5 text-2xs font-semibold '
+    + (fired ? 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200' : 'bg-amber-50 text-amber-800 ring-1 ring-amber-200');
+  $('verdict').innerHTML = fired
+    ? '<span class="size-1.5 rounded-full bg-emerald-500"></span>已发射'
+    : `<span class="size-1.5 rounded-full bg-amber-500"></span>被跳过 · ${REASON_LABEL[STEPS[stopIdx].reason] || STEPS[stopIdx].label}`;
+  $('verdictAt').textContent = `${g.at} · ${g.trigger}`;
+
+  $('funnel').innerHTML = STEPS.map((s, i) => {
+    const passed = i < stopIdx || (fired && i <= stopIdx);
+    const blocked = !fired && i === stopIdx;
+    const skipped = !fired && i > stopIdx;
+    const tone = blocked ? 'border-amber-300 bg-amber-50' : skipped ? 'border-dashed border-slate-200 bg-white' : 'border-slate-200 bg-white';
+    const icon = blocked
+      ? '<svg class="size-3 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg>'
+      : skipped ? '<span class="size-1.5 rounded-full bg-slate-200"></span>'
+      : '<svg class="size-3 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>';
+    return `<button data-step="${s.k}" class="flex min-w-[96px] flex-1 flex-col gap-1 rounded-xl border px-2.5 py-2 text-left transition-colors hover:border-slate-300 ${tone}">
+        <span class="flex items-center gap-1.5">${icon}<span class="text-2xs font-semibold ${skipped ? 'text-slate-400' : 'text-slate-700'}">${s.label}</span></span>
+        <span class="text-2xs leading-tight ${skipped ? 'text-slate-300' : 'text-slate-400'}">${s.detail}</span>
+      </button>`
+      + (i < STEPS.length - 1 ? '<span class="self-center text-slate-300">›</span>' : '');
+  }).join('');
+
+  $('funnelDetail').innerHTML = [
+    ['触发', g.trigger], ['前台应用', g.host], ['主题', g.theme], ['触发区域', g.zone], ['命中目标', g.target],
+    ['原始 scope', g.logs.map((l) => l[0]).join(' · ')],
+  ].map(([k, v]) => `<div class="flex items-baseline gap-2"><span class="w-16 shrink-0 text-2xs text-slate-400">${k}</span><span class="min-w-0 flex-1 truncate font-mono text-2xs text-slate-700">${v}</span></div>`).join('');
+}
+
+function renderStream() {
+  const list = GROUPS.map((g, i) => ({ g, i })).filter(({ g }) => {
+    const fired = !g.stop;
+    if (resFilter === 'fire' && !fired) return false;
+    if (resFilter === 'skip' && fired) return false;
+    if (scopeFilter !== 'all' && !g.logs.some((l) => l[0].startsWith(scopeFilter + '.'))) return false;
+    if (reasonFilter) {
+      const step = STEPS.find((x) => x.k === g.stop);
+      if (!step || step.reason !== reasonFilter) return false;
+    }
+    return true;
+  });
+  const chip = $('reasonChip');
+  chip.classList.toggle('hidden', !reasonFilter);
+  chip.classList.toggle('flex', !!reasonFilter);
+  if (reasonFilter) $('reasonChipName').textContent = REASON_LABEL[reasonFilter] || reasonFilter;
+  $('evCount').textContent = list.length;
+  $('stream').innerHTML = list.map(({ g, i }) => {
+    const fired = !g.stop;
+    const open = i === selected;
+    return `<div>
+      <button data-group="${i}" class="flex w-full items-center gap-2.5 px-4 py-2 text-left transition-colors hover:bg-slate-50 ${open ? 'bg-slate-50' : ''}">
+        <span class="size-1.5 shrink-0 rounded-full ${fired ? 'bg-emerald-500' : 'bg-amber-500'}"></span>
+        <span class="w-16 shrink-0 font-mono text-2xs tabular-nums text-slate-400">${g.at}</span>
+        <span class="w-20 shrink-0 truncate text-2xs font-medium text-slate-700">${g.trigger}</span>
+        <span class="min-w-0 flex-1 truncate text-2xs ${fired ? 'text-slate-500' : 'text-amber-700'}">${fired ? g.logs.find((l) => l[0] === 'action.fire')?.[1] || '' : REASON_LABEL[STEPS.find((s) => s.k === g.stop).reason]}</span>
+        <span class="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 font-mono text-2xs text-slate-500">${g.logs.length}</span>
+        <svg class="size-3 shrink-0 text-slate-300 transition-transform ${open ? 'rotate-90' : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 6 6 6-6 6"/></svg>
+      </button>
+      ${open ? `<div class="space-y-0.5 bg-slate-50 px-4 pb-2 pt-1">
+        ${g.logs.map(([scope, payload]) => `<div class="flex items-baseline gap-2">
+            <span class="w-24 shrink-0 font-mono text-2xs ${scope.endsWith('skip') ? 'text-amber-700' : 'text-slate-500'}">${scope}</span>
+            <span class="min-w-0 flex-1 break-all font-mono text-2xs text-slate-600">${payload}</span>
+          </div>`).join('')}
+      </div>` : ''}
+    </div>`;
+  }).join('') || '<div class="px-4 py-10 text-center text-2xs text-slate-400">没有符合筛选条件的事件</div>';
+  $('stream').querySelectorAll('[data-group]').forEach((b) => b.addEventListener('click', () => {
+    selected = Number(b.dataset.group); renderFunnel(); renderStream();
+  }));
+}
+
+function renderMeters() {
+  $('meters').innerHTML = METERS.map((m) => {
+    const pct = Math.round((m.now / m.max) * 100);
+    const hot = pct >= 80;
+    return `<div>
+      <div class="flex items-baseline justify-between">
+        <span class="text-2xs font-medium text-slate-600">${m.label}</span>
+        <span class="text-2xs font-semibold tabular-nums ${hot ? 'text-amber-700' : 'text-slate-600'}">${m.now}/${m.max}</span>
+      </div>
+      <div class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-slate-200">
+        <div class="h-full rounded-full ${hot ? 'bg-amber-500' : 'bg-slate-900'}" style="width:${pct}%"></div>
+      </div>
+    </div>`;
+  }).join('');
+  const total = REASON_STATS.reduce((s, [, n]) => s + n, 0);
+  // 分布不只是统计：点一条就筛出被它拦下的那些组，否则「40 次里 11 次被区域过滤」只是个数字
+  $('reasons').innerHTML = REASON_STATS.map(([r, n]) => `
+    <button data-reason="${r}" class="flex w-full items-center gap-2 rounded-lg px-1 py-0.5 text-left transition-colors hover:bg-slate-50 ${reasonFilter === r ? 'bg-slate-100' : ''}">
+      <span class="min-w-0 flex-1 truncate text-2xs ${reasonFilter === r ? 'font-semibold text-slate-800' : 'text-slate-600'}">${REASON_LABEL[r] || r}</span>
+      <span class="h-1.5 w-16 overflow-hidden rounded-full bg-slate-200"><span class="block h-full rounded-full ${reasonFilter === r ? 'bg-slate-900' : 'bg-slate-400'}" style="width:${Math.round((n / total) * 100)}%"></span></span>
+      <span class="w-6 shrink-0 text-right text-2xs font-semibold tabular-nums text-slate-600">${n}</span>
+    </button>`).join('');
+  $('reasons').querySelectorAll('[data-reason]').forEach((b) => b.addEventListener('click', () => {
+    const turningOff = reasonFilter === b.dataset.reason;
+    reasonFilter = turningOff ? null : b.dataset.reason;
+    if (reasonFilter) {
+      if (resFilterBeforeReason === null) resFilterBeforeReason = resFilter;
+      resFilter = 'skip';
+    } else if (resFilterBeforeReason !== null) {
+      resFilter = resFilterBeforeReason;
+      resFilterBeforeReason = null;
+    }
+    syncResultFilterUI();
+    renderMeters(); renderStream();
+  }));
+}
+
+document.querySelectorAll('#resultFilter [data-res]').forEach((b) => b.addEventListener('click', () => {
+  resFilter = b.dataset.res;
+  // 用户手动选了结果筛选 → 放弃自动还原点，之后取消拦截筛选不该覆盖他的选择
+  resFilterBeforeReason = null;
+  syncResultFilterUI();
+  renderStream();
+}));
+document.querySelectorAll('#scopeFilter [data-scope]').forEach((b) => b.addEventListener('click', () => {
+  scopeFilter = b.dataset.scope;
+  document.querySelectorAll('#scopeFilter [data-scope]').forEach((x) => x.className = 'seg-item' + (x === b ? ' seg-item-on' : ''));
+  renderStream();
+}));
+$('reasonChipClear').addEventListener('click', () => {
+  reasonFilter = null;
+  if (resFilterBeforeReason !== null) { resFilter = resFilterBeforeReason; resFilterBeforeReason = null; syncResultFilterUI(); }
+  renderMeters(); renderStream();
+});
+$('holdBtn').addEventListener('click', () => {
+  held = !held;
+  $('holdBtn').className = 'h-7 px-2.5 text-2xs ' + (held ? 'btn-default' : 'btn-outline');
+  $('holdBtn').textContent = held ? '已暂停滚动' : '暂停滚动';
+});
+function setCapturing(v) {
+  capturing = v;
+  knob($('captureKnob'), v);
+  // 「采集关闭」与「无事件」是同一件事的两面，用同一个开关驱动，不再是两个概念
+  document.querySelectorAll('[data-show]').forEach((el) => {
+    const want = el.dataset.show.split(' ');
+    const on = v ? want.includes(document.body.dataset.proto === 'off' ? 'events' : document.body.dataset.proto) : want.includes('off');
+    el.classList.toggle('hidden', !on);
+  });
+}
+function knob(el, on) {
+  el.className = 'switch-knob' + (on ? ' switch-on' : '');
+}
+$('captureToggle').addEventListener('click', () => setCapturing(!capturing));
+$('enableCapture').addEventListener('click', () => setCapturing(true));
+$('copyReport').addEventListener('click', () => toast(capturing ? '已复制最近 40 条事件 + 环境信息' : '采集已关闭，报告只含环境信息'));
+$('clearBtn').addEventListener('click', () => toast('已清空诊断事件', () => renderStream()));
+
+function onProtoState(id) {
+  capturing = id !== 'off';
+  knob($('captureKnob'), capturing);
+  renderFunnel(); renderStream(); renderMeters();
+}
+onProtoState('events');
+</script>
+</body>
+</html>
