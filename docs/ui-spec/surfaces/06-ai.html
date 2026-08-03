@@ -309,7 +309,16 @@ function highlight(op, on) {
   const card = op.card ? document.querySelector(`[data-tcard="${op.card}"]`) : null;
   const lane = op.lane ? document.querySelector(`[data-tlane="${op.lane}"]`) : null;
   const field = op.field && op.card ? document.querySelector(`[data-tfield="${op.card}|${op.field}"]`) : null;
-  [card, lane].forEach((el) => el && el.classList.toggle('ring-2', on) && el.classList.toggle('ring-slate-400', on));
+  // 这里原先还有一行
+  //   [card, lane].forEach((el) => el && el.classList.toggle('ring-2', on) && el.classList.toggle('ring-slate-400', on));
+  // 它有两个问题，实测都成立：
+  // 1. **`classList.toggle(cls, false)` 返回 false**，于是 `&&` 在取消高亮时短路，
+  //    第二个 toggle 永不执行 → 轨道上**残留 `ring-slate-400`**（实测 mouseleave 后
+  //    `ring-2` 与 `bg-slate-100` 都清了，只有它留着）。因为没有 ring-2 时环宽为 0，
+  //    它是**看不见的残留**，会一直累积——这类「打开时顺手改、关闭时没还原」正是教训 #15。
+  // 2. 它对 card 做的事和下一行的 `if (card)` 完全重复，对 lane 又和 `bg-slate-100` 那行
+  //    叠加了两套高亮语义。
+  // 卡片 / 轨道 / 字段各用一种高亮，一处一套，成对开关。
   if (card) { card.classList.toggle('ring-2', on); card.classList.toggle('ring-slate-400', on); }
   if (lane) { lane.classList.toggle('bg-slate-100', on); }
   if (field) { field.classList.toggle('ring-2', on); field.classList.toggle('ring-slate-900', on); }

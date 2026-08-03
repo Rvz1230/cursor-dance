@@ -30,7 +30,7 @@
 <template id="page">
 
       <!-- 页头 -->
-      <div class="mb-2.5 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+      <div class="mb-2.5 flex flex-row items-start justify-between gap-3 group-data-[w=sm]/win:flex-col group-data-[w=sm]/win:items-stretch">
         <div class="min-w-0">
           <h1 class="text-base font-semibold text-slate-900 text-balance">光标皮肤</h1>
           <p data-show="try calibrate" class="mt-1 max-w-2xl text-xs leading-relaxed text-slate-500 text-pretty">
@@ -57,7 +57,17 @@
         </div>
       </div>
 
-      <div class="grid gap-2.5 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <!--
+        原先是 `xl:grid-cols-[minmax(0,1fr)_360px]`——**从来没生效过**：
+        `xl:` 看的是浏览器视口，而这里是一个固定 960px 的模拟窗口。
+        后果是「11 个光标状态分 6 组」这套本版的核心内容一直堆在 380px 舞台下面，
+        真实默认窗口下首屏一个都看不见，得滚很久。
+        改成按模拟窗口宽度分档（见 shell.js 的 widthBucket）：
+        lg 保持 360px 次列，md（真实默认 960）用更窄的 300px 次列——
+        主区 710px 下 300 + 间距留给舞台约 400px，仍然够用；
+        sm（720）才退回单列，那一档两列并排已无意义。
+      -->
+      <div class="grid gap-2.5 group-data-[w=md]/win:grid-cols-[minmax(0,1fr)_300px] group-data-[w=lg]/win:grid-cols-[minmax(0,1fr)_360px]">
 
         <!-- ════ 舞台 ════ -->
         <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -82,7 +92,7 @@
 
             <!-- 试用模式 -->
             <div data-show="try">
-              <div id="stage" class="relative h-[380px] overflow-hidden rounded-xl border border-slate-200 bg-white">
+              <div id="stage" class="relative skin-stage-h overflow-hidden rounded-xl border border-slate-200 bg-white">
                 <!-- 唯一的引导语，鼠标进入后淡出，避免和道具标签重复占视觉 -->
                 <div id="stageHint" class="pointer-events-none absolute inset-x-0 top-7 text-center text-xs font-medium text-slate-400 transition-opacity duration-150">
                   在这块区域内移动鼠标，皮肤会实时跟随
@@ -107,7 +117,13 @@
               </div>
 
               <!-- 两条状态带：一条讲校准结果，一条讲当前状态。都是读数，不是说明书。 -->
-              <div class="mt-2.5 grid gap-2.5 sm:grid-cols-2">
+              <!--
+                又一处失效的视口断点：`sm:grid-cols-2` 看的是浏览器视口（≥640px 恒成立），
+                所以这两条读数带在真实默认窗口下也强行并排，各自只有约 250px——
+                「状态触发」那张卡的文字被压成**竖排单字**（状/态/触/发）。
+                改成只有 lg 才并排；md/sm 上下排，各占满宽度。
+              -->
+              <div class="mt-2.5 grid gap-2.5 group-data-[w=lg]/win:grid-cols-2">
                 <div class="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
                   <div class="min-w-0 flex-1">
                     <div class="text-xs font-medium text-slate-600">准星测试</div>
@@ -149,7 +165,7 @@
 
             <!-- 校准模式 -->
             <div data-show="calibrate">
-              <div id="calibStage" class="relative h-[380px] overflow-hidden rounded-xl border border-slate-200 bg-white">
+              <div id="calibStage" class="relative skin-stage-h overflow-hidden rounded-xl border border-slate-200 bg-white">
                 <div class="absolute inset-0" style="background-image: radial-gradient(circle at 1px 1px, #e2e8f0 1px, transparent 0); background-size: 18px 18px;"></div>
                 <!-- 图片真实边界（非正方形素材必须贴边界，不能用正方形盒子） -->
                 <div id="calibImageBox" class="absolute border border-dashed border-slate-300">
@@ -179,7 +195,7 @@
 
             <!-- 空状态 -->
             <div data-show="empty">
-              <div class="grid h-[380px] place-items-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50">
+              <div class="grid skin-stage-h place-items-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50">
                 <div class="max-w-sm px-6 text-center">
                   <div class="mx-auto grid size-12 place-items-center rounded-full bg-white text-slate-400 shadow-sm ring-1 ring-slate-200">
                     <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l7.5 18 2.5-7.5L21 11z"/></svg>
@@ -525,12 +541,26 @@ function slotRow(st, master) {
     <span class="grid size-11 shrink-0 place-items-center rounded-xl border bg-white ${mode === 'own' ? 'border-slate-200' : 'border-dashed border-slate-200'} ${dimmed ? 'text-slate-400' : 'text-slate-800'}">
       <svg viewBox="0 0 24 24" class="size-5">${glyph}</svg>
     </span>
+    <!--
+      可达性徽标从「和状态名抢同一行」挪到第二行、和描述并排。
+      在真实默认窗口的 300px 次列里，行内预算是 44 图标 + 12 + X + 12 + 90 分段控件 → X 只有 118px，
+      而 3 个字的名称 42 + 间距 8 + 「待系统能力」徽标 66 = 116，于是状态名被截成
+      **「文.」「可.」「帮.」**——一个字加省略号，读者根本认不出那是哪个状态。
+      徽标和描述都是「这个状态现在什么情况」，本来就属于同一层信息；
+      状态名是这一行的身份，必须整名可见（决策同 01 卡头的让位顺序）。
+    -->
     <span class="min-w-0 flex-1">
-      <span class="flex items-center gap-2">
-        <span class="truncate text-sm font-medium ${master ? 'text-slate-900' : 'text-slate-400'}">${st.name}</span>
+      <span class="block text-sm font-medium ${master ? 'text-slate-900' : 'text-slate-400'}">${st.name}</span>
+      <span class="mt-0.5 flex min-w-0 items-center gap-1.5">
         ${REACH_BADGE[st.reach]}
+        <!--
+          「继承主皮肤 ·」这个前缀删掉了：右侧的分段控件已经把「继承」高亮着，
+          这是同一件事的第二次陈述，而它挤掉的是真正有信息量的那半句（这个状态用在哪儿）。
+          实测带前缀时第二行被截成「继...」——留下的恰好全是冗余的那部分。
+        -->
+        <!-- 描述是次级信息，允许截断（名称不允许），但必须能查证 —— title 存全文 -->
+        <span class="truncate text-2xs text-slate-400" title="${mode === 'own' ? st.id + '.png' : st.detail}">${mode === 'own' ? st.id + '.png' : st.detail}</span>
       </span>
-      <span class="mt-0.5 block truncate text-2xs text-slate-400">${mode === 'own' ? '独立素材 · ' + st.id + '.png' : '继承主皮肤 · ' + st.detail}</span>
     </span>
     <span class="inline-flex shrink-0 items-center gap-1 rounded-xl border border-slate-200 bg-white p-0.5">
       <button data-mode="${st.id}|inherit" class="h-6 rounded-lg px-2 text-2xs font-medium ${mode === 'inherit' ? 'bg-slate-950 text-white shadow-sm' : 'text-slate-500'}" ${master ? '' : 'disabled'}>继承</button>

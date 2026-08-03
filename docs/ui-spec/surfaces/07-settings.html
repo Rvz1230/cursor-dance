@@ -186,14 +186,21 @@ function toast(text) {
 
 const SECTIONS = [['display', '显示与多屏'], ['input', '输入'], ['privacy', '数据与隐私'], ['keys', '快捷键'], ['about', '关于']];
 let sec = 'display';
+// 分区切换抽成函数：原先只活在 nav 的点击回调里，导致原型状态切换没法跳分区（见 setProto）。
+function showSection(id) {
+  sec = id;
+  renderNav();
+  document.querySelectorAll('[data-sec]').forEach((s) => s.classList.toggle('hidden', s.dataset.sec !== sec));
+}
 function renderNav() {
   $('nav').innerHTML = SECTIONS.map(([id, label]) => `
     <button data-sec-btn="${id}" class="flex w-full items-center rounded-lg px-2.5 py-1.5 text-left text-xs font-medium transition-colors ${id === sec ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:bg-white/70'}">${label}</button>`).join('');
-  $('nav').querySelectorAll('[data-sec-btn]').forEach((b) => b.addEventListener('click', () => {
-    sec = b.dataset.secBtn;
-    renderNav();
-    document.querySelectorAll('[data-sec]').forEach((s) => s.classList.toggle('hidden', s.dataset.sec !== sec));
-  }));
+  $('nav').querySelectorAll('[data-sec-btn]').forEach((b) => b.addEventListener('click', () => showSection(b.dataset.secBtn)));
+}
+// 与 01 的 revealField / revealTrack 用同一套闪烁，跨页手感一致。
+function flash(el) {
+  el.classList.add('ring-2', 'ring-slate-400', 'rounded-lg');
+  setTimeout(() => el.classList.remove('ring-2', 'ring-slate-400', 'rounded-lg'), 1400);
 }
 
 // 多屏策略
@@ -273,6 +280,18 @@ function setProto(id) {
     b.className = 'proto-btn h-7 rounded-lg px-2.5 text-2xs font-medium ' + (on ? 'bg-white text-slate-900' : 'text-slate-300 hover:bg-slate-800');
   });
   document.querySelectorAll('[data-show]').forEach((el) => el.classList.toggle('hidden', !el.dataset.show.split(' ').includes(id)));
+
+  // 原型状态必须真的看得见差异。②「未授权」唯一的可见产物是「输入」分区里的授权警告卡，
+  // 而这一页默认停在「显示与多屏」——实测点②之后整页可见文本零变化（警告卡的 hidden
+  // 确实摘掉了，但它在收起的分区里，offsetParent 为 null）。那就是个死按钮，
+  // 和「布局预设按钮只在工作台出现」是同一条理由：点了没反应的控件比没有更糟。
+  // 所以跳到承载差异的那个分区并闪一下，做法与 01 的 revealField 一致。
+  const revealed = [...document.querySelectorAll('[data-show]')].find((el) => !el.classList.contains('hidden'));
+  if (!revealed) return;
+  const host = revealed.closest('[data-sec]');
+  if (host && host.dataset.sec !== sec) showSection(host.dataset.sec);
+  revealed.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  flash(revealed);
 }
 $('proto').innerHTML = '<span class="mr-1 text-2xs font-semibold text-white">原型状态</span>'
   + PROTO.map(([id, l]) => `<button data-proto="${id}" class="proto-btn h-7 rounded-lg px-2.5 text-2xs font-medium">${l}</button>`).join('')

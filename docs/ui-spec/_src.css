@@ -162,7 +162,32 @@
   .cfg-icon-on { @apply bg-slate-900 text-white; }
   .cfg-name { @apply text-sm font-medium text-slate-900; }
   .cfg-sum { @apply truncate text-2xs text-slate-400; }
-  .on-dot { @apply inline-flex items-center gap-1 text-2xs font-semibold text-emerald-700; }
+  /* .on-dot 已删除：启用态由图标底色（决策 #3）与同行的开关表达，
+     第三次编码在真实默认宽度下撑爆了卡头。留空注释是为了让下次想加回来的人先看到理由。 */
+
+  /**
+   * 光标皮肤舞台的高度。02 里有**三处**同尺寸区域（试用舞台 / 校准舞台 / 空状态），
+   * 它们是同一块区域的三种视图，高度必须一致——所以收成一个类，而不是三处各写一遍分档，
+   * 否则改一次漏一处就会出现「切到校准模式页面跳一下」。
+   *
+   * 原先写死 380px。那是在 892px 外壳里挑的：在真实默认的 680px 窗口下，
+   * 页头 ~70 + 模式页签 ~50 + 舞台 380 = 500，主区只有 596，
+   * 于是「准星测试 / 状态触发」两条读数带和整个光标状态面板都被推出首屏。
+   * 舞台下限 240px 是内容定的：拖块 top-135 + 高 88 = 223，再加边距。
+   */
+  .skin-stage-h { height: 380px; }
+  [data-w="md"] .skin-stage-h { height: 300px; }
+  [data-w="sm"] .skin-stage-h { height: 240px; }
+
+  /**
+   * 04 的屏幕预览高度。同样原先写死（404px），同样是在 892px 外壳里挑的：
+   * 在真实默认的 680px 窗口下它单独就吃掉主区 596px 的 68%，
+   * 于是入场方向、字号、缩放、语义分层这些**主任务控件**全在折叠线以下。
+   * 预览是辅助元素，不该拿走首屏。
+   */
+  .kbd-screen-h { height: 404px; }
+  [data-w="md"] .kbd-screen-h { height: 320px; }
+  [data-w="sm"] .kbd-screen-h { height: 250px; }
 
   /* 预设 chip：把「一组字段」变成一次点击 */
   .preset-chip {
@@ -291,8 +316,12 @@
      需要写在 HTML 的 class 列表里。
      标签列宽必须与标尺行的 grid 一致（132px + gap-2.5），否则标尺刻度与色块错位、
      播放头也会偏——这是抽屉改造前就存在的对不齐问题。 */
-  .tl-row { @apply relative grid grid-cols-[132px_minmax(0,1fr)] items-center gap-2.5 rounded-lg px-1 py-1 transition-colors hover:bg-slate-50; }
+  /* 轨道给硬下限：装不下时让 #tlScroll 横滚，而不是让轨道被压到 2px（见 01 里的注释） */
+  .tl-row { @apply relative grid grid-cols-[132px_minmax(320px,1fr)] items-center gap-2.5 rounded-lg px-1 py-1 transition-colors hover:bg-slate-50; }
   .tl-lane { @apply relative h-7 rounded-lg border border-slate-200/70 bg-slate-100/60; }
+  /* 横滚时轨名必须钉住，否则滚两屏就不知道在看哪条轨了 */
+  .tl-row > :first-child { @apply sticky left-0 z-10 bg-white; }
+  .tl-row:hover > :first-child { @apply bg-slate-50; }
   .tl-bar {
     @apply absolute top-1/2 h-5 -translate-y-1/2 cursor-grab rounded-md border border-slate-300 bg-white shadow-sm
       transition-[box-shadow,filter] duration-150 hover:shadow-md active:cursor-grabbing;

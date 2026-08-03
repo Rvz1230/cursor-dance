@@ -21,7 +21,7 @@
         <div class="mx-auto max-w-[920px]">
 
           <!-- 页头 -->
-          <div class="mb-2.5 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div class="mb-2.5 flex flex-row items-start justify-between gap-3 group-data-[w=sm]/win:flex-col group-data-[w=sm]/win:items-stretch">
             <div class="min-w-0">
               <h1 class="text-base font-semibold text-slate-900 text-balance">应用规则</h1>
               <p class="mt-1 max-w-2xl text-xs leading-relaxed text-slate-500 text-pretty">
@@ -122,7 +122,7 @@
               <h3 class="text-sm font-medium text-slate-900">默认行为</h3>
               <div class="mt-0.5 text-xs text-slate-500">没有单独设置的应用一律按这里处理</div>
             </div>
-            <div class="grid gap-2 px-4 py-3 sm:grid-cols-2">
+            <div class="grid gap-2 px-4 py-3 group-data-[w=lg]/win:grid-cols-2">
               <button data-mode="all" class="mode-card">
                 <span class="mode-dot"></span>
                 <span class="min-w-0">
@@ -238,7 +238,7 @@
                   </div>
                   <button class="btn-outline h-7 shrink-0 px-2.5 text-2xs">查看全部应用</button>
                 </div>
-                <div class="mt-3 grid gap-1.5 sm:grid-cols-2">
+                <div class="mt-3 grid gap-1.5 group-data-[w=lg]/win:grid-cols-2">
                   <button class="first-pick"><span class="app-icon bg-slate-900">F</span><span class="min-w-0 flex-1 text-left"><span class="block truncate text-xs font-medium text-slate-800">Figma</span><span class="block truncate text-2xs text-slate-400">刚刚 · 正在前台</span></span><span class="first-add">+ 关闭效果</span></button>
                   <button class="first-pick"><span class="app-icon bg-sky-600">T</span><span class="min-w-0 flex-1 text-left"><span class="block truncate text-xs font-medium text-slate-800">Terminal</span><span class="block truncate text-2xs text-slate-400">2 分钟前</span></span><span class="first-add">+ 关闭效果</span></button>
                   <button class="first-pick"><span class="app-icon bg-emerald-600">K</span><span class="min-w-0 flex-1 text-left"><span class="block truncate text-xs font-medium text-slate-800">Keynote</span><span class="block truncate text-2xs text-slate-400">12 分钟前</span></span><span class="first-add">+ 关闭效果</span></button>
@@ -249,7 +249,13 @@
           </section>
 
           <!-- ════ 高级匹配规则 ════ -->
-          <section class="mb-2.5 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <!--
+            这张卡原先没有 data-show，于是四个原型状态都显示它。在「③ 首次进入」下
+            它会摆出一条已存在的 `*演示模式*` 规则并标「1」——而同一屏的空状态正在说
+            「你还没有任何规则」。同一页两处互相矛盾，实现时会照着做出一个
+            首次启动就有存量规则的界面。首次进入不该有高级规则。
+          -->
+          <section data-show="normal picker denied" class="mb-2.5 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <button id="advToggle" class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50">
               <div class="min-w-0">
                 <h3 class="flex items-center gap-2 text-sm font-medium text-slate-900">
@@ -306,28 +312,18 @@
       </div>
 
       <!-- ════ 底部常驻裁决条 ════ -->
+      <!--
+        这个条原先是每个原型状态各写一段静态文案（data-show="normal picker" 一段、
+        "first" 一段、"denied" 一段），而它右边就写着「实时反映规则引擎的裁决结果」。
+        实测把 Figma 例外从「关闭」改成「启用」（高级规则接管、此刻命中亮起）、
+        再切到白名单模式，这个条**三次都纹丝不动**，始终说「效果已关闭 · 来自例外应用「Figma」」。
+        全页唯一职责就是说出当前真相的元素在说谎，而且它是最容易被信的那个。
+        现在整条由 syncVerdict() 一处算出来，裁决链就是卡里印着的那条：
+        例外应用 → 高级规则（自上而下第一条命中）→ 默认行为。
+      -->
       <div class="shrink-0 border-t border-slate-200 bg-white px-3 py-2.5">
         <div class="mx-auto flex max-w-[920px] flex-wrap items-center gap-2">
-          <div data-show="normal picker first" class="flex min-w-0 flex-wrap items-center gap-2">
-            <span class="app-icon-sm bg-slate-900">F</span>
-            <span class="text-xs text-slate-500">当前前台</span>
-            <span class="truncate text-xs font-medium text-slate-900">Figma</span>
-            <svg class="size-3 shrink-0 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-            <span data-show="normal picker" class="inline-flex items-center gap-1.5 rounded-lg bg-amber-50 px-2 py-1 text-2xs font-semibold text-amber-800">
-              效果已关闭
-              <span class="font-normal">来自例外应用「Figma」</span>
-            </span>
-            <span data-show="first" class="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2 py-1 text-2xs font-semibold text-emerald-800">
-              效果已启用
-              <span class="font-normal">来自默认行为</span>
-            </span>
-          </div>
-          <div data-show="denied" class="flex min-w-0 items-center gap-2">
-            <span class="grid size-5 place-items-center rounded-full bg-slate-100 text-slate-400">
-              <svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
-            </span>
-            <span class="text-xs text-slate-500">无法识别当前前台应用，规则暂不生效</span>
-          </div>
+          <div id="verdictBar" class="flex min-w-0 flex-wrap items-center gap-2"></div>
           <span class="ml-auto shrink-0 text-2xs text-slate-400">实时反映规则引擎的裁决结果</span>
         </div>
       </div>
@@ -345,8 +341,11 @@ mountShell({ active: 'app-rules', mainClass: 'flex min-w-0 flex-1 flex-col overf
 const $ = (id) => document.getElementById(id);
 
 // 原型状态
+let protoState = 'normal';
 function onProtoState(s) {
+  protoState = s;
   $('picker').classList.toggle('hidden', s !== 'picker');
+  syncRuleMode();   // 授权状态会改变裁决结果，两者必须一起算
 }
 
 // 添加应用浮层
@@ -393,8 +392,74 @@ function syncRuleMode() {
   // 高级规则被例外覆盖：仅在黑名单模式且 Figma 例外为「关闭」时成立
   const figmaOff = [...document.querySelectorAll('[data-exrow]')].some((r) => r.textContent.includes('Figma') && r.querySelector('[data-act="disable"]')?.classList.contains('seg-item-on'));
   const shadowed = !white && figmaOff;
-  document.getElementById('advShadowed')?.classList.toggle('hidden', !shadowed);
-  document.getElementById('advHit')?.classList.toggle('hidden', shadowed);
+  // 未授权时读不到前台应用，「此刻命中」/「被覆盖」都是无法得知的事实。
+  // 这两枚徽标原先在 ④ 缺权限状态下照旧显示，而同一屏底部的裁决条已经写着
+  // 「无法识别当前前台应用」——一页之内两处互相矛盾。实时判断必须整组收掉，
+  // 而不是让其中一处继续断言（ux 规格第 5 节：权限错误 / 数据为空 / 当前未命中是不同状态）。
+  const live = protoState !== 'denied';
+  document.getElementById('advShadowed')?.classList.toggle('hidden', !live || !shadowed);
+  document.getElementById('advHit')?.classList.toggle('hidden', !live || shadowed);
+  syncVerdict({ live, white, figmaOff, shadowed });
+}
+
+/**
+ * 底部裁决条的唯一真值源。裁决链照卡里印的那条走：
+ * 例外应用 →（例外在当前默认行为下是空操作时穿透）高级规则 → 默认行为。
+ *
+ * 「空操作」在两个方向上对称，这一点是白名单联动那条已经确立的：
+ * 白名单下的「关闭」是空操作，黑名单下的「启用」同样是空操作——
+ * 未列出的应用本来就已经是那个结果，所以那条例外不改变任何裁决，会穿透到下一层。
+ */
+function syncVerdict({ live, white, figmaOff }) {
+  const host = document.getElementById('verdictBar');
+  if (!host) return;
+  if (!live) {
+    host.innerHTML = `
+      <span class="grid size-5 place-items-center rounded-full bg-slate-100 text-slate-400">
+        <svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+      </span>
+      <span class="text-xs text-slate-500">无法识别当前前台应用，规则暂不生效</span>`;
+    return;
+  }
+  // 只算**真正显示着**的规则。两个理由，都是实测踩出来的：
+  //   1. ③ 首次进入把例外列表整段隐藏（data-show="normal picker denied"），但那些行还在
+  //      DOM 里。照旧去读就会算出「效果已关闭 · 来自例外应用「Figma」」——而首次进入
+  //      的定义就是一条规则都还没有。
+  //   2. 「移除这些空配置」是给行加 .hidden，裁决必须跟着不再算它们。
+  const shown = (el) => !!el && !el.closest('.hidden');
+  const rows = [...document.querySelectorAll('[data-exrow]')].filter(shown);
+  const figmaRow = rows.find((r) => r.textContent.includes('Figma'));
+  const figmaOnShown = !!figmaRow?.querySelector('[data-act="enable"]')?.classList.contains('seg-item-on');
+  const figmaOffShown = figmaOff && shown(figmaRow);
+  const advRuleShown = shown(document.getElementById('advToggle'));
+
+  // 一条规则都没有 → 直接就是默认行为，不必往裁决链里走
+  if (!rows.length && !advRuleShown) {
+    host.innerHTML = verdictMarkup(white ? false : true, '来自默认行为');
+    return;
+  }
+  // 例外这一层是否真的改变了结果
+  const exceptionDecides = white ? figmaOnShown : figmaOffShown;
+  // 例外决定 → 白名单里被列出=启用、黑名单里被关闭=关闭；
+  // 例外是空操作 → 穿透到高级规则，第一条命中就是 *演示模式* → 关闭。
+  const enabled = exceptionDecides ? white : false;
+  const source = exceptionDecides
+    ? '来自例外应用「Figma」'
+    : advRuleShown ? '来自高级规则「*演示模式*」' : '来自默认行为';
+  host.innerHTML = verdictMarkup(exceptionDecides ? enabled : (advRuleShown ? false : !white), source);
+}
+
+function verdictMarkup(enabled, source) {
+  const tone = enabled ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800';
+  return `
+    <span class="app-icon-sm bg-slate-900">F</span>
+    <span class="text-xs text-slate-500">当前前台</span>
+    <span class="truncate text-xs font-medium text-slate-900">Figma</span>
+    <svg class="size-3 shrink-0 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    <span class="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-2xs font-semibold ${tone}">
+      ${enabled ? '效果已启用' : '效果已关闭'}
+      <span class="font-normal">${source}</span>
+    </span>`;
 }
 document.querySelectorAll('[data-mode]').forEach((c) => c.addEventListener('click', () => setMode(c.dataset.mode)));
 document.getElementById('pruneWhite')?.addEventListener('click', () => {

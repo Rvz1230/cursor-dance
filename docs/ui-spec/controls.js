@@ -187,10 +187,33 @@ const Ctl = (() => {
     return api;
   }
 
+  /**
+   * 解析读数元素。
+   *
+   * 稿子里三处 markup 用的都是「读数 span 上写 data-out="<滑块元素 id>"」
+   * （01-workbench、07-settings、library/controls.html），而 mountSliders 原先把
+   * data-out 当成写在**滑块**上的 CSS 选择器——于是全稿没有一个 data-out 能被它解析到。
+   *
+   * 后果专挑唯一信任共享层的那一页：07 的两个滑块读数是死的。而它的方向键 ±1、
+   * ⇧ ±10、标签 scrub、双击回默认全都正常工作，值确实走到了 133，只有读数停在 100，
+   * 所以症状看起来只像「数字忘了动」，而不像「共享层的约定错了」。
+   * 01 / 04 / 02 / library 因为各自手写了一遍 onChange 绕开了这个坑，
+   * 反而让这个 bug 一直藏在唯一的正确用法里——**共享层最没人验证的路径就是它自己的默认路径。**
+   *
+   * 现在以 markup 的约定为准，同时保留滑块上写显式选择器的写法（以 # . [ 开头）。
+   */
+  function resolveReadout(el) {
+    const key = el.dataset.out;
+    if (key) {
+      return /^[#.[]/.test(key) ? document.querySelector(key) : document.querySelector(`[data-out="${key}"]`);
+    }
+    return el.id ? document.querySelector(`[data-out="${el.id}"]`) : null;
+  }
+
   function mountSliders(root = document) {
     return [...root.querySelectorAll('[data-slider]:not([data-mounted])')].map((el) => {
       el.setAttribute('data-mounted', '1');
-      const out = el.dataset.out ? document.querySelector(el.dataset.out) : null;
+      const out = resolveReadout(el);
       const fmt = FORMATS[el.dataset.format] || undefined;
       return slider(el, {
         format: fmt,
@@ -285,17 +308,35 @@ const Ctl = (() => {
         </button>
       </span>`;
     const input = el.querySelector('[data-input]');
+    // 上一次成功提交的值。空串 / 非数字要回退到它，而**不能**静默变成 min。
+    let committed = clamp(Number(opt.value ?? min), min, max);
+    /**
+     * 提交语义（与真实代码 `resolveNumberCommit` 对齐，README「第 1 批 A」记过）：
+     *   · 提交时机是 `change`（失焦或 Enter），**不是**每次按键——
+     *     每次按键就 clamp 的话，`min=12` 时想输「50」根本输不进去：
+     *     按下「5」立刻被 clamp 成 12，第二键变成 122。
+     *   · **空串 / 非数字视为放弃编辑，保持原值。**
+     *     原先走 `clamp(Number(''), min, max)`，而 `Number('') === 0` → 直接被夹成 min，
+     *     于是「全选删掉再改主意」会静默把值变成最小值；`Number('abc')` 更是 NaN 落进 value。
+     *   · 超范围才闪一下琥珀色环（提示「我帮你夹过了」），正常提交不闪。
+     */
     const commit = (v) => {
-      const c = clamp(Number(v), min, max);
-      if (c !== Number(v)) {
+      const raw = typeof v === 'string' ? v.trim() : v;
+      const n = Number(raw);
+      if (raw === '' || !Number.isFinite(n)) { input.value = committed; return; }
+      const c = clamp(n, min, max);
+      if (c !== n) {
         input.classList.add('ring-2', 'ring-amber-300');
         setTimeout(() => input.classList.remove('ring-2', 'ring-amber-300'), 500);
       }
+      committed = c;
       input.value = c;
       opt.onChange?.(c);
     };
     input.addEventListener('change', () => commit(input.value));
     input.addEventListener('keydown', (e) => {
+      // Esc 放弃这次编辑，回到上次提交值（编辑期间输入框里是草稿，不是真值）
+      if (e.key === 'Escape') { e.preventDefault(); input.value = committed; input.blur(); return; }
       const dir = { ArrowUp: 1, ArrowDown: -1 }[e.key];
       if (!dir) return;
       e.preventDefault();
@@ -303,7 +344,10 @@ const Ctl = (() => {
     });
     el.querySelector('[data-up]').addEventListener('click', () => commit(Number(input.value) + 1));
     el.querySelector('[data-down]').addEventListener('click', () => commit(Number(input.value) - 1));
-    const api = { get: () => Number(input.value), set: (v) => { input.value = clamp(Number(v), min, max); } };
+    const api = {
+      get: () => committed,   // 读的是已提交值，不是编辑中的草稿字符串
+      set: (v) => { committed = clamp(Number(v), min, max); input.value = committed; },
+    };
     el._ctl = api;
     return api;
   }

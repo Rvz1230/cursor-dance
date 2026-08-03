@@ -11,6 +11,54 @@
  * 页面把主体内容放在 <template id="page">，外壳会把它挂到 <main> 里。
  */
 
+/**
+ * 模拟窗口的尺寸档位。**第一档是基准**（初始渲染用它）。
+ *
+ * 原先外壳写死 `h-[892px] max-w-[1440px]`，而真实桌面端的窗口是
+ * `width: 960, height: 680, minWidth: 720, minHeight: 480`
+ * （src/desktop/main/workbench-window.ts）。也就是说整套稿子是在一个
+ * **比默认窗口宽 50%、高 31%** 的尺寸上画的，而这个基准从没被核对过。
+ *
+ * 后果不是「窄屏没适配」这种边缘问题，而是**基于尺寸的设计决策全部失真**。
+ * 实测同一份 01：
+ *   时间轴轨道  1440×892 → 684px   960×680 → 204px   720×480 → 2px
+ *   舞台        1440×892 → 408×253 960×680 → 224×41  720×480 → 131×2
+ *   配置列高    1440×892 → 314px   960×680 → 102px   720×480 → 0
+ * README 说把时间轴改成底部抽屉的全部理由是「原先挤在右列只有 ~400px 宽」，
+ * 改完宣称 684px——而 684 只在 1440 下成立，默认窗口下是 204px，
+ * **比它要取代的那个 400px 还窄一半**。舞台同理：41px 高连一次文字上浮（54px）都装不下。
+ *
+ * 所以基准改成桌面默认值，另留大屏档与最小档用于对照。
+ * 大屏档保留是必要的——它是「这套设计最舒展时的样子」，但它不能再当默认。
+ */
+const VIEWPORTS = [
+  ['default', '桌面默认 960×680', 960, 680],
+  ['large', '大屏 1440×892', 1440, 892],
+  ['min', '桌面最小 720×480', 720, 480],
+];
+
+/**
+ * 按**模拟窗口**宽度分档，写到 #mockWindow 的 data-w 上，页面用
+ * `group-data-[w=lg]/win:` 这类变体消费。
+ *
+ * 为什么必须这样：稿子里原有 42 处 Tailwind 视口断点（`sm:` / `xl:` …），
+ * 而它们响应的是**浏览器视口**，不是这个固定尺寸的模拟窗口——**在稿子里全部失效**。
+ * 最贵的一处是 `02` 第 60 行的 `xl:grid-cols-[minmax(0,1fr)_360px]`：
+ * 它从来没生效过，所以「11 个光标状态分 6 组」这套核心内容一直堆在 380px 舞台**下面**、
+ * 首屏一个都看不见——而这正是 02 这一版重新设计的全部重点。
+ * 断点写了却不生效，比没写更糟：它让人以为窄屏已经考虑过了。
+ *
+ * 档位按内容能力切，不按整数好看：
+ *   sm  < 860  —— 侧栏自动折叠的同一条线；两列并排已无意义
+ *   md  < 1200 —— 真实默认 960 落在这里，两列要用更窄的次列
+ *   lg  >= 1200 —— 稿子原来的设计基准
+ */
+function widthBucket(w) {
+  if (w < 860) return 'sm';
+  if (w < 1200) return 'md';
+  return 'lg';
+}
+
 const WORKSPACES = [
   ['workbench', '主题工作台', '01-workbench.html'],
   ['cursor-skin', '光标皮肤', '02-cursor-skin.html'],
@@ -132,7 +180,7 @@ function shellMarkup(active, mainClass) {
     : `<a href="${href}" class="ws-chip">${label}</a>`);
 
   return `
-  <div class="mx-auto flex h-[892px] max-w-[1440px] flex-col overflow-hidden rounded-xl border border-slate-300 bg-white shadow-lg">
+  <div id="mockWindow" class="group/win mx-auto flex flex-col overflow-hidden rounded-xl border border-slate-300 bg-white shadow-lg" data-w="${widthBucket(VIEWPORTS[0][2])}" style="width:${VIEWPORTS[0][2]}px;height:${VIEWPORTS[0][3]}px">
     <header class="shrink-0 border-b border-slate-200 bg-white">
       <div class="flex h-8 items-stretch pl-3">
         <div class="flex shrink-0 items-center gap-2 pr-2">
@@ -153,8 +201,20 @@ function shellMarkup(active, mainClass) {
     </header>
 
     <div class="shrink-0 border-b border-slate-200 bg-slate-50 px-3 py-2">
-      <div class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-        <div class="flex min-w-0 items-center gap-1.5 overflow-x-auto">
+      <!--
+        原先是 grid-cols-[minmax(0,1fr)_auto]：右侧工具组按 max-content 占位、
+        左侧工作区导航被压到 0 再由自己的 overflow-x-auto 裁掉。
+        在真实最小窗口（720px）下的表现是「主题工作台 / 光标皮肤 / 应」——
+        「应用规则」被切成一个字，紧接着就是布局预设按钮，看起来像两组控件叠在一起。
+        改成 flex-wrap：装不下时右侧工具组整组换到第二行。
+        换行多占 32px 高度，但导航是主要动线，把它切成半个字换不来任何东西。
+
+        注意：这段注释在 JS **模板字符串内部**，所以正文里不能出现反引号——
+        它会当场终止模板字符串。我就是这么把整个 shell.js 写成语法错误、
+        让五个页面一起白屏的（已加门禁 shared-js-syntax）。
+      -->
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <div class="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto">
           ${WORKSPACES.map(([id, label, href]) => chip(id, label, href)).join('')}
         </div>
         <div class="flex min-w-0 items-center justify-end gap-2">
@@ -275,17 +335,73 @@ function hist() {
   return historyByTheme.get(currentThemeId);
 }
 
+/**
+ * 尺寸切换条。放在原型状态条之上，因为它比原型状态更根本：
+ * 原型状态问「数据是什么样」，尺寸问「用户的窗口有多大」，
+ * 而后者会让前者的每一种状态呈现出不同的装得下 / 装不下。
+ */
+let viewportId = VIEWPORTS[0][0];
+function mountViewportBar() {
+  const app = document.getElementById('app');
+  if (!app || document.getElementById('viewportBar')) return;
+  const bar = document.createElement('div');
+  bar.id = 'viewportBar';
+  bar.className = 'mx-auto mb-2 flex flex-wrap items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2';
+  bar.style.width = `${VIEWPORTS[0][2]}px`;
+  bar.innerHTML = '<span class="mr-1 text-2xs font-semibold text-slate-900">窗口尺寸</span>'
+    + `<div class="seg-group">${VIEWPORTS.map(([id, label]) => `<button data-vp="${id}" class="seg-item${id === viewportId ? ' seg-item-on' : ''}">${label}</button>`).join('')}</div>`
+    + '<span id="viewportNote" class="ml-auto text-2xs text-slate-500"></span>';
+  app.parentNode.insertBefore(bar, app);
+  bar.querySelectorAll('[data-vp]').forEach((b) => b.addEventListener('click', () => applyViewport(b.dataset.vp)));
+  paintViewportNote(viewportId);   // 初始档也要有说明，否则默认状态下这一行是空的
+}
+const VIEWPORT_NOTES = {
+  default: ['真实桌面端默认窗口（workbench-window.ts）', 'text-slate-500'],
+  large: ['这套设计最舒展时的样子，但它不是默认', 'text-slate-500'],
+  min: ['Electron 允许拖到的最小尺寸——这一档暴露的是必须提高 minWidth/minHeight 的证据', 'font-medium text-amber-700'],
+};
+function paintViewportNote(id) {
+  const note = document.getElementById('viewportNote');
+  if (!note) return;
+  const [text, tone] = VIEWPORT_NOTES[id] || ['', 'text-slate-500'];
+  note.textContent = text;
+  note.className = `ml-auto text-2xs ${tone}`;
+}
+function applyViewport(id) {
+  const vp = VIEWPORTS.find((v) => v[0] === id);
+  if (!vp) return;
+  viewportId = id;
+  const [, label, w, h] = vp;
+  const win = document.getElementById('mockWindow');
+  if (win) { win.style.width = `${w}px`; win.style.height = `${h}px`; win.dataset.w = widthBucket(w); }
+  ['viewportBar', 'proto'].forEach((k) => { const el = document.getElementById(k); if (el && el.style) el.style.width = `${w}px`; });
+  document.querySelectorAll('#viewportBar [data-vp]').forEach((b) => {
+    b.className = 'seg-item' + (b.dataset.vp === id ? ' seg-item-on' : '');
+  });
+  paintViewportNote(id);
+  // 页面里凡是**按实测几何**定位的东西（01 的播放头就是）都必须重算。
+  // 顺带修掉一个真实缺陷：原先没人监听 resize，拖动真实窗口后播放头会留在旧像素位置。
+  // 切换尺寸档等于「换了一台机器」，所以重新判一次侧栏该不该折叠
+  sidebarAutoDecided = false;
+  autoCollapseSidebarIfNarrow();
+  window.dispatchEvent(new Event('resize'));
+  window.dispatchEvent(new CustomEvent('viewportchange', { detail: { id, label, w, h } }));
+}
+
 function mountShell(opts) {
   const { active, proto = [], onProto, hint = '', mainClass = 'min-w-0 flex-1 overflow-y-auto bg-slate-50 px-3 py-3' } = opts;
 
   // 原型状态切换条（不属于产品 UI）
   const protoHost = document.getElementById('proto');
   if (protoHost && proto.length) {
-    protoHost.className = 'mx-auto mb-4 flex max-w-[1440px] flex-wrap items-center gap-2 rounded-xl bg-slate-900 px-3 py-2';
+    protoHost.className = 'mx-auto mb-4 flex flex-wrap items-center gap-2 rounded-xl bg-slate-900 px-3 py-2';
+    protoHost.style.width = `${VIEWPORTS[0][2]}px`;
     protoHost.innerHTML = `<span class="mr-1 text-2xs font-semibold text-white">原型状态</span>`
       + proto.map(([id, label]) => `<button data-proto="${id}" class="proto-btn h-7 rounded-lg px-2.5 text-2xs font-medium">${label}</button>`).join('')
       + `<span class="ml-auto text-2xs text-slate-400">${hint}</span>`;
   }
+
+  mountViewportBar();
 
   const app = document.getElementById('app');
   app.innerHTML = shellMarkup(active, mainClass);
@@ -313,7 +429,13 @@ function renderThemes(selected = 'mono') {
           ${t.dirty ? '<span class="size-1.5 shrink-0 rounded-full bg-amber-400" title="有未保存的改动"></span>' : ''}
           <span class="ml-auto inline-flex shrink-0 items-center rounded-full ${t.kind === '内置' ? 'bg-slate-100 text-slate-600' : 'bg-slate-900 text-white'} px-1.5 py-0.5 text-2xs font-medium">${t.kind}</span>
         </span>
-        <span class="mt-0.5 block truncate text-2xs leading-relaxed text-slate-500">${t.summary}</span>
+        <!--
+          摘要改成折两行而不是截断：侧栏是固定 248px，在真实默认的 960px 窗口下
+          文字框只有 125px 而摘要要 147px，四条摘要**全部**被截成「黑白灰 · 方块粒子 · 几...」，
+          恰好把最有辨识度的那部分（粒子形状 / 波纹类型）切掉了。
+          侧栏纵向有大片空余，折行的代价接近于零；截断的代价是四个主题看起来一模一样。
+        -->
+        <span class="mt-0.5 line-clamp-2 block text-2xs leading-relaxed text-slate-500">${t.summary}</span>
       </span>
       <button data-theme-menu="${t.id}" class="grid size-6 shrink-0 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700" aria-label="${t.name} 更多操作" aria-haspopup="menu">
         <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
@@ -350,9 +472,10 @@ function setProto(id, proto, onProto) {
 function bindShell(proto, onProto) {
   document.querySelectorAll('[data-proto]').forEach((b) => b.addEventListener('click', () => setProto(b.dataset.proto, proto, onProto)));
   document.querySelectorAll('[data-side-toggle]').forEach((b) => b.addEventListener('click', () => {
-    const closed = !document.querySelector('[data-side="closed"]').classList.contains('hidden');
-    setSidebar(!closed);
+    sidebarAutoDecided = true;   // 用户亲手开合过就锁定，尺寸变化不再替他决定
+    setSidebar(!sidebarClosed);
   }));
+  autoCollapseSidebarIfNarrow();
   document.getElementById('undoBtn').addEventListener('click', doUndo);
   document.getElementById('redoBtn').addEventListener('click', doRedo);
   document.getElementById('cmdkBtn').addEventListener('click', () => toggleCmdk());
@@ -371,12 +494,34 @@ function bindShell(proto, onProto) {
     }
   });
 }
+let sidebarClosed = false;
+let sidebarAutoDecided = false;
 function setSidebar(closed) {
+  sidebarClosed = closed;
   document.getElementById('sidebar').className = 'flex shrink-0 flex-col border-r border-slate-200 bg-slate-100 ' + (closed ? 'w-[60px]' : 'w-[248px]');
   document.querySelector('[data-side="open"]').classList.toggle('hidden', closed);
   const c = document.querySelector('[data-side="closed"]');
   c.classList.toggle('hidden', !closed);
   c.classList.toggle('flex', closed);
+}
+/**
+ * 窄窗口下侧栏自动折叠。
+ *
+ * 侧栏是固定 248px。在真实最小窗口（720px）下它占 34%，主区只剩 470px；
+ * 决策 #5 说「主题库侧边栏默认展开」，但那条是在 1440px 基准上定的——
+ * 248px 在 1440 下是 17%，在 720 下是 34%，同一个常量在两个尺寸下是两种设计。
+ * 折叠态保留搜索入口（决策 #5 的后半句），所以折叠不等于失去入口。
+ *
+ * 只在首次布局时决定，之后尊重用户的开合意图——否则每次改窗口大小
+ * 都把用户刚展开的侧栏收起来（同 01 抽屉那条：联动必须双向）。
+ */
+function autoCollapseSidebarIfNarrow() {
+  if (sidebarAutoDecided) return;
+  const win = document.getElementById('mockWindow');
+  const w = win ? win.getBoundingClientRect().width : 0;
+  if (!w) return;
+  sidebarAutoDecided = true;
+  if (w < 860) setSidebar(true);
 }
 
 function toggleCmdk(force) {

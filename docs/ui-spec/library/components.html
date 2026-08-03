@@ -105,18 +105,33 @@
               <span class="text-xs font-medium ink-2">NumberField</span>
               <span class="text-2xs ink-4">51 个滑块里近半是精确值，读数须可输入</span>
             </div>
+            <!--
+              这块演示原先是**假的**，而且说明文字描述的是一个已经修掉的缺陷：
+              · 读数是裸 `<input class="num-input">`，**没有任何监听**——
+                「改读数也回写滑块」这句从来没实现，输进去什么都不会发生。
+              · 说明写「超范围自动 clamp」，而 README「第 1 批 A」记录的正是
+                「每次 onChange 都立刻 clamp」这个**输入陷阱**：`min=12` 时想输「50」
+                按下「5」就被夹成 12、第二键变成 122。照这页实现会把它重新做一遍
+                （与教训 #11「稿子复刻了已修缺陷的原始逻辑」同一形态）。
+              现在改用共享的 `Ctl.number`（提交时机是 change = 失焦或 Enter），
+              并真的双向绑定；说明文字改成如实描述提交语义。
+            -->
             <div class="space-y-2.5">
               <div class="grid grid-cols-[72px_minmax(0,1fr)_auto] items-center gap-2.5">
                 <span class="text-xs font-medium ink-2">时长</span>
-                <div data-slider data-min="200" data-max="2000" data-value="820" data-default="820"></div>
-                <span class="flex items-center gap-1"><input class="num-input dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200" value="820" /><span class="text-2xs ink-4">ms</span></span>
+                <div data-slider data-pair="dur" data-min="200" data-max="2000" data-value="820" data-default="820"></div>
+                <div data-number="dur" data-min="200" data-max="2000" data-value="820" data-unit="ms"></div>
               </div>
               <div class="grid grid-cols-[72px_minmax(0,1fr)_auto] items-center gap-2.5">
                 <span class="text-xs font-medium ink-2">字号</span>
-                <div data-slider data-min="12" data-max="96" data-value="28" data-default="28"></div>
-                <span class="flex items-center gap-1"><input class="num-input dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200" value="28" /><span class="text-2xs ink-4">px</span></span>
+                <div data-slider data-pair="size" data-min="12" data-max="96" data-value="28" data-default="28"></div>
+                <div data-number="size" data-min="12" data-max="96" data-value="28" data-unit="px"></div>
               </div>
-              <p class="text-2xs leading-relaxed ink-4">拖滑块改读数，改读数也回写滑块；超范围自动 clamp。</p>
+              <p class="text-2xs leading-relaxed ink-4">
+                拖滑块改读数，改读数也回写滑块。<span class="font-medium ink-2">失焦或 ↵ 才提交并 clamp</span>——
+                编辑期间保留草稿，所以 min=12 时也能输入「50」；<span class="font-medium ink-2">Esc 放弃</span>，
+                空串或非数字视为放弃、保持原值。超范围时闪一下琥珀环表示「已帮你夹到边界」。
+              </p>
             </div>
           </div>
         </div>
@@ -359,11 +374,26 @@ function setMode(m) {
 }
 document.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
 setMode('light');
-// 滑块用共享实现装配，读数由 Ctl 回填
+// 滑块与数值框**双向**绑定，两边都用共享实现（这一页是它们的形态依据，
+// 自己另写一套就等于又多了一个实现，正是「组件库没落地」那笔欠债的成因）。
 window.addEventListener('load', () => {
+  const numbers = new Map();
+  // 先建数值框：滑块的 onChange 要能找到它
+  document.querySelectorAll('[data-number]').forEach((el) => {
+    const key = el.dataset.number;
+    const api = Ctl.number(el, {
+      min: Number(el.dataset.min), max: Number(el.dataset.max),
+      value: Number(el.dataset.value), unit: el.dataset.unit || '',
+      // 数值框 → 滑块（原先完全缺失的那一半）
+      onChange: (v) => { const sl = document.querySelector(`[data-pair="${key}"]`); if (sl?._ctl) sl._ctl.set(v); },
+    });
+    numbers.set(key, api);
+  });
   document.querySelectorAll('[data-slider]').forEach((el) => {
-    const num = el.closest('.grid')?.querySelector('.num-input');
-    Ctl.slider(el, { onChange: (v) => { if (num) num.value = v; } });
+    const paired = numbers.get(el.dataset.pair);
+    // 滑块 → 数值框。用 api.set() 而不是直接写 input.value：
+    // 后者会绕过 committed，之后 Esc 会跳回一个陈旧的值。
+    Ctl.slider(el, { onChange: (v) => paired?.set(v) });
   });
 });
 </script>

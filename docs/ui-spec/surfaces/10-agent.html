@@ -1,0 +1,1047 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>创作型 Agent · UI 规范</title>
+<link rel="stylesheet" href="../mockup.css" />
+<style>
+  body { font-family: "SF Pro Display", "SF Pro Text", "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif; }
+</style>
+</head>
+<body class="bg-slate-200 p-6 text-slate-900">
+
+<div id="proto"></div>
+<div id="app"></div>
+
+<!--
+  这一页与 06-ai.html 是**两个不同的 agent**，不要合并：
+
+  06 的 agent 在**闭区间**里选值（`particleStyle: '火花' | '碎屑' | …`），交付一份字段补丁，
+  上限是「准确率」。这一页的 agent 交付**效果程序**：发射器 / 形状 / 时间轨 / 色带四段
+  声明式规格，直接对应 compute-specs.ts 里**已经存在**的 IR（ParticleSpec[] +
+  ParticleShapeStyle）。所以它能造出内置 8 个预设里没有的形态，上限是「能力」。
+
+  界面上必须成立的四件事，缺任何一件这一版就退化回 06：
+   1. **循环可见**：生成 → 渲染 → 读指标 → 自我修复 → 复核。中间那次失败不能藏起来。
+   2. **指标由程序推导**：metricsOf() 从程序本体算，改 PROGRAMS 任一个值指标就跟着变。
+   3. **新颖性量化**：与最近内置预设的距离。这一项低就说明 DSL 白给了。
+   4. **人是唯一写入者**：沿用 README「AI 不是配置生成器」的裁决，交付口只提案。
+
+  常驻感知层不是第二个 tab——它是「这次运行为什么发生」的来源，所以做成运行的出处条。
+
+  ── 第二轮：补齐非顺利路径 ────────────────────────────────────────
+  第一版只有一条顺利路径（问 → 造 → 自修 → 交付）。走查发现真正决定体验的是另外四件事，
+  它们各自对应一个原型态，缺了就只是个 demo：
+
+   · **可中止**（⑦）——一个要跑九步、每步都在烧钱的循环，没有停止按钮是不能上线的。
+     停止后必须保留已算出的中间产物，而不是把这一轮全丢掉。
+   · **多候选并列**（④）——创作类任务不该只给一个答案。同一句需求给三种解、
+     让用户挑，比替他决定好；而且「探索强度」这个旋钮本来就在暗示会有多样性。
+   · **需求歧义就反问**（⑥）——「像纸屑一样落下」有两种完全不同的解（从上飘落 /
+     炸开后落下）。猜错要浪费一整轮渲染，所以 agent 要有 ask_user 这个工具，
+     并且**知道什么时候该用它**。选项要长成结果的样子，还要给「都试一遍」这个出口。
+   · **修不好要有出口**（⑦）——连续三次修复都压不进预算时，不能装作成功、
+     也不能只丢一句「失败了」。三个出口（放宽预算 / 降级到最近预设 / 保留但标记为
+     仅高性能模式启用）都得摆出来，决定权交回用户。
+
+  另外两条：交付后**续写**（基于当前候选继续调，而不是从零重来）、
+  以及把入口注册进 ⌘K 命令面板 + ⌘⇧A 快捷键（决策 #6 的快捷键体系）。
+
+  ── 布局：按 960×680 画，不是按 1440 ────────────────────────────
+  首版把 6 个 section 竖着堆在单列里，实测在真实默认窗口下渲染证据、指标、效果程序
+  三整块全在折叠线以下，创作循环只露出 5 步里的 3 步（02 / 04 踩过同一个坑）。
+  改法：从 md（960）起就分两列；「渲染证据 + 客观指标」合成一个「验证」；
+  「效果程序」可折叠（md 折起 / lg 展开，折起保留摘要行，用户手动开合过就不再替他决定）。
+-->
+<template id="page">
+  <div class="flex min-h-0 flex-1 flex-col gap-2">
+
+    <!-- ══ 出处条：常驻感知层是运行的来源，不是另一个页面 ══ -->
+    <div id="wakeBar" class="shrink-0 rounded-xl border px-3 py-1.5"></div>
+
+    <div class="min-h-0 flex-1 overflow-y-auto pr-0.5">
+      <div class="grid gap-2 group-data-[w=md]/win:grid-cols-[minmax(0,1fr)_324px] group-data-[w=md]/win:items-start group-data-[w=lg]/win:grid-cols-[minmax(0,1fr)_368px] group-data-[w=lg]/win:items-start">
+
+        <!-- ══ 左列：任务 / 约束 / 创作循环 ══ -->
+        <div class="min-w-0 space-y-2">
+
+          <!-- 目标 + 硬约束（护栏必须可见：它是 agent 敢有动作空间的全部理由） -->
+          <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-3 py-1.5">
+              <h3 class="flex min-w-0 items-center gap-1.5 text-xs font-semibold text-slate-900">
+                本次任务
+                <span id="basedOn" class="hidden min-w-0 truncate rounded-full bg-slate-100 px-1.5 py-0.5 text-2xs font-medium text-slate-600"></span>
+              </h3>
+              <div id="scopeSel" class="w-[124px]"></div>
+            </div>
+            <div class="px-3 py-2">
+              <p id="goalText" class="text-2xs leading-relaxed text-slate-700"></p>
+
+              <div class="mt-2 flex items-center gap-2">
+                <span data-scrub="exploreSl" class="shrink-0 text-2xs font-medium text-slate-600">探索强度</span>
+                <div id="exploreSl" data-slider data-min="0" data-max="100" data-value="62" data-default="40"
+                     data-ticks="0,40,100" data-snap="1" class="min-w-0 flex-1"></div>
+                <span data-out="exploreSl" class="w-6 shrink-0 text-right text-2xs font-semibold tabular-nums text-slate-800"></span>
+              </div>
+              <p id="exploreNote" class="mt-1 text-2xs leading-relaxed text-slate-400"></p>
+
+              <div class="mt-2 flex flex-wrap items-center gap-1 border-t border-slate-100 pt-2">
+                <span class="inline-flex items-center gap-1 pr-0.5 text-2xs font-semibold text-slate-600">
+                  <svg class="size-3 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+                  沙箱边界
+                </span>
+                <span id="guardList" class="flex min-w-0 flex-wrap gap-1"></span>
+              </div>
+            </div>
+          </section>
+
+          <!-- 创作循环：这一页的主体 -->
+          <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-3 py-1.5">
+              <h3 class="text-xs font-semibold text-slate-900">创作循环</h3>
+              <div class="flex items-center gap-2">
+                <span id="iterSummary" class="text-2xs text-slate-400"></span>
+                <!--
+                  停止按钮。一个九步、每步都在烧钱的循环没有中止入口是不能上线的；
+                  而且停止必须**保留中间产物**（见 ⑦「已按你的要求停止」那一态），
+                  否则用户宁可让它跑完也不敢点。
+                -->
+                <button id="stopBtn" data-show="running selffix" class="btn-outline h-6 shrink-0 px-2 text-2xs">
+                  <svg class="mr-1 size-2.5" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>
+                  停止
+                </button>
+              </div>
+            </div>
+            <div id="iterList" class="px-3 py-2"></div>
+          </section>
+        </div>
+
+        <!-- ══ 右列：决策面（澄清 / 候选 / 兜底）+ 证据 + 程序 + 交付 ══ -->
+        <div class="min-w-0 space-y-2">
+
+          <!-- 信任仪表：空态与主动态才有意义。放右列，否则空态下右列整个是空的，
+               而这块恰好是这套设计最该被先看到的东西 -->
+          <section data-show="idle proactive" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="border-b border-slate-100 px-3 py-1.5">
+              <h3 class="text-xs font-semibold text-slate-900">主动提案的成色</h3>
+              <p class="mt-0.5 text-2xs leading-relaxed text-slate-500">
+                未经请求就改你的光标，错一次的代价远大于对十次。所以这个数字一直摆在这里。
+              </p>
+            </div>
+            <div class="px-3 py-2">
+              <div class="flex items-end gap-2.5">
+                <div class="min-w-0">
+                  <div class="text-lg font-semibold leading-none tabular-nums text-slate-900">68<span class="text-xs font-medium text-slate-400">%</span></div>
+                  <div class="mt-0.5 text-2xs text-slate-500">留下 17 / 提出 25</div>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="h-1.5 overflow-hidden rounded-full bg-slate-100">
+                    <div class="h-full rounded-full bg-slate-900" style="width:68%"></div>
+                  </div>
+                  <div class="mt-1 flex items-center justify-between gap-1 text-2xs text-slate-400">
+                    <span>本周唤醒 9 次</span><span>否决后不再重提 4 类</span>
+                  </div>
+                </div>
+              </div>
+              <div id="trustList" class="mt-2 space-y-1 border-t border-slate-100 pt-2"></div>
+            </div>
+          </section>
+
+          <!-- ⑥ 反问：需求歧义时，agent 停下来问，而不是硬猜 -->
+          <section data-show="clarify" class="overflow-hidden rounded-xl border border-sky-200 bg-sky-50/50 shadow-sm">
+            <div class="flex items-center gap-1.5 border-b border-sky-100 px-3 py-1.5">
+              <svg class="size-3.5 shrink-0 text-sky-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.7M12 17h.01"/></svg>
+              <h3 class="text-xs font-semibold text-slate-900">需要你定一下</h3>
+            </div>
+            <div class="px-3 py-2">
+              <p id="clarifyQ" class="text-2xs leading-relaxed text-slate-700"></p>
+              <div id="clarifyOpts" class="mt-2 space-y-1.5"></div>
+              <button id="clarifyBoth" class="btn-outline mt-2 h-7 w-full px-2 text-2xs">两个都试一遍（生成 2 个候选）</button>
+              <p class="mt-1.5 text-2xs leading-relaxed text-slate-500">
+                猜错要整整一轮渲染。<span class="font-medium text-slate-700">问一句比返工便宜</span>——
+                但只在两种解会导出完全不同的程序时才问，不是每次都问。
+              </p>
+            </div>
+          </section>
+
+          <!-- ④ 三候选并列：创作类任务不该只给一个答案 -->
+          <section data-show="candidates" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-3 py-1.5">
+              <h3 class="text-xs font-semibold text-slate-900">3 个候选</h3>
+              <span class="text-2xs text-slate-400">都已过预算</span>
+            </div>
+            <div id="candList" class="space-y-1.5 px-3 py-2"></div>
+            <p class="px-3 pb-2 text-2xs leading-relaxed text-slate-500">
+              点一行即在上面的舞台里试放。<span class="font-medium text-slate-700">选中的那个才进入交付</span>，
+              其余两个会存进「这次没选的方向」，续写时可以召回。
+            </p>
+          </section>
+
+          <!-- ⑦ 中止 / 兜底：修不好或被叫停时的出口 -->
+          <section data-show="failed stopped" class="overflow-hidden rounded-xl border border-amber-200 bg-amber-50/50 shadow-sm">
+            <div class="flex items-center gap-1.5 border-b border-amber-100 px-3 py-1.5">
+              <svg class="size-3.5 shrink-0 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+              <h3 id="haltTitle" class="text-xs font-semibold text-slate-900"></h3>
+            </div>
+            <div class="px-3 py-2">
+              <p id="haltWhy" class="text-2xs leading-relaxed text-slate-700"></p>
+              <div id="haltExits" class="mt-2 space-y-1.5"></div>
+            </div>
+          </section>
+
+          <!-- 验证：渲染证据与客观指标合成一块。分成两个 section 时，
+               在 960 下两个卡头 + 四层内边距就吃掉了 ~76px，而它们本来就是同一件事 -->
+          <section data-show="running selffix candidates ready proactive failed stopped" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-3 py-1.5">
+              <h3 class="flex min-w-0 items-center gap-1.5 text-xs font-semibold text-slate-900">
+                验证
+                <span id="metricsFrom" class="min-w-0 truncate font-normal text-2xs text-slate-400"></span>
+              </h3>
+              <button id="playBtn" class="btn-outline h-6 shrink-0 px-2 text-2xs">
+                <svg class="mr-1 size-3" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                播放
+              </button>
+            </div>
+            <div class="px-3 py-2">
+              <div id="stage" class="relative h-[104px] overflow-hidden rounded-lg bg-slate-50 ring-1 ring-slate-200">
+                <span class="pointer-events-none absolute left-2 top-1.5 text-2xs text-slate-400">离屏渲染 · 种子固定，可逐帧复现</span>
+              </div>
+              <div id="frameStrip" class="mt-1.5 grid grid-cols-4 gap-1"></div>
+              <div id="metrics" class="mt-2 space-y-1 border-t border-slate-100 pt-2"></div>
+              <div id="novelty" class="mt-2 border-t border-slate-100 pt-2"></div>
+            </div>
+          </section>
+
+          <!-- 效果程序本体（可折叠） -->
+          <section data-show="running selffix candidates ready proactive failed stopped" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <button id="progToggle" class="flex w-full items-center gap-2 px-3 py-1.5 text-left transition-colors hover:bg-slate-50">
+              <svg id="progChevron" class="size-3.5 shrink-0 text-slate-400 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 6 6 6-6 6"/></svg>
+              <span class="shrink-0 text-xs font-semibold text-slate-900">效果程序</span>
+              <span id="progVer" class="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 font-mono text-2xs font-medium text-slate-500"></span>
+              <span id="progSummary" class="min-w-0 flex-1 truncate text-2xs text-slate-400"></span>
+            </button>
+            <div id="progBody" class="hidden">
+              <div id="progBlocks" class="divide-y divide-slate-100 border-t border-slate-100"></div>
+              <div class="flex items-center justify-end border-t border-slate-100 px-3 py-1.5">
+                <button id="codeToggle" class="text-2xs font-medium text-slate-500 underline underline-offset-2 hover:text-slate-900">看源码</button>
+              </div>
+              <pre id="progCode" class="hidden overflow-x-auto border-t border-slate-100 bg-slate-50 px-3 py-2 font-mono text-2xs leading-relaxed text-slate-600"></pre>
+            </div>
+          </section>
+
+          <!-- 交付：只提案 -->
+          <section data-show="ready proactive" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="border-b border-slate-100 px-3 py-1.5">
+              <h3 class="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-slate-900">
+                交付
+                <span class="inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-2xs font-medium text-slate-600">只提案，不写入</span>
+              </h3>
+            </div>
+            <div id="deliverRows" class="space-y-1.5 px-3 py-2"></div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <!--
+      交付动作条必须**钉在滚动区之外**。
+      实测：候选就绪态在 960×680 下右列内容约 560px、可视区只有 400px，
+      把按钮留在卡片里意味着「接受」在折叠线以下——主操作要滚动才够得着。
+      06 的底部操作条同理，是 shrink-0 而不是跟着列表滚。
+    -->
+    <div data-show="ready proactive" class="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-1.5 shadow-sm">
+      <div class="flex flex-wrap items-center gap-1.5">
+        <button id="abBtn" class="btn-outline h-7 px-2.5 text-2xs" title="按住看接受后的样子，松手回到当前">A/B 试听</button>
+        <button id="presetBtn" class="btn-outline h-7 px-2.5 text-2xs">存为预设</button>
+        <span id="abHint" class="min-w-0 flex-1 truncate text-2xs text-slate-400"></span>
+        <button id="rejectBtn" class="btn-ghost h-8 shrink-0 px-2.5 text-xs">丢弃</button>
+        <button id="acceptBtn" class="btn-default h-8 shrink-0 px-3 text-xs">接受选中的 <span id="acceptCount">0</span> 段</button>
+      </div>
+    </div>
+
+    <!-- ══ 提问区 ══ -->
+    <div class="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+      <div id="intents" class="mb-1.5 flex flex-wrap gap-1"></div>
+      <div class="relative">
+        <textarea id="ask" rows="2" placeholder="描述你想要的手感，形状与配色它自己造。例：赛博朋克感的点击，要碎片不要圆点"
+          class="w-full resize-none rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 pr-9 text-xs leading-relaxed text-slate-700 shadow-sm placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"></textarea>
+        <button id="sendBtn" class="absolute bottom-1.5 right-2 grid size-6 place-items-center rounded-lg bg-slate-950 text-white transition-colors hover:bg-slate-800" aria-label="发送">
+          <svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script src="../controls.js"></script>
+<script src="../shell.js"></script>
+<script>
+mountShell({ active: 'workbench', mainClass: 'flex min-w-0 flex-1 flex-col overflow-hidden bg-slate-50 px-3 py-3',
+  proto: [['idle', '① 空态'], ['running', '② 生成中'], ['selffix', '③ 超预算·自修'], ['candidates', '④ 三候选'],
+          ['ready', '⑤ 就绪·交付'], ['clarify', '⑥ 反问'], ['failed', '⑦ 修不好·兜底'], ['stopped', '⑧ 被你中止'],
+          ['proactive', '⑨ 主动提案']],
+  hint: '③⑥⑦⑧ 是重点：失败留在界面上 · 歧义先问 · 修不好与被中止各有出口',
+  onProto: (id) => onProtoState(id) });
+</script>
+<script>
+const $ = (id) => document.getElementById(id);
+
+// ── 效果程序：四段声明式规格，对应 compute-specs.ts 的 IR ────────────
+//
+// 色带用十六进制**数据**而不是 Tailwind 颜色类：它是内容色（用户效果的颜色），
+// 与调色板决策 #3 约束的界面色是两回事。形态上同 shell.js 里的主题身份色。
+//
+// draft 是第一次生成的候选，A 是读到指标超预算后自己改出来的（只差层数与外发光两个字段——
+// 形状和色带是需求的核心，自修时不能顺手一起改掉）。B / C 是同一句需求的另外两种解。
+const PROGRAMS = {
+  draft: {
+    ver: 'v2', name: '棱镜碎片（初稿）',
+    emitter: { layers: 3, perLayer: 18, angle: -95, spread: 42, gravity: 0.18, wind: -0.06 },
+    shape: { kind: '六边形碎片', ratio: 1.6, glow: true, css: 'hex' },
+    timeline: { spawn: 120, stagger: 14, life: 620, ease: 'cubic-bezier(.12,.8,.2,1)' },
+    ramp: ['#0891b2', '#7c3aed'],
+  },
+  A: {
+    ver: 'v3', name: '棱镜碎片',
+    emitter: { layers: 2, perLayer: 18, angle: -95, spread: 42, gravity: 0.18, wind: -0.06 },
+    shape: { kind: '六边形碎片', ratio: 1.6, glow: false, css: 'hex' },
+    timeline: { spawn: 120, stagger: 14, life: 620, ease: 'cubic-bezier(.12,.8,.2,1)' },
+    ramp: ['#0891b2', '#7c3aed'],
+  },
+  B: {
+    ver: 'v3-b', name: '霓虹拉丝',
+    emitter: { layers: 1, perLayer: 24, angle: -90, spread: 28, gravity: 0.04, wind: 0 },
+    shape: { kind: '拉长光丝', ratio: 4.2, glow: false, css: 'streak' },
+    timeline: { spawn: 60, stagger: 8, life: 480, ease: 'cubic-bezier(.05,.9,.1,1)' },
+    ramp: ['#0891b2', '#7c3aed'],
+  },
+  C: {
+    ver: 'v3-c', name: '像素崩解',
+    emitter: { layers: 3, perLayer: 10, angle: -80, spread: 24, gravity: 0.42, wind: 0.08 },
+    shape: { kind: '方块碎块', ratio: 1, glow: false, css: 'square' },
+    timeline: { spawn: 100, stagger: 18, life: 760, ease: 'cubic-bezier(.2,.7,.3,1)' },
+    ramp: ['#0891b2', '#7c3aed'],
+  },
+};
+
+const CANDIDATES = [
+  { key: 'A', novelty: 0.71, note: '最贴「碎片」的字面解。六边形 clipPath，向上扇开。' },
+  { key: 'B', novelty: 0.64, note: '把碎片理解成速度痕迹。单层、更快、几乎无重力。' },
+  { key: 'C', novelty: 0.58, note: '方块 + 强重力，像素崩塌感。三层但每层更少。' },
+];
+
+/**
+ * 指标全部从程序本体推导。
+ *
+ * 刻意如此：门禁里已经有「效果卡的 total 不能谎报」，同一条精神——
+ * 稿子里一个凭空的数字会让实现者以为那个验证已经设计过了。
+ * 改上面 PROGRAMS 的任何一个值，下面五行会跟着变；三个候选也必须真的各自过预算，
+ * 而不是嘴上说「都已过预算」。
+ */
+function metricsOf(p) {
+  const peak = p.emitter.layers * p.emitter.perLayer;
+  const frame = Math.round((2.4 + peak * 0.14 + (p.shape.glow ? 3.2 : 0)) * 10) / 10;
+  const screen = Math.round((p.emitter.spread / 42) * p.emitter.layers * 4.7 * 10) / 10;
+  const dur = p.timeline.spawn + p.timeline.life;
+  return [
+    { label: '峰值同显元素', v: peak, unit: '', budget: 48, cmp: 'max' },
+    { label: '帧耗时', v: frame, unit: 'ms', budget: 8, cmp: 'max' },
+    { label: '屏幕占用', v: screen, unit: '%', budget: 12, cmp: 'max' },
+    { label: '总时长', v: dur, unit: 'ms', budget: 1800, cmp: 'range', lo: 240 },
+    { label: '前景对比度', v: 4.7, unit: ':1', budget: 3, cmp: 'min' },
+  ];
+}
+function metricOk(m) {
+  if (m.cmp === 'max') return m.v <= m.budget;
+  if (m.cmp === 'min') return m.v >= m.budget;
+  return m.v >= m.lo && m.v <= m.budget;
+}
+const allOk = (p) => metricsOf(p).every(metricOk);
+
+const GUARDS = ['帧耗时 ≤ 8ms', '同显 ≤ 48', '屏占 ≤ 12%', '无网络', '无任意 JS', '写入需你确认'];
+
+// ── 创作循环的步骤库。每个原型态是它的一条链，不是同一条链的前缀——
+//    ⑥ 反问与 ⑦ 兜底走的是完全不同的分支。
+const S = {
+  ctx: { tool: 'read_context', title: '读上下文', note: '主题「熔金」· 前台应用 Figma · 探索强度 62 · 最近 40 次触发无异常' },
+  gen: { tool: 'compile_program', title: '生成效果程序 v2', note: '双层反向扇形 + 六边形碎片 + 青紫色带。内置 8 个预设里没有这个形态，所以没有现成字段可填。' },
+  render: { tool: 'render_preview', title: '离屏渲染', note: '4 个采样点：0 / 120 / 380 / 740ms' },
+  bad1: { tool: 'read_metrics', title: '读客观指标', note: '峰值同显 54/48、帧耗时 13.2/8ms、屏占 14.1%/12% —— 三项超预算', bad: '不交付，先自己改' },
+  patch: { tool: 'patch_program', title: '自我修复 → v3', note: '层数 3→2、关闭外发光。形状与色带不动 —— 那是需求的核心。', patch: true },
+  render2: { tool: 'render_preview', title: '重新渲染', note: '同一组采样点、同一个种子，可与 v2 逐帧对比' },
+  ok: { tool: 'read_metrics', title: '复核指标', note: '五项全部落在预算内' },
+  novel: { tool: 'distance_to_presets', title: '新颖性检查', note: '与最近的内置预设「礼花」距离 0.71 —— 没有退化成已有预设' },
+  fanout: { tool: 'compile_program', title: '再造两个方向', note: '同一句需求的另外两种解：拉丝、崩解。三个都过了预算，所以让你挑，而不是替你决定。', patch: true },
+  deliver1: { tool: 'propose_effect', title: '交付候选', note: '唯一交付口。写入前你可以逐段接受、A/B 试听，或存成预设复用。' },
+  deliver3: { tool: 'propose_effect', title: '交付 3 个候选', note: '并列给出，等你挑。只有选中的那个进入交付。' },
+
+  ask: { tool: 'ask_user', title: '需求有歧义，先问你', note: '「像纸屑一样落下」有两种会导出完全不同程序的解。猜错要浪费一整轮渲染。', ask: true },
+
+  fix1: { tool: 'patch_program', title: '修复 1 → v3', note: '层数 3→2、关闭外发光', patch: true },
+  bad2: { tool: 'read_metrics', title: '复核', note: '帧耗时 8.9/8ms 仍超 —— 六边形 clipPath 的合成开销比估的高', bad: '再改一次' },
+  fix2: { tool: 'patch_program', title: '修复 2 → v4', note: '每层 18→12 粒', patch: true },
+  bad3: { tool: 'read_metrics', title: '复核', note: '帧耗时 8.2/8ms 仍超；再压就只剩 8 粒，「碎片」这个形态本身不成立了', bad: '第 3 次仍未达标，停止自修' },
+  giveUp: { tool: 'report_failure', title: '交出决定权', note: '在不破坏「要碎片」这个核心诉求的前提下，压不进 8ms 预算。三个出口都由你选。', halt: true },
+  halted: { tool: 'halt', title: '已按你的要求停止', note: '停止前算出的 v2 候选保留着，可以直接续用，也可以丢掉重来。', halt: true },
+};
+function chainFor(id) {
+  if (id === 'idle') return [];
+  if (id === 'running') return [S.ctx, S.gen, S.render];
+  if (id === 'selffix') return [S.ctx, S.gen, S.render, S.bad1, S.patch];
+  if (id === 'candidates') return [S.ctx, S.gen, S.render, S.bad1, S.patch, S.render2, S.ok, S.novel, S.fanout, S.deliver3];
+  if (id === 'clarify') return [S.ctx, S.ask];
+  if (id === 'stopped') return [S.ctx, S.gen, S.render, S.halted];
+  if (id === 'failed') return [S.ctx, S.gen, S.render, S.bad1, S.fix1, S.render2, S.bad2, S.fix2, S.render2, S.bad3, S.giveUp];
+  return [S.ctx, S.gen, S.render, S.bad1, S.patch, S.render2, S.ok, S.novel, S.deliver1];
+}
+
+const TRUST = [
+  { ok: true, where: 'Figma', what: '粒子 22 → 12', tail: '留存' },
+  { ok: true, where: '深色桌面', what: '色带提亮一档', tail: '留存' },
+  { ok: false, where: 'Terminal', what: '建议关掉音效', tail: '否决 · 不再提' },
+];
+
+// 交付按「段」而不是按字段：程序的四段各自可接受，这是 DSL 交付物的自然粒度
+const SEGMENTS = [
+  { id: 's1', name: '发射器', desc: '双层反向扇形 · 每层 18 粒', take: true },
+  { id: 's2', name: '形状', desc: '六边形碎片 1.6:1 · 无外发光', take: true, novel: true },
+  { id: 's3', name: '时间轨', desc: '生成 120ms 交错 14ms · 生命 620ms', take: true },
+  { id: 's4', name: '色带', desc: '青 → 紫 → 透明', take: false, conflict: '会覆盖你手改过的「熔金」暖色' },
+];
+
+// ⑥ 反问的两个选项。要「长成结果的样子」（同控件统一那条：下拉选项要画出结果），
+// 所以每个选项带一张微缩示意，而不是两行纯文字。
+const CLARIFY = {
+  q: '「像纸屑一样落下」有两种解，它们会导出完全不同的程序 —— 你要哪种？',
+  opts: [
+    { id: 'fall', name: '从上方飘落', desc: '重力主导 · 慢 · 左右摆动', hint: '生成点在屏幕上沿，与点击位置无关' },
+    { id: 'burst', name: '炸开后落下', desc: '先向外冲 · 再被重力拉下', hint: '生成点在点击处，是个两段式速度场' },
+  ],
+};
+
+// ⑦⑧ 的两个兜底面。按**原型态**取值而不是按一个隐藏变量：
+// 原先两者共用一个 halt 态 + haltReason 变量，结果走查的人点开 ⑦ 根本不知道
+// 自己看到的是哪一种（取决于上一次点过什么），而这两块的文案与出口完全不同。
+const HALT = {
+  failed: {
+    title: '连续 3 次修复都没达标',
+    why: '把层数、粒数都压过一轮之后，帧耗时仍是 8.2/8ms。再压就只剩 8 粒，<span class="font-medium text-slate-900">「要碎片」这个诉求本身不成立了</span>。所以停下来问你，而不是交一个假装合格的候选。',
+    exits: [
+      { id: 'raise', name: '放宽帧预算到 10ms', desc: '去全局设置改共享效果预算。代价：低配机器上可能掉帧', tone: 'default' },
+      { id: 'degrade', name: '降级到最近的内置预设「礼花」', desc: '保证可用，但放弃这次的新形态（新颖性归零）', tone: 'outline' },
+      { id: 'gate', name: '保留程序，仅在高性能模式启用', desc: '效果留着，由应用规则决定什么时候放它', tone: 'outline' },
+    ],
+  },
+  stopped: {
+    title: '已在第 3 步停止',
+    why: '你在「离屏渲染」这一步叫停。<span class="font-medium text-slate-900">停止前算出的 v2 候选保留着</span> —— 它还没过预算（三项超标），但可以作为续写的起点，不用从零重来。',
+    exits: [
+      { id: 'resume', name: '从 v2 继续自我修复', desc: '接着跑剩下的步骤，已算出的渲染结果直接复用', tone: 'default' },
+      { id: 'restart', name: '丢掉重来', desc: '换一句需求，或换个探索强度再试', tone: 'outline' },
+    ],
+  },
+};
+
+let state = 'idle';
+let program = PROGRAMS.A;
+let pickedKey = 'A';
+let showDiff = false;
+let codeOpen = false;
+let progOpen = false;
+let progAutoDecided = false;
+let segments = JSON.parse(JSON.stringify(SEGMENTS));
+let ab = false;
+let basedOn = '';
+
+// ── 出处条：常驻感知层是运行的来源 ──────────────────────────────────
+const WAKE = {
+  idle: { tone: 'slate', icon: 'eye', text: '常驻观察中 · 没有正在跑的运行', meta: '本小时唤醒 0/4', mute: false },
+  ask: { tone: 'slate', icon: 'ask', text: '由你提问触发', meta: '不计入唤醒预算', mute: false },
+  proactive: {
+    tone: 'amber', icon: 'bolt',
+    text: '主动唤醒：在 <span class="font-semibold">Terminal</span> 里检测到 14 次连点与 2 次撤销，判断当前效果在这个应用里过重',
+    meta: '本小时唤醒 2/4 · 唤醒判定在本地完成，不消耗模型',
+    mute: true,
+  },
+};
+const WAKE_ICON = {
+  eye: '<path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.5"/>',
+  ask: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  bolt: '<path d="M13 2 4 14h6l-1 8 9-12h-6z"/>',
+};
+function renderWake() {
+  const w = WAKE[state === 'idle' ? 'idle' : state === 'proactive' ? 'proactive' : 'ask'];
+  const amber = w.tone === 'amber';
+  $('wakeBar').className = 'shrink-0 rounded-xl border px-3 py-1.5 '
+    + (amber ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-white');
+  $('wakeBar').innerHTML = `
+    <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
+      <svg class="size-3.5 shrink-0 ${amber ? 'text-amber-600' : 'text-slate-400'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${WAKE_ICON[w.icon]}</svg>
+      <span class="min-w-0 flex-1">
+        <span class="block text-2xs leading-relaxed ${amber ? 'text-amber-900' : 'text-slate-600'}">${w.text}</span>
+        <span class="block text-2xs ${amber ? 'text-amber-700' : 'text-slate-400'}">${w.meta}</span>
+      </span>
+      ${w.mute ? `<span class="flex shrink-0 items-center gap-1.5">
+        <button data-wake="mute" class="btn-outline h-6 px-2 text-2xs">别再为这个提议</button>
+        <button data-wake="askonly" class="btn-outline h-6 px-2 text-2xs">只在我问时</button>
+      </span>` : ''}
+    </div>`;
+  $('wakeBar').querySelectorAll('[data-wake]').forEach((b) => b.addEventListener('click', () => {
+    toast(b.dataset.wake === 'mute' ? '已记住：不再为「Terminal 连点」提议' : '已改为只在你提问时运行');
+  }));
+}
+
+// ── 创作循环 spine ────────────────────────────────────────────────
+function renderIters() {
+  const shown = chainFor(state);
+  const fixes = shown.filter((s) => s.bad).length;
+  $('iterSummary').textContent = shown.length
+    ? `${fixes ? `${fixes} 次未达标 · ` : ''}${shown.length} 步`
+    : '还没有运行';
+
+  if (!shown.length) {
+    $('iterList').innerHTML = `
+      <div class="flex items-start gap-2 py-0.5">
+        <svg class="mt-0.5 size-3.5 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M6 6l2 2M16 16l2 2M18 6l-2 2M8 16l-2 2"/></svg>
+        <p class="min-w-0 flex-1 text-2xs leading-relaxed text-slate-500">
+          <span class="font-medium text-slate-700">说一句你想要的手感。</span>
+          它不会在下拉框里挑预设，而是写一段效果程序，自己渲染出来读指标，超预算就自己改，改到通过才交给你审。
+          需求有歧义时它会先问，修不好时会把决定权交回给你。
+        </p>
+      </div>`;
+    return;
+  }
+
+  $('iterList').innerHTML = shown.map((s, i) => {
+    const last = i === shown.length - 1;
+    const busy = last && state === 'running';
+    const dot = s.bad ? 'border-rose-300 bg-rose-50 text-rose-600'
+      : s.ask ? 'border-sky-300 bg-sky-50 text-sky-700'
+      : s.halt ? 'border-amber-300 bg-amber-50 text-amber-700'
+      : s.patch ? 'border-slate-900 bg-slate-900 text-white'
+      : 'border-slate-200 bg-white text-slate-400';
+    return `
+      <div class="relative flex gap-2 ${last ? '' : 'pb-2'}">
+        ${last ? '' : '<span class="absolute bottom-0 left-[10px] top-5 w-px bg-slate-200"></span>'}
+        <span class="relative z-10 grid size-[21px] shrink-0 place-items-center rounded-full border text-2xs font-semibold tabular-nums ${dot}">
+          ${busy ? '<svg class="size-3 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3a9 9 0 1 0 9 9"/></svg>' : i + 1}
+        </span>
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span class="text-2xs font-semibold text-slate-800">${s.title}</span>
+            <code class="rounded bg-slate-100 px-1 py-0.5 font-mono text-2xs ${/^(propose_effect|ask_user|report_failure)$/.test(s.tool) ? 'text-slate-900' : 'text-slate-500'}">${s.tool}</code>
+            ${busy ? '<span class="text-2xs text-slate-400">进行中…</span>' : ''}
+          </div>
+          <p class="mt-0.5 text-2xs leading-relaxed text-slate-500">${s.note}</p>
+          ${s.bad ? `<p class="mt-1 inline-flex items-start gap-1 rounded-lg bg-rose-50 px-1.5 py-0.5 text-2xs font-medium leading-relaxed text-rose-700">
+            <svg class="mt-0.5 size-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+            ${s.bad}</p>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ── 渲染证据 ──────────────────────────────────────────────────────
+//
+// 粒子角度用与引擎同形的种子伪随机（index 派生，无 Math.random），
+// 所以帧缩略图、候选缩略图与舞台播放三处画的是同一批粒子。
+function particles(p) {
+  const out = [];
+  const total = p.emitter.layers * p.emitter.perLayer;
+  for (let i = 0; i < total; i++) {
+    const layer = i % p.emitter.layers;
+    const k = Math.floor(i / p.emitter.layers);
+    const dir = layer % 2 === 0 ? 1 : -1;
+    const base = p.emitter.angle + dir * ((k / Math.max(p.emitter.perLayer - 1, 1)) - 0.5) * 2 * p.emitter.spread;
+    const jitter = ((i * 37) % 11) - 5;
+    const deg = base + jitter;
+    const rad = (deg * Math.PI) / 180;
+    const dist = 0.42 + ((i * 13) % 9) / 15 + layer * 0.14;
+    out.push({ deg, rad, dist, size: 2.6 + ((i * 7) % 5) * 0.5, delay: (i % p.emitter.perLayer) * p.timeline.stagger, color: p.ramp[i % p.ramp.length] });
+  }
+  return out;
+}
+/** 形状的 SVG / CSS 两种表达要一致，否则缩略图与舞台会长得不一样。 */
+const SHAPE_RX = { hex: 0.3, streak: 0.5, square: 0.12 };
+const CLIP_HEX = 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)';
+
+function frameSvg(p, t, w, h) {
+  const ps = particles(p);
+  const cx = w / 2;
+  const cy = h * 0.62;
+  const reach = Math.min(w, h) * 0.52;
+  return ps.map((q) => {
+    const local = (t - q.delay) / p.timeline.life;
+    if (local < 0 || local > 1) return '';
+    const r = local * q.dist * reach;
+    const x = cx + Math.cos(q.rad) * r;
+    const y = cy + Math.sin(q.rad) * r + local * p.emitter.gravity * reach * 0.5;
+    const sw = q.size * p.shape.ratio * 0.5;
+    const sh = q.size * 0.5;
+    const rx = sh * (SHAPE_RX[p.shape.css] ?? 0.3);
+    return `<rect x="${(-sw / 2).toFixed(1)}" y="${(-sh / 2).toFixed(1)}" width="${sw.toFixed(1)}" height="${sh.toFixed(1)}" rx="${rx.toFixed(1)}"
+      fill="${q.color}" opacity="${((1 - local) * 0.9).toFixed(2)}"
+      transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${q.deg.toFixed(0)})"/>`;
+  }).join('');
+}
+
+const FRAME_TS = [0, 120, 380, 740];
+function renderFrames() {
+  $('frameStrip').innerHTML = FRAME_TS.map((t) => `
+    <div class="overflow-hidden rounded-lg bg-slate-50 ring-1 ring-slate-200">
+      <svg viewBox="0 0 60 42" class="block w-full">${frameSvg(program, t, 60, 42)}</svg>
+      <div class="border-t border-slate-200 py-px text-center text-2xs tabular-nums text-slate-400">${t}ms</div>
+    </div>`).join('');
+}
+function clearStage() {
+  $('stage').querySelectorAll('[data-p]').forEach((n) => n.remove());
+}
+function play() {
+  const host = $('stage');
+  clearStage();
+  const box = host.getBoundingClientRect();
+  if (!box.width) return;   // 舞台还在 hidden 里：宁可不放，也不要把粒子撒进一个 0 宽的盒子
+  const cx = box.width / 2;
+  const cy = box.height * 0.64;
+  particles(program).forEach((q) => {
+    const el = document.createElement('span');
+    el.setAttribute('data-p', '1');
+    el.className = 'pointer-events-none absolute block';
+    el.style.left = `${cx}px`;
+    el.style.top = `${cy}px`;
+    el.style.width = `${q.size * program.shape.ratio}px`;
+    el.style.height = `${q.size}px`;
+    el.style.background = q.color;
+    if (program.shape.css === 'hex') el.style.clipPath = CLIP_HEX;
+    else el.style.borderRadius = program.shape.css === 'streak' ? '999px' : '1px';
+    if (program.shape.glow) el.style.boxShadow = `0 0 6px ${q.color}`;
+    host.append(el);
+    const r = q.dist * Math.min(box.width, box.height) * 0.7;
+    el.animate([
+      { transform: `translate(-50%,-50%) rotate(${q.deg}deg) scale(.4)`, opacity: 0.95 },
+      { transform: `translate(${Math.cos(q.rad) * r - 50}%, ${Math.sin(q.rad) * r + program.emitter.gravity * 40 - 50}%) rotate(${q.deg}deg) scale(1)`, opacity: 0 },
+    ], { duration: program.timeline.life, delay: q.delay, easing: program.timeline.ease, fill: 'forwards' })
+      .addEventListener('finish', () => el.remove());
+  });
+
+  // 兜底清扫。只挂 finish 事件是不够的：Web Animations 的时间线也靠帧推进，
+  // 页面不合成时动画根本不前进、finish 永不触发，于是这一批粒子会停在**首帧**
+  // （opacity .95）留在舞台上——看起来像一坨糊在中心的色块，而不是「动画没播」。
+  clearTimeout(play.sweep);
+  play.sweep = setTimeout(clearStage, program.timeline.life + program.timeline.spawn + 260);
+}
+
+// ── 指标 + 新颖性 ─────────────────────────────────────────────────
+function renderMetrics() {
+  // ③ 自修态与 ⑦ 兜底态刻意显示**没过预算的那一版**：正是它导致了后面的步骤。
+  // 这里若跟着显示合格版（全绿），界面就说不出「为什么会有第 5 步」「为什么要交出决定权」了。
+  const failing = state === 'selffix' || state === 'failed';
+  const shownProgram = failing || state === 'running' || state === 'stopped' ? PROGRAMS.draft : program;
+  $('metricsFrom').textContent = failing
+    ? `${PROGRAMS.draft.ver} 实测 · 正是它没过`
+    : `${shownProgram.ver} 实测`;
+
+  $('metrics').innerHTML = metricsOf(shownProgram).map((m) => {
+    const ok = metricOk(m);
+    const pct = Math.min(100, m.cmp === 'min' ? (m.budget / m.v) * 100 : (m.v / m.budget) * 100);
+    const cap = m.cmp === 'min' ? `≥ ${m.budget}` : m.cmp === 'range' ? `${m.lo}–${m.budget}` : `≤ ${m.budget}`;
+    return `<div>
+      <div class="flex items-baseline gap-1">
+        <span class="min-w-0 flex-1 truncate text-2xs text-slate-600">${m.label}</span>
+        <span class="shrink-0 text-2xs font-semibold tabular-nums ${ok ? 'text-slate-800' : 'text-rose-700'}">${m.v}${m.unit}</span>
+        <span class="shrink-0 text-2xs tabular-nums text-slate-300">/ ${cap}${m.unit}</span>
+        ${ok
+          ? '<svg class="size-3 shrink-0 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>'
+          : '<svg class="size-3 shrink-0 text-rose-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg>'}
+      </div>
+      <div class="mt-0.5 h-1 overflow-hidden rounded-full bg-slate-100">
+        <div class="h-full rounded-full ${ok ? 'bg-emerald-500' : 'bg-rose-500'}" style="width:${pct.toFixed(0)}%"></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const cand = CANDIDATES.find((c) => c.key === pickedKey);
+  const done = state === 'candidates' || state === 'ready' || state === 'proactive';
+  const nv = done ? cand.novelty : 0;
+  $('novelty').innerHTML = `
+    <div class="flex items-baseline gap-1">
+      <span class="min-w-0 flex-1 text-2xs font-semibold text-slate-700">新颖性 · 与最近内置预设的距离</span>
+      <span class="shrink-0 text-2xs font-semibold tabular-nums text-slate-900">${done ? nv.toFixed(2) : '待测'}</span>
+    </div>
+    <div class="mt-0.5 h-1 overflow-hidden rounded-full bg-slate-100">
+      <div class="h-full rounded-full bg-slate-900" style="width:${(nv * 100).toFixed(0)}%"></div>
+    </div>
+    <p class="mt-1 text-2xs leading-relaxed text-slate-400">
+      ${done
+        ? '最近的是「礼花」。<span class="font-medium text-slate-600">这一项低就说明 DSL 白给了</span>——agent 只是把内置预设重新发明了一遍。'
+        : '要等复核通过后才计算：一个超预算的候选不值得谈新颖性。'}
+    </p>`;
+}
+
+// ── 效果程序本体 ──────────────────────────────────────────────────
+function renderProgram() {
+  const e = program.emitter;
+  const t = program.timeline;
+  $('progVer').textContent = program.ver;
+  // 折起时卡头必须保留一行摘要，否则收起来就失去上下文（同 01 的时间轴抽屉）
+  $('progSummary').textContent = `${e.layers} 层 · ${program.shape.kind} · 生命 ${t.life}ms · 青→紫`;
+  $('progBody').classList.toggle('hidden', !progOpen);
+  $('progChevron').classList.toggle('rotate-90', progOpen);
+
+  const blocks = [
+    { key: 'emitter', name: '发射器', body: `${e.layers} 层反向扇形 · 每层 ${e.perLayer} 粒 · 主方向 ${e.angle}° 扇开 ±${e.spread}°`,
+      extra: `速度场：重力 ${e.gravity} · 风 ${e.wind}`, changed: showDiff ? '层数 3 → 2' : '' },
+    { key: 'shape', name: '形状', body: `${program.shape.kind} · 长宽 ${program.shape.ratio}:1 · 外发光${program.shape.glow ? '开' : '关'}`,
+      extra: '内置 8 个预设里没有这个形状', changed: showDiff ? '外发光 开 → 关' : '', novel: true },
+    { key: 'timeline', name: '时间轨', body: `生成 0–${t.spawn}ms 交错 ${t.stagger}ms · 生命 ${t.life}ms`,
+      extra: `缓动 ${t.ease}`, changed: '' },
+    { key: 'ramp', name: '色带', body: '', swatch: program.ramp, extra: '取色策略：沿生命周期插值到透明', changed: '' },
+  ];
+  $('progBlocks').innerHTML = blocks.map((b) => `
+    <div class="px-3 py-1.5">
+      <div class="flex flex-wrap items-center gap-1">
+        <span class="text-2xs font-semibold text-slate-700">${b.name}</span>
+        <code class="rounded bg-slate-100 px-1 py-0.5 font-mono text-2xs text-slate-400">${b.key}</code>
+        ${b.novel ? '<span class="inline-flex items-center rounded-full bg-sky-50 px-1.5 py-0.5 text-2xs font-medium text-sky-700">预设里没有</span>' : ''}
+        ${b.changed ? `<span class="inline-flex items-center rounded-full bg-amber-50 px-1.5 py-0.5 text-2xs font-medium text-amber-800">${b.changed}</span>` : ''}
+      </div>
+      ${b.swatch
+        ? `<div class="mt-1 flex items-center gap-1">
+             ${b.swatch.map((c) => `<span class="size-3.5 shrink-0 rounded ring-1 ring-slate-200" style="background:${c}"></span><code class="shrink-0 font-mono text-2xs text-slate-500">${c}</code>`).join('')}
+             <span class="h-3.5 min-w-0 flex-1 rounded ring-1 ring-slate-200" style="background:linear-gradient(90deg,${b.swatch[0]},${b.swatch[1]},transparent)"></span>
+           </div>`
+        : `<p class="mt-0.5 text-2xs leading-relaxed text-slate-600">${b.body}</p>`}
+      <p class="text-2xs leading-relaxed text-slate-400">${b.extra}</p>
+    </div>`).join('');
+
+  $('progCode').textContent = JSON.stringify(program, null, 2);
+  $('progCode').classList.toggle('hidden', !codeOpen);
+  $('codeToggle').textContent = codeOpen ? '收起源码' : '看源码';
+}
+
+/**
+ * 折叠默认值按**模拟窗口**宽度定：960 下折起、1200+ 展开。
+ * 但只在用户还没亲手开合过时替他决定——同 shell.js 的 sidebarAutoDecided，
+ * 否则每次切尺寸档都会把用户刚展开的程序面收回去。
+ */
+function applyProgDefault() {
+  if (progAutoDecided) return;
+  const win = $('mockWindow');
+  progOpen = !!win && win.dataset.w === 'lg';
+}
+
+// ── ④ 三候选并列 ──────────────────────────────────────────────────
+function renderCandidates() {
+  $('candList').innerHTML = CANDIDATES.map((c) => {
+    const p = PROGRAMS[c.key];
+    const on = c.key === pickedKey;
+    const m = metricsOf(p);
+    const frame = m.find((x) => x.label === '帧耗时');
+    return `
+      <div data-cand="${c.key}" role="button" tabindex="0" aria-pressed="${on}"
+           class="flex cursor-pointer items-start gap-2 rounded-xl border ${on ? 'border-slate-900 bg-slate-50' : 'border-slate-200 bg-white'} px-2 py-1.5 shadow-sm transition-colors">
+        <span class="grid size-4 shrink-0 place-items-center rounded-full border ${on ? 'border-slate-950 bg-slate-950' : 'border-slate-300 bg-white'} mt-0.5">
+          ${on ? '<span class="size-1.5 rounded-full bg-white"></span>' : ''}
+        </span>
+        <span class="w-[46px] shrink-0 overflow-hidden rounded bg-slate-50 ring-1 ring-slate-200">
+          <svg viewBox="0 0 60 42" class="block w-full">${frameSvg(p, 380, 60, 42)}</svg>
+        </span>
+        <span class="min-w-0 flex-1">
+          <span class="flex flex-wrap items-center gap-1">
+            <span class="text-2xs font-semibold text-slate-800">${p.name}</span>
+            <span class="inline-flex items-center gap-1 text-2xs font-medium text-emerald-700">
+              <svg class="size-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M20 6 9 17l-5-5"/></svg>${frame.v}ms
+            </span>
+            <span class="text-2xs text-slate-400">新颖性 ${c.novelty.toFixed(2)}</span>
+          </span>
+          <span class="block text-2xs leading-relaxed text-slate-500">${c.note}</span>
+        </span>
+      </div>`;
+  }).join('') + `
+    <button id="candTake" class="btn-default h-8 w-full px-3 text-xs">用这个方向去交付</button>`;
+
+  const pick = (key) => {
+    pickedKey = key;
+    program = PROGRAMS[key];
+    renderCandidates(); renderFrames(); renderMetrics(); renderProgram();
+    play();
+  };
+  $('candList').querySelectorAll('[data-cand]').forEach((row) => {
+    row.addEventListener('click', () => pick(row.dataset.cand));
+    row.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); pick(row.dataset.cand); }
+    });
+  });
+  $('candTake').addEventListener('click', () => {
+    basedOn = `续写自 ${PROGRAMS[pickedKey].name}`;
+    setProtoLocal('ready');
+    toast(`已选「${PROGRAMS[pickedKey].name}」· 另外 2 个方向已存起来，续写时可召回`);
+  });
+}
+
+// ── ⑥ 反问 ────────────────────────────────────────────────────────
+function renderClarify() {
+  $('clarifyQ').innerHTML = CLARIFY.q;
+  $('clarifyOpts').innerHTML = CLARIFY.opts.map((o) => `
+    <button data-clar="${o.id}" class="flex w-full items-start gap-2 rounded-xl border border-slate-200 bg-white px-2 py-1.5 text-left shadow-sm transition-colors hover:border-slate-400">
+      <span class="min-w-0 flex-1">
+        <span class="block text-2xs font-semibold text-slate-800">${o.name}</span>
+        <span class="block text-2xs leading-relaxed text-slate-500">${o.desc}</span>
+        <span class="block text-2xs leading-relaxed text-slate-400">${o.hint}</span>
+      </span>
+      <svg class="mt-0.5 size-3 shrink-0 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>`).join('');
+  $('clarifyOpts').querySelectorAll('[data-clar]').forEach((b) => b.addEventListener('click', () => {
+    const o = CLARIFY.opts.find((x) => x.id === b.dataset.clar);
+    toast(`已按「${o.name}」继续`);
+    setProtoLocal('running');
+    setTimeout(() => setProtoLocal('candidates'), 900);
+  }));
+}
+
+// ── ⑦ 中止 / 兜底 ─────────────────────────────────────────────────
+function renderHalt() {
+  const h = HALT[state];
+  if (!h) return;   // 只有 ⑦⑧ 两态有兜底面，其余态这一块是 hidden 的
+  $('haltTitle').textContent = h.title;
+  $('haltWhy').innerHTML = h.why;
+  $('haltExits').innerHTML = h.exits.map((x) => `
+    <button data-exit="${x.id}" class="flex w-full items-start gap-2 rounded-xl border ${x.tone === 'default' ? 'border-slate-900' : 'border-slate-200'} bg-white px-2 py-1.5 text-left shadow-sm transition-colors hover:border-slate-400">
+      <span class="min-w-0 flex-1">
+        <span class="block text-2xs font-semibold text-slate-800">${x.name}</span>
+        <span class="block text-2xs leading-relaxed text-slate-500">${x.desc}</span>
+      </span>
+      <svg class="mt-0.5 size-3 shrink-0 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>`).join('');
+  $('haltExits').querySelectorAll('[data-exit]').forEach((b) => b.addEventListener('click', () => {
+    const id = b.dataset.exit;
+    if (id === 'resume') { setProtoLocal('running'); setTimeout(() => setProtoLocal('candidates'), 900); return; }
+    if (id === 'restart') { setProtoLocal('idle'); return; }
+    if (id === 'degrade') { toast('已降级到内置预设「礼花」· 新颖性归零'); setProtoLocal('idle'); return; }
+    if (id === 'raise') { toast('去全局设置放宽共享效果预算（⌘,）'); return; }
+    toast('已保留程序，并标记为仅在高性能模式启用');
+  }));
+}
+
+// ── 交付 ──────────────────────────────────────────────────────────
+const pendingSegments = () => segments.filter((s) => s.take && !s.written);
+
+function renderDeliver() {
+  $('deliverRows').innerHTML = segments.map((s) => `
+    <div class="flex items-start gap-2 rounded-xl border ${s.written ? 'border-emerald-200 bg-emerald-50/40' : s.take ? 'border-slate-900 bg-white' : 'border-slate-200 bg-white'} px-2 py-1.5 shadow-sm">
+      <button data-seg="${s.id}" ${s.written ? 'disabled title="已写入，用 ⌘Z 撤销"' : ''} class="mt-0.5 grid size-4 shrink-0 place-items-center rounded border ${s.written ? 'border-emerald-500 bg-emerald-500 text-white' : s.take ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-300 bg-white'}" aria-label="接受 ${s.name}">
+        ${s.take || s.written ? '<svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M20 6 9 17l-5-5"/></svg>' : ''}
+      </button>
+      <span class="min-w-0 flex-1">
+        <span class="flex flex-wrap items-center gap-1">
+          <span class="text-2xs font-semibold text-slate-800">${s.name}</span>
+          ${s.novel ? '<span class="inline-flex items-center rounded-full bg-sky-50 px-1.5 py-0.5 text-2xs font-medium text-sky-700">预设里没有</span>' : ''}
+          ${s.written ? '<span class="inline-flex items-center gap-1 text-2xs font-semibold text-emerald-700"><span class="size-1.5 rounded-full bg-emerald-500"></span>已写入</span>' : ''}
+        </span>
+        <span class="block text-2xs leading-relaxed text-slate-500">${s.desc}</span>
+        ${s.conflict ? `<span class="mt-0.5 inline-flex items-start gap-1 rounded-lg bg-amber-50 px-1.5 py-0.5 text-2xs leading-relaxed text-amber-800">
+          <svg class="mt-0.5 size-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+          ${s.conflict}</span>` : ''}
+      </span>
+    </div>`).join('');
+  $('deliverRows').querySelectorAll('[data-seg]').forEach((b) => b.addEventListener('click', () => {
+    const s = segments.find((x) => x.id === b.dataset.seg);
+    if (s.written) return;   // 已写入的要走 ⌘Z，不是再点一下开关
+    s.take = !s.take;
+    renderDeliver();
+  }));
+  const n = pendingSegments().length;
+  $('acceptCount').textContent = n;
+  $('acceptBtn').disabled = n === 0;
+  $('acceptBtn').classList.toggle('opacity-50', n === 0);
+}
+
+function renderTrust() {
+  $('trustList').innerHTML = TRUST.map((r) => `
+    <div class="flex items-start gap-1.5">
+      ${r.ok
+        ? '<svg class="mt-0.5 size-3 shrink-0 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>'
+        : '<svg class="mt-0.5 size-3 shrink-0 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg>'}
+      <span class="min-w-0 flex-1 truncate text-2xs leading-relaxed ${r.ok ? 'text-slate-600' : 'text-slate-400'}">
+        <span class="font-medium">${r.where}</span> · ${r.what}
+      </span>
+      <span class="shrink-0 text-2xs text-slate-300">${r.tail}</span>
+    </div>`).join('');
+}
+
+// ── 交互 ──────────────────────────────────────────────────────────
+$('playBtn').addEventListener('click', play);
+$('progToggle').addEventListener('click', () => { progAutoDecided = true; progOpen = !progOpen; renderProgram(); });
+$('codeToggle').addEventListener('click', () => { codeOpen = !codeOpen; renderProgram(); });
+$('presetBtn').addEventListener('click', () => toast(`已把「${program.name}」存成自定义预设`));
+$('rejectBtn').addEventListener('click', () => { toast('已丢弃这个候选'); basedOn = ''; setProtoLocal('idle'); });
+
+// 停止：保留中间产物，落到 ⑦ 的「已按你的要求停止」分支
+$('stopBtn').addEventListener('click', () => {
+  setProtoLocal('stopped');
+  toast('已停止 · 保留了 v2 候选');
+});
+
+// A/B 试听：按住看接受后的样子，松手回到当前。按住期间舞台放的是候选，
+// 松手放的是当前配置——不能只换按钮文案（那就是个没有行为的装饰控件）。
+$('abBtn').addEventListener('pointerdown', () => {
+  ab = true;
+  $('abBtn').textContent = '松手回到当前';
+  $('abHint').textContent = '正在放：候选';
+  play();
+});
+window.addEventListener('pointerup', () => {
+  if (!ab) return;
+  ab = false;
+  $('abBtn').textContent = 'A/B 试听';
+  $('abHint').textContent = '已回到当前配置';
+  clearStage();
+});
+
+$('acceptBtn').addEventListener('click', () => {
+  const taken = pendingSegments();
+  if (!taken.length) return;
+  const skipped = segments.filter((s) => !s.take && !s.written).length;
+  const ids = taken.map((s) => s.id);
+  const setWritten = (on) => {
+    segments.forEach((s) => { if (ids.includes(s.id)) s.written = on; });
+    renderDeliver();
+  };
+  setWritten(true);
+  // 撤销函数**必须返回重做函数**：shell.js 的 doUndo 只在拿到返回值时才压 redo 栈，
+  // 漏了这一步的后果是撤销以后 ⌘⇧Z 是死的，而决策 #1 要求两者成对。
+  const undo = () => {
+    setWritten(false);
+    return function redo() { setWritten(true); return undo; };
+  };
+  toast(`已写入 ${taken.length} 段${skipped ? `，跳过 ${skipped} 段` : ''}`, undo);
+});
+
+// 发送：含歧义词就先反问，否则走「生成 → 自修 → 三候选」
+const AMBIGUOUS = ['纸屑', '飘落', '落下'];
+$('sendBtn').addEventListener('click', () => {
+  const q = $('ask').value;
+  if (AMBIGUOUS.some((w) => q.includes(w))) { setProtoLocal('clarify'); return; }
+  setProtoLocal('running');
+  setTimeout(() => setProtoLocal('selffix'), 800);
+  setTimeout(() => setProtoLocal('candidates'), 1700);
+});
+
+// 意图 chips 分两套：空态是「造什么」，交付后是「基于当前候选怎么调」——
+// 续写与从零重来是两种不同的动作，用同一排 chip 会让人以为改一句就要重跑一整轮。
+const INTENTS_NEW = ['赛博朋克感', '像纸屑一样落下', '克制但有存在感', '贴合深色桌面'];
+const INTENTS_REFINE = ['再收一点', '换个形状', '颜色贴合熔金', '召回没选的方向'];
+function renderIntents() {
+  const refine = state === 'ready' || state === 'proactive';
+  const list = refine ? INTENTS_REFINE : INTENTS_NEW;
+  $('intents').innerHTML = (refine ? '<span class="mr-0.5 inline-flex items-center text-2xs font-medium text-slate-400">续写：</span>' : '')
+    + list.map((t) => `<button data-intent="${t}" class="preset-chip">${t}</button>`).join('');
+  $('intents').querySelectorAll('[data-intent]').forEach((b) => b.addEventListener('click', () => {
+    const label = b.dataset.intent;
+    if (label === '召回没选的方向') { setProtoLocal('candidates'); return; }
+    $('ask').value = refine ? label : `${label}的点击`;
+    $('sendBtn').click();
+  }));
+}
+
+$('guardList').innerHTML = GUARDS.map((g) => `
+  <span class="inline-flex items-center gap-1 rounded-lg bg-slate-50 px-1.5 py-0.5 text-2xs text-slate-600 ring-1 ring-slate-200">
+    <span class="size-1 rounded-full bg-slate-400"></span>${g}
+  </span>`).join('');
+
+Ctl.select($('scopeSel'), {
+  options: [
+    { label: '当前动作', desc: '只造左键单击' },
+    { label: '整个主题', desc: '5 个动作一致的语言' },
+  ],
+  value: '当前动作',
+});
+Ctl.mountSliders(document);
+
+// 决策 #6 的快捷键体系：这一页也要有入口，否则它只能从 06 的按钮旁边被发现。
+registerCommands('Agent', [
+  ['为当前动作造一个效果', '⌘⇧A', () => { $('ask').focus(); }],
+  ['停止当前运行', '', () => $('stopBtn').click()],
+  ['并列看 3 个候选', '', () => setProtoLocal('candidates')],
+  ['查看主动提案精确率', '', () => setProtoLocal('idle')],
+]);
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
+    e.preventDefault();
+    $('ask').focus();
+  }
+});
+
+// 切尺寸档等于换了一台机器：程序面的折叠默认值要重判
+window.addEventListener('viewportchange', () => {
+  applyProgDefault();
+  renderProgram();
+});
+
+// ── 原型状态 ──────────────────────────────────────────────────────
+/**
+ * 程序化切原型态。
+ *
+ * 必须同步 `body[data-proto]`：shell.js 的 setProto 会写它，而这个页内版本原先不写
+ * （06 也没写）。于是凡是由页面自己驱动的跳转——反问选完、候选选定、停止、兜底出口——
+ * 都会让 body 上的档位停在上一次**手点按钮**时的值。它现在没有样式依赖，
+ * 但它是个已经错了的状态，任何后来按它取值的东西都会拿到过期档位。
+ */
+function setProtoLocal(id) {
+  document.body.dataset.proto = id;
+  document.querySelectorAll('.proto-btn').forEach((b) => {
+    const on = b.dataset.proto === id;
+    b.className = 'proto-btn h-7 rounded-lg px-2.5 text-2xs font-medium ' + (on ? 'bg-white text-slate-900' : 'text-slate-300 hover:bg-slate-800');
+  });
+  onProtoState(id);
+  document.querySelectorAll('[data-show]').forEach((el) => {
+    el.classList.toggle('hidden', !el.dataset.show.split(' ').includes(id));
+  });
+}
+function onProtoState(id) {
+  state = id;
+  showDiff = id === 'selffix';
+  codeOpen = false;
+  program = /^(running|selffix|stopped|failed)$/.test(id) ? PROGRAMS.draft : PROGRAMS[pickedKey];
+  applyProgDefault();
+  if (id === 'ready' || id === 'proactive') segments = JSON.parse(JSON.stringify(SEGMENTS));
+  if (id === 'idle') basedOn = '';
+
+  $('basedOn').textContent = basedOn;
+  $('basedOn').classList.toggle('hidden', !basedOn);
+  $('abHint').textContent = '';
+
+  const explore = $('exploreSl')._ctl ? $('exploreSl')._ctl.get() : 62;
+  $('goalText').innerHTML = id === 'proactive'
+    ? '推断需求：<span class="font-medium text-slate-900">为 Terminal 造一套更安静的点击反馈</span>，保留「熔金」的色彩语言，但把体量压到当前的三分之一。'
+    : `你的需求：<span class="font-medium text-slate-900">赛博朋克感的点击，要碎片不要圆点</span>。探索强度 ${explore}。`;
+  $('exploreNote').innerHTML = explore >= 55
+    ? '只放宽<span class="font-medium text-slate-600">形状空间</span>（允许偏离到没有预设的形态），不放宽下面的预算。'
+    : '偏稳妥：只在内置形态附近微调，新颖性上限低，但几乎不会需要自我修复。';
+
+  renderWake();
+  renderIters();
+  renderFrames();
+  renderMetrics();
+  renderProgram();
+  renderCandidates();
+  renderClarify();
+  renderHalt();
+  renderDeliver();
+  renderTrust();
+  renderIntents();
+
+  // 进入有舞台的态就自动放一遍：否则舞台是个 104px 的空盒子，
+  // 而「渲染证据」这一块的全部说服力就在于它真的渲染了。
+  //
+  // 用 setTimeout 而不是 requestAnimationFrame：play() 要读舞台的实测几何，
+  // 所以必须等这一轮把 hidden 摘掉、布局定下来。rAF 看着更贴切，但它在页面
+  // 不合成时**根本不触发**（无头/后台标签页下实测一个粒子都没生成，
+  // 而手点「播放」是好的——这种「只有自动那条路径死掉」最难发现）。
+  if (id === 'idle' || id === 'clarify') clearStage();
+  else setTimeout(play, 60);
+}
+</script>
+</body>
+</html>

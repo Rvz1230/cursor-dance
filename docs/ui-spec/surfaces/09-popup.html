@@ -112,13 +112,20 @@ const THEMES = [
 ];
 let enabled = true, paused = false, granted = true, themeId = 'mono';
 let appRule = null;   // null | 'disabled' | 'theme'
+// 规则钉住的主题与「当前全局主题」是两个独立的值——这正是规则存在的意义，
+// 所以它有自己的 id，而不是跟着 themeId 走；但名字仍从 THEMES 读，不写字面量。
+const APP_RULE_THEME_ID = 'sunset';
+const themeName = (id) => THEMES.find((t) => t.id === id).name;
 
 function renderStatus() {
   const el = $('statusLine');
   if (!granted) { el.className = 'mt-0.5 truncate text-2xs font-medium text-amber-700'; el.textContent = '需要授权才能生效'; }
   else if (paused) { el.className = 'mt-0.5 truncate text-2xs font-medium text-slate-500'; el.textContent = '已暂停'; }
   else if (!enabled) { el.className = 'mt-0.5 truncate text-2xs font-medium text-slate-500'; el.textContent = '已关闭'; }
-  else { el.className = 'mt-0.5 truncate text-2xs font-medium text-emerald-700'; el.textContent = '运行中 · 几何'; }
+  // 主题名必须读当前值：原先写死「几何」，切到「流光」后 chip 移过去了、
+  // 状态行却还写着「运行中 · 几何」——同一块面板上两处显示同一个值而互相矛盾，
+  // 和 01 的「时间有两个编辑面」是同一类会说谎的失效。
+  else { el.className = 'mt-0.5 truncate text-2xs font-medium text-emerald-700'; el.textContent = `运行中 · ${themeName(themeId)}`; }
   $('mainToggle').className = 'switch-knob shrink-0' + (enabled && !paused ? ' switch-on' : '');
   $('diagBadge').textContent = granted ? '' : '1';
   $('diagBadge').classList.toggle('hidden', granted);
@@ -135,7 +142,7 @@ function renderThemes() {
   }));
 }
 function renderApp() {
-  const label = appRule === 'disabled' ? '此应用中已关闭' : appRule === 'theme' ? '此应用使用「夕霞」' : '按全局设置';
+  const label = appRule === 'disabled' ? '此应用中已关闭' : appRule === 'theme' ? `此应用使用「${themeName(APP_RULE_THEME_ID)}」` : '按全局设置';
   $('appRow').innerHTML = `
     <div class="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-2.5 py-2 shadow-sm">
       <span class="grid size-7 shrink-0 place-items-center rounded-lg bg-slate-900 text-2xs font-semibold text-white">F</span>
@@ -161,9 +168,13 @@ let timer = null;
 function startPause(minutes) {
   paused = true;
   renderStatus(); setProtoUi('paused');
+  // clearInterval 必须在任何 return 之前：原先它写在「直到重启」的早退之后，
+  // 于是「暂停 20 分钟 → 改成直到重启」时旧倒计时还在跑，
+  // 实测 1.3 秒后文案就从「直到重启」被覆写成 19:59，20 分钟后更会把 paused 置回 false
+  // 并弹「暂停结束，已恢复」——**「直到重启」会自己解除**，这是最糟的一种：静默失效。
+  clearInterval(timer);
   if (!minutes) { $('countdown').textContent = '直到重启'; return; }
   let left = minutes * 60;
-  clearInterval(timer);
   timer = setInterval(() => {
     left -= 1;
     if (left <= 0) { clearInterval(timer); paused = false; renderStatus(); setProtoUi('normal'); toast('暂停结束，已恢复'); return; }

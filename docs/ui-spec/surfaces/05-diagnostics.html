@@ -18,7 +18,7 @@
   <div class="mx-auto flex max-w-[1180px] flex-col gap-2.5">
 
     <!-- 页头 -->
-    <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+    <div class="flex flex-row items-start justify-between gap-3 group-data-[w=sm]/win:flex-col group-data-[w=sm]/win:items-stretch">
       <div class="min-w-0">
         <h1 class="text-base font-semibold text-slate-900 text-balance">诊断面板</h1>
         <p class="mt-1 max-w-2xl text-xs leading-relaxed text-slate-500 text-pretty">
@@ -77,11 +77,11 @@
       </div>
       <div class="px-4 py-4">
         <div id="funnel" class="flex flex-wrap items-stretch gap-1.5"></div>
-        <div id="funnelDetail" class="mt-3 grid gap-1 rounded-xl bg-slate-50 px-3 py-2.5 sm:grid-cols-2"></div>
+        <div id="funnelDetail" class="mt-3 grid gap-1 rounded-xl bg-slate-50 px-3 py-2.5 group-data-[w=lg]/win:grid-cols-2"></div>
       </div>
     </section>
 
-    <div data-show="events error" class="grid gap-2.5 lg:grid-cols-[minmax(0,1fr)_300px]">
+    <div data-show="events error" class="grid gap-2.5 group-data-[w=md]/win:grid-cols-[minmax(0,1fr)_280px] group-data-[w=lg]/win:grid-cols-[minmax(0,1fr)_300px]">
 
       <!-- ② 事件流：按一次触发折叠成一组 -->
       <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">

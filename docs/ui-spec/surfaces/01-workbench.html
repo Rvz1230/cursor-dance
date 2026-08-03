@@ -58,12 +58,23 @@
         <!-- 预览列：舞台占满全高 -->
         <div class="flex min-h-0 flex-col">
           <section class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-2.5">
-              <div class="min-w-0">
-                <h3 class="text-sm font-medium text-slate-900">实时预览</h3>
-                <div class="mt-0.5 text-xs text-slate-500">点击舞台触发 · 拖播放头定格任意毫秒</div>
+            <!--
+              页头压成单行：原先它占 97px，而它要服务的舞台只有 143px。
+              说明文字（点击舞台触发 · 拖播放头定格）与舞台内的 stageHint 说的是同一件事，
+              重复占掉的正是舞台最缺的垂直空间。标题旁留一句极短的提示即可。
+            -->
+            <div class="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-2">
+              <!--
+                「点一下即触发」这句已删除。它和舞台里的 stageHint（「在这里单击试试」）
+                说的是同一件事，而在真实默认宽度下它被 truncate 压成**一个字**——
+                一个字的提示不传递任何信息，只制造视觉噪音。
+                这条也正是上一轮压缩页头时给出的理由（重复占掉的正是舞台最缺的空间），
+                当时只删了两行说明里的一行，留下的这半句在 960px 下才露出问题。
+              -->
+              <div class="flex min-w-0 items-baseline gap-2">
+                <h3 class="shrink-0 text-sm font-medium text-slate-900">实时预览</h3>
               </div>
-              <div class="flex items-center gap-1.5">
+              <div class="flex shrink-0 items-center gap-1.5">
                 <div class="seg-group">
                   <button data-bg="light" class="seg-item seg-item-on">浅</button>
                   <button data-bg="dark" class="seg-item">深</button>
@@ -87,10 +98,13 @@
                 <div id="abBadge" class="pointer-events-none absolute right-3 top-3 hidden rounded-lg bg-slate-900 px-2 py-1 text-2xs font-semibold text-white">修改前</div>
               </div>
             </div>
-            </div>
 
-            <!-- 传输控制 -->
-            <div class="flex flex-wrap items-center gap-2 px-4 py-2.5">
+            <!--
+              传输控制：窄列下允许换行（垂直代价可接受），但每一组必须 shrink-0，
+              否则「循环区间」「自动重播」这类三四字的按钮会被压成竖排单字。
+              换行 = 还能读；压成单字 = 读不了。
+            -->
+            <div class="flex flex-wrap items-center gap-2 px-4 py-2.5 [&>*]:shrink-0">
               <div class="flex items-center gap-0.5 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
                 <button id="playBtn" class="grid size-7 place-items-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100" aria-label="播放/暂停">
                   <svg id="playIcon" class="size-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
@@ -129,9 +143,16 @@
               </span>
             </div>
 
-            <div class="flex flex-wrap items-center gap-1.5 border-t border-slate-100 px-4 py-2">
-              <span class="text-2xs font-medium text-slate-500">本次输出</span>
-              <div id="outputTags" class="flex flex-wrap gap-1.5"></div>
+            <!--
+              这一行在 960×680 下曾经**竖排成一列单字**（本/次/输/出）：
+              容器实测只有 32px 宽，`flex-wrap` 于是按字换行。
+              竖排单字是「窄到没有任何可读性」的信号，任何时候都不该出现，
+              所以这里禁掉换行、标签给 nowrap，装不下就横向滚动——
+              横滚需要一个动作才能看全，竖排单字连读都读不了。
+            -->
+            <div class="flex items-center gap-1.5 border-t border-slate-100 px-4 py-2">
+              <span class="shrink-0 whitespace-nowrap text-2xs font-medium text-slate-500">本次输出</span>
+              <div id="outputTags" class="flex min-w-0 flex-1 gap-1.5 overflow-x-auto whitespace-nowrap"></div>
             </div>
           </section>
         </div>
@@ -167,9 +188,23 @@
         </div>
         <div id="drawerBody" class="grid gap-2.5 px-3 pb-3" style="grid-template-columns: minmax(0,1fr) 296px; height: 236px">
           <div id="tlScroll" class="min-h-0 overflow-auto rounded-xl border border-slate-200 bg-white px-3 py-2">
-            <div id="tlInner" class="min-w-full">
-              <div class="grid grid-cols-[132px_minmax(0,1fr)] gap-2.5 px-1">
-                <div></div>
+            <!--
+              轨道最小宽 320px（132 标签 + 10 gap + 320 轨道 + 8 内边距 = 470）。
+              原先只有 `min-w-full`，于是 `.tl-row` 的 `132px + 1fr` 里**轨道是唯一有弹性的轨**，
+              窗口变窄时全部收缩由它承担、标签列到死都保着 132px：
+              实测 1200px 窗口下轨道还有 444px，880px 只剩 124px，720px（桌面最小）就是 2px。
+              2px 的色块既拖不动块体也拖不动边缘——看得见、够不着。
+              现在装不下就让 #tlScroll 横向滚动（DAW 的通行做法），标签列 sticky 钉住。
+            -->
+            <div id="tlInner" class="min-w-[470px]">
+              <!--
+                标尺的栅格必须和 .tl-row **严格一致**（132px + minmax(320px,1fr) + gap-2.5 + px-1）。
+                README 已经为此修过一次：原先标尺 96px、轨道 112px，刻度与色块错位、播放头偏 5px。
+                给轨道加 min-width 时如果只改 .tl-row 不改这里，同一个错位会立刻复发——
+                而且只在窄窗口下复发，宽窗口看不出来。
+              -->
+              <div class="grid grid-cols-[132px_minmax(320px,1fr)] gap-2.5 px-1">
+                <div class="sticky left-0 z-10 bg-white"></div>
                 <div id="ruler" class="relative h-6 cursor-col-resize"></div>
               </div>
               <div id="lanes" class="relative mt-1 space-y-1"></div>
@@ -206,9 +241,54 @@ const clampCol = (v) => Math.min(COL_MAX, Math.max(COL_MIN, v));
 let weights = [...LAYOUTS.config];
 let layout = 'config';
 
+/**
+ * 权重是比例，而比例在窄窗口下会把某一列压到不可用——**必须再按像素下限夹一道**。
+ *
+ * 实测：默认预设「配置优先」是 1.6 : 1。在 1440px 下预览列还有约 458px、够用；
+ * 换到真实默认的 960px 窗口后只剩 **258px**，而舞台的 min-width 就占 240，
+ * 只剩 18px 余量——于是「本次预览」工具条和「本次输出」行被挤爆，
+ * 输出行的容器实测只有 **32px 宽，文字竖排成一列单字**。
+ *
+ * 所以这里把比例换算成像素后夹取：预览列 ≥ 舞台最小宽 + 72（留给工具条与滚动条），
+ * 配置列 ≥ 340（一张效果卡的字段行 + 数值读数装得下的下限）。
+ * 两者都满足不了时按可用宽度等分，并让 shouldStackCols() 决定是否改成上下堆叠。
+ */
+const CONFIG_COL_MIN = 340;
+const previewColMin = () => stageMin().w + 72;
+// 两列都塞不进去就不要硬塞——横向并排不是目的，同时看到配置与预览才是。
+// 装不下时改成上下堆叠，各自拿满宽度。
+function shouldStackCols() {
+  const total = document.getElementById('cols').clientWidth || 0;
+  return total > 0 && total - 4 < CONFIG_COL_MIN + previewColMin();
+}
 function applyCols() {
-  document.getElementById('cols').style.gridTemplateColumns =
-    `minmax(0,${weights[0]}fr) 4px minmax(0,${weights[1]}fr)`;
+  const cols = document.getElementById('cols');
+  const total = cols.clientWidth || 0;
+  const split = document.getElementById('colSplit');
+  if (shouldStackCols()) {
+    // 单列堆叠：配置在上、预览在下。分隔条此时无意义（没有左右可分），必须真的移出
+    // 可达性树而不是只做视觉隐藏——留一个键盘能聚焦、按了却什么也不做的 separator
+    // 就是决策 #4「操作不得只在某一种到达方式下可用」的反面：一个骗人的控件。
+    cols.style.gridTemplateColumns = 'minmax(0,1fr)';
+    cols.dataset.stacked = '1';
+    if (split) { split.hidden = true; split.tabIndex = -1; }
+    return;
+  }
+  delete cols.dataset.stacked;
+  if (split) { split.hidden = false; split.tabIndex = 0; }
+  let [a, b] = weights;
+  if (total > 0) {
+    const avail = total - 4;
+    const pxB = (avail * b) / (a + b);
+    const minB = previewColMin();
+    // 预览列不够 → 从配置列借，但不能让配置列低于它自己的下限
+    if (pxB < minB) {
+      const wantB = Math.min(minB, Math.max(0, avail - CONFIG_COL_MIN));
+      const wantA = Math.max(0, avail - wantB);
+      if (wantA > 0 && wantB > 0) { a = wantA; b = wantB; }
+    }
+  }
+  cols.style.gridTemplateColumns = `minmax(0,${a}fr) 4px minmax(0,${b}fr)`;
 }
 function syncLayout() {
   applyCols();
@@ -275,31 +355,37 @@ const ICONS = {
 // ── 数据模型：每张卡 = 图标 + 预设组 + 常用字段 + 全部字段数
 //    字段数取自真实实现（TextFeedbackCard 20 项、ParticleFeedbackCard 20 项…）
 const CARDS = [
-  { key: 'trigger', name: '触发行为', always: true, total: 3, presets: ['即时', '蓄力', '节流'], preset: '即时',
+  { key: 'trigger', name: '触发行为', always: true, total: 1, presets: ['即时', '蓄力', '节流'], preset: '即时',
     fields: [
       { label: '触发区域', type: 'select', value: '整屏', options: ['整屏', '中心区域', '边缘'] },
-      { label: '节流间隔', type: 'num', value: 60, min: 0, max: 500, unit: 'ms' },
-      { label: '连击窗口', type: 'num', value: 900, min: 200, max: 2000, unit: 'ms' },
     ] },
-  { key: 'text', name: '飘字', on: true, total: 20, presets: ['轻盈', '弹跳', '爆裂', '打字机'], preset: '弹跳',
-    groups: [['入场', ['起始缩放', '入场缓动', '入场延迟', '起始不透明度']],
-             ['出场', ['淡出时长', '出场缓动', '结束缩放']],
-             ['随机', ['位置抖动', '字号抖动', '角度抖动']],
-             ['高级', ['层级', '混合模式', '字体', '描边宽度', '描边颜色']]],
+  { key: 'text', name: '飘字', on: true, total: 19, presets: ['轻盈', '弹跳', '爆裂', '打字机'], preset: '弹跳',
+    groups: [['内容', ['文本种类', '取词模式', '模板', '词库', '词库播放']],
+             ['字形', ['字体', '字重', '描边宽度', '阴影']],
+             ['渐变', ['渐变开关', '渐变起色', '渐变止色']],
+             ['位置', ['偏移 X', '偏移 Y']],
+             ['连击', ['连击叠加']]],
     fields: [
       { label: '文案', type: 'text', value: 'Nice!', src: 'preset' },
       { label: '字号', type: 'num', value: 28, min: 12, max: 96, unit: 'px', src: 'custom', presetValue: 32 },
       { label: '颜色', type: 'color', value: '#F59E0B', src: 'preset' },
       { label: '上浮距离', type: 'num', value: 64, min: 10, max: 240, unit: 'px', src: 'ai', presetValue: 48 },
-      { label: '时长', type: 'num', value: 820, min: 200, max: 2400, unit: 'ms', src: 'preset' },
     ] },
-  { key: 'animation', name: '动画', total: 9, presets: ['脉冲', '抖动', '缩放'], preset: '脉冲', fields: [] },
-  { key: 'image', name: '贴纸', total: 5, presets: ['原样', '旋入', '弹入'], preset: '原样', fields: [] },
-  { key: 'particle', name: '粒子', on: true, total: 20, presets: ['礼花', '火花', '尘埃', '气泡'], preset: '礼花',
-    groups: [['发射', ['发射角度', '角度范围', '初速度', '错峰间隔']],
-             ['运动', ['阻尼', '旋转速度', '末端缩放']],
-             ['随机', ['大小抖动', '速度抖动', '寿命抖动']],
-             ['高级', ['层级', '混合模式', '拖尾长度']]],
+  { key: 'animation', name: '动画', total: 7, presets: ['脉冲', '抖动', '缩放'], preset: '脉冲',
+    groups: [['形态', ['风格', '缩放', '不透明度']],
+             ['位置', ['偏移 X', '偏移 Y']],
+             ['外观', ['颜色', '发光']]],
+    fields: [] },
+  { key: 'image', name: '贴纸', total: 5, presets: ['原样', '旋入', '弹入'], preset: '原样',
+    groups: [['素材', ['图片', '尺寸']],
+             ['位置', ['偏移 X', '偏移 Y']],
+             ['外观', ['不透明度']]],
+    fields: [] },
+  { key: 'particle', name: '粒子', on: true, total: 17, presets: ['礼花', '火花', '尘埃', '气泡'], preset: '礼花',
+    groups: [['发射', ['方向', '运动模式']],
+             ['运动', ['风力', '弹跳', '拖尾']],
+             ['外观', ['大小', '不透明度', '取色模式', '调色板']],
+             ['轨道模式', ['轨道数量', '轨道半径', '轨道速度']]],
     fields: [
       { label: '数量', type: 'num', value: 14, min: 1, max: 60, unit: '个' },
       { label: '形状', type: 'select', value: '圆点', options: ['圆点', '方块', '星形', '钻石'] },
@@ -307,15 +393,22 @@ const CARDS = [
       { label: '扩散半径', type: 'num', value: 96, min: 20, max: 320, unit: 'px' },
       { label: '重力', type: 'num', value: 3, min: 0, max: 10, unit: '' },
     ] },
-  { key: 'ripple', name: '波纹', on: true, total: 7, presets: ['涟漪', '脉冲', '回声'], preset: '涟漪',
+  { key: 'ripple', name: '波纹', on: true, total: 5, presets: ['涟漪', '脉冲', '回声'], preset: '涟漪',
+    groups: [['外观', ['风格', '不透明度']]],
     fields: [
       { label: '颜色', type: 'color', value: '#0D9488' },
       { label: '最大半径', type: 'num', value: 120, min: 20, max: 400, unit: 'px' },
       { label: '线宽', type: 'num', value: 2, min: 1, max: 8, unit: 'px' },
-      { label: '时长', type: 'num', value: 620, min: 150, max: 2000, unit: 'ms' },
     ] },
-  { key: 'audio', name: '音效', total: 7, presets: ['清脆', '低沉', '水滴'], preset: '清脆', fields: [] },
-  { key: 'cursor', name: '光标反馈', total: 7, presets: ['跟随状态', '按下缩小', '按下高亮'], preset: '跟随状态', fields: [] },
+  { key: 'audio', name: '音效', total: 5, presets: ['清脆', '低沉', '水滴'], preset: '清脆',
+    groups: [['声音', ['音频文件', '音量', '播放速率']],
+             ['混音', ['触发模式', '混音模式']]],
+    fields: [] },
+  { key: 'cursor', name: '光标反馈', total: 7, presets: ['跟随状态', '按下缩小', '按下高亮'], preset: '跟随状态',
+    groups: [['命中反馈', ['敲击抖动']],
+             ['光标', ['光标覆盖', '光标尺寸', '发光颜色']],
+             ['拖尾', ['启用拖尾', '拖尾数量', '拖尾不透明度']]],
+    fields: [] },
 ];
 
 const ACTIONS = [
@@ -366,15 +459,32 @@ function renderCards() {
       <div class="cfg-head border-b border-slate-100">
         <span class="cfg-icon cfg-icon-on"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${ICONS[c.key]}</svg></span>
         <span class="min-w-0 flex-1">
-          <span class="flex items-center gap-2">
-            <span class="cfg-name">${c.name}</span>
-            ${c.always ? '' : '<span class="on-dot"><span class="size-1.5 rounded-full bg-emerald-500"></span>已启用</span>'}
+          <!--
+            卡头这一排在窄配置列下曾把卡名压成竖排单字（「飘/字」、「已/启/用」）。
+            名称和状态徽标必须 nowrap + shrink-0；该让位的是时间 chip（它 truncate），
+            因为 chip 的信息在时间轴里还有一份，卡名没有第二份。
+          -->
+          <!--
+            「已启用」徽标已删除：它是同一个 bit 的**第三次编码**——
+            决策 #3 已经定了「深底图标=启用、浅灰=关闭」，同一行最右侧还有开关。
+            而在真实默认宽度（配置列约 374px）下，正是这个冗余徽标撑爆了卡头：
+            它和时间 chip 视觉重叠，两段文字叠在一起谁都读不清。
+            删冗余编码比给冗余编码想办法让位更对。
+          -->
+          <!--
+            让位顺序是明确的：卡名（2–3 个字、约 28–42px）**绝不让位**，
+            该让的是时间 chip（它 min-w-0 shrink + truncate，且 title 里有全文）。
+            反过来把卡名截成「飘..」比截断 chip 糟得多——卡名是这张卡的身份。
+          -->
+          <span class="flex min-w-0 items-center gap-2">
+            <span class="cfg-name shrink-0 whitespace-nowrap">${c.name}</span>
           </span>
           <span class="cfg-sum block">${(() => {
             const changed = (c.fields || []).filter((f) => f.src === 'custom' || f.src === 'ai').length;
             return `${c.preset}${changed ? ` · <span class="text-slate-500">${changed} 项已改</span>` : ''} · ${c.total} 项设置`;
           })()}</span>
         </span>
+        ${timeChip(c.key)}
         ${(() => {
           // 「重置这张卡」只在真有改动时出现——没有改动时它是空操作，
           // 摆一个点了没反应的按钮比不摆更糟（同 README 决策 #4 的精神）。
@@ -434,6 +544,7 @@ function renderCards() {
 // 折叠只影响视觉密度（配置仍然生效），关闭才是不出效果。把它们混成一个控件
 // 会让「我只是想少占点地方」变成「我把效果关了」。
 function bindCardChrome() {
+  document.querySelectorAll('[data-jumptrack]').forEach((b) => b.addEventListener('click', () => revealTrack(b.dataset.jumptrack)));
   document.querySelectorAll('[data-cardfold]').forEach((b) => b.addEventListener('click', () => {
     const c = CARDS.find((x) => x.key === b.dataset.cardfold);
     c.folded = !c.folded;
@@ -614,9 +725,10 @@ function bindCardEvents() {
 function renderOutputs() {
   const on = CARDS.filter((c) => !c.always && c.on);
   $('outputTags').innerHTML = on.length
-    ? on.map((c) => `<span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-2xs font-medium text-slate-600">
-        <svg class="size-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">${ICONS[c.key]}</svg>${c.name}</span>`).join('')
-    : '<span class="text-2xs text-slate-400">还没有开启任何效果 —— 打开下方任意一张卡</span>';
+    // shrink-0 + whitespace-nowrap：窄列下这些 chip 曾被压成竖排单字
+    ? on.map((c) => `<span class="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-slate-100 px-2 py-0.5 text-2xs font-medium text-slate-600">
+        <svg class="size-2.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">${ICONS[c.key]}</svg>${c.name}</span>`).join('')
+    : '<span class="shrink-0 whitespace-nowrap text-2xs text-slate-400">还没有开启任何效果 —— 打开下方任意一张卡</span>';
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -651,11 +763,25 @@ const CH_DEFAULT = [
 ];
 const clone = (a) => a.map((c) => ({ ...c, anchors: c.anchors.map((x) => [...x]), curves: Object.fromEntries(Object.entries(c.curves).map(([k, v]) => [k, [...v]])), repeat: c.repeat ? { ...c.repeat } : undefined }));
 let CH = clone(CH_DEFAULT);
-let CH_BEFORE = clone(CH_DEFAULT);   // A/B 参照
+/**
+ * A/B 的参照快照。
+ *
+ * 原先它只在这里 `clone(CH_DEFAULT)` 一次、之后**从不更新**，而按钮 tooltip 写的是
+ * 「按住对比修改前」——实际比的是出厂默认。调过十几轮之后，「修改前」和「出厂默认」
+ * 是完全不同的两个东西，而用户按住 A/B 时以为看到的是上一版。
+ * 现在按「本次编辑会话的起点」存：每次通过 markBefore() 推进，
+ * 松手对比的就真的是你这一轮动手之前的样子。
+ */
+let CH_BEFORE = clone(CH_DEFAULT);
+let beforeDirty = false;
+// 第一次改动时把「改之前」定格下来；此后同一轮内不再覆盖，
+// 否则每一步都会把参照推到上一步，A/B 就退化成「对比上一帧」，什么也看不出来。
+function markBefore() { if (!beforeDirty) { CH_BEFORE = clone(CH); beforeDirty = true; } }
 
 const TRIGGER = { throttle: 60, comboWindow: 900, secondClick: 260 };
 let t = 0, playing = false, speed = 1, snap = 20, zoom = 1;
 let onion = false, ab = false, loopOn = false, loopIn = 0, loopOut = 0;
+let loopTouched = false;   // 用户亲手拖过区间就不再替他决定
 let selCh = 'text', selProp = '上浮';
 let origin = { x: 0.44, y: 0.52 };
 const LABEL_W = 132, LABEL_GAP = 10;   // 与 .tl-row 的 grid 与 gap 严格一致，否则标尺与色块错位
@@ -680,6 +806,35 @@ function chList(set) {
 // 时间轴要把静音轨也画出来（只是标成静音），所以另给一个「全部可见轨道」
 const chLanes = (set) => (set || CH).filter((c) => cardOn(c.id));
 function anchorAt(ch, name) { const a = ch.anchors.find((x) => x[0] === name); return a ? a[1] : 0; }
+const staggerOf = (ch) => (ch.repeat ? ch.repeat.stagger : 0);
+
+/**
+ * 一条通道的「时间面」全部属性——dirty 点、「重置为默认」、A/B 三处必须用同一份定义。
+ *
+ * 原先 dirty 只比 [ref, off, dur]，而决策 #9 把**四样**都判给了时间轴：
+ * 偏移、时长、缓动曲线、错峰。于是实测出现：把飘字的「上浮」曲线拖成过冲
+ * （0.20,0.70 → 0.90,1.06），dirty 点不出现、重置按钮也不出现；
+ * 先拖一下块体让重置按钮出来再点它，曲线**仍然是过冲的那条**——
+ * 一个叫「重置为默认」的按钮不会把它重置为默认。
+ * 三处共用一份定义是唯一不会再漏的做法：将来给时间轴加第五样属性时，
+ * 只要进了 timeShape，dirty / 重置 / A/B 自动跟上。
+ */
+function timeShape(ch) {
+  return JSON.stringify([ch.ref, ch.off, ch.dur, staggerOf(ch),
+    Object.keys(ch.curves).sort().map((k) => [k, ch.curves[k]])]);
+}
+function isChDirty(ch) {
+  const d = CH_DEFAULT.find((x) => x.id === ch.id);
+  return !!d && timeShape(ch) !== timeShape(d);
+}
+function resetCh(ch) {
+  const d = CH_DEFAULT.find((x) => x.id === ch.id);
+  if (!d) return;
+  ch.ref = d.ref; ch.off = d.off; ch.dur = d.dur;
+  if (ch.repeat && d.repeat) ch.repeat.stagger = d.repeat.stagger;
+  ch.curves = Object.fromEntries(Object.entries(d.curves).map(([k, v]) => [k, [...v]]));
+  bezCache.clear();   // 曲线换了，缓存的缓动函数必须失效，否则舞台照旧按旧曲线画
+}
 // 目标通道被关掉时，把链接固化成当时的绝对时间并明确告知。
 // 原来 startOf 里静默 fallback，色块会跳位置且不给任何解释。
 function breakLinksTo(deadId) {
@@ -717,14 +872,40 @@ function startOf(ch, set, seen) {
   if (!target || !cardOn(tid)) return Math.max(0, ch.off);
   return Math.max(0, startOf(target, list, guard) + target.dur * anchorAt(target, aname) + ch.off);
 }
+/**
+ * 总长必须由「全部启用的轨」算出，**不能**用 chList（它已经过滤掉静音 / 非独奏的）。
+ *
+ * 原先走 chList，于是独奏这个纯播放决策会重排整条时间标尺：实测独奏波纹一条，
+ * 总长从 1440 塌到 900、标尺步长从 200ms 变成 100ms、播放头从 547px 跳到 788px，
+ * 而当前时间还是 1220ms——**播放头指向的时间已经落在标尺之外了**。
+ * 独奏的语义是「只听这一条」；任何 DAW / NLE 里独奏都不改变工程长度。
+ * 「要听什么」（solo / mute）只影响播放与视觉，「时间的度量」只跟启用的轨有关。
+ */
 function totalOf(set) {
-  const list = chList(set);
-  const ends = list.map((c) => startOf(c, set) + c.dur + (c.repeat ? c.repeat.n * c.repeat.stagger : 0));
+  const list = chLanes(set);
+  const ends = list.map((c) => startOf(c, set) + c.dur
+    + (c.repeat ? cardVal('particle', '数量', c.repeat.n) * staggerOf(c) : 0));
   return Math.max(400, Math.ceil(Math.max(TRIGGER.comboWindow, ...ends, 0) / 20) * 20);
 }
 const totalMs = () => totalOf(CH);
+// 总长变了要把播放头夹回标尺内，否则会留下一个「时间在标尺外」的不可达状态
+function clampPlayhead() {
+  const T = totalMs();
+  if (t > T) t = T;
+  if (t < 0) t = 0;
+}
 
 // ── 舞台：一帧 = 时间的纯函数，所以拖播放头能精确定格
+// 从卡片字段取值：写死常量会让「改了参数预览不动」——
+// 而这份稿子开篇承诺的就是「参数与真实运行时对齐」。
+// 原先波纹画 *104、粒子画 *88、飘字上浮 *54，卡片上写的却是 120 / 96 / 64，
+// 三处各说各话，且改卡片对预览毫无影响。
+function cardVal(cardKey, label, fallback) {
+  const c = CARDS.find((x) => x.key === cardKey);
+  const f = c && c.fields.find((x) => x.label === label);
+  return f && Number.isFinite(Number(f.value)) ? Number(f.value) : fallback;
+}
+
 function renderFrame(time, host, set) {
   const list = chList(set);
   const st = $('stage');
@@ -735,11 +916,14 @@ function renderFrame(time, host, set) {
     const s = startOf(ch, set);
     const E = (k) => easeOf(ch.curves[k] || [0, 0, 1, 1]);
     if (ch.id === 'particle' && ch.repeat) {
-      for (let i = 0; i < ch.repeat.n; i += 1) {
+      // 数量是外观（发多少个）→ 卡片；错峰是时间（隔多久发一个）→ 时间轴。
+      const count = cardVal('particle', '数量', ch.repeat.n);
+      const spread = cardVal('particle', '扩散半径', 88);
+      for (let i = 0; i < count; i += 1) {
         const p0 = (time - s - i * ch.repeat.stagger) / ch.dur;
         if (p0 < 0 || p0 > 1) continue;
-        const a = (Math.PI * 2 * i) / ch.repeat.n + 0.3;
-        const d = E('扩散')(p0) * 88;
+        const a = (Math.PI * 2 * i) / count + 0.3;
+        const d = E('扩散')(p0) * spread;
         const al = 1 - E('不透明度')(p0);
         const sz = 6 - p0 * 2.5;
         out.push(`<div class="fx rounded-full" style="left:${(x + Math.cos(a) * d).toFixed(1)}px;top:${(y + Math.sin(a) * d + p0 * 24).toFixed(1)}px;width:${sz.toFixed(1)}px;height:${sz.toFixed(1)}px;background:#0ea5e9;transform:translate(-50%,-50%);opacity:${Math.max(0, al).toFixed(3)}"></div>`);
@@ -749,10 +933,10 @@ function renderFrame(time, host, set) {
     const p0 = (time - s) / ch.dur;
     if (p0 < 0 || p0 > 1) continue;
     if (ch.id === 'ripple') {
-      const r = E('半径')(p0) * 104;
+      const r = E('半径')(p0) * cardVal('ripple', '最大半径', 104);
       out.push(`<div class="fx rounded-full" style="left:${x}px;top:${y}px;width:${(r * 2).toFixed(1)}px;height:${(r * 2).toFixed(1)}px;transform:translate(-50%,-50%);border:2px solid #0d9488;opacity:${(1 - E('不透明度')(p0)).toFixed(3)}"></div>`);
     } else if (ch.id === 'text') {
-      const rise = E('上浮')(p0) * 54;
+      const rise = E('上浮')(p0) * cardVal('text', '上浮距离', 54);
       const sc = 0.6 + E('缩放')(p0) * 0.5;
       const al = p0 < 0.28 ? p0 / 0.28 : 1 - (p0 - 0.28) / 0.72;
       out.push(`<div class="fx" style="left:${x}px;top:${(y - rise).toFixed(1)}px;color:#f59e0b;font-size:24px;font-weight:700;line-height:1;transform:translate(-50%,-50%) scale(${sc.toFixed(3)});opacity:${Math.max(0, al).toFixed(3)}">Nice!</div>`);
@@ -846,7 +1030,10 @@ document.querySelectorAll('[data-speed]').forEach((b) => b.addEventListener('cli
 }));
 $('loopBtn').addEventListener('click', () => {
   loopOn = !loopOn;
-  if (loopOn && loopOut <= loopIn) { loopIn = Math.round(totalMs() * 0.2); loopOut = Math.round(totalMs() * 0.7); }
+  // 这里原先写的是 `if (loopOn && loopOut <= loopIn) { 20% … 70% }`——**永远不执行**：
+  // clampLoop 每次渲染都跑，早就把区间钉成 [T-40, T]，于是 loopOut <= loopIn 恒为假。
+  // 预期的默认区间是死代码，用户看到的是末尾那条缝。改成用「有没有被拖过」判定。
+  if (loopOn && !loopTouched) [loopIn, loopOut] = defaultLoopRange();
   $('loopBtn').className = 'h-7 px-2.5 text-2xs ' + (loopOn ? 'btn-default' : 'btn-outline');
   renderTimeline();
 });
@@ -856,7 +1043,9 @@ $('onionBtn').addEventListener('click', () => {
   paintStage();
 });
 $('abBtn').addEventListener('pointerdown', () => { ab = true; $('abBadge').classList.remove('hidden'); paintStage(); });
-window.addEventListener('pointerup', () => { if (ab) { ab = false; $('abBadge').classList.add('hidden'); paintStage(); } });
+// 松手后让下一轮改动重新定格参照：这样 A/B 永远是「和我这一波动手之前比」，
+// 而不是和十几轮前的出厂默认比。
+window.addEventListener('pointerup', () => { if (ab) { ab = false; beforeDirty = false; $('abBadge').classList.add('hidden'); paintStage(); } });
 $('copyRhythm').addEventListener('click', () => toast('已把这套时间关系复制到「右键单击」「长按」'));
 $('stage').addEventListener('click', (e) => {
   const r = $('stage').getBoundingClientRect();
@@ -888,9 +1077,28 @@ function clampLoop() {
   const T = totalMs();
   loopOut = Math.min(loopOut, T);
   loopIn = Math.max(0, Math.min(loopIn, loopOut - 40));
+  // 兜底只在区间真的塌掉时才把它钉到尾部。**不能**用它来产生初始区间：
+  // clampLoop 每次 renderTimeline 都跑，而 loopIn/loopOut 初值都是 0，
+  // 于是首次渲染就落进这个分支、把区间钉在 [T-40, T]——一点「循环区间」
+  // 看到的是标尺末尾 2.8% 的一条缝（实测 left:97.2% / width:2.78%），像坏了。
+  // 有意义的初始区间由 loopBtn 在开启时现算（见 defaultLoopRange）。
   if (loopOut - loopIn < 40) { loopIn = Math.max(0, T - 40); loopOut = T; }
 }
+/**
+ * 开启「循环区间」时的初始区间：优先取当前选中通道的跨度——
+ * 用户开循环几乎总是为了反复看**某一个**效果，而不是看整条。
+ * 没有选中通道时退回全长。
+ */
+function defaultLoopRange() {
+  const T = totalMs();
+  const ch = CH.find((x) => x.id === selCh && cardOn(x.id));
+  if (!ch) return [0, T];
+  const s = startOf(ch);
+  const e = s + ch.dur + (ch.repeat ? cardVal('particle', '数量', ch.repeat.n) * staggerOf(ch) : 0);
+  return [Math.max(0, Math.floor(s)), Math.min(T, Math.max(s + 40, Math.ceil(e)))];
+}
 function renderTimeline() {
+  clampPlayhead();   // 总长可能刚变小（关轨、改时长、拖连击窗），别把播放头留在标尺外
   clampLoop();
   const T = totalMs();
   $('totalLabel').textContent = T; $('timeTotal').textContent = T;
@@ -914,12 +1122,23 @@ function renderTimeline() {
         <span class="size-1.5 shrink-0 rounded-full bg-slate-900"></span>
         <span class="truncate text-2xs font-semibold text-slate-700">触发</span>
       </div>
+      <!--
+        触发轨原先是**只读**的：两个窗只是色带、右侧一行静态文字，整条轨 interactive=0。
+        而卡片上的「节流间隔」「连击窗口」已按决策 #9 删掉了——于是这两个值哪儿都改不了，
+        其中「连击窗口」在真实代码里是个 120–3000ms 的滑块（TextFeedbackCard.tsx）。
+        README 说过「方向做反了：时间轴在显示，卡片在编辑」，上一轮只删了卡片那一半。
+        现在两个窗的右边缘可拖，兑现「触发的节流窗 / 连击窗和效果放在同一把标尺上」。
+      -->
       <div class="tl-lane" data-lane>
-        <div class="win-combo" style="left:0;width:${pct(TRIGGER.comboWindow)}%"></div>
-        <div class="win-throttle" style="left:0;width:${pct(TRIGGER.throttle)}%"></div>
+        <div class="win-combo" style="left:0;width:${pct(TRIGGER.comboWindow)}%">
+          <span class="absolute inset-y-0 right-0 w-1.5 cursor-col-resize" data-trigwin="comboWindow" title="拖动改连击窗"></span>
+        </div>
+        <div class="win-throttle" style="left:0;width:${pct(TRIGGER.throttle)}%">
+          <span class="absolute inset-y-0 right-0 w-1.5 cursor-col-resize" data-trigwin="throttle" title="拖动改节流间隔"></span>
+        </div>
         <span class="ev-dot" style="left:0"></span>
         <span class="ev-dot opacity-40" style="left:${pct(TRIGGER.secondClick)}%"></span>
-        <span class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-2xs text-slate-400">节流 ${TRIGGER.throttle}ms · 连击窗 ${TRIGGER.comboWindow}ms</span>
+        <span class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-2xs text-slate-400">节流 ${TRIGGER.throttle}ms · 连击窗 ${TRIGGER.comboWindow}ms<span class="ml-1 text-slate-300">· 拖窗右缘可改</span></span>
       </div>
     </div>`;
 
@@ -929,7 +1148,7 @@ function renderTimeline() {
     const sel = selCh === ch.id;
     const soloedAny = CH.some((c) => c.solo && cardOn(c.id));
     const muted = ch.mute || (soloedAny && !ch.solo);
-    const dirty = JSON.stringify([ch.ref, ch.off, ch.dur]) !== JSON.stringify((() => { const d = CH_DEFAULT.find((x) => x.id === ch.id); return [d.ref, d.off, d.dur]; })());
+    const dirty = isChDirty(ch);   // 覆盖偏移 / 时长 / 曲线 / 错峰，与「重置为默认」同一份定义
     const wPct = Math.max(1.4, pct(ch.dur));
     html += `<div class="tl-row group" data-row="${ch.id}">
       <div class="flex items-center gap-1">
@@ -952,7 +1171,7 @@ function renderTimeline() {
           <svg class="pointer-events-none absolute inset-0 size-full" viewBox="0 0 100 20" preserveAspectRatio="none" aria-hidden="true">
             <path d="${areaPath(ch.curves[ch.main] || [0, 0, 1, 1], 100, 20)}" fill="#0f172a" fill-opacity="0.07"/>
           </svg>
-          ${ch.repeat ? Array.from({ length: ch.repeat.n }, (_, i) => {
+          ${ch.repeat ? Array.from({ length: cardVal('particle', '数量', ch.repeat.n) }, (_, i) => {
             const off = (i * ch.repeat.stagger / ch.dur) * 100;
             return off > 98 ? '' : `<span class="pointer-events-none absolute inset-y-0.5 w-px bg-slate-900/15" style="left:${off}%"></span>`;
           }).join('') : ''}
@@ -1004,12 +1223,30 @@ function bindTimeline() {
   scrub($('ruler'));
   document.querySelectorAll('[data-lane]').forEach(scrub);
 
+  // 触发窗拖右缘。连击窗是总长的下界之一（totalOf 里 Math.max(TRIGGER.comboWindow, …)），
+  // 所以拖它会改总长；节流窗必须夹在连击窗内，否则「节流比连击还长」是无意义状态。
+  document.querySelectorAll('[data-trigwin]').forEach((h) => h.addEventListener('pointerdown', (e) => {
+    e.stopPropagation();
+    h.setPointerCapture(e.pointerId);
+    const key = h.dataset.trigwin;
+    const mv = (ev) => {
+      const ms = q(msFromX(ev.clientX), ev.altKey);
+      if (key === 'comboWindow') TRIGGER.comboWindow = Math.max(TRIGGER.throttle + 20, Math.min(3000, ms));
+      else TRIGGER.throttle = Math.max(0, Math.min(TRIGGER.comboWindow - 20, ms));
+      clampPlayhead();
+      renderTimeline();
+    };
+    const up = () => { h.removeEventListener('pointermove', mv); h.removeEventListener('pointerup', up); touch(); };
+    h.addEventListener('pointermove', mv); h.addEventListener('pointerup', up);
+  }));
+
   document.querySelectorAll('[data-loop]').forEach((h) => h.addEventListener('pointerdown', (e) => {
     e.stopPropagation(); h.setPointerCapture(e.pointerId);
     const which = h.dataset.loop;
     const mv = (ev) => {
       const ms = q(msFromX(ev.clientX), ev.altKey);
       if (which === 'in') loopIn = Math.min(ms, loopOut - 40); else loopOut = Math.max(ms, loopIn + 40);
+      loopTouched = true;
       renderTimeline();
     };
     const up = () => { h.removeEventListener('pointermove', mv); h.removeEventListener('pointerup', up); };
@@ -1019,6 +1256,7 @@ function bindTimeline() {
   document.querySelectorAll('[data-bar]').forEach((bar) => bar.addEventListener('pointerdown', (e) => {
     if (e.target.closest('[data-edge]')) return;
     e.stopPropagation();
+    markBefore();
     const ch = CH.find((x) => x.id === bar.dataset.bar);
     selCh = ch.id; selProp = ch.main;
     const m0 = msFromX(e.clientX), s0 = startOf(ch);
@@ -1038,6 +1276,7 @@ function bindTimeline() {
 
   document.querySelectorAll('[data-edge]').forEach((h) => h.addEventListener('pointerdown', (e) => {
     e.stopPropagation();
+    markBefore();
     const ch = CH.find((x) => x.id === h.dataset.edgeId);
     const isL = h.dataset.edge === 'l';
     const m0 = msFromX(e.clientX), off0 = ch.off, dur0 = ch.dur;
@@ -1076,12 +1315,23 @@ function bindTimeline() {
   }));
   document.querySelectorAll('[data-reset-ch]').forEach((b) => b.addEventListener('click', (e) => {
     e.stopPropagation();
-    const d = CH_DEFAULT.find((x) => x.id === b.dataset.resetCh);
+    markBefore();
     const ch = CH.find((x) => x.id === b.dataset.resetCh);
-    ch.ref = d.ref; ch.off = d.off; ch.dur = d.dur;
+    resetCh(ch);
     renderTimeline(); touch();
   }));
 }
+// 播放头由实测几何定位（见 paintStage 里那段注释），所以窗口尺寸一变必须重算。
+// 原先没有任何 resize 监听：拖动真实窗口后播放头会留在旧的像素位置，
+// 时间对、位置错——而这恰好是最难察觉的一种错，因为数字读数仍然是对的。
+let resizeRaf = 0;
+window.addEventListener('resize', () => {
+  cancelAnimationFrame(resizeRaf);
+  // applyCols 也必须重跑：列宽的像素下限是按当前可用宽度算的（见 applyCols 注释），
+  // 只重排时间轴会留下一个「比例没跟着窗口走」的中间状态。
+  resizeRaf = requestAnimationFrame(() => { applyCols(); syncDrawer(); renderTimeline(); });
+});
+
 document.querySelectorAll('[data-snap]').forEach((b) => b.addEventListener('click', () => {
   snap = Number(b.dataset.snap);
   document.querySelectorAll('[data-snap]').forEach((x) => x.className = 'seg-item' + (x === b ? ' seg-item-on' : ''));
@@ -1106,7 +1356,21 @@ function renderInspector() {
       <span class="text-2xs font-semibold text-slate-600">${ch.label} · 属性轨</span>
       <span class="text-2xs tabular-nums text-slate-400" id="bezOut">cubic-bezier(${ch.curves[selProp].map((v) => v.toFixed(2)).join(', ')})</span>
     </div>
-    <div class="mt-2 grid gap-2 sm:grid-cols-[minmax(0,1fr)_112px]">
+    ${ch.repeat ? `
+    <!--
+      错峰间隔原先是写死的 stagger: 10，只在渲染里用，**没有任何编辑入口**——
+      而卡片上的「错峰间隔」已经按决策 #9 删掉了，第 769 行的注释还写着
+      「错峰是时间（隔多久发一个）→ 时间轴」，宣称了时间轴并不拥有的东西。
+      把它放在属性轨区而不是色块上：它是**轨道级**的时间属性（这条轨里每个粒子隔多久发一个），
+      不是这一根色块的起点或长度，画成第三种拖拽手柄只会和拖块体 / 拖边缘打架。
+    -->
+    <div class="mt-2 flex items-center gap-2 rounded-lg bg-slate-50 px-2.5 py-1.5">
+      <span class="shrink-0 text-2xs font-medium text-slate-600">错峰间隔</span>
+      <div id="staggerSl" data-slider data-min="0" data-max="60" data-value="${staggerOf(ch)}" data-default="${(CH_DEFAULT.find((x) => x.id === ch.id).repeat || {}).stagger ?? 0}" data-snap="1" class="min-w-0 flex-1"></div>
+      <span class="ctl-value shrink-0"><span data-out="staggerSl">${staggerOf(ch)}</span> ms</span>
+      <span class="shrink-0 text-2xs text-slate-400">× ${cardVal('particle', '数量', ch.repeat.n)} 个 = ${cardVal('particle', '数量', ch.repeat.n) * staggerOf(ch)}ms 尾巴</span>
+    </div>` : ''}
+    <div class="mt-2 grid gap-2 group-data-[w=lg]/win:grid-cols-[minmax(0,1fr)_112px]">
       <div class="space-y-1">
         ${keys.map((k) => `
           <button class="flex w-full items-center gap-2 text-left" data-prop="${k}">
@@ -1130,6 +1394,15 @@ function renderInspector() {
       </div>
     </div>`;
   document.querySelectorAll('[data-prop]').forEach((b) => b.addEventListener('click', () => { selProp = b.dataset.prop; renderInspector(); }));
+  if (ch.repeat) {
+    // 拖动中只 paintStage()，松手才 renderTimeline()：错峰会改变总长（尾巴 = 数量 × 间隔），
+    // 而 renderTimeline 会重建 inspector、把正在拖的那个滑块连根换掉。
+    const out = $('inspector').querySelector('[data-out="staggerSl"]');
+    Ctl.slider($('staggerSl'), {
+      onChange: (v) => { markBefore(); ch.repeat.stagger = v; if (out) out.textContent = v; paintStage(); },
+      onCommit: () => { renderTimeline(); touch(); },
+    });
+  }
   bindCurve(ch);
 }
 function bindCurve(ch) {
@@ -1149,7 +1422,7 @@ function bindCurve(ch) {
     if (out) out.textContent = `cubic-bezier(${p.map((v) => v.toFixed(2)).join(', ')})` + (over ? ' · 过冲' : '');
   }
   hs.forEach((h, i) => h.addEventListener('pointerdown', (e) => {
-    e.preventDefault(); e.stopPropagation(); h.setPointerCapture(e.pointerId);
+    e.preventDefault(); e.stopPropagation(); markBefore(); h.setPointerCapture(e.pointerId);
     const mv = (ev) => {
       const r = box.getBoundingClientRect();
       const x = Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width));
@@ -1166,7 +1439,16 @@ function bindCurve(ch) {
       if (bar && ch.main === selProp) bar.setAttribute('d', areaPath(ch.curves[selProp], 100, 20));
       paintStage();
     };
-    const up = () => { h.removeEventListener('pointermove', mv); h.removeEventListener('pointerup', up); touch(); };
+    // 松手才 renderTimeline()：拖动中只改 path 的 d（见上），因为 renderTimeline
+    // 会重建 inspector、把正在拖的控制点连根换掉。
+    // 而**必须**在松手时重渲染——曲线是决策 #9 判给时间轴的四样之一，
+    // 轨道头的 dirty 点与「重置」按钮都由 isChDirty(ch) 决定，
+    // 原先这条路径全程不重渲染轨道头，于是改了曲线永远等不到那个按钮出现：
+    // 得先随便拖一下块体把按钮骗出来，再点它——而它当时还不还原曲线。
+    const up = () => {
+      h.removeEventListener('pointermove', mv); h.removeEventListener('pointerup', up);
+      renderTimeline(); touch();
+    };
     h.addEventListener('pointermove', mv); h.addEventListener('pointerup', up);
   }));
   paintCurve();
@@ -1180,12 +1462,81 @@ function cycleWarn(ch, want) {
   toast(`不能链接：会和「${ch.label}」形成环，已按绝对时间放置`);
 }
 
+/**
+ * 舞台与轨道的**最小可用尺寸**，从卡片上的真实取值算出来。
+ *
+ * 为什么必须声明出来：全套布局都是 `min-h-0 flex-1`，所以窗口变小时
+ * 它**永远不溢出、永远不裁切**，只是一路缩到没用。机械探针因此查不到任何异常——
+ * 实测把窗口从 1440×892 换到真实默认的 960×680，五个页面「新增溢出 0、新增过小元素 0」，
+ * 而舞台已经只有 224×41。**「装不下」不是溢出问题，是最小尺寸从没被表达过。**
+ *
+ * 所以改成按内容倒推并声明为硬下限，装不下时让它溢出 / 滚动 / 挤走抽屉，
+ * 而不是静默缩成一条缝。数字全部取自卡片字段，改卡片这里就跟着变：
+ *   波纹最大半径 120 → 直径 240
+ *   粒子扩散半径 96  → 直径 192
+ *   飘字上浮 64 + 字号 24 → 88
+ */
+function stageMin() {
+  const need = [140];   // 空舞台也要放得下提示文案
+  const needH = [140];
+  if (cardOn('ripple')) { const d = cardVal('ripple', '最大半径', 120) * 2; need.push(d); needH.push(d); }
+  if (cardOn('particle')) { const d = cardVal('particle', '扩散半径', 96) * 2; need.push(d); needH.push(d + 24); }
+  if (cardOn('text')) { needH.push(cardVal('text', '上浮距离', 64) + 24); }
+  // 上限兜一下：舞台不该为了一个 320px 的扩散半径把整个窗口撑爆，
+  // 超过这个值就让舞台自己裁切（效果溢出边界在真实运行时也会发生）。
+  return { w: Math.min(360, Math.max(...need)), h: Math.min(360, Math.max(...needH)) };
+}
+
 // ── 抽屉：折叠与拖高度
-let drawerOpen = true, drawerH = 236;
+// 抽屉默认高度从 236 降到 176：抽屉每多占 1px 舞台就少 1px，
+// 而舞台原先只有 143px、装不下自己要画的 208px 波纹。
+// **高度不能再写死**：原先 236/176 都是在 892px 外壳里挑的，换到真实默认的 680px
+// 窗口后抽屉仍占 225px，把舞台压到 41px。现在按可用高度夹取，舞台的最小值优先。
+// drawerH 是**用户意图**（拖出来的期望高度），只有拖拽会改它。
+// 生效高度由 effectiveDrawerH() 现算。两者必须分开：
+// 我第一版把夹取直接写回 drawerH，结果窗口一变小就把期望值永久改小了，
+// 再切回大屏也回不来（实测三档都停在 140，而大屏本该是 176）。
+// 「窗口小」是暂时的约束，不该吃掉用户的偏好。
+let drawerOpen = true, drawerH = 176;
+function drawerMaxH() {
+  const stack = $('drawerBody').closest('#mockWindow') || document.body;
+  const avail = stack.getBoundingClientRect().height;
+  // 外壳固定占用：标题栏 32 + 工作区导航 ~44 + 动作页签 ~64 + 预览工具条 ~96 + 抽屉标题行 ~34 + 边距
+  const chrome = 300;
+  return Math.max(120, Math.min(460, avail - chrome - stageMin().h));
+}
+const effectiveDrawerH = () => Math.max(120, Math.min(drawerH, drawerMaxH()));
+
+/**
+ * 窄窗口下抽屉默认折叠。
+ *
+ * 纵向预算算给你看：真实默认窗口 960×680 的主区只有 596px，而
+ * 动作页签 56 + 舞台最小 240 + 预览工具条与输出行 ~120 + 抽屉 140 = 556，
+ * 只剩 40px 给配置卡列——**三者不可能同时展开**。
+ * 折叠抽屉是唯一不牺牲正确性的取舍：README 已经为折叠态设计了标题行摘要
+ * （N 条轨道 · N 条已链接 · 播放头 xxx ms），所以收起来不丢上下文；
+ * 而用户要调时间时展开它，此时舞台按 drawerMaxH 让出高度。这正是「抽屉」这个形态存在的理由。
+ *
+ * 只在**首次布局**时决定，之后尊重用户的展开/折叠意图——
+ * 否则每次改窗口大小都把用户刚展开的抽屉再收起来，是 README 说的「联动必须双向」的反面。
+ */
+let drawerAutoDecided = false;
+function autoCollapseDrawerIfTight() {
+  if (drawerAutoDecided) return;
+  const win = $('drawerBody').closest('#mockWindow');
+  if (!win || !win.getBoundingClientRect().height) return;
+  drawerAutoDecided = true;
+  if (drawerMaxH() <= 150) drawerOpen = false;
+}
 function syncDrawer() {
+  autoCollapseDrawerIfTight();
   const body = $('drawerBody');
   body.classList.toggle('hidden', !drawerOpen);
-  body.style.height = drawerH + 'px';
+  const st = $('stage');
+  const min = stageMin();
+  st.style.minHeight = min.h + 'px';
+  st.style.minWidth = min.w + 'px';
+  body.style.height = effectiveDrawerH() + 'px';
   $('drawerChevron').classList.toggle('-rotate-90', !drawerOpen);
   $('drawerToggle').setAttribute('aria-label', drawerOpen ? '折叠时间轴' : '展开时间轴');
   // 折叠时把关键信息提到标题行，否则抽屉收起来就完全失去上下文
@@ -1195,12 +1546,14 @@ function syncDrawer() {
     : `${list.length} 条轨道 · ${list.filter((c) => c.ref !== 'trigger').length} 条已链接 · 播放头 ${Math.round(t)}ms`;
   if (drawerOpen) renderTimeline();
 }
-$('drawerToggle').addEventListener('click', () => { drawerOpen = !drawerOpen; syncDrawer(); });
+// 用户亲手开合过就锁定，窗口尺寸变化不再替他决定（见 autoCollapseDrawerIfTight）
+$('drawerToggle').addEventListener('click', () => { drawerAutoDecided = true; drawerOpen = !drawerOpen; syncDrawer(); });
 $('drawerGrip').addEventListener('pointerdown', (e) => {
   if (!drawerOpen) return;
   $('drawerGrip').setPointerCapture(e.pointerId);
   const y0 = e.clientY, h0 = drawerH;
-  const mv = (ev) => { drawerH = Math.max(150, Math.min(460, h0 - (ev.clientY - y0))); syncDrawer(); };
+  // 上限由可用高度算，不再是写死的 460——在 680px 窗口里 460px 抽屉是不合理的上限
+  const mv = (ev) => { drawerH = Math.max(120, Math.min(drawerMaxH(), h0 - (ev.clientY - y0))); syncDrawer(); };
   const up = () => { $('drawerGrip').removeEventListener('pointermove', mv); $('drawerGrip').removeEventListener('pointerup', up); };
   $('drawerGrip').addEventListener('pointermove', mv);
   $('drawerGrip').addEventListener('pointerup', up);
@@ -1219,6 +1572,56 @@ function registerFields() {
   }
   registerCommands('字段', items);
 }
+// ════ 时间 chip：卡片与时间轴之间的桥 ════════════════════
+//
+// 决策 #9：时间轴是时间的**唯一编辑面**，卡片只管外观。
+// 但「时间只在别处能改」不等于「卡片上看不到时间」——那样调手感时得先猜。
+// 所以卡片上留一枚**只读** chip 显示当前时间关系，点它跳到对应轨。
+//
+// 为什么不做成双向同步的输入框：同步能修掉「两个面互相说谎」，
+// 但修不掉更根本的一条——**关系型时间没法用数字框表达**。
+// 「飘字起点 = 波纹峰值 + 40ms」这种锚点链接塞进输入框只能退化成绝对毫秒，
+// 而那正是走查里已经踩过的坑（链接目标被关掉后固化成绝对时间）。
+const CARD_TO_CHANNEL = { trigger: 'trigger', text: 'text', particle: 'particle', ripple: 'ripple', audio: 'audio' };
+
+function timeChipText(cardKey) {
+  if (cardKey === 'trigger') return `节流 ${TRIGGER.throttle}ms · 连击窗 ${TRIGGER.comboWindow}ms`;
+  const ch = CH.find((c) => c.id === CARD_TO_CHANNEL[cardKey]);
+  if (!ch) return '';
+  if (ch.ref === 'trigger') return `${ch.dur}ms · 跟随触发${ch.off ? ` +${ch.off}ms` : ''}`;
+  const [refId, refAnchor] = ch.ref.split('.');
+  const refCh = CH.find((c) => c.id === refId);
+  const anchorName = { emit: '发出', peak: '峰值', spread: '扩散', in: '入场', onset: '起音' }[refAnchor] || refAnchor;
+  const sign = ch.off === 0 ? '' : (ch.off > 0 ? ` +${ch.off}ms` : ` ${ch.off}ms`);
+  return `${ch.dur}ms · ${refCh ? refCh.label : refId}${anchorName}${sign}`;
+}
+
+function timeChip(cardKey) {
+  if (!CARD_TO_CHANNEL[cardKey]) return '';
+  // chip **可收缩且截断**（不是 shrink-0）：窄配置列下必须有东西让位，
+  // 而它是最该让的那个——同一份时间信息在时间轴上还有一份，卡名没有第二份。
+  // title 里给出全文，截断后仍可查证。
+  return `<button data-jumptrack="${cardKey}" class="inline-flex min-w-0 shrink items-center gap-1 rounded-lg bg-slate-50 px-1.5 py-0.5 text-2xs font-medium text-slate-500 ring-1 ring-slate-200 transition-colors hover:bg-slate-100 hover:text-slate-900"
+    title="${timeChipText(cardKey)} —— 时间在时间轴上编辑，点这里跳过去">
+    <svg class="size-2.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+    <span class="truncate">${timeChipText(cardKey)}</span>
+  </button>`;
+}
+
+// 反向跳转：卡片 → 时间轴。与 revealField（⌘K → 卡片）对称。
+function revealTrack(cardKey) {
+  const chId = CARD_TO_CHANNEL[cardKey];
+  if (!chId) return;
+  if (!drawerOpen) { drawerOpen = true; syncDrawer(); }   // 抽屉收着就先展开，否则跳过去什么也看不到
+  renderTimeline();
+  // 轨道行的标识是 data-lane-id（挂在 .tl-lane 上），高亮它的父行更完整
+  const lane = document.querySelector(`[data-lane-id="${chId}"]`);
+  const target = lane?.parentElement || lane || document.getElementById('drawer');
+  target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  target.classList.add('ring-2', 'ring-slate-400', 'rounded-lg');
+  setTimeout(() => target.classList.remove('ring-2', 'ring-slate-400', 'rounded-lg'), 1400);
+}
+
 function revealField(cardKey, label, inGroup) {
   const c = CARDS.find((x) => x.key === cardKey);
   if (!c.always && !c.on) { c.on = true; renderTimeline(); }   // 字段所在的效果没开就先开

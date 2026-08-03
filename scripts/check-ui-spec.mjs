@@ -115,6 +115,113 @@ function report(file, line, rule, message) {
   violations.push({ file: relative(projectRoot, file), line, rule, message });
 }
 
+/**
+ * 加载共享外壳的页面里不允许出现 Tailwind **视口**断点。
+ *
+ * 这些页面的内容都装在 `#mockWindow` 这个**固定尺寸**的模拟窗口里，
+ * 而 `sm:` / `lg:` / `xl:` 响应的是浏览器视口——两者毫无关系，所以断点要么恒真、要么恒假，
+ * **没有一处是按设计意图生效的**。原先全稿有 22 处这样的断点。
+ *
+ * 最贵的两处都是「本版重新设计的核心内容看不见」：
+ *   · `02` 的 `xl:grid-cols-[minmax(0,1fr)_360px]` 从未生效 →
+ *     「11 个光标状态分 6 组」一直堆在 380px 舞台下面，真实默认窗口下首屏一个都看不见
+ *   · `04` 的同一处 → 入场方向 / 字号 / 缩放 / 语义分层这些**主任务控件**全在折叠线以下，
+ *     首屏只剩一块辅助用的屏幕预览
+ * 还有几处是恒真（`sm:` ≥640px 在任何浏览器窗口里都成立），强行两列后把文字压成竖排单字。
+ *
+ * **断点写了却不按窗口生效，比不写更糟**：它让人以为窄窗口已经考虑过了。
+ * 正确做法是用 `group-data-[w=…]/win:`，档位由 shell.js 的 widthBucket 按模拟窗口宽度写在
+ * `#mockWindow[data-w]` 上。
+ */
+const VIEWPORT_BREAKPOINT_RE = /(?<![\w:/[-])(?:sm|md|lg|xl|2xl):(?![\w-]*\/win\b)[a-z]/;
+function checkViewportBreakpoints(file, source) {
+  if (!/shell\.js/.test(source)) return;   // 07/08/09 不套外壳，尺寸由自己决定
+  const stripped = source.replace(/<!--[\s\S]*?-->/g, (m) => m.replace(/[^\n]/g, " "));
+  stripped.split("\n").forEach((text, index) => {
+    for (const attr of text.matchAll(/class=["']([^"']*)["']/g)) {
+      for (const cls of attr[1].split(/\s+/)) {
+        if (!VIEWPORT_BREAKPOINT_RE.test(cls)) continue;
+        report(file, index + 1, "viewport-breakpoint-in-shell",
+          `\`${cls}\` 是 Tailwind 视口断点，而本页内容装在固定尺寸的 #mockWindow 里——`
+          + "它响应浏览器视口，不响应模拟窗口，所以恒真或恒假。改用 group-data-[w=sm|md|lg]/win:");
+      }
+    }
+  });
+}
+
+/**
+ * 共享 .js 的语法自检。
+ *
+ * 门禁原先只对页面里的内联 `<script>` 跑 `new Function()`（教训 #2），
+ * **共享层的 shell.js / controls.js 从来没被检查过**——而它们是五个页面共用的，
+ * 一处语法错误就是五页同时白屏。
+ *
+ * 真实踩到的形态：在 `shellMarkup()` 返回的**模板字符串内部**加了一段 HTML 注释，
+ * 注释正文里写了带反引号的类名（`grid-cols-[...]`）——反引号当场终止模板字符串，
+ * 整个文件语法错误。浏览器控制台在这种情况下也没留下可读记录，
+ * 表现纯粹是「五个页面全空白」，而 check:ui-spec 照旧 PASS。
+ */
+function checkSharedJsSyntax(file, source) {
+  try {
+    new Function(source);
+  } catch (error) {
+    const line = Number(/<anonymous>:(\d+)/.exec(error.stack || "")?.[1]) || 1;
+    report(file, line, "shared-js-syntax",
+      `共享脚本语法错误：${error.message}——它被多个页面加载，一处坏掉就是多页同时白屏`);
+  }
+}
+
+/**
+ * 容器标签配平检查。
+ *
+ * 为什么值得单独一条规则：`01-workbench.html` 里有过**一个多余的 `</div>`**，
+ * 它按 HTML5 的解析算法会**同时弹掉 `<section>` 和外面的预览列 `<div>`**，
+ * 于是传输控件行与「本次输出」行掉出 section、变成 `#cols` 的额外 grid 子元素——
+ * 实测 `#cols` 有 5 个子元素而不是 3 个，输出行被压到 32px 宽、三个标签被整个裁掉。
+ *
+ * 这类错误的可怕之处是**浏览器不报错、只是静默重排 DOM**：页面看着有点怪，
+ * 但既不是空白也不是报错，截图上只表现为「控件位置有点奇怪」，
+ * 而根因在结构层。逐页看图找不出来，只有把父级链打出来才会发现 section 不在链上。
+ *
+ * 只检查块级容器（div / section / main / aside / header / nav），
+ * 不碰自闭合与 void 元素，也不试图做完整的 HTML 解析——
+ * 配平是个计数问题，计数就够抓这一类。注释要先剥掉（教训 #10）。
+ */
+const BALANCED_TAGS = ["div", "section", "main", "aside", "header", "nav", "template"];
+function checkTagBalance(file, source) {
+  const stripped = source.replace(/<!--[\s\S]*?-->/g, (m) => m.replace(/[^\n]/g, " "));
+  const stack = [];
+  const tagRe = /<(\/?)(div|section|main|aside|header|nav|template)\b([^>]*)>/gi;
+  let m;
+  while ((m = tagRe.exec(stripped)) !== null) {
+    const [full, slash, rawName, attrs] = m;
+    const name = rawName.toLowerCase();
+    if (attrs.trimEnd().endsWith("/")) continue;   // 自闭合写法，不入栈
+    const line = stripped.slice(0, m.index).split("\n").length;
+    if (!slash) {
+      stack.push({ name, line });
+      continue;
+    }
+    const top = stack[stack.length - 1];
+    if (!top) {
+      report(file, line, "tag-balance", `多出一个 </${name}>：此处没有未闭合的容器标签`);
+      continue;
+    }
+    if (top.name !== name) {
+      // 交叉闭合：浏览器会弹掉中间的元素，把后续兄弟节点重新挂到更外层
+      report(file, line, "tag-balance",
+        `</${name}> 与第 ${top.line} 行的 <${top.name}> 交叉——浏览器会连带弹掉 <${top.name}>，`
+        + "其后的兄弟节点会被静默重挂到更外层（不会报错，只是布局变形）");
+      stack.pop();
+      continue;
+    }
+    stack.pop();
+  }
+  for (const open of stack) {
+    report(file, open.line, "tag-balance", `<${open.name}> 没有闭合`);
+  }
+}
+
 /** 共享外壳拥有的 DOM id。页面自己再引用就是教训 #0/#1 的那个坑。 */
 function collectShellOwnedIds(shellSource) {
   const ids = new Set();
@@ -124,6 +231,11 @@ function collectShellOwnedIds(shellSource) {
 
 const files = await collectFiles(specRoot);
 const htmlFiles = files.filter((file) => extname(file) === ".html");
+
+// 共享 .js 先过语法自检：它们被多个页面加载，坏一个就是多页白屏（见 checkSharedJsSyntax）
+for (const jsFile of files.filter((file) => extname(file) === ".js")) {
+  checkSharedJsSyntax(jsFile, await readFile(jsFile, "utf8"));
+}
 const shellSource = await readFile(join(specRoot, "shell.js"), "utf8");
 const shellIds = collectShellOwnedIds(shellSource);
 
@@ -148,6 +260,9 @@ for (const file of htmlFiles) {
   // 语法自检要用原文（注释在脚本里是合法的）；找 DOM 引用要用剥了注释的版本。
   const source = stripComments(raw);
   const usesShell = /shell\.js/.test(source);
+
+  checkTagBalance(file, raw);
+  checkViewportBreakpoints(file, raw);
 
   const inlineScripts = [...raw.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)];
   inlineScripts.forEach((match, index) => {
@@ -251,6 +366,112 @@ for (const file of files) {
   });
 }
 
+// ── setInterval 的清理不能被早退跳过 ──
+//
+// 09 的 startPause 把 clearInterval(timer) 写在了「直到重启」那条早退 return 之后：
+//   if (!minutes) { $('countdown').textContent = '直到重启'; return; }
+//   clearInterval(timer);
+//   timer = setInterval(…)
+// 于是「先暂停 20 分钟、再改成直到重启」会留下一个还在跑的旧倒计时。实测 1.3 秒后
+// 文案就从「直到重启」被覆写成 19:59，到点还会把 paused 置回 false 并弹「暂停结束，已恢复」
+// ——「直到重启」自己解除了。这类缺陷不会报错、不会有视觉痕迹，只在等待之后才发作。
+//
+// 规则：同一个函数体里既有 setInterval 又有 clearInterval 时，
+// clearInterval 必须出现在该函数第一个 return 之前。
+// 收窄成「两者同时出现」是为了不误伤只 set 不 clear 的一次性 setInterval，
+// 也不误伤纯清理函数（只有 clearInterval 的 resumeBtn 回调）。
+for (const file of files) {
+  const source = stripComments(await readFile(file, "utf8"));
+  for (const match of source.matchAll(/\bfunction\s+([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*\{/g)) {
+    const bodyStart = match.index + match[0].length;
+    let depth = 1;
+    let cursor = bodyStart;
+    while (cursor < source.length && depth > 0) {
+      const ch = source[cursor];
+      if (ch === "{") depth += 1;
+      else if (ch === "}") depth -= 1;
+      cursor += 1;
+    }
+    const body = source.slice(bodyStart, cursor - 1);
+    const setAt = body.search(/\bsetInterval\s*\(/);
+    const clearAt = body.search(/\bclearInterval\s*\(/);
+    if (setAt < 0 || clearAt < 0) continue;
+    const returnAt = body.search(/\breturn\b/);
+    if (returnAt < 0 || clearAt < returnAt) continue;
+    const line = source.slice(0, bodyStart + clearAt).split("\n").length;
+    report(
+      file,
+      line,
+      "interval-cleanup-after-early-return",
+      `${match[1]} 里的 clearInterval 排在第一个 return 之后——走那条早退分支时旧 interval 会继续跑，`
+      + "覆写 UI 并在到期后擅自改回状态（09 的「直到重启」就是这样自己解除的）。把清理提到所有 return 之前",
+    );
+  }
+}
+
+// ── 共享控件的默认路径必须真的被某一页走通 ──
+//
+// controls.js 的 mountSliders 原先把 data-out 当成写在**滑块**上的 CSS 选择器，
+// 而全稿三处 markup（01 / 07 / library）用的都是「读数 span 上写 data-out="<滑块 id>"」。
+// 结果只有 07 信任共享层，也只有 07 的读数是死的——01 / 04 / 02 / library 各自手写了
+// 一遍 onChange，反而把 bug 藏在了唯一的正确用法里。
+// **共享层最没人验证的路径，就是它自己的默认路径。**
+//
+// 这条锁住解析器认得 markup 的约定。它防不住所有分叉，但能防住「有人把它改回纯选择器」。
+{
+  const controls = await readFile(join(specRoot, "controls.js"), "utf8");
+  const mountBody = controls.slice(controls.indexOf("function mountSliders"));
+  const resolvesByDataOutKey = /\[data-out="\$\{/.test(controls);
+  const stillSelectorOnly = /dataset\.out\s*\?\s*document\.querySelector\(\s*el\.dataset\.out\s*\)/.test(mountBody);
+  if (!resolvesByDataOutKey || stillSelectorOnly) {
+    report(
+      join(specRoot, "controls.js"), 1, "readout-convention-drift",
+      "mountSliders 必须按稿子的 markup 约定解析读数（读数 span 上的 data-out=\"<滑块 id>\"）。"
+      + "只把 data-out 当滑块上的选择器会让全稿没有一个读数能解析到——07 的两个读数就是这样死的",
+    );
+  }
+}
+
+// ── 效果卡的 total 不能谎报 ──
+//
+// 卡头写「其余 N 项」「共 N 项设置」，而 N 只是个手写常量。曾经有 4 张卡
+// `fields: []` 且没有任何分组，total 却写着 9 / 5 / 7 / 7——**点开什么都没有**。
+// 稿子是重构依据，一个凭空的计数会让实现者以为那些字段已经设计过了。
+// 规则：total 必须等于「主区可见字段 + 分组内字段」，且同一字段不能两边都出现。
+{
+  const workbench = await readFile(join(specRoot, "surfaces/01-workbench.html"), "utf8");
+  const start = workbench.indexOf("const CARDS = [");
+  const end = workbench.indexOf("const ACTIONS = [");
+  if (start >= 0 && end > start) {
+    const source = workbench.slice(start, end).replace(/^const CARDS = /, "").replace(/;\s*$/, "").trim();
+    let cards = null;
+    try {
+      // CARDS 是纯数据字面量，直接求值比正则可靠——
+      // 我用正则数过三次，三次都数错（切段切在 groups 而不是 fields 上、
+      // 分组正则只匹配到最后一组）。
+      cards = new Function(`return ${source}`)();
+    } catch (error) {
+      report(join(specRoot, "surfaces/01-workbench.html"), 1, "card-total-unparsable",
+        `CARDS 无法求值，total 一致性检查被跳过：${error.message}`);
+    }
+    for (const card of cards ?? []) {
+      const visible = (card.fields ?? []).map((field) => field.label);
+      const grouped = (card.groups ?? []).flatMap(([, items]) => items);
+      const sum = visible.length + grouped.length;
+      if (card.total !== sum) {
+        report(join(specRoot, "surfaces/01-workbench.html"), 1, "card-total-mismatch",
+          `「${card.name}」的 total=${card.total}，但可见 ${visible.length} + 分组内 ${grouped.length} = ${sum}`
+          + "——凭空的计数会让实现者以为那些字段已经设计过了");
+      }
+      const both = visible.filter((label) => grouped.includes(label));
+      if (both.length) {
+        report(join(specRoot, "surfaces/01-workbench.html"), 1, "card-field-duplicated",
+          `「${card.name}」的字段同时出现在主区和分组里：${both.join(", ")}`);
+      }
+    }
+  }
+}
+
 // ── 功能对等：稿子有没有丢掉真实代码里已经在工作的能力 ──
 //
 // 这是本轮实测到的**最危险**失效模式，而且走查查不出来：
@@ -282,6 +503,45 @@ const PARITY = [
   { cap: "共享组件 NumberField", code: ["src/components/ui/number-field.tsx", /export function NumberField/], spec: [/NumberField/] },
   { cap: "共享组件 Skeleton", code: ["src/components/ui/skeleton.tsx", /export function PanelSkeleton/], spec: [/Skeleton/] },
 ];
+
+// ── 决策 #9 的自洽：时间轴声称拥有的东西，必须真的能在时间轴里编辑 ──────────
+//
+// 决策 #9 说「时间轴是时间的**唯一**编辑面：偏移、时长、缓动曲线、错峰都在这里；
+// 卡片只管外观」。上一轮按这条把卡片上的 9 个时间字段删掉了，但时间轴并没有同步
+// 长出对应的编辑入口，于是实测出现三个**哪儿都改不了**的值：
+//   · 错峰间隔  —— stagger 写死 10，只在渲染里用
+//   · 节流间隔  —— 触发轨上的只读文本，整条轨 interactive 数为 0
+//   · 连击窗口  —— 同上；而它在真实代码里是个 120–3000ms 的滑块
+// 这比「两个面互相说谎」更难发现：**缺席没有视觉痕迹**，走查点不到一个不存在的控件。
+//
+// 所以这条规则要求每一样都留一个**可交互元素**的锚点，而不是「文案里提到了」。
+// 光有文字说明恰恰是坏掉的那个状态。
+const TIMELINE_OWNED = [
+  { what: "偏移（拖块体）", anchor: /data-bar="/ },
+  { what: "时长（拖块边缘）", anchor: /data-edge="/ },
+  { what: "缓动曲线（贝塞尔控制点）", anchor: /data-ch-h="/ },
+  { what: "错峰间隔", anchor: /id="staggerSl"|data-out="staggerSl"/ },
+  { what: "触发：节流间隔", anchor: /data-trigwin="throttle"/ },
+  { what: "触发：连击窗口", anchor: /data-trigwin="comboWindow"/ },
+];
+const workbenchFile = htmlFiles.find((f) => f.endsWith("01-workbench.html"));
+if (!workbenchFile) {
+  violations.push({
+    file: "docs/ui-spec/surfaces/01-workbench.html", line: 1, rule: "timeline-owned-not-editable",
+    message: "找不到 01-workbench.html，无法校验决策 #9 的编辑入口",
+  });
+} else {
+  const wbSource = await readFile(workbenchFile, "utf8");
+  for (const entry of TIMELINE_OWNED) {
+    if (!entry.anchor.test(wbSource)) {
+      violations.push({
+        file: relative(projectRoot, workbenchFile), line: 1, rule: "timeline-owned-not-editable",
+        message: `决策 #9 把「${entry.what}」判给时间轴，但稿子里找不到它的可交互锚点 ${entry.anchor}——`
+          + "这个值会变成哪儿都改不了（只读文本不算编辑入口）",
+      });
+    }
+  }
+}
 
 const specBlob = (await Promise.all(files.map((f) => readFile(f, "utf8")))).join("\n");
 for (const entry of PARITY) {
