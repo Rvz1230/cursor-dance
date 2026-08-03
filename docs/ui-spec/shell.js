@@ -255,26 +255,63 @@ function shellMarkup(active, mainClass) {
     </div>
 
     <div class="flex min-h-0 flex-1">
-      <aside id="sidebar" class="flex w-[248px] shrink-0 flex-col border-r border-slate-200 bg-slate-100">
-        <div data-side="open" class="flex min-h-0 flex-1 flex-col">
+      <!--
+        初始类名由 sidebarClosed 决定，而不是写死 w-[248px]。
+        原先写死 → 变量改成默认收起后 DOM 完全不跟（实测 sidebarW 仍是 248、
+        openPaneVisible 仍是 true）：**状态和 DOM 是两份真值**，改了一份不算改。
+        bindShell 里还会再 setSidebar(sidebarClosed) 同步一次兜底。
+      -->
+      <aside id="sidebar" class="flex shrink-0 flex-col border-r border-slate-200 bg-slate-100 ${sidebarClosed ? 'w-[60px]' : 'w-[248px]'}">
+        <div data-side="open" class="${sidebarClosed ? 'hidden' : 'flex'} min-h-0 flex-1 flex-col">
           <div class="flex items-center gap-2 px-3 py-2.5">
             <button data-side-toggle class="grid size-8 shrink-0 place-items-center rounded-xl text-slate-500 transition-colors hover:bg-white" aria-label="收起主题库">
               <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M13 9l3 3-3 3"/></svg>
             </button>
             <div class="relative min-w-0 flex-1">
               <svg class="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-              <input placeholder="搜索主题" class="h-8 w-full rounded-xl border border-slate-200 bg-white pl-8 pr-2 text-xs text-slate-700 shadow-sm placeholder:text-slate-400" />
+              <input id="themeSearch" placeholder="搜索主题" class="h-8 w-full rounded-xl border border-slate-200 bg-white pl-8 pr-14 text-xs text-slate-700 shadow-sm placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200" />
+              <span id="themeCount" class="pointer-events-none absolute right-7 top-1/2 -translate-y-1/2 text-2xs tabular-nums text-slate-400"></span>
+                      <!--
+                只用 hidden 的增删来控制显隐，不要同时挂 hidden 和 grid：
+                Tailwind 的 display 工具类里 hidden 排在 grid 之后，两个都在时 hidden 恒胜，
+                于是这个按钮永远不显示（实测 clearVisible: false）。
+                这与「禁用态由 CSS 后代选择器承担、不要用 JS 改类名」是同一类陷阱：
+                同一属性上叠两个工具类，结果由样式表顺序决定，不由代码顺序决定。
+                注：这段注释在**模板字符串内部**，所以不能用反引号包代码名——
+                会直接把模板字符串截断（我刚踩过，门禁的 shared-js-syntax 当场报了出来）。
+              -->
+              <button id="themeSearchClear" class="absolute right-1.5 top-1/2 hidden size-5 -translate-y-1/2 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700" aria-label="清空搜索">
+                <svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </button>
             </div>
           </div>
           <div id="themeList" class="min-h-0 flex-1 space-y-1.5 overflow-y-auto px-3 pb-2"></div>
-          <div class="shrink-0 border-t border-slate-200 px-3 py-2.5">
+          <!--
+            底部原先只有「新建主题」。README 的目录写着 ThemeLibrarySidebar 负责
+            create / duplicate / delete / **import** / export，而**导入在整个稿子里不存在**——
+            导出只藏在主题卡的 ⋯ 菜单里（单个主题），导入一个入口都没有。
+            这是「稿子丢掉了真实代码里已在工作的功能」那一类，只是这次丢的是入口而不是行为。
+            导入放在这里而不是 ⋯ 菜单里：⋯ 是**针对某一个主题**的操作，
+            而导入产生的是新主题，它没有宿主，天然属于主题库这一层。
+          -->
+          <div class="shrink-0 space-y-1.5 border-t border-slate-200 px-3 py-2.5">
             <button class="btn-outline h-8 w-full px-3 text-xs">
               <svg class="mr-1.5 size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
               新建主题
             </button>
+            <div class="grid grid-cols-2 gap-1.5">
+              <button data-lib-import class="btn-ghost h-7 px-2 text-2xs" title="从 .json 导入主题包">
+                <svg class="mr-1 size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3M7 10l5 5 5-5M5 21h14"/></svg>
+                导入
+              </button>
+              <button data-lib-export class="btn-ghost h-7 px-2 text-2xs" title="导出全部主题为一个 .json">
+                <svg class="mr-1 size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M7 8l5-5 5 5M5 21h14"/></svg>
+                导出全部
+              </button>
+            </div>
           </div>
         </div>
-        <div data-side="closed" class="hidden min-h-0 flex-1 flex-col items-center gap-2 px-2 py-2.5">
+        <div data-side="closed" class="${sidebarClosed ? 'flex' : 'hidden'} min-h-0 flex-1 flex-col items-center gap-2 px-2 py-2.5">
           <button data-side-toggle class="grid size-9 place-items-center rounded-xl text-slate-500 transition-colors hover:bg-white" aria-label="展开主题库">
             <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M16 9l-3 3 3 3"/></svg>
           </button>
@@ -417,15 +454,55 @@ function mountShell(opts) {
   if (proto.length) setTimeout(() => setProto(proto[0][0], proto, onProto), 0);
 }
 
+/**
+ * 侧栏搜索。原先搜索框是个**裸 `<input>`，没有任何监听**——输进去什么都不会发生，
+ * 是典型的「画了控件没接线」，而它恰好又是折叠态唯一保留的入口（决策 #5 的后半句）。
+ *
+ * 匹配范围包含摘要，不只是主题名：用户记得住的往往是「那个有火花的」
+ * 而不是「熔金」。命中处高亮，让人看清为什么这条被留下。
+ */
+let themeQuery = '';
+const themeMatches = (t) => {
+  if (!themeQuery) return true;
+  const q = themeQuery.toLowerCase();
+  return `${t.name} ${t.summary} ${t.kind}`.toLowerCase().includes(q);
+};
+const markHit = (text) => {
+  if (!themeQuery) return text;
+  const i = text.toLowerCase().indexOf(themeQuery.toLowerCase());
+  if (i < 0) return text;
+  return `${text.slice(0, i)}<mark class="rounded bg-amber-100 text-slate-900">${text.slice(i, i + themeQuery.length)}</mark>${text.slice(i + themeQuery.length)}`;
+};
+
 function renderThemes(selected = 'mono') {
   const list = document.getElementById('themeList');
   const rail = document.getElementById('themeRail');
-  if (list) list.innerHTML = THEMES.map((t) => `
+  const shown = THEMES.filter(themeMatches);
+  const countEl = document.getElementById('themeCount');
+  if (countEl) countEl.textContent = themeQuery ? `${shown.length} / ${THEMES.length}` : '';
+  if (list && themeQuery && !shown.length) {
+    // 三种空态语义不同（同第 1 批 A 的 EmptyState 分类）：这里是「被筛掉了」，
+    // 所以下一步动作是「清空搜索」，不是「新建主题」。
+    list.innerHTML = `<div class="mt-6 px-1 text-center">
+      <div class="text-xs font-medium text-slate-600">没有匹配「${themeQuery}」的主题</div>
+      <div class="mt-1 text-2xs leading-relaxed text-slate-400">名称、摘要、内置/自定义都会被搜到</div>
+      <button data-clear-search class="btn-outline mt-2.5 h-7 px-2.5 text-2xs">清空搜索</button>
+    </div>`;
+    list.querySelector('[data-clear-search]').addEventListener('click', () => {
+      themeQuery = '';
+      const input = document.getElementById('themeSearch');
+      if (input) input.value = '';
+      renderThemes(selected);
+    });
+    if (rail) rail.innerHTML = '';
+    return;
+  }
+  if (list) list.innerHTML = shown.map((t) => `
     <div data-theme="${t.id}" class="side-theme${t.id === selected ? ' side-theme-on' : ''}">
       <span class="grid size-8 shrink-0 place-items-center rounded-xl text-2xs font-semibold ${t.id === selected ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-500'}">${t.glyph}</span>
       <span class="min-w-0 flex-1">
         <span class="flex min-w-0 items-center gap-1.5">
-          <span class="min-w-0 truncate text-sm font-medium text-slate-900">${t.name}</span>
+          <span class="min-w-0 truncate text-sm font-medium text-slate-900">${markHit(t.name)}</span>
           ${t.dirty ? '<span class="size-1.5 shrink-0 rounded-full bg-amber-400" title="有未保存的改动"></span>' : ''}
           <span class="ml-auto inline-flex shrink-0 items-center rounded-full ${t.kind === '内置' ? 'bg-slate-100 text-slate-600' : 'bg-slate-900 text-white'} px-1.5 py-0.5 text-2xs font-medium">${t.kind}</span>
         </span>
@@ -435,14 +512,14 @@ function renderThemes(selected = 'mono') {
           恰好把最有辨识度的那部分（粒子形状 / 波纹类型）切掉了。
           侧栏纵向有大片空余，折行的代价接近于零；截断的代价是四个主题看起来一模一样。
         -->
-        <span class="mt-0.5 line-clamp-2 block text-2xs leading-relaxed text-slate-500">${t.summary}</span>
+        <span class="mt-0.5 line-clamp-2 block text-2xs leading-relaxed text-slate-500">${markHit(t.summary)}</span>
       </span>
       <button data-theme-menu="${t.id}" class="grid size-6 shrink-0 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700" aria-label="${t.name} 更多操作" aria-haspopup="menu">
         <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
       </button>
     </div>`).join('');
   if (list) bindThemeMenus(selected);
-  if (rail) rail.innerHTML = THEMES.map((t) => `
+  if (rail) rail.innerHTML = shown.map((t) => `
     <button data-theme="${t.id}" class="relative grid size-10 shrink-0 place-items-center rounded-xl border ${t.id === selected ? 'border-slate-950 bg-white shadow-sm' : 'border-slate-200 bg-white'}" title="${t.name}" aria-label="选择主题 ${t.name}">
       <span class="grid size-7 place-items-center rounded-lg text-2xs font-semibold ${t.id === selected ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-500'}">${t.glyph}</span>
       ${t.dirty ? '<span class="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-amber-400 ring-2 ring-slate-100"></span>' : ''}
@@ -469,13 +546,52 @@ function setProto(id, proto, onProto) {
   onProto?.(id);
 }
 
+/** 主题库：搜索接线 + 导入导出。这三处原先都只有外观，没有行为。 */
+function bindThemeLibrary() {
+  const input = document.getElementById('themeSearch');
+  const clear = document.getElementById('themeSearchClear');
+  if (input) {
+    const sync = () => {
+      themeQuery = input.value.trim();
+      if (clear) { clear.classList.toggle('hidden', !themeQuery); clear.classList.add('grid'); }
+      renderThemes(currentThemeId);
+    };
+    input.addEventListener('input', sync);
+    // Esc 清空而不是让浏览器吞掉：搜索框里 Esc 的通行语义就是「取消这次搜索」
+    input.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' || !input.value) return;
+      e.preventDefault(); e.stopPropagation();
+      input.value = ''; sync();
+    });
+    if (clear) clear.addEventListener('click', () => { input.value = ''; themeQuery = ''; sync(); input.focus(); });
+  }
+  const imp = document.querySelector('[data-lib-import]');
+  const exp = document.querySelector('[data-lib-export]');
+  // 导入是**新增**一个主题，所以要能撤销；导出只产出文件、不改状态，所以不需要。
+  // 这条区分就是决策 #7「一次性结果 → toast（带撤销）」的具体应用。
+  if (imp) imp.addEventListener('click', () => {
+    const added = { id: `imported-${THEMES.length}`, name: '导入的主题', kind: '自定义', summary: '来自 .json · 3 个动作已配置', glyph: '导' };
+    THEMES.push(added);
+    renderThemes(currentThemeId);
+    toast(`已导入「${added.name}」`, () => {
+      const i = THEMES.indexOf(added);
+      if (i >= 0) THEMES.splice(i, 1);
+      renderThemes(currentThemeId);
+      return () => { THEMES.push(added); renderThemes(currentThemeId); };
+    });
+  });
+  if (exp) exp.addEventListener('click', () => toast(`已导出全部 ${THEMES.length} 个主题为 cursordance-themes.json`));
+}
+
 function bindShell(proto, onProto) {
   document.querySelectorAll('[data-proto]').forEach((b) => b.addEventListener('click', () => setProto(b.dataset.proto, proto, onProto)));
   document.querySelectorAll('[data-side-toggle]').forEach((b) => b.addEventListener('click', () => {
     sidebarAutoDecided = true;   // 用户亲手开合过就锁定，尺寸变化不再替他决定
     setSidebar(!sidebarClosed);
   }));
+  setSidebar(sidebarClosed);   // 兜底同步：状态与 DOM 只能有一份真值
   autoCollapseSidebarIfNarrow();
+  bindThemeLibrary();
   document.getElementById('undoBtn').addEventListener('click', doUndo);
   document.getElementById('redoBtn').addEventListener('click', doRedo);
   document.getElementById('cmdkBtn').addEventListener('click', () => toggleCmdk());
@@ -494,7 +610,20 @@ function bindShell(proto, onProto) {
     }
   });
 }
-let sidebarClosed = false;
+/**
+ * 侧边栏**默认收起**。
+ *
+ * 这是对 README 决策 #5「主题库侧边栏默认展开」的**有意反转**（产品决定，2026-08-03）。
+ * 理由站得住：248px 侧栏在新基准 960px 下占 26%，而它承载的是**低频**任务
+ * （切主题、新建、导入导出），主区承载的是高频任务（调参数）。
+ * 决策 #5 是在 1440px 基准上定的，那里 248px 只占 17%。
+ * 折叠态保留搜索入口与主题轨（决策 #5 的后半句仍然成立），所以收起不等于失去入口。
+ *
+ * 注意：真实代码在「第 0 批」已按决策 #5 改成默认展开且折叠态持久化，
+ * 这次只改稿子。实施时要把默认值反过来，但**持久化必须保留**——
+ * 默认收起 + 不持久化会让每次重启都把用户展开的侧栏收掉。
+ */
+let sidebarClosed = true;
 let sidebarAutoDecided = false;
 function setSidebar(closed) {
   sidebarClosed = closed;
@@ -521,6 +650,9 @@ function autoCollapseSidebarIfNarrow() {
   const w = win ? win.getBoundingClientRect().width : 0;
   if (!w) return;
   sidebarAutoDecided = true;
+  // 默认已经是收起，这里只剩「大屏下要不要自动展开」这一个问题。答案是**不要**：
+  // 自动展开会覆盖产品决定的默认值，而且用户在 lg 档展开过一次之后
+  // sidebarAutoDecided 已锁，行为会随「他先看哪一档」而不同——那是不可预测的。
   if (w < 860) setSidebar(true);
 }
 

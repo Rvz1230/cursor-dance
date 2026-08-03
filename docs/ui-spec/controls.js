@@ -238,7 +238,7 @@ const Ctl = (() => {
         <span data-side class="shrink-0 text-2xs text-slate-400"></span>
         <svg class="size-3.5 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
       </button>
-      <div data-panel class="absolute left-0 top-9 z-30 hidden w-full overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-lg" role="listbox"></div>`;
+      <div data-panel class="fixed z-50 hidden overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-lg" role="listbox"></div>`;
 
     const trigger = el.querySelector('[data-trigger]');
     const panel = el.querySelector('[data-panel]');
@@ -266,17 +266,67 @@ const Ctl = (() => {
         onChange?.(value, cur());
       }));
     }
+    /**
+     * 弹层挂到 body 上、用 fixed 定位，而不是留在 el 里用 absolute。
+     *
+     * **`z-index` 解决不了祖先的 `overflow: hidden`。** 原先弹层是
+     * `absolute top-9 z-30`，而效果卡 `.cfg-card` 有 `overflow-hidden`（圆角裁切要用），
+     * 于是弹层被祖先直接裁掉——实测「触发区域」下拉展开后**98px 高的弹层有 89px 不可见**，
+     * 而 z-index 是 30、层叠顺序完全正确。z-index 越调越没用，因为问题不在层叠。
+     *
+     * 脱离那个祖先是唯一的解（真实实现里就是 Radix 的 Portal）。代价是位置要自己算，
+     * 于是顺带把两件本来就该有的事做了：
+     *   · 下方空间不足时**向上翻转**（原先 `top-9` 写死，靠底部的下拉永远朝下捅出去）
+     *   · 宽度跟随触发器，但给一个最小宽度——选项里有说明文字，太窄会把它们挤成两行
+     * 打开时定位一次；滚动或改窗口尺寸就关掉，不做跟随重定位——
+     * 一个跟着滚动飘的浮层比直接关掉更难用。
+     */
+    const place = () => {
+      const t = trigger.getBoundingClientRect();
+      const gap = 6;
+      panel.style.width = `${Math.max(t.width, 220)}px`;
+      panel.style.left = `${Math.min(t.left, window.innerWidth - Math.max(t.width, 220) - 8)}px`;
+      // 先量真实高度再决定朝向：选项数量不同，高度不是常量
+      panel.style.top = '0px';
+      panel.style.visibility = 'hidden';
+      const h = panel.getBoundingClientRect().height;
+      const below = window.innerHeight - t.bottom - gap;
+      const flipUp = below < h && t.top - gap > below;
+      panel.style.top = flipUp ? `${Math.max(8, t.top - gap - h)}px` : `${t.bottom + gap}px`;
+      panel.style.maxHeight = `${Math.max(120, (flipUp ? t.top : window.innerHeight - t.bottom) - gap - 8)}px`;
+      panel.style.overflowY = 'auto';
+      panel.style.visibility = '';
+    };
+    let closeOnScroll = null;
     const open = () => {
       document.querySelectorAll('[data-panel]').forEach((p) => p.classList.add('hidden'));
       renderPanel();
+      if (panel.parentElement !== document.body) document.body.appendChild(panel);
       panel.classList.remove('hidden');
+      place();
+      closeOnScroll = () => close();
+      window.addEventListener('scroll', closeOnScroll, true);
+      window.addEventListener('resize', closeOnScroll);
     };
-    const close = () => panel.classList.add('hidden');
+    const close = () => {
+      panel.classList.add('hidden');
+      if (closeOnScroll) {
+        window.removeEventListener('scroll', closeOnScroll, true);
+        window.removeEventListener('resize', closeOnScroll);
+        closeOnScroll = null;
+      }
+    };
     trigger.addEventListener('click', (e) => {
       e.stopPropagation();
       panel.classList.contains('hidden') ? open() : close();
     });
-    document.addEventListener('click', (e) => { if (!el.contains(e.target)) close(); });
+    // 弹层已经挂到 body 上，所以「点外面关闭」必须同时排除 panel——
+    // 只判 el.contains 的话，点选项会先被判成点了外面而关闭，选择永远选不上。
+    // 这是 portal 化必须连带改的地方，漏了就表现成「下拉能开但选不中」。
+    document.addEventListener('click', (e) => {
+      if (el.contains(e.target) || panel.contains(e.target)) return;
+      close();
+    });
     trigger.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') close();
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {

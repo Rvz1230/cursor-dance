@@ -130,6 +130,30 @@
                   </div>
                 </div>
 
+                  <!--
+                    前台窗口 + 文字插入点。
+                    刻意**不放进 #wallpaper**：那块的 innerHTML 在 syncAll 里整体重建
+                    （深/浅底色两套字面量），锚点元素放进去每次同步都会被冲掉，
+                    而且 anchorBox() 要读它的实测几何，元素身份必须稳定。
+
+                    位置和 #wallpaper 里右侧那个装饰窗口一致（right-10 top-24 h-48 w-72），
+                    锚点选到「前台窗口」时它才变成实框——底图上一直有这个窗口，
+                    选中时只是被点亮，不是凭空长出一个新东西。
+                  -->
+                  <div id="fgWin" class="pointer-events-none absolute right-10 top-24 hidden h-48 w-72 rounded-lg border border-slate-400">
+                    <div class="absolute left-0 top-0 -translate-y-full pb-1 text-2xs font-medium text-slate-500">前台窗口</div>
+                    <div class="absolute inset-x-4 top-6 space-y-1.5">
+                      <div class="h-1.5 w-4/5 rounded-full bg-slate-300/70"></div>
+                      <div class="h-1.5 w-3/5 rounded-full bg-slate-300/70"></div>
+                    </div>
+                    <!-- 插入点：一条竖线 + 它左边的一段已输入文字，位置就是 anchorBox('caret') 的取值点 -->
+                    <div id="caretRow" class="absolute inset-x-4 top-16 hidden items-center gap-1">
+                      <div class="h-1.5 flex-1 rounded-full bg-slate-300/70"></div>
+                      <div id="caretMark" class="h-4 w-0.5 shrink-0 bg-slate-900"></div>
+                      <div class="w-10 shrink-0"></div>
+                    </div>
+                  </div>
+
                 <!-- 四条边：入场边选择 -->
                 <button data-edge="top" class="edge-btn left-1/2 top-0 h-6 w-24 -translate-x-1/2 -translate-y-1/2">上</button>
                 <button data-edge="bottom" class="edge-btn bottom-0 left-1/2 h-6 w-24 -translate-x-1/2 translate-y-1/2">下</button>
@@ -137,7 +161,7 @@
                 <button data-edge="right" class="edge-btn right-0 top-1/2 h-20 w-7 -translate-y-1/2 translate-x-1/2">右</button>
               </div>
 
-              <p class="mt-2.5 text-2xs leading-relaxed text-slate-400">
+              <p id="stageHint" class="mt-2.5 text-2xs leading-relaxed text-slate-400">
                 点四周的「上／下／左／右」选择字符从哪条边飞入；拖动圆点调整<span id="handleHintWord">停留位置</span>。
               </p>
             </div>
@@ -184,6 +208,60 @@
                   <span class="block text-xs font-medium text-slate-800">特殊键</span>
                   <span class="block text-2xs text-slate-400">略大 8% · 略快</span>
                 </span>
+              </div>
+            </div>
+          </section>
+
+          <!--
+            ════ 调制 ════
+            「输入节奏加成」原先是「显示内容 · 决定按下的键显示成什么」组里的一个裸开关，
+            旁边并列「显示单独修饰键」「强制大写」。两个问题：
+
+            1. **分组错了**。节奏跟「显示成什么」无关，它是强度调制。
+            2. **只有开关，没有量**。运行时 derive() 里其实已经按连击级别在改
+               scale / opacity / glow 三个属性（+3.5%/级、+2/级、≥3 级点亮发光），
+               但界面上一个数都不给，用户只能看到「开」和「关」，
+               调不动强度、也不知道它到底在改什么。
+
+            所以拆成独立一节，把已经在跑的映射如实暴露出来：强度可调、目标可选、
+            当前档位实时可见。这是「和内容发生关系」里最便宜的一档——
+            只用 keydown 的 timestamp，不需要读任何文本、不需要任何新权限。
+          -->
+          <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
+              <div class="min-w-0">
+                <h3 class="text-sm font-medium text-slate-900">调制</h3>
+                <div class="mt-0.5 text-xs text-slate-500">打字越快，效果越强</div>
+              </div>
+              <button id="comboToggle" class="flex h-8 items-center gap-2 rounded-xl bg-slate-50 px-2.5 text-xs text-slate-600 ring-1 ring-slate-200">
+                <span id="comboKnob" class="relative inline-flex h-4 w-7 shrink-0 items-center rounded-full bg-slate-950"><span class="ml-3.5 size-3 rounded-full bg-white shadow-sm"></span></span>
+                <span id="comboToggleText" class="font-medium">已开启</span>
+              </button>
+            </div>
+            <div id="comboBody" class="space-y-3.5 px-4 py-3">
+              <div>
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-medium text-slate-600">强度</span>
+                  <span class="text-2xs font-semibold tabular-nums text-slate-600"><span id="gainReadout">100</span> %</span>
+                </div>
+                <div id="gainRange" data-slider data-min="0" data-max="200" data-value="100" data-default="100" data-ticks="0,100,200" class="mt-2.5"></div>
+                <p class="mt-1.5 text-2xs leading-relaxed text-slate-400">100% 就是现在运行时的系数：每级 +3.5% 字号、+2 不透明度。</p>
+              </div>
+              <div class="border-t border-slate-100 pt-3">
+                <span class="text-xs font-medium text-slate-600">作用于</span>
+                <div class="mt-2 space-y-1.5">
+                  <button class="switch-row" data-mod="scale"><span>字号</span><span class="switch-knob switch-on"></span></button>
+                  <button class="switch-row" data-mod="opacity"><span>不透明度</span><span class="switch-knob switch-on"></span></button>
+                  <button class="switch-row" data-mod="glow"><span>发光（3 级以上点亮）</span><span class="switch-knob switch-on"></span></button>
+                </div>
+                <p id="modTargetNote" class="mt-1.5 text-2xs leading-relaxed text-slate-400"></p>
+              </div>
+              <div class="border-t border-slate-100 pt-3">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-xs font-medium text-slate-600">当前档位</span>
+                  <span id="liveGain" class="text-2xs font-semibold tabular-nums text-slate-400">未在连打</span>
+                </div>
+                <p class="mt-1.5 text-2xs leading-relaxed text-slate-400">连续打字试试——间隔 260ms 内算连击，最高 5 级。</p>
               </div>
             </div>
           </section>
@@ -255,6 +333,36 @@
             </div>
           </section>
 
+          <!--
+            ════ 锚点 ════
+            这一节是新增的能力面，不是重排现有字段。
+
+            现状：键盘动效只能锚在**屏幕边缘**（originEdge + globalOffset），
+            运行时唯一的「内容关系」是 originMapping=keyboardLayout —— 按哪个键决定横向位置。
+            字符出现在哪儿，和你正在用哪个窗口、正在往哪儿打字，完全无关。
+
+            三档锚点按**成本**排，不是按好看排：
+              screen 现状，零成本
+              window get-windows 的返回值里已经有 bounds（index.d.ts:54），
+                     只是 ActiveWindowSnapshot 把它丢了，只取了 owner/title/processName。
+                     补回来即可，不需要新权限、新依赖或原生代码 → 标「现在生效」
+              caret  需要 AX：focused element + AXSelectedTextRange + AXBoundsForRange。
+                     权限本来就有（uiohook 就要辅助功能），但覆盖率一定是部分的
+                     （Electron 应用要自己开 AX，终端和 Java 差）→ 只能标「待系统能力」
+
+            可达性徽标沿用 02 的两档语义与写法，不另造一套。
+          -->
+          <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="border-b border-slate-100 px-4 py-3">
+              <h3 class="text-sm font-medium text-slate-900">锚点</h3>
+              <div class="mt-0.5 text-xs text-slate-500">字符出现在哪儿——下面的「位置」都是相对锚点算的</div>
+            </div>
+            <div class="space-y-1.5 px-4 py-3" id="anchorGroup"></div>
+            <div class="border-t border-slate-100 px-4 py-2.5">
+              <p id="anchorNote" class="text-2xs leading-relaxed text-slate-400"></p>
+            </div>
+          </section>
+
           <!-- 位置 -->
           <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <div class="border-b border-slate-100 px-4 py-3">
@@ -262,8 +370,11 @@
               <div class="mt-0.5 text-xs text-slate-500">也可以直接在预览里拖</div>
             </div>
             <div class="space-y-3.5 px-4 py-3">
-              <div>
-                <span class="text-xs font-medium text-slate-600">入场边</span>
+              <div id="edgeField">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="text-xs font-medium text-slate-600">入场边</span>
+                  <span id="edgeNote" class="text-2xs text-slate-400"></span>
+                </div>
                 <div class="mt-2 grid grid-cols-4 gap-1.5" id="edgeRow"></div>
               </div>
 
@@ -281,13 +392,18 @@
                 </p>
               </div>
 
+              <!--
+                同一个数字在三档锚点下是同一件事——「离锚点多远」——所以复用 bounceHeight，
+                不新造字段；但标签和说明必须跟着锚点改，否则插入点锚点下「距入场边多远」
+                指的是一条不存在的边。
+              -->
               <div id="restField">
                 <div class="flex items-center justify-between">
-                  <span class="text-xs font-medium text-slate-600">停留距离</span>
+                  <span id="restFieldLabel" class="text-xs font-medium text-slate-600">停留距离</span>
                   <span class="text-2xs font-semibold tabular-nums text-slate-600"><span id="bounceReadout">140</span> px</span>
                 </div>
-                <div id="bounceRange" data-slider data-min="40" data-max="400" data-value="140" data-default="140" class="mt-2.5"></div>
-                <p class="mt-1.5 text-2xs leading-relaxed text-slate-400">字符飞入后停在距入场边多远的位置。</p>
+                <div id="bounceRange" data-slider data-min="0" data-max="400" data-value="140" data-default="140" class="mt-2.5"></div>
+                <p id="restFieldHint" class="mt-1.5 text-2xs leading-relaxed text-slate-400">字符飞入后停在距入场边多远的位置。</p>
               </div>
 
               <div id="rainFields" class="hidden space-y-3.5">
@@ -330,7 +446,6 @@
               </div>
               <div class="space-y-1.5 border-t border-slate-100 pt-3">
                 <button class="switch-row" data-flag="modifiers"><span>显示单独修饰键</span><span class="switch-knob switch-on"></span></button>
-                <button class="switch-row" data-flag="combo"><span>输入节奏加成</span><span class="switch-knob switch-on"></span></button>
                 <button class="switch-row" data-flag="uppercase"><span>强制大写</span><span class="switch-knob"></span></button>
               </div>
             </div>
@@ -399,6 +514,10 @@ const DEFAULTS = {
   semanticStyles: true, typingCombo: true, duration: 900, easing: '弹跳', scale: 1,
   bounceHeight: 140, gravity: 0.3, wind: 0, glow: false, glowColor: '#FBBF24', glowRadius: 8,
   cooldownMs: 35, maxSimultaneous: 30, delay: 0,
+  // 新增能力面：锚点 + 节奏调制。前者是 KeyFeedbackConfigV4 要加的字段，
+  // 后者的 typingCombo 已存在，comboGain / comboScale / comboOpacity / comboGlow 是把
+  // 已经在跑的系数暴露出来（derive() 里原先硬编码 0.035 / 2 / 级数≥3）。
+  anchor: 'screen', comboGain: 100, comboScale: true, comboOpacity: true, comboGlow: true,
 };
 let cfg = { ...DEFAULTS };
 
@@ -410,6 +529,38 @@ const PRESETS = [
 ];
 const COLORS = ['#F59E0B', '#0EA5E9', '#0D9488', '#F43F5E', '#8B5CF6', '#FFFFFF', '#0F172A'];
 const EDGES = [['bottom', '下'], ['top', '上'], ['left', '左'], ['right', '右']];
+
+// ── 锚点
+//
+// reach 两档，语义与 02 完全一致（那边是光标状态，这边是锚点，判断标准同一条：
+// 「当前运行时真能产出吗」）：
+//   'now' 现在就生效
+//   'cap' 待系统能力——配置会存下来，能力就绪后自动生效
+//
+// note 是选中后显示在分组下方的那句话，必须说清**取不到时会怎样**。
+// 「静默不出效果」是这一类功能最差的失败方式：用户会以为自己配坏了，
+// 然后反复去调一个本来就取不到信号的东西。
+const ANCHORS = [
+  {
+    id: 'screen', name: '屏幕', reach: 'now',
+    desc: '整块屏幕的边缘，和现在一样。',
+    note: '和当前运行时行为一致：字符从屏幕边飞入，与你正在用哪个窗口无关。',
+  },
+  {
+    id: 'window', name: '前台窗口', reach: 'now',
+    desc: '跟着你正在用的那个窗口，换窗口就跟着走。',
+    note: '窗口几何来自前台窗口快照，和应用规则用的是同一个数据源；取不到窗口时这一次回落到屏幕。',
+  },
+  {
+    id: 'caret', name: '文字插入点', reach: 'cap',
+    desc: '从光标插入点冒出来，跟着你打的字往右推。',
+    note: '需要读取插入点位置的系统能力。取不到的应用（终端、部分 Electron 应用）会回落到屏幕锚点，不会静默什么都不出——诊断面板里能看到这一次是否回落。',
+  },
+];
+const REACH_BADGE = {
+  now: '<span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-2xs font-medium text-emerald-800"><span class="size-1.5 rounded-full bg-emerald-500"></span>现在生效</span>',
+  cap: '<span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-slate-100 px-1.5 py-0.5 text-2xs font-medium text-slate-500" title="配置会保存下来；等运行时具备读取插入点的能力后自动生效">待系统能力</span>',
+};
 
 // ── QWERTY 归一化 X（镜像 key-layout-map.ts 的表）
 const LAYOUT_X = {};
@@ -454,9 +605,16 @@ function derive(base, kind, comboLevel) {
     else if (kind === 'modifier') n = { ...n, fontSize: base.fontSize * 0.72, duration: Math.round(base.duration * 0.55), opacity: Math.max(45, Math.round(base.opacity * 0.72)) };
     else if (kind === 'special') n = { ...n, fontSize: base.fontSize * 1.08, duration: Math.round(base.duration * 0.82), opacity: Math.min(100, base.opacity + 4) };
   }
+  // 节奏调制。原先三个系数硬编码在这里、界面上一个数都不给；
+  // 现在 g 是「强度」滑块（100% = 原系数），三个目标各自可关。
+  // g=0 时等于关掉——但开关仍然独立保留：0% 是「暂时不要」，关掉是「不用这套」，
+  // 前者会保留三个目标的选择，后者整段收起。
   if (base.typingCombo && kind === 'character' && comboLevel > 0) {
     const b = Math.min(comboLevel, 5);
-    n = { ...n, scale: n.scale * (1 + b * 0.035), opacity: Math.min(100, n.opacity + b * 2), glow: n.glow || b >= 3, glowRadius: Math.max(n.glowRadius, 6 + b * 2) };
+    const g = (base.comboGain ?? 100) / 100;
+    if (base.comboScale) n = { ...n, scale: n.scale * (1 + b * 0.035 * g) };
+    if (base.comboOpacity) n = { ...n, opacity: Math.min(100, n.opacity + b * 2 * g) };
+    if (base.comboGlow && b >= 3) n = { ...n, glow: true, glowRadius: Math.max(n.glowRadius, 6 + b * 2 * g) };
   }
   return n;
 }
@@ -465,36 +623,76 @@ function derive(base, kind, comboLevel) {
 const SCREEN_REF_W = 1440;
 let active = 0, combo = { count: 0, at: 0 }, lastKeyAt = {};
 
+/**
+ * 锚点框：所有位置计算的参照系，单位是 #screen 的局部像素。
+ *
+ * 三档锚点统一成同一个矩形，位置公式只写一份：
+ *   screen  整块屏幕
+ *   window  前台窗口的实测矩形
+ *   caret   插入点——**退化成零尺寸的框**
+ *
+ * 零尺寸这一步是关键：`A.x + A.w * offset` 在 w=0 时就等于 A.x，
+ * 于是「键位散开」「水平偏移」这些按比例算的项自动失效，不需要为 caret 写特例分支。
+ * 少一个分支就少一处将来会忘记同步的地方。
+ *
+ * 几何一律实测（getBoundingClientRect），不写死常量——README 教训：
+ * 时间轴播放头当初就是因为依赖常量而偏了 5px，改布局会再错一次。
+ */
+function anchorBox(c) {
+  const screen = $('screen');
+  const W = screen.clientWidth, H = screen.clientHeight;
+  if (c.anchor === 'screen') return { x: 0, y: 0, w: W, h: H };
+  const sr = screen.getBoundingClientRect();
+  if (c.anchor === 'window') {
+    const wr = $('fgWin').getBoundingClientRect();
+    return { x: wr.left - sr.left, y: wr.top - sr.top, w: wr.width, h: wr.height };
+  }
+  const cr = $('caretMark').getBoundingClientRect();
+  return { x: cr.left - sr.left + cr.width / 2, y: cr.top - sr.top + cr.height, w: 0, h: 0 };
+}
+
+/**
+ * 生效入场边。插入点锚点下四条边都没有意义（插入点是一个点，没有边），
+ * 统一按「向上冒出」处理——与界面上禁用「入场边」保持一致。
+ * 界面禁用而计算仍读旧值的话，会出现「控件是灰的但结果跟着它变」这种最难查的不一致。
+ */
+function effectiveEdge(c) {
+  return c.anchor === 'caret' ? 'bottom' : c.originEdge;
+}
+
 function render(label, code, c) {
   const screen = $('screen');
   const W = screen.clientWidth, H = screen.clientHeight;
   const S = W / SCREEN_REF_W;
   const fontSize = c.fontSize * c.scale * S;
   const half = fontSize / 2;
-  const edge = c.originEdge, vertical = edge === 'bottom' || edge === 'top';
+  const edge = effectiveEdge(c), vertical = edge === 'bottom' || edge === 'top';
   const layoutX = LAYOUT_X[code] ?? 0.5;
   let startX, startY, dx = 0, dy = 0;
   const bounce = c.animationStyle === 'bounce';
   const restDist = c.bounceHeight * S;
+  const A = anchorBox(c);
 
   if (edge === 'bottom') {
-    startX = c.originMapping === 'center' ? W * c.globalOffsetX : W * layoutX;
-    startY = H + half;
-    dy = bounce ? -(restDist + H * c.globalOffsetY + half) : -(H + fontSize * 2);
+    startX = A.x + (c.originMapping === 'center' ? A.w * c.globalOffsetX : A.w * layoutX);
+    startY = A.y + A.h + half;
+    dy = bounce ? -(restDist + A.h * c.globalOffsetY + half) : -(A.h + fontSize * 2);
   } else if (edge === 'top') {
-    startX = c.originMapping === 'center' ? W * c.globalOffsetX : W * layoutX;
-    startY = -half;
-    dy = bounce ? (restDist + H * c.globalOffsetY + half) : (H + fontSize * 2);
+    startX = A.x + (c.originMapping === 'center' ? A.w * c.globalOffsetX : A.w * layoutX);
+    startY = A.y - half;
+    dy = bounce ? (restDist + A.h * c.globalOffsetY + half) : (A.h + fontSize * 2);
   } else if (edge === 'left') {
-    startX = -half;
-    startY = c.originMapping === 'center' ? H * c.globalOffsetY : H * 0.5;
-    dx = bounce ? (restDist + W * c.globalOffsetX + half) : (W + fontSize * 2);
+    startX = A.x - half;
+    startY = A.y + (c.originMapping === 'center' ? A.h * c.globalOffsetY : A.h * 0.5);
+    dx = bounce ? (restDist + A.w * c.globalOffsetX + half) : (A.w + fontSize * 2);
   } else {
-    startX = W + half;
-    startY = c.originMapping === 'center' ? H * c.globalOffsetY : H * 0.5;
-    dx = bounce ? -(restDist + W * c.globalOffsetX + half) : -(W + fontSize * 2);
+    startX = A.x + A.w + half;
+    startY = A.y + (c.originMapping === 'center' ? A.h * c.globalOffsetY : A.h * 0.5);
+    dx = bounce ? -(restDist + A.w * c.globalOffsetX + half) : -(A.w + fontSize * 2);
   }
-  const jitter = (Math.random() * 40 - 20) * S;
+  // 插入点锚点不加抖动：这一档的全部意义就是「精确出现在你打字的那个位置」，
+  // 抖开就退化成又一个随机位置的飘字了。
+  const jitter = c.anchor === 'caret' ? 0 : (Math.random() * 40 - 20) * S;
   if (vertical) dy += dy >= 0 ? jitter : -jitter; else dx += dx >= 0 ? jitter : -jitter;
 
   const el = document.createElement('div');
@@ -561,6 +759,25 @@ function syncCombo(level) {
   document.querySelectorAll('.combo-dot').forEach((d, i) => {
     d.className = 'combo-dot size-1.5 rounded-full ' + (i < level ? 'bg-emerald-500' : 'bg-slate-200');
   });
+  // 调制节的「当前档位」：把连击级别换算成实际加成，
+  // 光有一排点看不出它到底改了多少。三个目标全关时说清是空转，
+  // 否则会出现「点亮了 4 级但画面毫无变化」这种看起来像坏了的状态。
+  const out = $('liveGain');
+  if (!out) return;
+  const g = cfg.comboGain / 100;
+  const anyTarget = cfg.comboScale || cfg.comboOpacity || cfg.comboGlow;
+  if (!cfg.typingCombo) out.textContent = '已关闭';
+  else if (!level) out.textContent = '未在连打';
+  else if (!anyTarget || cfg.comboGain === 0) out.textContent = `${level} 级 · 没有作用目标`;
+  else {
+    const parts = [];
+    if (cfg.comboScale) parts.push(`字号 +${(level * 3.5 * g).toFixed(1)}%`);
+    if (cfg.comboOpacity) parts.push(`不透明度 +${Math.round(level * 2 * g)}`);
+    if (cfg.comboGlow && level >= 3) parts.push('发光');
+    out.textContent = `${level} 级 · ${parts.join(' · ')}`;
+  }
+  out.className = 'text-2xs font-semibold tabular-nums '
+    + (cfg.typingCombo && level ? 'text-slate-700' : 'text-slate-400');
 }
 function flashLegend(kind) {
   document.querySelectorAll('.legend-row').forEach((row) => {
@@ -603,49 +820,58 @@ $('screen').addEventListener('click', () => $('screen').focus());
 
 // ── 停留位置手柄
 function handlePos() {
-  const screen = $('screen'), W = screen.clientWidth, H = screen.clientHeight;
-  const edge = cfg.originEdge, layout = cfg.originMapping === 'keyboardLayout';
+  const screen = $('screen'), W = screen.clientWidth;
+  const A = anchorBox(cfg);
+  const H = A.h;
+  const edge = effectiveEdge(cfg), layout = cfg.originMapping === 'keyboardLayout';
   const rain = cfg.animationStyle === 'raindrop';
   if (edge === 'bottom' || edge === 'top') {
-    const x = layout ? W * 0.5 : W * cfg.globalOffsetX;
+    const x = A.x + (layout ? A.w * 0.5 : A.w * cfg.globalOffsetX);
     const d = rain ? 0 : cfg.bounceHeight * (W / SCREEN_REF_W) + H * cfg.globalOffsetY;
-    return { x, y: edge === 'bottom' ? H - d : d };
+    return { x, y: A.y + (edge === 'bottom' ? H - d : d) };
   }
   // 横向入场：键位映射是**横向**位置映射，对纵轴没有语义，所以这里回落到
   // globalOffsetY（= center 行为），而不是钉在屏幕中线。
   // 这与运行时 key-feedback.ts 的修法一致——那边原先硬编码 screenH * 0.5，
   // 导致 globalOffsetY 被静默忽略、控件点了没反应。稿子必须与之同步，
   // 否则重构时会照着稿子把那个缺陷重新实现一遍。
-  const y = H * cfg.globalOffsetY;
-  const d = rain ? 0 : cfg.bounceHeight * (W / SCREEN_REF_W) + W * cfg.globalOffsetX;
-  return { x: edge === 'left' ? d : W - d, y };
+  const y = A.y + H * cfg.globalOffsetY;
+  const d = rain ? 0 : cfg.bounceHeight * (W / SCREEN_REF_W) + A.w * cfg.globalOffsetX;
+  return { x: A.x + (edge === 'left' ? d : A.w - d), y };
 }
 function syncHandle() {
   const p = handlePos(), h = $('restHandle');
   h.style.left = p.x + 'px'; h.style.top = p.y + 'px';
   const rain = cfg.animationStyle === 'raindrop';
   const layout = cfg.originMapping === 'keyboardLayout';
+  const caret = cfg.anchor === 'caret';
   const word = rain ? '起始位置' : '停留位置';
   // 只有纵向入场时键位才决定横向；横向入场时它完全不起作用，
   // 再挂这句会让人以为键位仍在生效，然后反复去调一个空操作。
-  const verticalEntry = cfg.originEdge === 'bottom' || cfg.originEdge === 'top';
-  $('restLabel').textContent = word + (layout && verticalEntry ? '（键位决定横向）' : '');
+  // 插入点锚点同理——那一档横向由插入点决定，键位映射也是空操作。
+  const verticalEntry = effectiveEdge(cfg) === 'bottom' || effectiveEdge(cfg) === 'top';
+  $('restLabel').textContent = word + (layout && verticalEntry && !caret ? '（键位决定横向）' : '');
   $('handleHintWord').textContent = word;
-  h.classList.toggle('hidden', rain && layout);
+  // 插入点锚点下位置不可拖：位置是插入点给的，留一个能拖但拖了没用的手柄
+  // 就是又一个「点了没反应的死控件」。
+  h.classList.toggle('hidden', (rain && layout) || caret);
   // 键位散开带
   const band = $('spreadBand'), screen = $('screen');
-  const vertical = cfg.originEdge === 'bottom' || cfg.originEdge === 'top';
-  const show = layout && vertical;
+  const vertical = effectiveEdge(cfg) === 'bottom' || effectiveEdge(cfg) === 'top';
+  const show = layout && vertical && !caret;
   band.classList.toggle('hidden', !show);
   if (show) {
-    const W = screen.clientWidth, H = screen.clientHeight, S = W / SCREEN_REF_W;
+    const A2 = anchorBox(cfg);
+    const W = screen.clientWidth, S = W / SCREEN_REF_W;
     const fs = cfg.fontSize * S;
-    band.style.left = '0px'; band.style.width = W + 'px';
+    // 散开带跟着锚点框走：窗口锚点下键位是在**窗口宽度**里铺开的，
+    // 仍然按整屏画会让预览和实际落点不一致。
+    band.style.left = A2.x + 'px'; band.style.width = A2.w + 'px';
     band.style.height = (fs * 1.6) + 'px';
     // 雨滴贯穿整屏、没有停留点，把散开带贴在入场边内侧显示，
-    // 否则 p.y 会落在 0 或 H 上、字样一半跑到画框外。
+    // 否则 p.y 会落在锚点框的上/下沿上、字样一半跑到框外。
     const bandCenter = cfg.animationStyle === 'raindrop'
-      ? (cfg.originEdge === 'top' ? fs * 1.2 : H - fs * 1.2)
+      ? (cfg.originEdge === 'top' ? A2.y + fs * 1.2 : A2.y + A2.h - fs * 1.2)
       : p.y;
     band.style.top = (bandCenter - fs * 0.8) + 'px';
     $('bandSamples').innerHTML = ['KeyQ','KeyE','KeyT','KeyU','KeyO','KeyP'].map((code, i) => {
@@ -660,18 +886,23 @@ window.addEventListener('mouseup', () => { if (dragging) { dragging = false; toa
 window.addEventListener('mousemove', (e) => {
   if (!dragging) return;
   const screen = $('screen'), r = screen.getBoundingClientRect();
-  const W = screen.clientWidth, H = screen.clientHeight, S = W / SCREEN_REF_W;
-  const x = Math.max(0, Math.min(W, e.clientX - r.left));
-  const y = Math.max(0, Math.min(H, e.clientY - r.top));
-  const edge = cfg.originEdge, layout = cfg.originMapping === 'keyboardLayout';
+  const S = screen.clientWidth / SCREEN_REF_W;
+  // 拖拽要换算回**锚点框内**的归一化偏移，不是屏幕内的。
+  // 用屏幕算的话，窗口锚点下拖到窗口中央会存成 0.5，而 0.5 是相对窗口的——
+  // 换个窗口大小位置就全跑了。归一化的参照系必须和读取时一致。
+  const A = anchorBox(cfg);
+  if (A.w <= 0 || A.h <= 0) return;
+  const x = Math.max(A.x, Math.min(A.x + A.w, e.clientX - r.left)) - A.x;
+  const y = Math.max(A.y, Math.min(A.y + A.h, e.clientY - r.top)) - A.y;
+  const edge = effectiveEdge(cfg), layout = cfg.originMapping === 'keyboardLayout';
   if (edge === 'bottom' || edge === 'top') {
-    if (!layout) cfg.globalOffsetX = x / W;
-    const d = edge === 'bottom' ? H - y : y;
-    cfg.globalOffsetY = Math.max(0, (d - cfg.bounceHeight * S) / H);
+    if (!layout) cfg.globalOffsetX = x / A.w;
+    const d = edge === 'bottom' ? A.h - y : y;
+    cfg.globalOffsetY = Math.max(0, (d - cfg.bounceHeight * S) / A.h);
   } else {
-    if (!layout) cfg.globalOffsetY = y / H;
-    const d = edge === 'left' ? x : W - x;
-    cfg.globalOffsetX = Math.max(0, (d - cfg.bounceHeight * S) / W);
+    if (!layout) cfg.globalOffsetY = y / A.h;
+    const d = edge === 'left' ? x : A.w - x;
+    cfg.globalOffsetX = Math.max(0, (d - cfg.bounceHeight * S) / A.w);
   }
   syncHandle();
 });
@@ -723,7 +954,34 @@ function buildEdges() {
   $('edgeRow').innerHTML = EDGES.map(([v, l]) => `<button data-edge2="${v}" class="edge-chip">${l}</button>`).join('');
   document.querySelectorAll('[data-edge2]').forEach((b) => b.addEventListener('click', () => setEdge(b.dataset.edge2)));
 }
+// 锚点用 mode-card（03「默认行为」同一套单选卡），而不是分段控件：
+// 每一档要带自己的可达性徽标和一句说明，分段控件塞不下，
+// 而且分段控件只有选中后才能看到那一档的状态——「待系统能力」必须**选之前**就看得见。
+function buildAnchors() {
+  $('anchorGroup').innerHTML = ANCHORS.map((a) => `
+    <button data-anchor="${a.id}" class="mode-card w-full">
+      <span class="mode-dot"></span>
+      <span class="min-w-0 flex-1">
+        <span class="flex items-center gap-1.5">
+          <span class="block text-xs font-medium text-slate-900">${a.name}</span>
+          ${REACH_BADGE[a.reach]}
+        </span>
+        <span class="mt-1 block text-2xs leading-relaxed text-slate-500">${a.desc}</span>
+      </span>
+    </button>`).join('');
+  document.querySelectorAll('[data-anchor]').forEach((b) => b.addEventListener('click', () => {
+    const before = { ...cfg };
+    cfg.anchor = b.dataset.anchor;
+    syncAll();
+    toast(`已切到「${ANCHORS.find((a) => a.id === cfg.anchor).name}」锚点`, before);
+  }));
+}
 function setEdge(edge) {
+  // 单一漏斗上的守卫。入场边有两个入口（右栏 chip + 舞台四周按钮），
+  // 而 `pointer-events-none` 只挡鼠标——按钮仍在 tab 序里，键盘用户 Enter 一下照旧改得动。
+  // 光靠 CSS 禁用会留下一个「界面说不适用、键盘却能改」的洞，
+  // 所以真值判断放在这里，将来新增入口也不会漏。视觉禁用与 disabled 属性在 syncAll 里。
+  if (cfg.anchor === 'caret') return;
   const before = { ...cfg };
   cfg.originEdge = edge;
   syncAll(); toast('已更新入场边', before);
@@ -738,8 +996,16 @@ document.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('clic
 document.querySelectorAll('[data-wall]').forEach((b) => b.addEventListener('click', () => { cfg._wall = b.dataset.wall; syncAll(); }));
 document.querySelectorAll('[data-flag]').forEach((b) => b.addEventListener('click', () => {
   const before = { ...cfg };
-  const key = { modifiers: 'showModifierKeys', combo: 'typingCombo', uppercase: 'uppercase' }[b.dataset.flag];
+  const key = { modifiers: 'showModifierKeys', uppercase: 'uppercase' }[b.dataset.flag];
   cfg[key] = !cfg[key]; syncAll(); toast('已更新', before);
+}));
+$('comboToggle').addEventListener('click', () => {
+  const before = { ...cfg }; cfg.typingCombo = !cfg.typingCombo; syncAll(); toast('已更新调制', before);
+});
+document.querySelectorAll('[data-mod]').forEach((b) => b.addEventListener('click', () => {
+  const before = { ...cfg };
+  const key = { scale: 'comboScale', opacity: 'comboOpacity', glow: 'comboGlow' }[b.dataset.mod];
+  cfg[key] = !cfg[key]; syncAll(); toast('已更新作用目标', before);
 }));
 $('semanticToggle').addEventListener('click', () => { const before = { ...cfg }; cfg.semanticStyles = !cfg.semanticStyles; syncAll(); toast('已更新语义分层', before); });
 $('glowToggle').addEventListener('click', () => { const before = { ...cfg }; cfg.glow = !cfg.glow; syncAll(); toast('已更新发光', before); });
@@ -760,6 +1026,7 @@ const SLIDER_SPEC = [
   ['durRange', 'duration', 'durReadout'],
   ['coolRange', 'cooldownMs', 'coolReadout'],
   ['maxRange', 'maxSimultaneous', 'maxReadout'],
+  ['gainRange', 'comboGain', 'gainReadout'],
 ];
 SLIDER_SPEC.forEach(([id, key, out]) => {
   SL[id] = Ctl.slider($(id), {
@@ -847,14 +1114,76 @@ function syncAll() {
   document.querySelectorAll('[data-mode]').forEach((b) => b.className = 'seg-item flex-1 justify-center' + (b.dataset.mode === cfg.keyDisplayMode ? ' seg-item-on' : ''));
   document.querySelectorAll('[data-wall]').forEach((b) => b.className = 'seg-item' + ((cfg._wall || 'light') === b.dataset.wall ? ' seg-item-on' : ''));
 
-  // 键位散开只在上／下入场时生效——运行时对左／右入场忽略键位映射，这里如实禁用
-  const spreadOk = vertical;
+  // ── 锚点：三档的联动
+  const caret = cfg.anchor === 'caret';
+  const anchorMeta = ANCHORS.find((a) => a.id === cfg.anchor) || ANCHORS[0];
+  document.querySelectorAll('[data-anchor]').forEach((b) => {
+    const on = b.dataset.anchor === cfg.anchor;
+    b.className = 'mode-card w-full' + (on ? ' mode-card-on' : '');
+    b.querySelector('.mode-dot').className = 'mode-dot' + (on ? ' mode-dot-on' : '');
+  });
+  $('anchorNote').textContent = anchorMeta.note;
+  // 前台窗口框只在 window / caret 两档点亮；插入点那一行只在 caret 档出现。
+  // caret 档也显示窗口框，是因为插入点必然在某个窗口里——只画一根竖线会让人
+  // 看不出它属于谁，而「属于哪个窗口」正是这一档要表达的内容关系。
+  $('fgWin').classList.toggle('hidden', cfg.anchor === 'screen');
+  $('caretRow').classList.toggle('hidden', !caret);
+  $('caretRow').classList.toggle('flex', caret);
+  $('stageHint').classList.toggle('opacity-50', caret);
+
+  // 入场边：插入点是一个点，没有边可选，如实禁用而不是留一个点了没反应的控件。
+  //
+  // 入场边有**两个**入口：右栏这一组 chip，和舞台四周那四个 edge-btn。
+  // 只禁用右栏的话，舞台上那四个照旧能点、还真能改 originEdge，
+  // 于是出现「控件是灰的但结果跟着另一个入口变」——比不禁用更难查。
+  // 同一个值的所有入口必须一起禁用。
+  $('edgeField').classList.toggle('opacity-50', caret);
+  $('edgeField').classList.toggle('pointer-events-none', caret);
+  $('edgeNote').textContent = caret ? '插入点锚点下不适用' : '';
+  // disabled 而不是只靠 pointer-events：前者会同时把按钮移出 tab 序，
+  // 后者只挡鼠标。两个入口都要设。
+  document.querySelectorAll('[data-edge]').forEach((b) => {
+    b.classList.toggle('opacity-50', caret);
+    b.disabled = caret;
+  });
+  document.querySelectorAll('[data-edge2]').forEach((b) => { b.disabled = caret; });
+
+  // 键位散开只在上／下入场时生效——运行时对左／右入场忽略键位映射，这里如实禁用。
+  // 插入点锚点下横向由插入点决定，键位映射同样是空操作。
+  const spreadOk = vertical && !caret;
   $('spreadSeg').classList.toggle('opacity-50', !spreadOk);
   $('spreadSeg').classList.toggle('pointer-events-none', !spreadOk);
-  $('spreadNote').textContent = spreadOk ? '' : '仅上／下入场可用';
-  $('spreadHint').textContent = spreadOk
-    ? '按 QWERTY 键位把字符横向铺开：按 Q 出现在左边，按 P 出现在右边。'
-    : '左／右入场时字符固定在垂直中线附近，键位散开不生效。';
+  // 同上：分段控件的两个按钮也要真 disabled，不能只靠父级 pointer-events
+  document.querySelectorAll('[data-spread]').forEach((b) => { b.disabled = !spreadOk; });
+  $('spreadNote').textContent = caret ? '由插入点决定' : (spreadOk ? '' : '仅上／下入场可用');
+  $('spreadHint').textContent = caret
+    ? '字符的横向位置就是插入点所在的位置，键位散开不生效。'
+    : (spreadOk
+      ? '按 QWERTY 键位把字符横向铺开：按 Q 出现在左边，按 P 出现在右边。'
+      : '左／右入场时字符固定在垂直中线附近，键位散开不生效。');
+
+  // 「离锚点多远」在三档下是同一个数，但说法必须跟着锚点改
+  $('restFieldLabel').textContent = caret ? '离插入点距离' : '停留距离';
+  $('restFieldHint').textContent = caret
+    ? '字符从插入点冒出后停在多远的位置，0 就是原地浮现。'
+    : (cfg.anchor === 'window'
+      ? '字符飞入后停在距窗口边多远的位置。'
+      : '字符飞入后停在距入场边多远的位置。');
+
+  // ── 调制
+  knob($('comboKnob'), cfg.typingCombo);
+  $('comboToggleText').textContent = cfg.typingCombo ? '已开启' : '已关闭';
+  $('comboBody').classList.toggle('hidden', !cfg.typingCombo);
+  document.querySelectorAll('[data-mod]').forEach((b) => {
+    const key = { scale: 'comboScale', opacity: 'comboOpacity', glow: 'comboGlow' }[b.dataset.mod];
+    b.querySelector('.switch-knob').className = 'switch-knob' + (cfg[key] ? ' switch-on' : '');
+  });
+  // 三个目标全关 = 开关开着但什么都不会发生。这种「开了等于没开」的状态
+  // 必须当场说出来，否则用户会以为是坏的（走查里同一类问题已经出现过：白名单下的「关闭」）。
+  const noTarget = !cfg.comboScale && !cfg.comboOpacity && !cfg.comboGlow;
+  $('modTargetNote').textContent = noTarget
+    ? '三项都关掉了——调制开着但不会有任何变化。'
+    : (cfg.comboGain === 0 ? '强度为 0——目标已选，但当前没有加成。' : '');
 
   $('restField').classList.toggle('hidden', rain);
   $('rainFields').classList.toggle('hidden', !rain);
@@ -871,6 +1200,7 @@ function syncAll() {
   put('coolRange', 'coolReadout', cfg.cooldownMs);
   put('maxRange', 'maxReadout', cfg.maxSimultaneous);
   put('glowRange', 'glowReadout', cfg.glowRadius);
+  put('gainRange', 'gainReadout', cfg.comboGain);
   SEL.weight?.set(cfg.fontWeight); SEL.family?.set(cfg.fontFamily); SEL.easing?.set(cfg.easing);
 
   $('glowFields').classList.toggle('hidden', !cfg.glow);
@@ -879,7 +1209,7 @@ function syncAll() {
   knob($('enableKnob'), cfg.enabled);
   $('semanticToggle').lastElementChild.textContent = cfg.semanticStyles ? '已开启' : '已关闭';
   document.querySelectorAll('[data-flag]').forEach((b) => {
-    const key = { modifiers: 'showModifierKeys', combo: 'typingCombo', uppercase: 'uppercase' }[b.dataset.flag];
+    const key = { modifiers: 'showModifierKeys', uppercase: 'uppercase' }[b.dataset.flag];
     b.querySelector('.switch-knob').className = 'switch-knob' + (cfg[key] ? ' switch-on' : '');
   });
   $('modeHint').innerHTML = cfg.keyDisplayMode === 'typed'
@@ -907,6 +1237,9 @@ function syncAll() {
     : '<div class="absolute inset-x-0 top-0 h-5 bg-white/70"></div><div class="absolute left-8 top-12 h-40 w-64 rounded-lg border border-slate-200 bg-white/80"></div><div class="absolute right-10 top-24 h-48 w-72 rounded-lg border border-slate-200 bg-white/60"></div><div class="absolute inset-x-0 bottom-0 h-8 bg-white/50"></div>';
 
   syncCount(); syncHandle();
+  // 「当前档位」要跟着开关和目标变化立刻更新，不能等下一次按键——
+  // 关掉调制后那行还写着「4 级 · 字号 +14%」就是在说谎。
+  syncCombo(Math.min(Math.max(0, combo.count - 1), 5));
 }
 function knob(el, on) {
   el.className = 'relative inline-flex h-4 w-7 shrink-0 items-center rounded-full ' + (on ? 'bg-slate-950' : 'bg-slate-300');
@@ -929,7 +1262,7 @@ function onProtoState(s) {
   syncAll();
 }
 
-buildPresets(); buildColors(); buildEdges();
+buildPresets(); buildColors(); buildEdges(); buildAnchors();
 </script>
 </body>
 </html>

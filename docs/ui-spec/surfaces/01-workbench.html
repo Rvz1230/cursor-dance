@@ -223,12 +223,17 @@
 <script src="../shell.js"></script>
 <script>
 mountShell({ active: 'workbench', mainClass: 'flex min-w-0 flex-1 flex-col overflow-hidden bg-slate-50',
-  proto: [['normal', '① 常规'], ['collapsed', '② 侧边栏折叠'], ['cmdk', '③ 命令面板 ⌘K']],
+  // ① 是**默认态**，而默认态现在是侧栏收起的。原先 ① 硬调 setSidebar(false)、
+  // ② 才是折叠——那是「默认展开」时代的分法。改默认值之后这里必须跟着反转，
+  // 否则页面一加载就被原型状态把外壳默认值覆盖掉（实测 sidebarClosed 被写回 false、
+  // 侧栏仍是 248px），而看起来像是「默认收起没生效」。
+  // **原型状态是页面级的最后一道写入，它会盖住外壳的默认值** —— 改默认值时必须连它一起查。
+  proto: [['normal', '① 常规（侧栏收起）'], ['expanded', '② 侧栏展开'], ['cmdk', '③ 命令面板 ⌘K']],
   hint: '舞台可点击触发 · 拖播放头定格 · 拖色块到锚点建立链接 · 预设 chip 可点 · ⌘Z 撤销',
   onProto: (id) => {
-    if (id === 'collapsed') setSidebar(true);
-    else if (id === 'cmdk') { setSidebar(false); toggleCmdk(true); }
-    else { setSidebar(false); toggleCmdk(false); }
+    if (id === 'expanded') { setSidebar(false); toggleCmdk(false); }
+    else if (id === 'cmdk') { setSidebar(true); toggleCmdk(true); }
+    else { setSidebar(true); toggleCmdk(false); }
   } });
 // 布局预设 + 自由拖拽：外壳出按钮，页面出实现（列宽是页面自己的事）
 //
@@ -238,8 +243,21 @@ mountShell({ active: 'workbench', mainClass: 'flex min-w-0 flex-1 flex-col overf
 const LAYOUTS = { config: [1.6, 1], split: [1, 1], preview: [0.8, 1.7] };
 const COL_MIN = 0.62, COL_MAX = 1.9;
 const clampCol = (v) => Math.min(COL_MAX, Math.max(COL_MIN, v));
-let weights = [...LAYOUTS.config];
-let layout = 'config';
+/**
+ * 初始布局改成 `split`（1 : 1），不再是 `config`（1.6 : 1）。
+ *
+ * 1.6 : 1 是在 1440px 基准 + 侧栏展开的年代定的。放到今天的默认组合
+ * （960px 窗口 + 侧栏收起 → 主区 898px）上算：配置列 550、预览列 344。
+ * 配置列 550px 远超它需要的宽度（一张效果卡的字段行 340px 就够），
+ * 而预览列要同时装舞台（min 240）+ 传输控件 + 输出行，344px 一直在临界点上——
+ * 之前「本次输出」被压成竖排单字、工具条散落成两行，根子都在这个初始比例。
+ * 1 : 1 给出 447 / 447：配置列仍宽裕，预览列多出 100px，工具条能排一行。
+ *
+ * 三个预设都留着——它们是「我这一刻在干什么」的快捷档（改参数 / 看效果），
+ * 只是**默认不该落在最偏的那一档**。
+ */
+let weights = [...LAYOUTS.split];
+let layout = 'split';
 
 /**
  * 权重是比例，而比例在窄窗口下会把某一列压到不可用——**必须再按像素下限夹一道**。
