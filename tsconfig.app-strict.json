@@ -2,6 +2,7 @@
   "extends": "./tsconfig.strict.json",
   "include": [
     "src/vite-env.d.ts",
+    "src/app/pages/theme-workbench/hooks/editing/workbenchDraftUpdates.ts",
     "src/app/pages/theme-workbench/hooks/persistence/workbenchEditorHydration.ts",
     "src/app/pages/theme-workbench/hooks/persistence/workbenchPersistenceTypes.ts",
     "src/app/pages/theme-workbench/hooks/state/workbenchEditorReducer.ts",
@@ -9,6 +10,7 @@
     "src/app/pages/theme-workbench/hooks/state/workbenchRulesReducer.ts",
     "src/app/pages/theme-workbench/hooks/state/workbenchStateOperations.ts",
     "src/app/pages/theme-workbench/hooks/workbenchStateTypes.ts",
+    "src/app/pages/theme-workbench/hooks/workbenchRuleCommands.ts",
     "src/app/pages/theme-workbench/hooks/workbenchThemeSelectors.ts",
     "src/app/pages/theme-workbench/hooks/useWorkbenchUndo.ts",
     "src/app/pages/theme-workbench/components/cursor-skin/cursorSkinModel.ts",
