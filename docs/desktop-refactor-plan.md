@@ -1,11 +1,11 @@
 # CursorDance 桌面端重构与代码精简计划
 
-> 状态：In Progress  
+> 状态：工程重构已完成；签名、公证与跨平台发布验收待外部环境
 > 创建日期：2026-07-28  
-> 最近更新：2026-07-30
+> 最近更新：2026-08-06
 >
 > 适用范围：`src/desktop/`、桌面端使用的 `src/app/` 共享 UI、配置模型、效果引擎、桌面构建与发布链路  
-> 关联文档：[`ARCHITECTURE.md`](../ARCHITECTURE.md)、[`PROGRESS.md`](../PROGRESS.md)、[`docs/bug-fix-plan.md`](./bug-fix-plan.md)
+> 关联文档：[`ARCHITECTURE.md`](../ARCHITECTURE.md)、[`PROGRESS.md`](../PROGRESS.md)、[`docs/archive/desktop-bug-fix-plan-2026-06.md`](./archive/desktop-bug-fix-plan-2026-06.md)
 
 ## 0. 执行状态
 
@@ -30,7 +30,7 @@
 | R4-2 EffectRuntime adapters | 已完成 | 桌面四类 adapter 已接入；共享 state machine 统一 timing、throttle、run/combo 状态推进与 output plan |
 | R4-3 扩展正式构建 | 已完成 | manifest 已收敛到单一 Vite content bundle；真实 Chromium smoke 覆盖注入、效果触发、扩展页面与 CSP |
 | R4-4 删除旧引擎 | 已完成 | 扩展 runtime、config store、composition root 与共享默认配置均已迁为 TypeScript；legacy IIFE 和动态注册链清零 |
-| R5-1 拆分 `AiSchemePanel` | 已完成 | 展示、请求、会话持久化与提案审阅已拆分；主文件由 1,388 行降至 458 行，并删除无消费者的非流式桌面 AI transport |
+| R5-1 拆分 AI 助手 | 已完成 | 展示、请求、会话持久化与提案审阅已拆分；组合层现为 `AiAssistantPanel`，并删除无消费者的非流式桌面 AI transport |
 | R5-2 拆分 `WorkbenchPreviewRail` | 已完成 | 播放、timeline、舞台与 pointer interaction 已拆分；预览直接使用 shared runtime，app → desktop 依赖归零，主文件由 933 行降至 83 行 |
 | R5-3 收敛 Workbench state | 已完成 | editor navigation 与 config dirty/live-preview 边界已分离；AI 预览/撤销、列宽拖拽、桌面欢迎/授权 runtime 均已提取为场景 hook |
 | R5-4 无用代码清理 | 已完成 | 删除 9 个孤立文件和 3 个无调用导出，净删除 729 行；通用 UI 转发与过时任务编号已清零 |
@@ -38,18 +38,11 @@
 
 当前验证基线：
 
-- `npm run typecheck` 通过。
-- `npm run lint` 通过（0 error；共享旧代码的 15 条显式 `any` 暂作为 warning 逐步收紧）。
-- `npm run check:dead-code` 通过；未引用文件、依赖、导出和导出类型检查已进入 CI。
-- Vitest 78 个测试文件、375 个测试通过；删除的数量来自孤立功能专用测试与 legacy/parity 镜像用例清理，不再为无生产消费者的代码保留测试。
-- API 178 个测试通过。
-- 根 Web、landing、Electron main/preload/renderer 构建通过。
-- 根项目、landing、Electron Vite、Vitest 均复用 Vite 7.3.6。
-- Electron smoke 已在 macOS 实跑通过并接入 Linux CI；除生命周期外，已覆盖应用规则禁用与清空后即时恢复，以及点击只进入目标显示器 overlay 的真实消费路径。测试使用隔离 userData，并禁用全局输入、托盘、AI 服务和更新器等真机副作用。
-- 静态重构基线已记录在 [`docs/desktop-refactor-baseline.md`](./desktop-refactor-baseline.md)：生产代码 25,237 有效行，renderer 输出约 2.01 MiB，默认配置 JSON 约 43.9 KiB。
-- 动态基线已在双显示器 Mac 上实测：Workbench ready 1,127.2 ms，空闲主进程 CPU 0.198%，总工作集约 832.9 MiB，1,000 Hz 目标实际达到 998.997 Hz。
-- R1-5/R1-6 清理后 renderer 输出由 2,106,709 bytes 降至 2,041,583 bytes，减少 65,126 bytes（约 3.1%），且不再生成 popup HTML/JS 产物。
-- npm audit 当前报告 27 个依赖漏洞，需单独分类生产依赖与开发/打包依赖；不得直接运行 `npm audit fix --force`。
+- `npm run typecheck`、`typecheck:strict`、`lint`、`check:dead-code`、`check:conventions`、`check:design-tokens` 和 `check:ui-spec` 通过。
+- Vitest 93 个测试文件、480 项测试通过。
+- Web smoke 6/6、Desktop smoke 1/1 通过。
+- Web、扩展 content runtime、Electron main/preload/renderer 构建与双端 bundle budget 通过。
+- 历史静态与动态测量保留在 [`docs/desktop-refactor-baseline.md`](./desktop-refactor-baseline.md)；这些数值是重构前/阶段性对照，不作为当前产物大小真值。
 
 ## 1. 背景与结论
 
@@ -96,7 +89,7 @@ CursorDance 当前已经具备 Electron 主进程、preload、Workbench、透明
 - 扩展与桌面重复效果引擎代码减少至少 60%。
 - 平台适配代码保留在 500–800 行以内，通用算法进入共享核心。
 - 删除所有无入口 renderer、无调用模块和重复配置别名的写入路径。
-- `AiSchemePanel.tsx`、`WorkbenchPreviewRail.tsx` 不再同时承担网络、状态机、持久化和展示职责。
+- `AiAssistantPanel.tsx`、`WorkbenchPreviewRail.tsx` 不再同时承担网络、状态机、持久化和展示职责。
 - 新增业务模块原则上不超过 400 行；超过时必须说明为何拆分会损害内聚性。
 - 不以创建大量一两行文件来“达成行数指标”。
 
@@ -808,12 +801,12 @@ interface AudioOutput {
 
 目标：降低 UI 修改成本，并兑现代码量下降。
 
-### R5-1：拆分 `AiSchemePanel`
+### R5-1：拆分 AI 助手（现 `AiAssistantPanel`）
 
 建议职责：
 
 ```text
-AiSchemePanel              # 组合层
+AiAssistantPanel           # 组合层
   useAiConversation        # 会话状态
   useAiProposalRun         # 请求、取消、流式事件
   useAiProposalReview      # diff、应用、放弃
@@ -839,7 +832,7 @@ AiSchemePanel              # 组合层
 - 会话首次加载、动作切换、清空、防抖保存和过期清理由 `useAiConversation` 统一管理；load revision 会丢弃快速切换产生的迟到结果，hydration 前不会自动覆盖存储。
 - 提案预览、应用、放弃、撤销和成功摘要由 `useAiProposalReview` 统一管理，多动作、diff 摘要与兜底文案有直接单测。
 - 桌面与 renderer 已删除无生产消费者的非流式 `createProposal` contract；快速提案只保留可取消的流式 transport，底层 API client 的独立公共能力不受影响。
-- `AiSchemePanel.tsx` 从 1,388 行降至 458 行；Web smoke 覆盖 AI 面板开关、初始消息、模式切换、卸载后恢复与输入面。
+- AI 助手组合层从当时的 `AiSchemePanel.tsx` 1,388 行降至 458 行，后续统一命名为 `AiAssistantPanel.tsx`；Web smoke 覆盖面板开关、初始消息、模式切换、卸载后恢复与输入面。
 - 73 个根测试文件共 353 项通过；typecheck、lint（0 error，保留既有 22 warning）、Web/扩展/Electron build、Web smoke 6/6 与 desktop smoke 1/1 通过。
 - R5-1 完成，下一段进入 R5-2 `WorkbenchPreviewRail` 拆分。
 

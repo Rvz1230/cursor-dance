@@ -1,13 +1,12 @@
 # 主题库手动验证清单
 
-更新日期：2026-05-11
+更新日期：2026-08-06
 
 使用本清单在本地工作台 `http://localhost:5173/` 中验证新的主题库流程。
 
 ## 测试数据
 
-- 导入样本：
-  - [theme-import-sample.json](/Users/rvz/Projects/cursor-dance/docs/theme-import-sample.json)
+不依赖仓库外的固定样例。流程 B 会从当前版本导出一份 schema v4 主题 JSON，流程 C 再导入同一文件，从而同时验证导出与导入契约。
 
 ## 流程 A：新建主题
 
@@ -30,6 +29,8 @@
 2. 将「起始模板」设为任意已有主题，例如「木鱼方案」。
 3. 命名为 `Woodfish Clone Check`。
 4. 点击「创建主题」。
+5. 切换到 `doubleClick`，将触发时机设为「第二次抬起后」、波纹样式设为「柔和面波」、粒子形态设为「火花」。
+6. 保存后，从主题菜单导出当前主题，并保留下载的 JSON 文件供流程 C 使用。
 
 预期结果：
 
@@ -40,13 +41,13 @@
 ## 流程 C：导入主题 JSON
 
 1. 点击「导入」。
-2. 选择 [theme-import-sample.json](/Users/rvz/Projects/cursor-dance/docs/theme-import-sample.json)。
+2. 选择流程 B 导出的 schema v4 主题 JSON。
 
 预期结果：
 
-- 导入的主题以 `Mint Lab Demo` 的名称出现在列表中。
+- 导入的主题以导出时的名称出现在列表中，并使用新的唯一主题 id。
 - 导入的主题自动被选中。
-- `leftClick`、`doubleClick`、`wheel` 和 `hover` 配置显示文件中的非默认值。
+- `doubleClick` 的触发时机、波纹和粒子配置与导出前一致。
 - 预览轨道更新时不抛出 UI 错误。
 
 ## 流程 D：保存并刷新
@@ -95,7 +96,7 @@
 
 如果在 Chrome 中作为真实扩展选项页加载：
 
-1. 选择 `Mint Lab Demo`。
+1. 选择流程 C 导入的主题。
 2. 点击「保存」。
 3. 在普通 `http/https` 页面上触发 `leftClick`、`doubleClick`、`wheel` 和 `hover`。
 

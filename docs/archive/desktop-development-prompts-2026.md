@@ -1,5 +1,7 @@
 # CursorDance 桌面版 — AI 开发 Prompt 模板
 
+> 归档于 2026-08-06。任务已经完成，路径、测试数量和兼容策略均可能过期；仅用于追溯，不作为当前执行指令。现行状态见仓库根目录 `PROGRESS.md` 与 `CLAUDE.md`。
+
 每个 prompt 自包含约束、任务、验收标准。使用方法：
 1. 复制对应任务的 prompt
 2. 粘贴到 Claude Code 对话中

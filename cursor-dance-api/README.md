@@ -5,7 +5,7 @@ CursorDance Chrome 扩展的 AI 方案助手后端服务。接收前端的中文
 ## 架构
 
 ```
-浏览器扩展（AiSchemePanel）
+Workbench AI 助手（AiAssistantPanel）
     │ POST /api/ai/scheme-proposals/stream
     ▼
 阿里云 FC（统一 HTTP 函数）

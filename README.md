@@ -57,7 +57,7 @@ npm run dev:electron
 ## 功能
 
 - **7 种触发动作**：左键单击、右键单击、双击、长按、滚轮、悬停、悬停离开
-- **9 类反馈效果**：数字/文本飘字、粒子、波纹、音效、动画、图片贴纸、光标形状、氛围粒子、元素磁吸
+- **8 类反馈效果**：数字/文本飘字、粒子、波纹、音效、动画、图片贴纸、光标形状、氛围粒子
 - **光标状态**：按平台暴露运行时真正能识别的状态——扩展 6 种（普通、文本选择、可点击、不可用、忙碌、帮助），桌面 2 种（普通、拖拽中）。每种可独立绑定动作和光标图案。清单与可达性的唯一真值源是 `src/shared/cursor-states.ts`
 - **氛围效果（Chrome 扩展）**：自定义光标拖尾、氛围粒子、视差跟随，增强页面沉浸感
 - **主题系统**：4 套内置主题 + 自定义主题的创建、复制、导入/导出
@@ -166,11 +166,11 @@ cursor-dance/
 ├── src/
 │   ├── app/                    # 两端复用的 Workbench / Popup
 │   ├── components/             # Radix + Tailwind 共享组件
-│   ├── shared/                 # 运行环境、IPC、存储抽象
+│   ├── shared/                 # 领域模型、效果核心、运行时、IPC
 │   └── desktop/
 │       ├── main/               # 生命周期、窗口、托盘、全局输入
 │       ├── preload/            # contextBridge API
-│       └── renderer/           # TS 引擎、overlay、Popup、工作台
+│       └── renderer/           # 平台 adapter、overlay、工作台
 ├── cursor-dance-api/           # AI API 服务
 ├── landing/                    # 独立 Vite 落地页
 ├── electron.vite.config.mjs    # Electron 三进程构建配置
@@ -216,6 +216,11 @@ npm run dev                     # Vite dev server（工作台 + Popup）
 npm run build                   # 生产构建 → dist/
 npm run test                    # Vitest 单元测试
 npm run test:smoke              # Playwright E2E 冒烟测试
+npm run typecheck               # 全量 TypeScript 检查
+npm run typecheck:strict        # 核心层 + 渐进应用层严格检查
+npm run lint                    # ESLint
+npm run check:conventions       # 领域命名与组件边界门禁
+npm run check:dead-code         # 多入口死代码检查
 npm run extension:prepare-manifest  # 更新 manifest host_permissions
 npm run ai:dev                  # AI API 服务
 npm run dev:electron            # Electron 桌面端开发

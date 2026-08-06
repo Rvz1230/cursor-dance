@@ -4,6 +4,8 @@
 
 设计语言沿用现状（`DESIGN.md` 的「克制柔软」：slate 单色骨架 + `rounded-xl` + 1px 描边 + `shadow-sm` + L1–L6 排版层级）。琥珀金身份色那版提案已**否决**，留档在 `archive/`。
 
+> **实现检查点（2026-08-06）**：UI 升级前的领域模型、状态、持久化、命令、组件入口和工程门禁已经完成收敛。现在开始把本规范落到真实 React/Electron 产品。原型负责定义体验，`src/shared/domain/`、Workbench commands/repository 和 shared effect runtime 仍是功能真值；不得复制原型的演示状态或页内脚本形成第二套业务实现。
+
 ---
 
 ## 目录结构
@@ -64,15 +66,15 @@ npx tailwindcss -c docs/ui-spec/tailwind.config.cjs -i docs/ui-spec/_src.css -o 
 | `03-app-rules.html` | `AppRulesPanel.tsx`、`SiteRulesPanel.tsx`、`context-rules/RulePrimitives.tsx` |
 | `04-keyboard.html` | `KeyboardPanel.tsx` |
 | `05-diagnostics.html` | `DiagnosticsPanel.tsx` |
-| `06-ai.html` | `AiSchemePanel.tsx`、`ai-scheme/*`（`AiProposalPresentation` / `AiAgentActivity` / `AiConversationMessage`）、`useWorkbenchAiPreview.ts`、以及后端 `cursor-dance-api/src/agent-tools.js` 的工具集与交付形状 |
-| `07-settings.html` | **新建**独立设置窗口（现在没有对应实现）；多屏策略与缩放换算要接 `desktop/main/windows.ts`，共享效果预算接 `performance.maxActiveEffects`，可改快捷键接 `desktop/main/tray.ts` + 新的快捷键注册层 |
-| `08-onboarding.html` | **新建**首次启动引导窗口（现在没有对应实现）；辅助功能授权状态接 `desktop/main/native-events.ts` |
-| `09-popup.html` | `src/app/pages/popup/*`（`usePopupState.ts` / `popupConfigModel.ts`）；「临时暂停 20 分钟 / 1 小时 / 直到重启」是走查补的缺口，需要在主进程加一个到期自动恢复的定时器 |
-| `archive/10-agent-merged-into-06.html` | **已并入 `06`**（DECISIONS.md 裁决 7）。这一行描述的**后端能力**仍然要建，只是入口收进 `06` 的意图路由（「从描述创建新场景」那一支）。前端复用 `ai-scheme/*` 的壳，但后端是另一条链：需要把 `src/shared/effect-core/compute-specs.ts` 已有的 IR（`ParticleSpec[]` + `ParticleShapeStyle`）提成一层受约束的效果 DSL + 校验器，加无头渲染 worker（可复用 `test:smoke` 的 Playwright 链路）与客观指标计算；`cursor-dance-api` 侧新增 `compile_program` / `render_preview` / `read_metrics` / `patch_program` / `distance_to_presets` / `propose_effect` 工具集。常驻感知层接 `desktop/main/native-events.ts` + `app-matcher` |
+| `06-ai.html` | `AiAssistantPanel.tsx`、`ai-assistant/*`（`AiProposalPresentation` / `AiAgentActivity` / `AiConversationMessage`）、`useWorkbenchAiPreview.ts`、以及后端 `cursor-dance-api/src/agent-tools.js` 的工具集与交付形状 |
+| `07-settings.html` | **新建**独立设置窗口（现在没有对应实现）；窗口生命周期复用 `desktop/main/window-controls.ts` 与现有 sender policy，共享效果预算接 `performance.maxActiveEffects`，可改快捷键接 `desktop/main/tray.ts` + 新的快捷键注册层 |
+| `08-onboarding.html` | 当前对应 `WelcomeDialog.tsx`、`useDesktopWorkbenchRuntime.ts` 与 `desktop/main/native-events.ts`；落地独立窗口时必须复用现有授权查询和首次启动状态，不能再建一套 |
+| `09-popup.html` | 桌面端对应 `desktop/main/tray.ts` 的原生菜单；「临时暂停 20 分钟 / 1 小时 / 直到重启」需要在主进程增加到期自动恢复状态。`src/app/pages/popup/*` 仅属于 Chrome 扩展，不是桌面托盘实现 |
+| `archive/10-agent-merged-into-06.html` | **已并入 `06`**（DECISIONS.md 裁决 7）。这一行描述的**后端能力**仍然要建，只是入口收进 `06` 的意图路由（「从描述创建新场景」那一支）。前端复用 `ai-assistant/*` 的壳，但后端是另一条链：需要把 `src/shared/effect-core/compute-specs.ts` 已有的 IR（`ParticleSpec[]` + `ParticleShapeStyle`）提成一层受约束的效果 DSL + 校验器，加无头渲染 worker（可复用 `test:smoke` 的 Playwright 链路）与客观指标计算；`cursor-dance-api` 侧新增 `compile_program` / `render_preview` / `read_metrics` / `patch_program` / `distance_to_presets` / `propose_effect` 工具集。常驻感知层接 `desktop/main/native-events.ts` + desktop context resolver |
 | `shell.js` | `WorkbenchChrome.tsx`（`DesktopWorkbenchToolbar`）、`WorkbenchHeader.tsx`、`ThemeLibrarySidebar.tsx`、`theme-library/*`、`ui/theme-card.tsx` |
 | `controls.js` | `ui/control-slider.tsx`、`ui/select.tsx`、`ui/small-select.tsx`、`ui/color-options.tsx` —— 实现时应产出 `Slider` / `Select` / `NumberField` / `ColorField` / `KeyCap` / `XYPad` / `AngleDial` / `BezierEditor` 八个组件，并**删掉 `small-select`**（它只是 `Select` 的薄包装，是第三套下拉的来源）。另外三张数据表（`EASINGS` / `FONTS` / `CONTENT_PALETTE`）与 `SHAPE_PATH` 一起是**唯一真值源**，实现时应落成一个模块（`ui/control-data.ts`），**不要在页面里各写一份**——2026-08-06 走查时这三张表在稿子里共有 6 份拷贝，其中缓动那份已经打架了 |
 | `library/controls.html` | `ui/control-slider.tsx`、`ui/small-select.tsx`、`ui/select.tsx`、`ui/color-options.tsx`、`ui/field-row.tsx` + 新增 `ColorField` / `KeyCap` / `XYPad` / `AngleDial` / `BezierEditor` / `CheckboxTree`（含半选由子项推导） |
-| `library/components.html` | `ui/panel.tsx`、`ui/inline-status.tsx`、`ui/toast.tsx`、`ui/icon-button.tsx`、`ui/tabs.tsx` + 新增 `PageHeader` / `EmptyState` / `Segmented` / `NumberField` / `Skeleton` |
+| `library/components.html` | `ui/panel.tsx`、`ui/inline-status.tsx`、`ui/toast.tsx`、`ui/icon-button.tsx`、`ui/tabs.tsx`、`ui/page-header.tsx`、`ui/empty-state.tsx`、`ui/segmented.tsx`、`ui/number-field.tsx`、`ui/skeleton.tsx`；落地时统一现有实现，不重复创建 |
 
 ---
 
@@ -426,7 +428,7 @@ npx tailwindcss -c docs/ui-spec/tailwind.config.cjs -i docs/ui-spec/_src.css -o 
    实测数字修正：默认配置（bounce）下可见时长占比 **29.8% → 86.5%**（原记载「约 63% 不可见」偏乐观）。
 3. ✅ **左/右入场时 `keyboardLayout` 映射被忽略** → `keyLayoutNormalizedX` 是横向映射，对纵轴没有语义；横向入场时回落到 center 行为 `screenH * globalOffsetY`，而不是硬编码屏幕中线，这样 `globalOffsetY` 在两个轴上都有意义。UI 侧按稿子如实禁用该映射。
 4. ✅ **`Panel` 的 `enabled` 是死参数** → 现在由它驱动图标底色（深底=启用、浅灰=关闭），同时把决策 #3 的九色图标底一并落地。
-   **数字修正：实际有 20 处在传 `iconTone`**（不是记载的 5 处）——7 处 `KeyboardPanel`、3 处 `DiagnosticsPanel`、8 张效果卡、`WorkbenchPreviewRail`、`AiSchemePanel`。`iconTone` prop 已删除。
+   **数字修正：实际有 20 处在传 `iconTone`**（不是记载的 5 处）——7 处 `KeyboardPanel`、3 处 `DiagnosticsPanel`、8 张效果卡、`WorkbenchPreviewRail`、当时的 `AiSchemePanel`（现 `AiAssistantPanel`）。`iconTone` prop 已删除。
 5. ✅ **`trail` / `trailLength` / `splash`** → **核实时已经修好了**，`src/shared/config/key-feedback.ts:6` 已有注释、UI 无引用。补了门禁规则 `unimplemented-field` 锁住，防止将来又被暴露出来。
 6. ✅ **列宽拖拽结果不持久化** → 复用已有的 `local-editor-state.ts`（`readEditorState` / `writeEditorState`），松手时落盘。
    顺带把决策 #5 一起落了：主题库侧边栏原本是 `useState(true)`（默认折叠且不持久化），现在默认展开且折叠态持久化。
