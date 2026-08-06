@@ -21,16 +21,16 @@
       <span class="size-3 rounded-full bg-rose-400"></span><span class="size-3 rounded-full bg-amber-400"></span><span class="size-3 rounded-full bg-emerald-400"></span>
     </span>
     <span class="text-xs font-semibold text-slate-900">设置</span>
-    <span class="ml-auto mr-3 text-2xs text-slate-400">⌘, 打开 · 改动即时生效</span>
+    <span class="ml-auto mr-3 text-2xs text-slate-500">⌘, 打开 · 改动即时生效</span>
   </header>
 
   <div class="flex min-h-0 flex-1">
     <!-- 分区导航 -->
-    <nav id="nav" class="w-[168px] shrink-0 space-y-0.5 border-r border-slate-200 bg-slate-50 p-2"></nav>
+    <nav id="nav" role="tablist" aria-label="设置分区" class="w-[168px] shrink-0 space-y-0.5 border-r border-slate-200 bg-slate-50 p-2"></nav>
 
     <div class="min-h-0 flex-1 overflow-y-auto px-5 py-4">
       <!-- ══ 显示与多屏 ══ -->
-      <section data-sec="display" class="space-y-3">
+      <section id="sec-display" data-sec="display" role="tabpanel" class="space-y-3">
         <div>
           <h2 class="text-sm font-medium text-slate-900">显示与多屏</h2>
           <p class="mt-0.5 text-xs leading-relaxed text-slate-500">
@@ -39,21 +39,21 @@
         </div>
 
         <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-          <div class="text-xs font-medium text-slate-600">效果出现在</div>
-          <div class="mt-2 grid gap-2 sm:grid-cols-3" id="screenMode"></div>
+          <div class="text-xs font-medium text-slate-600" id="screenModeLabel">效果出现在</div>
+          <div class="mt-2 grid gap-2 sm:grid-cols-3" id="screenMode" role="radiogroup" aria-labelledby="screenModeLabel"></div>
           <!-- 多屏示意：选中的屏高亮 -->
           <div class="mt-3 flex items-end gap-2 rounded-xl bg-slate-50 px-3 py-3">
             <div data-mon="main" class="relative h-[76px] w-[124px] rounded-lg border-2 border-slate-300 bg-white transition-colors">
               <span class="absolute inset-x-0 top-0 h-2 rounded-t bg-slate-100"></span>
-              <span class="absolute bottom-1 left-1/2 -translate-x-1/2 text-2xs font-medium text-slate-500">主屏 · 2×</span>
+              <span class="absolute bottom-1 left-1/2 -translate-x-1/2 text-xs font-medium text-slate-500">主屏 · 2×</span>
               <span data-fx="main" class="absolute left-6 top-7 hidden size-2 rounded-full bg-slate-900"></span>
             </div>
             <div data-mon="side" class="relative h-[58px] w-[96px] rounded-lg border-2 border-slate-300 bg-white transition-colors">
               <span class="absolute inset-x-0 top-0 h-1.5 rounded-t bg-slate-100"></span>
-              <span class="absolute bottom-1 left-1/2 -translate-x-1/2 text-2xs font-medium text-slate-500">副屏 · 1×</span>
+              <span class="absolute bottom-1 left-1/2 -translate-x-1/2 text-xs font-medium text-slate-500">副屏 · 1×</span>
               <span data-fx="side" class="absolute left-5 top-5 hidden size-2 rounded-full bg-slate-900"></span>
             </div>
-            <p class="ml-2 max-w-[220px] text-2xs leading-relaxed text-slate-500" id="monHint"></p>
+            <p class="ml-2 max-w-[220px] text-xs leading-relaxed text-slate-500" id="monHint"></p>
           </div>
         </div>
 
@@ -62,7 +62,7 @@
             <span class="ctl-label">尺寸换算</span>
             <div id="dprSel"></div>
           </div>
-          <p class="mt-2 text-2xs leading-relaxed text-slate-400">
+          <p class="hint-note">
             两块屏缩放不同时，48px 的光标在 2× 屏上物理尺寸只有 1× 屏的一半。「跟随各屏缩放」保证物理大小一致，「按主屏统一」保证像素值一致。
           </p>
         </div>
@@ -73,14 +73,14 @@
             <div id="uiScale" data-slider data-min="80" data-max="140" data-value="100" data-default="100" data-ticks="80,100,120,140" data-snap="1"></div>
             <span class="ctl-value"><span data-out="uiScale">100</span>%</span>
           </div>
-          <p class="mt-2 text-2xs leading-relaxed text-slate-400">
-            窗口窄于 1200px 时三列会退化成两列、时间轴抽屉默认折叠——这条退化策略也在这里生效。
+          <p class="mt-2 text-xs leading-relaxed text-slate-500">
+            调大一档，控件和文字都会变大；工作台会自动收起用不到的分栏，把空间让给你正在调的那一块。
           </p>
         </div>
       </section>
 
       <!-- ══ 输入 ══ -->
-      <section data-sec="input" class="hidden space-y-3">
+      <section id="sec-input" data-sec="input" role="tabpanel" class="hidden space-y-3">
         <div>
           <h2 class="text-sm font-medium text-slate-900">输入</h2>
           <p class="mt-0.5 text-xs leading-relaxed text-slate-500">全局输入捕获与中文输入法的处理。</p>
@@ -90,17 +90,17 @@
           <svg class="mt-0.5 size-4 shrink-0 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
           <div class="min-w-0">
             <div class="text-xs font-medium text-amber-900">辅助功能未授权，全局捕获无法启动</div>
-            <p class="mt-1 text-2xs leading-relaxed text-amber-800">
+            <p class="mt-1 hint-warn">
               日志里的表现是 <code class="rounded bg-white/60 px-1">UIOHOOK_ERROR_AXAPI_DISABLED</code>。授权后无需重启。
             </p>
-            <button class="btn-outline mt-2 h-7 px-2.5 text-2xs">打开系统设置 → 隐私与安全 → 辅助功能</button>
+            <button class="btn-outline mt-2 h-7 px-2.5 text-xs">打开系统设置 → 隐私与安全 → 辅助功能</button>
           </div>
         </div>
 
         <div class="space-y-1.5 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-          <button class="switch-row" data-flag><span class="min-w-0 text-left"><span class="block text-xs font-medium text-slate-700">输入法组字期间不显示字符</span><span class="mt-0.5 block text-2xs leading-relaxed text-slate-400">中文输入时 keydown 序列不可靠，只在最终上屏时显示那个字</span></span><span class="switch-knob switch-on"></span></button>
-          <button class="switch-row" data-flag><span class="min-w-0 text-left"><span class="block text-xs font-medium text-slate-700">忽略密码框与安全输入</span><span class="mt-0.5 block text-2xs leading-relaxed text-slate-400">系统进入安全输入模式时自动停止捕获</span></span><span class="switch-knob switch-on"></span></button>
-          <button class="switch-row" data-flag><span class="min-w-0 text-left"><span class="block text-xs font-medium text-slate-700">全屏应用中暂停</span><span class="mt-0.5 block text-2xs leading-relaxed text-slate-400">看视频、玩游戏、放幻灯片时自动让路</span></span><span class="switch-knob"></span></button>
+          <button role="switch" aria-checked="true" class="switch-row" data-flag><span class="min-w-0 text-left"><span class="block text-xs font-medium text-slate-700">输入法组字期间不显示字符</span><span class="hint-sub">中文输入时 keydown 序列不可靠，只在最终上屏时显示那个字</span></span><span class="switch-knob switch-on"></span></button>
+          <button role="switch" aria-checked="true" class="switch-row" data-flag><span class="min-w-0 text-left"><span class="block text-xs font-medium text-slate-700">忽略密码框与安全输入</span><span class="hint-sub">系统进入安全输入模式时自动停止捕获</span></span><span class="switch-knob switch-on"></span></button>
+          <button role="switch" aria-checked="false" class="switch-row" data-flag><span class="min-w-0 text-left"><span class="block text-xs font-medium text-slate-700">全屏应用中暂停</span><span class="hint-sub">看视频、玩游戏、放幻灯片时自动让路</span></span><span class="switch-knob"></span></button>
         </div>
 
         <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
@@ -109,37 +109,123 @@
             <div id="budget" data-slider data-min="12" data-max="96" data-value="48" data-default="48" data-ticks="24,48,72" data-snap="1"></div>
             <span class="ctl-value"><span data-out="budget">48</span> 个</span>
           </div>
-          <p class="mt-2 text-2xs leading-relaxed text-slate-400">
+          <p class="hint-note">
             同时存在的效果上限，鼠标与键盘<span class="font-medium text-slate-600">共享</span>这一份预算。诊断面板的水位条读的就是它。
           </p>
         </div>
       </section>
 
+      <!--
+        ══ 舒适度（DESIGN.md 动效节的产品级出口）══
+
+        这是个**视觉效果产品**，而设置里原先完全没有「让它安静一点」这一层。
+        两件事必须分开，它们不是一个开关：
+
+          跟随系统「减弱动态效果」= 系统偏好，用户在系统设置里表达过的意愿；
+          低刺激模式               = 用户在**这个产品里**主动挑的强度上限。
+
+        前者按 `prefers-reduced-motion` 走，是硬约束（界面动效降为 0、自动重播关闭、
+        骨架脉冲与 AI 跳点关闭，但**手动预览仍然可用**——用户主动点一下要看效果，
+        那是他的意图，不该被剥夺）。后者给三个可调上限，因为「刺激」的来源
+        不止一个：闪得太快、同时太多、连着不停。
+      -->
+      <!--
+        ══ 解锁更多信号（裁决 4 的落地）════════════════════════════════
+
+        裁决 4 说：11 个光标状态里 9 个此前逐行贴「待系统能力」徽标，
+        用户看到的是**一个到处发灰的产品**，而且那些灰看起来是永久的。
+        改成能力包之后，灰的原因从"这个状态没做"变成"这项能力你还没开"——
+        前者无解，后者有一个开关。
+
+        每一项都必须写明**代价**，这是这一节存在的另一半理由：
+        一个只说好处的能力开关会让人以为它是免费的，然后在"为什么覆盖不全"上
+        重新困惑一次（那正是 05 那条回落态要解释的事）。
+      -->
+      <section id="sec-signals" data-sec="signals" role="tabpanel" class="hidden space-y-3">
+        <div>
+          <h2 class="text-sm font-medium text-slate-900">解锁更多信号</h2>
+          <p class="mt-0.5 text-xs leading-relaxed text-slate-500">
+            开启后效果能跟着「你敲到的是什么」变化，相关的光标状态会整组点亮。每项都有代价，写在下面。
+          </p>
+        </div>
+
+        <div class="space-y-2.5" id="capList"></div>
+
+        <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+          <div class="text-xs font-medium text-slate-700">开了也可能取不到</div>
+          <p class="mt-1 hint-note">
+            覆盖率必然是部分的：终端、部分 Java 应用、未开辅助功能的 Electron 应用不向系统暴露元素级信息。
+            这种时候效果会回落到指针位置——<strong class="font-semibold">不是没生效</strong>，是锚点换了。
+            哪一次回落了，在诊断面板的「内容信号」那一格能查到。
+          </p>
+          <a href="05-diagnostics.html" class="mt-2 inline-flex items-center gap-1 text-xs font-medium text-slate-600 underline underline-offset-2 transition-colors hover:text-slate-900">
+            打开诊断面板
+            <svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+        </div>
+      </section>
+
+      <section id="sec-comfort" data-sec="comfort" role="tabpanel" class="hidden space-y-3">
+        <div>
+          <h2 class="text-sm font-medium text-slate-900">舒适度</h2>
+          <p class="mt-0.5 text-xs leading-relaxed text-slate-500">效果可以很热闹，也可以很安静。这一页管上限。</p>
+        </div>
+
+        <div class="space-y-1.5 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+          <button role="switch" aria-checked="true" class="switch-row" data-flag><span class="min-w-0 text-left"><span class="block text-xs font-medium text-slate-700">跟随系统「减弱动态效果」</span><span class="mt-0.5 block text-xs leading-relaxed text-slate-500">系统里开了这项时，界面过渡与自动重播关闭；你手动点预览仍然会播</span></span><span class="switch-knob switch-on"></span></button>
+          <button id="lowStimBtn" role="switch" aria-checked="false" class="switch-row" data-flag><span class="min-w-0 text-left"><span class="block text-xs font-medium text-slate-700">低刺激模式</span><span class="mt-0.5 block text-xs leading-relaxed text-slate-500">一键把下面三个上限压到安全值，适合长时间工作或对闪烁敏感</span></span><span class="switch-knob"></span></button>
+        </div>
+
+        <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+          <div class="space-y-2.5">
+            <div class="ctl-row">
+              <span class="ctl-label ctl-label-scrub" data-scrub="flicker">闪烁频率上限</span>
+              <div id="flicker" data-slider data-min="1" data-max="12" data-value="8" data-default="8" data-snap="1"></div>
+              <span class="ctl-value"><span data-out="flicker">8</span> 次/秒</span>
+            </div>
+            <div class="ctl-row">
+              <span class="ctl-label ctl-label-scrub" data-scrub="density">粒子密度上限</span>
+              <div id="density" data-slider data-min="4" data-max="60" data-value="48" data-default="48" data-snap="1"></div>
+              <span class="ctl-value"><span data-out="density">48</span> 个</span>
+            </div>
+            <div class="ctl-row">
+              <span class="ctl-label ctl-label-scrub" data-scrub="burst">连续触发上限</span>
+              <div id="burst" data-slider data-min="1" data-max="20" data-value="12" data-default="12" data-snap="1"></div>
+              <span class="ctl-value"><span data-out="burst">12</span> 次/秒</span>
+            </div>
+          </div>
+          <p class="mt-2.5 text-xs leading-relaxed text-slate-500">
+            超过上限时多出来的效果会被丢掉，而不是排队——排队会让手感变黏。
+            被丢掉的次数在<span class="font-medium text-slate-700">诊断面板</span>里看得到。
+          </p>
+        </div>
+      </section>
+
       <!-- ══ 数据与隐私 ══ -->
-      <section data-sec="privacy" class="hidden space-y-3">
+      <section id="sec-privacy" data-sec="privacy" role="tabpanel" class="hidden space-y-3">
         <div>
           <h2 class="text-sm font-medium text-slate-900">数据与隐私</h2>
           <p class="mt-0.5 text-xs leading-relaxed text-slate-500">诊断采集与 AI 请求各自的数据边界。</p>
         </div>
 
         <div class="space-y-1.5 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-          <button class="switch-row" data-flag><span class="min-w-0 text-left"><span class="block text-xs font-medium text-slate-700">诊断采集</span><span class="mt-0.5 block text-2xs leading-relaxed text-slate-400">记录每次触发的裁决过程，只写本地，不上传</span></span><span class="switch-knob switch-on"></span></button>
-          <button class="switch-row" data-flag><span class="min-w-0 text-left"><span class="block text-xs font-medium text-slate-700">AI 请求里带上应用名</span><span class="mt-0.5 block text-2xs leading-relaxed text-slate-400">关闭时发送为「某应用」。开启后发送真实名称（如 Figma），建议更准</span></span><span class="switch-knob"></span></button>
+          <button role="switch" aria-checked="true" class="switch-row" data-flag><span class="min-w-0 text-left"><span class="block text-xs font-medium text-slate-700">诊断采集</span><span class="hint-sub">记录每次触发的裁决过程，只写本地，不上传</span></span><span class="switch-knob switch-on"></span></button>
+          <button role="switch" aria-checked="false" class="switch-row" data-flag><span class="min-w-0 text-left"><span class="block text-xs font-medium text-slate-700">AI 请求里带上应用名</span><span class="hint-sub">关闭时发送为「某应用」。开启后发送真实名称（如 Figma），建议更准</span></span><span class="switch-knob"></span></button>
         </div>
 
         <div class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
           <div class="text-xs font-medium text-slate-600">配置与素材位置</div>
           <code class="mt-1.5 block truncate rounded-lg bg-slate-50 px-2 py-1.5 font-mono text-2xs text-slate-600">~/Library/Application Support/CursorDance/config.json</code>
           <div class="mt-2.5 flex flex-wrap gap-1.5">
-            <button class="btn-outline h-7 px-2.5 text-2xs">在 Finder 中显示</button>
-            <button class="btn-outline h-7 px-2.5 text-2xs">导出全部主题</button>
-            <button class="btn-ghost h-7 px-2.5 text-2xs text-rose-600 hover:bg-rose-50">重置全部设置</button>
+            <button class="btn-outline h-7 px-2.5 text-xs">在 Finder 中显示</button>
+            <button class="btn-outline h-7 px-2.5 text-xs">导出全部主题</button>
+            <button class="btn-ghost h-7 px-2.5 text-xs text-rose-600 hover:bg-rose-50">重置全部设置</button>
           </div>
         </div>
       </section>
 
       <!-- ══ 快捷键 ══ -->
-      <section data-sec="keys" class="hidden space-y-3">
+      <section id="sec-keys" data-sec="keys" role="tabpanel" class="hidden space-y-3">
         <div>
           <h2 class="text-sm font-medium text-slate-900">快捷键</h2>
           <p class="mt-0.5 text-xs leading-relaxed text-slate-500">点一行再按组合键即可改。冲突会当场提示。</p>
@@ -147,25 +233,25 @@
         <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
           <div id="keyList" class="divide-y divide-slate-100"></div>
         </div>
-        <p class="text-2xs leading-relaxed text-slate-400">
+        <p class="hint-inline">
           全局快捷键（在任何应用中都生效）只有「暂停 / 恢复效果」一个，其余都限定在 CursorDance 窗口内，避免抢占系统热键。
         </p>
       </section>
 
       <!-- ══ 关于 ══ -->
-      <section data-sec="about" class="hidden space-y-3">
+      <section id="sec-about" data-sec="about" role="tabpanel" class="hidden space-y-3">
         <div>
           <h2 class="text-sm font-medium text-slate-900">关于</h2>
         </div>
         <div class="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white px-3 shadow-sm">
-          <div class="flex items-center justify-between py-2 text-2xs"><span class="text-slate-500">版本</span><span class="font-medium tabular-nums text-slate-700">1.4.2 (2891)</span></div>
-          <div class="flex items-center justify-between py-2 text-2xs"><span class="text-slate-500">平台</span><span class="font-medium text-slate-700">macOS 15.5 · arm64</span></div>
-          <div class="flex items-center justify-between py-2 text-2xs"><span class="text-slate-500">系统光标替换</span><span class="font-medium text-emerald-700">supported · 随应用打包的原生 helper</span></div>
-          <div class="flex items-center justify-between py-2 text-2xs"><span class="text-slate-500">更新</span><span class="font-medium text-slate-700">已是最新</span></div>
+          <div class="flex items-center justify-between py-2 text-xs"><span class="text-slate-500">版本</span><span class="font-medium tabular-nums text-slate-700">1.4.2 (2891)</span></div>
+          <div class="flex items-center justify-between py-2 text-xs"><span class="text-slate-500">平台</span><span class="font-medium text-slate-700">macOS 15.5 · arm64</span></div>
+          <div class="flex items-center justify-between py-2 text-xs"><span class="text-slate-500">系统光标替换</span><span class="font-medium text-emerald-700">supported · 随应用打包的原生 helper</span></div>
+          <div class="flex items-center justify-between py-2 text-xs"><span class="text-slate-500">更新</span><span class="font-medium text-slate-700">已是最新</span></div>
         </div>
         <div class="space-y-1.5 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-          <button class="switch-row" data-flag><span class="min-w-0 text-left"><span class="block text-xs font-medium text-slate-700">开机自启</span></span><span class="switch-knob switch-on"></span></button>
-          <button class="switch-row" data-flag><span class="min-w-0 text-left"><span class="block text-xs font-medium text-slate-700">启动时只驻留托盘</span><span class="mt-0.5 block text-2xs leading-relaxed text-slate-400">不打开工作台窗口</span></span><span class="switch-knob switch-on"></span></button>
+          <button role="switch" aria-checked="true" class="switch-row" data-flag><span class="min-w-0 text-left"><span class="block text-xs font-medium text-slate-700">开机自启</span></span><span class="switch-knob switch-on"></span></button>
+          <button role="switch" aria-checked="true" class="switch-row" data-flag><span class="min-w-0 text-left"><span class="block text-xs font-medium text-slate-700">启动时只驻留托盘</span><span class="hint-sub">不打开工作台窗口</span></span><span class="switch-knob switch-on"></span></button>
         </div>
       </section>
     </div>
@@ -184,7 +270,27 @@ function toast(text) {
   setTimeout(() => el.remove(), 2200);
 }
 
-const SECTIONS = [['display', '显示与多屏'], ['input', '输入'], ['privacy', '数据与隐私'], ['keys', '快捷键'], ['about', '关于']];
+/*
+  三项可选能力。`cost` 是必填字段而不是可选说明——
+  一个只说好处的能力开关会让人以为它免费，然后在「为什么覆盖不全」上重新困惑一次。
+  `unlocks` 写清楚开了之后**哪一组**状态会点亮，这样灰掉的东西有一个明确的出口。
+*/
+const CAPS = [
+  { key: 'geom', name: '窗口几何', on: true,
+    what: '知道前台窗口的位置和大小，效果可以贴着窗口边缘出现',
+    cost: '几乎没有代价：和应用规则用的是同一个前台窗口快照，不额外请求权限',
+    unlocks: '窗口相关的 2 个光标状态' },
+  { key: 'ax', name: 'AX 元素', on: false,
+    what: '知道指针下面是按钮、链接、输入框还是空白，效果可以按元素类型变化',
+    cost: '需要辅助功能权限；且覆盖率必然是部分的——不少应用不暴露元素级信息',
+    unlocks: '指向反馈（磁场光晕）+ 元素相关的 5 个光标状态' },
+  { key: 'pick', name: '屏幕取色', on: false,
+    what: '知道命中点周围的颜色，效果可以自动配色，不至于白底上撒白粒子',
+    cost: '需要屏幕录制权限（系统会在菜单栏显示录制指示器），并有持续的取样开销',
+    unlocks: '取色模式里的「跟随背景」+ 对比度自适应的 2 个光标状态' },
+];
+
+const SECTIONS = [['display', '显示与多屏'], ['input', '输入'], ['signals', '解锁更多信号'], ['comfort', '舒适度'], ['privacy', '数据与隐私'], ['keys', '快捷键'], ['about', '关于']];
 let sec = 'display';
 // 分区切换抽成函数：原先只活在 nav 的点击回调里，导致原型状态切换没法跳分区（见 setProto）。
 function showSection(id) {
@@ -192,9 +298,48 @@ function showSection(id) {
   renderNav();
   document.querySelectorAll('[data-sec]').forEach((s) => s.classList.toggle('hidden', s.dataset.sec !== sec));
 }
+/*
+  能力卡的渲染。开关状态与 aria-checked 成对（本轮门禁 aria-state-missing 盯着这一族），
+  展开的「代价」不是折叠内容——它常显。折叠代价等于把它藏起来，那就回到了
+  「只说好处」的形态。
+*/
+function renderCaps() {
+  const host = document.getElementById('capList');
+  if (!host) return;
+  host.innerHTML = CAPS.map((c) => `
+    <div class="overflow-hidden rounded-xl border ${c.on ? 'border-slate-300 bg-white' : 'border-slate-200 bg-slate-50'} shadow-sm">
+      <button data-cap="${c.key}" class="switch-row w-full" role="switch" aria-checked="${c.on}">
+        <span class="min-w-0 text-left">
+          <span class="block text-xs font-medium text-slate-700">${c.name}</span>
+          <span class="mt-0.5 block hint-sub">${c.what}</span>
+        </span>
+        <span class="switch-knob${c.on ? ' switch-on' : ''}"></span>
+      </button>
+      <div class="space-y-1 border-t border-slate-100 px-3 py-2">
+        <div class="flex items-start gap-1.5">
+          <span class="mt-px shrink-0 text-2xs font-semibold text-amber-700">代价</span>
+          <span class="hint-inline">${c.cost}</span>
+        </div>
+        <div class="flex items-start gap-1.5">
+          <span class="mt-px shrink-0 text-2xs font-semibold ${c.on ? 'text-emerald-700' : 'text-slate-400'}">${c.on ? '已点亮' : '开启后点亮'}</span>
+          <span class="hint-inline">${c.unlocks}</span>
+        </div>
+      </div>
+    </div>`).join('');
+  host.querySelectorAll('[data-cap]').forEach((b) => b.addEventListener('click', () => {
+    const c = CAPS.find((x) => x.key === b.dataset.cap);
+    c.on = !c.on;
+    renderCaps();
+    // 这一页的 toast 只收一个参数（第 265 行），不要凭记忆按别页的签名调
+    toast(c.on ? `已开启「${c.name}」 · ${c.unlocks} 现在可用` : `已关闭「${c.name}」 · 相关状态回到灰态`);
+  }));
+}
+
 function renderNav() {
+  // role=tab + aria-selected + aria-controls：这一栏切的就是右边那六个 [data-sec] 面板，
+  // 而原先它只是六个 button——读屏器听不出「现在在哪一分区」，也跳不到对应面板
   $('nav').innerHTML = SECTIONS.map(([id, label]) => `
-    <button data-sec-btn="${id}" class="flex w-full items-center rounded-lg px-2.5 py-1.5 text-left text-xs font-medium transition-colors ${id === sec ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:bg-white/70'}">${label}</button>`).join('');
+    <button data-sec-btn="${id}" role="tab" aria-selected="${id === sec}" aria-controls="sec-${id}" class="flex w-full items-center rounded-lg px-2.5 py-1.5 text-left text-xs font-medium transition-colors ${id === sec ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200' : 'text-slate-600 hover:bg-white/70'}">${label}</button>`).join('');
   $('nav').querySelectorAll('[data-sec-btn]').forEach((b) => b.addEventListener('click', () => showSection(b.dataset.secBtn)));
 }
 // 与 01 的 revealField / revealTrack 用同一套闪烁，跨页手感一致。
@@ -212,9 +357,9 @@ const MODES = [
 let mode = 'mouse';
 function renderMode() {
   $('screenMode').innerHTML = MODES.map(([id, name, desc]) => `
-    <button data-mode="${id}" class="mode-card${id === mode ? ' mode-card-on' : ''}">
-      <span class="mode-dot${id === mode ? ' mode-dot-on' : ''}"></span>
-      <span class="min-w-0"><span class="block text-xs font-medium text-slate-900">${name}</span><span class="mt-1 block text-2xs leading-relaxed text-slate-500 text-pretty">${desc}</span></span>
+    <button data-mode="${id}" role="radio" aria-checked="${id === mode}" class="mode-card${id === mode ? ' mode-card-on' : ''}">
+      <span class="mode-dot${id === mode ? ' mode-dot-on' : ''}" aria-hidden="true"></span>
+      <span class="min-w-0"><span class="block text-xs font-medium text-slate-900">${name}</span><span class="mt-1 block text-xs leading-relaxed text-slate-500 text-pretty">${desc}</span></span>
     </button>`).join('');
   const active = MODES.find((m) => m[0] === mode)[3];
   ['main', 'side'].forEach((k) => {
@@ -242,33 +387,47 @@ const KEYS = [
   ['AI 助手', '⌘J', false],
   ['切换工作区', '⌘1–5', false],
 ];
+/*
+  键帽走共享的 `Ctl.keycap`，这一页不再自带一份捕获实现。
+
+  被换掉的那份有三个缺陷，两个是「今天恰好没人碰」：
+    · 重复点击会**叠加 keydown 监听**（`onKey` 每次点击都新注册一个，
+      而只有成功捕获或 esc 那一条路径会摘掉它）——点三次再按键，回调跑三遍。
+    · 点页面别处不退出捕获态：那颗键帽会一直停在「按下组合键…」，
+      而在它退出之前，用户按的**任何**键都会被 `preventDefault` 吞掉。
+    · 键帽是 `key.split('')` 逐字符渲染的，于是「⌘1–5」被切成三个键帽
+      「⌘」「1」「–」「5」——修饰键是单字符，主键不一定是。
+      `Ctl.keyParts` 只把开头的修饰键拆开，剩下的整段算一个键。
+*/
 function renderKeys() {
   $('keyList').innerHTML = KEYS.map(([label, key, global], i) => `
     <div class="flex items-center gap-3 px-3 py-2">
       <span class="min-w-0 flex-1 truncate text-xs text-slate-700">${label}</span>
-      ${global ? '<span class="shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-2xs font-medium text-slate-500">全局</span>' : ''}
-      <button data-key="${i}" class="shrink-0 rounded-lg border border-slate-200 bg-white px-2 py-1 shadow-sm transition-colors hover:border-slate-400">
-        ${key.split('').map((c) => `<span class="kbd">${c}</span>`).join('')}
-      </button>
+      ${global ? '<span class="shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-500">全局</span>' : ''}
+      <button data-key="${i}" data-label="${label}"></button>
     </div>`).join('');
-  $('keyList').querySelectorAll('[data-key]').forEach((b) => b.addEventListener('click', () => {
-    b.innerHTML = '<span class="text-2xs font-medium text-slate-900">按下组合键…</span>';
-    const onKey = (e) => {
-      e.preventDefault();
-      if (['Meta', 'Control', 'Alt', 'Shift'].includes(e.key)) return;
-      document.removeEventListener('keydown', onKey, true);
-      if (e.key === 'Escape') { renderKeys(); return; }
-      const combo = [e.metaKey && '⌘', e.ctrlKey && '⌃', e.altKey && '⌥', e.shiftKey && '⇧', e.key.length === 1 ? e.key.toUpperCase() : e.key].filter(Boolean);
-      KEYS[Number(b.dataset.key)][1] = combo.join('');
-      renderKeys();
-      toast('已更新快捷键');
-    };
-    document.addEventListener('keydown', onKey, true);
-  }));
+  $('keyList').querySelectorAll('[data-key]').forEach((b) => {
+    Ctl.keycap(b, {
+      value: KEYS[Number(b.dataset.key)][1],
+      onChange: (v) => {
+        KEYS[Number(b.dataset.key)][1] = v;
+        toast('已更新快捷键');
+      },
+    });
+  });
 }
 
+/*
+  开关的真值是 `aria-checked`，旋钮的 `.switch-on` 只是它的投影。
+
+  反过来写（先 toggle 旋钮的类，再从类推 aria）就是两份真值，而这一族缺陷
+  已经在 09 上发生过一次——README 记的是「aria-checked 与那个 ✓ 必须成对，
+  只改一个就是读屏器听不出来」。这里把顺序定死：改 aria → 投影到视觉。
+*/
 document.querySelectorAll('[data-flag]').forEach((b) => b.addEventListener('click', () => {
-  b.querySelector('.switch-knob').classList.toggle('switch-on');
+  const on = b.getAttribute('aria-checked') !== 'true';
+  b.setAttribute('aria-checked', String(on));
+  b.querySelector('.switch-knob').classList.toggle('switch-on', on);
   toast('已更新');
 }));
 
@@ -277,7 +436,8 @@ const PROTO = [['granted', '① 已授权'], ['denied', '② 未授权']];
 function setProto(id) {
   $('proto').querySelectorAll('.proto-btn').forEach((b) => {
     const on = b.dataset.proto === id;
-    b.className = 'proto-btn h-7 rounded-lg px-2.5 text-2xs font-medium ' + (on ? 'bg-white text-slate-900' : 'text-slate-300 hover:bg-slate-800');
+    b.classList.toggle('proto-btn-on', on);
+    b.setAttribute('aria-checked', String(on));
   });
   document.querySelectorAll('[data-show]').forEach((el) => el.classList.toggle('hidden', !el.dataset.show.split(' ').includes(id)));
 
@@ -293,12 +453,12 @@ function setProto(id) {
   revealed.scrollIntoView({ behavior: 'smooth', block: 'center' });
   flash(revealed);
 }
-$('proto').innerHTML = '<span class="mr-1 text-2xs font-semibold text-white">原型状态</span>'
-  + PROTO.map(([id, l]) => `<button data-proto="${id}" class="proto-btn h-7 rounded-lg px-2.5 text-2xs font-medium">${l}</button>`).join('')
-  + '<span class="ml-auto text-2xs text-slate-400">多屏策略、输入法、采集开关、退化策略都归到这里</span>';
+$('proto').innerHTML = '<span class="proto-label">原型状态</span>'
+  + PROTO.map(([id, l]) => `<button data-proto="${id}" role="radio" aria-checked="false" class="proto-btn">${l}</button>`).join('')
+  + '<span class="proto-note">多屏、输入法、隐私、快捷键都在这里</span>';
 $('proto').querySelectorAll('[data-proto]').forEach((b) => b.addEventListener('click', () => setProto(b.dataset.proto)));
 
-renderNav(); renderMode(); renderKeys();
+renderNav(); renderMode(); renderKeys(); renderCaps();
 Ctl.mountSliders();
 Ctl.select($('dprSel'), {
   options: [{ label: '跟随各屏缩放', desc: '物理大小一致' }, { label: '按主屏统一', desc: '像素值一致' }],

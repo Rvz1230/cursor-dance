@@ -17,8 +17,35 @@
 <div id="app"></div>
 
 <template id="page">
-      <div class="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+      <div id="pageScroll" class="min-h-0 flex-1 overflow-y-auto px-3 py-3">
         <div class="mx-auto max-w-[920px]">
+
+          <!--
+            ══ 默认创建流程：三步引导（ux 规格 §6.3 / DECISIONS.md 裁决 5）══
+
+            稿子原先只有「例外列表 + 挑选浮层」，那解决的是**「已经有一堆规则怎么管」**。
+            而 §6.2 的 P0 前两条是**创建**任务：「为刚才使用的应用关闭效果 / 指定主题」，
+            两者不是一回事。
+
+            自然语言确认那一步不是装饰——它是 §9 那条验收指标
+            **「默认流程中不出现『进程名』『窗口标题』『通配符』等术语」**
+            唯一的兑现处。进程名与匹配方式收进「高级条件」折叠，默认流程里不出现。
+
+            主按钮叫**「完成」**而不是「保存」（ux §4.2）：它只把这条规则写进草稿。
+          -->
+          <section id="wizard" class="mb-2.5 hidden rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+            <div class="flex items-baseline gap-2">
+              <h2 class="text-sm font-medium text-slate-900">新建规则</h2>
+              <span id="wizStep" class="text-xs text-slate-500"></span>
+              <button id="wizCancel" class="ml-auto shrink-0 rounded-lg px-1.5 py-0.5 text-xs font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900">取消</button>
+            </div>
+            <div id="wizBody" class="mt-2.5"></div>
+            <div class="mt-3 flex items-center gap-2 border-t border-slate-100 pt-2.5">
+              <button id="wizBack" class="btn-outline h-7 px-2.5 text-xs">上一步</button>
+              <span id="wizNote" class="min-w-0 flex-1 truncate text-xs text-slate-500"></span>
+              <button id="wizNext" class="btn-default h-7 px-3 text-xs">继续</button>
+            </div>
+          </section>
 
           <!-- 页头 -->
           <div class="mb-2.5 flex flex-row items-start justify-between gap-3 group-data-[w=sm]/win:flex-col group-data-[w=sm]/win:items-stretch">
@@ -28,91 +55,120 @@
                 指定某些应用关闭效果，或在其中换用另一套主题。改动自动保存。
               </p>
             </div>
-            <div class="relative shrink-0">
-              <button id="addAppBtn" class="btn-default h-8 px-3 text-xs">
+            <div class="shrink-0">
+              <button id="addAppBtn" class="btn-default h-8 px-3 text-xs" aria-haspopup="dialog" aria-expanded="false" aria-controls="picker">
                 <svg class="mr-1.5 size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
                 添加应用
                 <svg class="ml-1.5 size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
               </button>
+            </div>
+          </div>
 
-              <!-- ════ 添加应用浮层 ════ -->
-              <div id="picker" class="absolute right-0 top-10 z-50 hidden w-[440px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
-                <div class="border-b border-slate-100 p-3">
-                  <div class="relative">
-                    <svg class="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-                    <input placeholder="搜索应用名称" class="h-9 w-full rounded-xl border border-slate-200 bg-white pl-8 pr-2 text-sm text-slate-700 shadow-sm placeholder:text-slate-400" />
-                  </div>
-                  <div class="mt-2.5 inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1">
-                    <button data-tab="recent" class="ptab h-7 rounded-lg px-2.5 text-2xs font-medium">最近使用</button>
-                    <button data-tab="installed" class="ptab h-7 rounded-lg px-2.5 text-2xs font-medium">已安装</button>
-                    <button data-tab="pick" class="ptab h-7 rounded-lg px-2.5 text-2xs font-medium">点选</button>
-                  </div>
-                </div>
+          <!--
+            ════ 添加应用浮层 ════
 
-                <!-- 最近使用 -->
-                <div data-ptab="recent" class="max-h-[320px] overflow-y-auto p-1.5">
-                  <p class="px-2 pb-1 pt-1.5 text-2xs text-slate-400">前台监听自动记录，已排除 CursorDance 自身</p>
-                  <button class="pick-row"><span class="app-icon bg-slate-900">F</span><span class="pick-body"><span class="pick-name">Figma</span><span class="pick-meta">com.figma.Desktop · 刚刚</span></span><span class="pick-added">已添加</span></button>
-                  <button class="pick-row"><span class="app-icon bg-sky-600">T</span><span class="pick-body"><span class="pick-name">Terminal</span><span class="pick-meta">com.apple.Terminal · 2 分钟前</span></span><span class="pick-cta">添加</span></button>
-                  <button class="pick-row"><span class="app-icon bg-emerald-600">K</span><span class="pick-body"><span class="pick-name">Keynote</span><span class="pick-meta">com.apple.iWork.Keynote · 12 分钟前</span></span><span class="pick-added">已添加</span></button>
-                  <button class="pick-row"><span class="app-icon bg-amber-600">P</span><span class="pick-body"><span class="pick-name">Preview</span><span class="pick-meta">com.apple.Preview · 26 分钟前</span></span><span class="pick-cta">添加</span></button>
-                  <button class="pick-row"><span class="app-icon bg-rose-600">M</span><span class="pick-body"><span class="pick-name">Music</span><span class="pick-meta">com.apple.Music · 1 小时前</span></span><span class="pick-cta">添加</span></button>
-                </div>
+            这个浮层原先是 `absolute right-0 top-10` 挂在页头里，而页头装在
+            `#pageScroll`（`overflow-y-auto`）里面——**祖先的 overflow 会裁掉它**。
+            实测往下滚一点再展开，浮层顶部被容器上边裁掉（第一行只看到一半）；
+            720×480 档下 5 行里只看得见 2 行，连它自己的「关闭」按钮都在窗口外。
 
-                <!-- 已安装 -->
-                <div data-ptab="installed" class="hidden max-h-[320px] overflow-y-auto p-1.5">
-                  <p class="px-2 pb-1 pt-1.5 text-2xs text-slate-400">扫描 /Applications、/System/Applications 与 ~/Applications</p>
-                  <button class="pick-row"><span class="app-icon bg-slate-700">A</span><span class="pick-body"><span class="pick-name">Arc</span><span class="pick-meta">company.thebrowser.Browser</span></span><span class="pick-cta">添加</span></button>
-                  <button class="pick-row"><span class="app-icon bg-indigo-600">C</span><span class="pick-body"><span class="pick-name">Visual Studio Code</span><span class="pick-meta">com.microsoft.VSCode</span></span><span class="pick-cta">添加</span></button>
-                  <button class="pick-row"><span class="app-icon bg-slate-900">F</span><span class="pick-body"><span class="pick-name">Figma</span><span class="pick-meta">com.figma.Desktop</span></span><span class="pick-added">已添加</span></button>
-                  <button class="pick-row"><span class="app-icon bg-emerald-600">K</span><span class="pick-body"><span class="pick-name">Keynote</span><span class="pick-meta">com.apple.iWork.Keynote</span></span><span class="pick-added">已添加</span></button>
-                  <button class="pick-row"><span class="app-icon bg-teal-600">N</span><span class="pick-body"><span class="pick-name">Notion</span><span class="pick-meta">notion.id</span></span><span class="pick-cta">添加</span></button>
-                  <button class="pick-row"><span class="app-icon bg-sky-600">S</span><span class="pick-body"><span class="pick-name">Safari</span><span class="pick-meta">com.apple.Safari</span></span><span class="pick-cta">添加</span></button>
-                  <button class="pick-row"><span class="app-icon bg-violet-600">S</span><span class="pick-body"><span class="pick-name">Slack</span><span class="pick-meta">com.tinyspeck.slackmacgap</span></span><span class="pick-cta">添加</span></button>
-                  <button class="pick-row"><span class="app-icon bg-slate-600">T</span><span class="pick-body"><span class="pick-name">Terminal</span><span class="pick-meta">com.apple.Terminal</span></span><span class="pick-cta">添加</span></button>
-                  <button class="pick-row"><span class="app-icon bg-green-600">W</span><span class="pick-body"><span class="pick-name">微信</span><span class="pick-meta">com.tencent.xinWeChat</span></span><span class="pick-added">已添加</span></button>
-                  <button class="pick-row"><span class="app-icon bg-blue-600">Z</span><span class="pick-body"><span class="pick-name">zoom.us</span><span class="pick-meta">us.zoom.xos</span></span><span class="pick-cta">添加</span></button>
-                </div>
-
-                <!-- 点选 -->
-                <div data-ptab="pick" class="hidden p-4">
-                  <div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
-                    <div class="flex items-start gap-2.5">
-                      <span class="mt-0.5 grid size-8 shrink-0 place-items-center rounded-xl bg-white text-slate-500 shadow-sm ring-1 ring-slate-200">
-                        <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="3"/></svg>
-                      </span>
-                      <div class="min-w-0">
-                        <div class="text-xs font-medium text-slate-700">点选屏幕上的任意窗口</div>
-                        <p class="mt-1 text-2xs leading-relaxed text-slate-500">
-                          开始后工作台会退到后台。点击目标应用的窗口，它就会被自动填入——适合不在应用目录里的程序、辅助进程和游戏。
-                        </p>
-                      </div>
-                    </div>
-                    <button class="btn-default mt-3 h-8 w-full px-3 text-xs">开始点选</button>
-                  </div>
-                  <p class="mt-2.5 text-2xs leading-relaxed text-slate-400">按 Esc 可取消点选。</p>
-                </div>
-
-                <div class="flex items-center justify-between border-t border-slate-100 bg-slate-50 px-3 py-2">
-                  <span class="text-2xs text-slate-400">按 bundle id 记录，改名或换语言都不会失配</span>
-                  <button id="pickerClose" class="text-2xs font-medium text-slate-500 transition-colors hover:text-slate-900">关闭</button>
-                </div>
+            shell.js 的 placePopover() 就是为这件事收出来的（主题卡 ⋯ / 换图标 / 库 ⋯
+            三处曾各自坏过一遍，README 注释里写着「以后新增浮层只要走这里，就不会再踩」），
+            而这个浮层是第四处、也是唯一没走它的一处——教训 #0 的又一次复发。
+            现在它走 placePopover：挂 body + fixed、下方不够就上翻、装不下就限高内滚、
+            并夹进 #mockWindow（不是浏览器视口——真实应用里窗口就是视口）。
+          -->
+          <!--
+            flex-col + 列表 min-h-0 flex-1：限高时要收缩的是**列表**，不是整个浮层。
+            实测只给浮层限高的话，搜索框和底部那行（含它自己的「关闭」按钮）会被挤出可视区——
+            装不下的时候第一个消失的不能是出口。
+          -->
+          <div id="picker" class="hidden flex-col w-[440px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg" role="dialog" aria-label="添加应用">
+            <div class="shrink-0 border-b border-slate-100 p-3">
+              <div class="relative">
+                <svg class="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                <input id="pickerSearch" placeholder="搜索应用名称或 bundle id" class="h-9 w-full rounded-xl border border-slate-200 bg-white pl-8 pr-2 text-sm text-slate-700 shadow-sm placeholder:text-slate-500" />
               </div>
+              <div class="mt-2.5 inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1" role="tablist" aria-label="应用来源">
+                <button data-tab="recent" class="ptab seg-item" role="tab" aria-selected="false" aria-controls="pickerList">最近使用</button>
+                <button data-tab="installed" class="ptab seg-item" role="tab" aria-selected="false" aria-controls="pickerList">已安装</button>
+                <button data-tab="pick" class="ptab seg-item" role="tab" aria-selected="false" aria-controls="pickerPick">点选</button>
+              </div>
+            </div>
+
+            <!-- 「最近使用」与「已安装」由 renderPicker() 从同一张 APPS 表渲染 -->
+            <div id="pickerList" role="tabpanel" aria-label="应用列表" class="min-h-0 flex-1 max-h-[320px] overflow-y-auto p-1.5"></div>
+
+            <!-- 点选 -->
+            <div id="pickerPick" role="tabpanel" aria-label="点选模式" class="hidden min-h-0 flex-1 overflow-y-auto p-4">
+              <div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                <div class="flex items-start gap-2.5">
+                  <span class="mt-0.5 grid size-8 shrink-0 place-items-center rounded-xl bg-white text-slate-500 shadow-sm ring-1 ring-slate-200">
+                    <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="3"/></svg>
+                  </span>
+                  <div class="min-w-0">
+                    <div class="text-xs font-medium text-slate-700">点选屏幕上的任意窗口</div>
+                    <p class="mt-1 text-xs leading-relaxed text-slate-500">
+                      开始后工作台会退到后台。点击目标应用的窗口，它就会被自动填入——适合不在应用目录里的程序、辅助进程和游戏。
+                    </p>
+                  </div>
+                </div>
+                <button id="pickStart" class="btn-default mt-3 h-8 w-full px-3 text-xs">开始点选</button>
+              </div>
+              <p class="hint-note">按 Esc 可取消点选。</p>
+            </div>
+
+            <div class="flex shrink-0 items-center justify-between border-t border-slate-100 bg-slate-50 px-3 py-2">
+              <span class="text-2xs text-slate-500">按 bundle id 记录，改名或换语言都不会失配</span>
+              <button id="pickerClose" class="text-xs font-medium text-slate-500 transition-colors hover:text-slate-900">关闭</button>
             </div>
           </div>
 
           <!-- 缺少权限 -->
-          <div data-show="denied" class="mb-2.5 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+          <div id="deniedNote" class="mb-2.5 hidden items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
             <svg class="mt-0.5 size-4 shrink-0 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
             <div class="min-w-0">
-              <div class="text-xs font-medium text-amber-900">需要辅助功能权限才能识别当前应用</div>
-              <p class="mt-1 text-2xs leading-relaxed text-amber-800">
+              <div class="text-xs font-medium text-amber-900">需要辅助功能权限才能识别刚才使用的应用</div>
+              <p class="mt-1 text-xs leading-relaxed text-amber-800">
                 授权后即可用「最近使用」和「点选」添加应用；在此之前只能手写匹配规则。
               </p>
-              <button class="mt-2 inline-flex items-center gap-1 text-2xs font-medium text-amber-900 underline underline-offset-2 transition-colors hover:text-amber-700">
+              <button class="mt-2 inline-flex items-center gap-1 text-xs font-medium text-amber-900 underline underline-offset-2 transition-colors hover:text-amber-700">
                 打开系统设置 → 隐私与安全 → 辅助功能
                 <svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3"/></svg>
               </button>
+            </div>
+          </div>
+
+          <!--
+            这个应用 AX 覆盖不到（≠ 缺权限，≠ 规则未命中）
+
+            三件事必须分开表达，规格第 5 节明确不许混用同一个警告卡：
+              · 缺权限        → 上面那张 amber 卡，出口是「打开系统设置」
+              · 规则未命中     → 规则行自己的状态，出口是改匹配条件
+              · **AX 覆盖不到** → 权限是绿的、规则也命中了，但这个应用的 AX 树
+                给不出元素级插入点（终端、Java 应用、未开 AX 的 Electron）。
+                **没有出口**——这是这一档最关键的性质，它不可修复，只能告知。
+                所以它不能长成一张让人去点设置的卡；写成 sky 色的告知条，
+                措辞是「已自动回落」，而不是「出错了」。
+
+            实测代价：把它混进缺权限卡的话，用户会反复去开一个**已经开着**的权限。
+          -->
+          <div id="axNote" class="mb-2.5 hidden items-start gap-2.5 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2.5">
+            <svg class="mt-0.5 size-4 shrink-0 text-sky-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+            <div class="min-w-0">
+              <div class="text-xs font-medium text-sky-900">「Terminal」只能按窗口定位，取不到窗口里的元素</div>
+              <p class="mt-1 text-xs leading-relaxed text-sky-800">
+                权限没问题，规则也生效了。这个应用不向辅助功能暴露元素级信息，
+                所以效果会<strong class="font-semibold">锚在指针位置</strong>，而不是你敲到的那个按钮上。
+                终端、部分 Java 应用、未开辅助功能的 Electron 应用都属于这一类。
+              </p>
+              <div class="mt-2 flex flex-wrap items-center gap-3">
+                <a href="05-diagnostics.html" class="inline-flex items-center gap-1 text-xs font-medium text-sky-900 underline underline-offset-2 transition-colors hover:text-sky-700">
+                  在诊断面板里看这次回落
+                  <svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </a>
+                <span class="hint-inline">这一档没有修复入口，只能告知</span>
+              </div>
             </div>
           </div>
 
@@ -122,186 +178,92 @@
               <h3 class="text-sm font-medium text-slate-900">默认行为</h3>
               <div class="mt-0.5 text-xs text-slate-500">没有单独设置的应用一律按这里处理</div>
             </div>
-            <div class="grid gap-2 px-4 py-3 group-data-[w=lg]/win:grid-cols-2">
-              <button data-mode="all" class="mode-card">
+            <!--
+              role=radiogroup + role=radio + aria-checked：这两张卡是全页最重要的一个二选一，
+              而它们原先只是两个 <button>——读屏器听不出哪一个是选中的。
+              方向键在 radiogroup 里也是必须的（Tab 进组、方向键选，不是 Tab 遍历每一项）。
+            -->
+            <div id="modeGroup" class="grid gap-2 px-4 py-3 group-data-[w=lg]/win:grid-cols-2" role="radiogroup" aria-label="默认行为">
+              <button data-mode="all" class="mode-card" role="radio" aria-checked="true">
                 <span class="mode-dot"></span>
                 <span class="min-w-0">
                   <span class="block text-xs font-medium text-slate-900">在所有应用中启用</span>
-                  <span class="mt-1 block text-2xs leading-relaxed text-slate-500">下方列出的应用按各自设置处理。适合大多数人。</span>
+                  <span class="mt-1 block text-xs leading-relaxed text-slate-500">下方列出的应用按各自设置处理。适合大多数人。</span>
                 </span>
               </button>
-              <button data-mode="only" class="mode-card">
+              <button data-mode="only" class="mode-card" role="radio" aria-checked="false">
                 <span class="mode-dot"></span>
                 <span class="min-w-0">
                   <span class="block text-xs font-medium text-slate-900">仅在指定应用中启用</span>
-                  <span class="mt-1 block text-2xs leading-relaxed text-slate-500">没列出的应用一律不生效。适合只想在少数几个应用里用。</span>
+                  <span class="mt-1 block text-xs leading-relaxed text-slate-500">没列出的应用一律不生效。适合只想在少数几个应用里用。</span>
                 </span>
               </button>
             </div>
           </section>
 
-          <div id="whiteNote" class="mb-2.5 hidden flex items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-            <svg class="mt-0.5 size-3.5 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+          <div id="whiteNote" class="mb-2.5 hidden items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+            <svg class="mt-0.5 size-3.5 shrink-0 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
             <div class="min-w-0 flex-1">
-              <p class="text-2xs leading-relaxed text-slate-600">
-                白名单模式下未列出的应用本来就不生效，所以设成「关闭」的行是空配置。
-              </p>
-              <button id="pruneWhite" class="mt-1.5 text-2xs font-medium text-slate-900 underline underline-offset-2">移除这些空配置</button>
+              <p id="whiteNoteText" class="text-xs leading-relaxed text-slate-600"></p>
+              <button id="pruneWhite" class="mt-1.5 text-xs font-medium text-slate-900 underline underline-offset-2">移除这些空配置</button>
             </div>
           </div>
 
-          <!-- ════ 例外应用 ════ -->
+          <!--
+            ════ 例外应用 / 允许的应用 ════
+
+            标题、副标题、计数、行内控件都随「默认行为」翻转。原先它们是写死的：
+            切到白名单后区块还叫「例外应用」、计数还是 3（其中 2 条已被自己标成
+            「白名单下无效」）——而「例外」这个词本来就是相对默认行为定义的，
+            模式一翻，它和列表内容互相矛盾。
+          -->
           <section class="mb-2.5 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
               <div class="min-w-0">
-                <h3 class="text-sm font-medium text-slate-900">例外应用 <span data-show="normal picker" class="tabular-nums text-slate-400">3</span></h3>
-                <div class="mt-0.5 text-xs text-slate-500">一个应用一条记录，互不覆盖，没有优先级</div>
+                <h3 class="text-sm font-medium text-slate-900"><span id="exTitle"></span> <span id="exCount" class="tabular-nums text-slate-500"></span></h3>
+                <div id="exDesc" class="mt-0.5 text-xs text-slate-500"></div>
               </div>
-              <button data-show="normal picker denied" class="btn-outline h-7 px-2.5 text-2xs">
-                <svg class="mr-1 size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-                添加
-              </button>
-            </div>
-
-            <!-- 已有例外 -->
-            <div data-show="normal picker denied" class="divide-y divide-slate-100">
-              <div data-exrow class="flex items-center gap-3 px-4 py-2.5">
-                <span class="app-icon bg-emerald-600">K</span>
-                <div class="min-w-0 flex-1">
-                  <div class="truncate text-sm font-medium text-slate-900">Keynote</div>
-                  <div class="truncate text-2xs text-slate-400">com.apple.iWork.Keynote</div>
+              <div id="exTools" class="flex shrink-0 items-center gap-2">
+                <div class="relative">
+                  <svg class="pointer-events-none absolute left-2 top-1/2 size-3 -translate-y-1/2 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                  <input id="exSearch" placeholder="筛选" aria-label="筛选已列出的应用" class="h-7 w-[110px] rounded-xl border border-slate-200 bg-white pl-7 pr-2 text-xs text-slate-700 shadow-sm placeholder:text-slate-500" />
                 </div>
-                <div class="row-controls">
-                  <div class="seg-group">
-                    <button class="seg-item" data-act="enable">启用</button>
-                    <button class="seg-item seg-item-on" data-act="disable">关闭</button>
-                  </div>
-                  <button class="theme-pick invisible">跟随全局<svg class="ml-1 size-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m6 9 6 6 6-6"/></svg></button>
-                </div>
-                <span data-invalid="Keynote" class="hidden shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-2xs font-medium text-slate-500" title="白名单模式下未列出的应用本来就不生效，「关闭」是空操作">白名单下无效</span>
-                <button class="row-del" aria-label="移除 Keynote">
-                  <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>
-                </button>
-              </div>
-
-              <div data-exrow class="flex items-center gap-3 bg-slate-50 px-4 py-2.5">
-                <span class="app-icon bg-slate-900">F</span>
-                <div class="min-w-0 flex-1">
-                  <div class="flex items-center gap-2">
-                    <span class="truncate text-sm font-medium text-slate-900">Figma</span>
-                    <span data-show="normal picker" class="inline-flex shrink-0 items-center gap-1 rounded-full bg-white px-1.5 py-0.5 text-2xs font-medium text-slate-600 ring-1 ring-slate-200">
-                      <span class="size-1.5 rounded-full bg-sky-500"></span> 正在前台
-                    </span>
-                  </div>
-                  <div class="truncate text-2xs text-slate-400">com.figma.Desktop</div>
-                </div>
-                <div class="row-controls">
-                  <div class="seg-group">
-                    <button class="seg-item" data-act="enable">启用</button>
-                    <button class="seg-item seg-item-on" data-act="disable">关闭</button>
-                  </div>
-                  <button class="theme-pick invisible">跟随全局<svg class="ml-1 size-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m6 9 6 6 6-6"/></svg></button>
-                </div>
-                <span data-invalid="Figma" class="hidden shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-2xs font-medium text-slate-500" title="白名单模式下未列出的应用本来就不生效，「关闭」是空操作">白名单下无效</span>
-                <button class="row-del" aria-label="移除 Figma">
-                  <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>
-                </button>
-              </div>
-
-              <div data-exrow class="flex items-center gap-3 px-4 py-2.5">
-                <span class="app-icon bg-green-600">W</span>
-                <div class="min-w-0 flex-1">
-                  <div class="truncate text-sm font-medium text-slate-900">微信</div>
-                  <div class="truncate text-2xs text-slate-400">com.tencent.xinWeChat</div>
-                </div>
-                <div class="row-controls">
-                  <div class="seg-group">
-                    <button class="seg-item seg-item-on" data-act="enable">启用</button>
-                    <button class="seg-item" data-act="disable">关闭</button>
-                  </div>
-                  <button class="theme-pick">夕霞<svg class="ml-1 size-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m6 9 6 6 6-6"/></svg></button>
-                </div>
-                <span data-invalid="微信" class="hidden shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-2xs font-medium text-slate-500" title="白名单模式下未列出的应用本来就不生效，「关闭」是空操作">白名单下无效</span>
-                <button class="row-del" aria-label="移除 微信">
-                  <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>
+                <button id="addAppBtn2" class="btn-outline h-7 px-2.5 text-xs" aria-haspopup="dialog" aria-expanded="false" aria-controls="picker">
+                  <svg class="mr-1 size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                  添加
                 </button>
               </div>
             </div>
 
-            <!-- 首次进入：空状态直接是最近使用挑选器 -->
-            <div data-show="first" class="px-4 py-3">
-              <div class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-3">
-                <div class="flex items-center justify-between gap-2">
-                  <div class="min-w-0">
-                    <div class="text-xs font-medium text-slate-700">从最近用过的应用里选一个</div>
-                    <p class="mt-1 text-2xs leading-relaxed text-slate-500">不用输入任何东西。点一下就会加进例外列表，默认「关闭效果」。</p>
-                  </div>
-                  <button class="btn-outline h-7 shrink-0 px-2.5 text-2xs">查看全部应用</button>
-                </div>
-                <div class="mt-3 grid gap-1.5 group-data-[w=lg]/win:grid-cols-2">
-                  <button class="first-pick"><span class="app-icon bg-slate-900">F</span><span class="min-w-0 flex-1 text-left"><span class="block truncate text-xs font-medium text-slate-800">Figma</span><span class="block truncate text-2xs text-slate-400">刚刚 · 正在前台</span></span><span class="first-add">+ 关闭效果</span></button>
-                  <button class="first-pick"><span class="app-icon bg-sky-600">T</span><span class="min-w-0 flex-1 text-left"><span class="block truncate text-xs font-medium text-slate-800">Terminal</span><span class="block truncate text-2xs text-slate-400">2 分钟前</span></span><span class="first-add">+ 关闭效果</span></button>
-                  <button class="first-pick"><span class="app-icon bg-emerald-600">K</span><span class="min-w-0 flex-1 text-left"><span class="block truncate text-xs font-medium text-slate-800">Keynote</span><span class="block truncate text-2xs text-slate-400">12 分钟前</span></span><span class="first-add">+ 关闭效果</span></button>
-                  <button class="first-pick"><span class="app-icon bg-amber-600">P</span><span class="min-w-0 flex-1 text-left"><span class="block truncate text-xs font-medium text-slate-800">Preview</span><span class="block truncate text-2xs text-slate-400">26 分钟前</span></span><span class="first-add">+ 关闭效果</span></button>
-                </div>
-              </div>
-            </div>
+            <div id="exList" class="divide-y divide-slate-100"></div>
           </section>
 
           <!-- ════ 高级匹配规则 ════ -->
-          <!--
-            这张卡原先没有 data-show，于是四个原型状态都显示它。在「③ 首次进入」下
-            它会摆出一条已存在的 `*演示模式*` 规则并标「1」——而同一屏的空状态正在说
-            「你还没有任何规则」。同一页两处互相矛盾，实现时会照着做出一个
-            首次启动就有存量规则的界面。首次进入不该有高级规则。
-          -->
-          <section data-show="normal picker denied" class="mb-2.5 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-            <button id="advToggle" class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50">
+          <section class="mb-2.5 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <button id="advToggle" class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50" aria-expanded="true" aria-controls="advBody">
               <div class="min-w-0">
                 <h3 class="flex items-center gap-2 text-sm font-medium text-slate-900">
                   高级匹配规则
-                  <span class="inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-2xs font-medium tabular-nums text-slate-600">1</span>
+                  <span id="advCount" class="inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-xs font-medium tabular-nums text-slate-600">0</span>
                 </h3>
                 <div class="mt-0.5 text-xs text-slate-500">按进程名或窗口标题做模式匹配，<span class="font-medium text-slate-600">这里的规则有顺序</span></div>
               </div>
-              <svg id="advChevron" class="size-4 shrink-0 rotate-180 text-slate-400 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+              <svg id="advChevron" class="size-4 shrink-0 rotate-180 text-slate-500 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
             </button>
 
             <!-- 有规则就默认展开：已存在的配置不该藏起来。计数为 0 时才折叠。 -->
             <div id="advBody" class="border-t border-slate-100 px-4 py-3">
               <div class="mb-2.5 flex items-start gap-2 rounded-xl bg-slate-50 px-3 py-2">
-                <svg class="mt-0.5 size-3.5 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
-                <p class="text-2xs leading-relaxed text-slate-500">
+                <svg class="mt-0.5 size-3.5 shrink-0 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                <p class="text-xs leading-relaxed text-slate-500">
                   裁决顺序：<span class="font-semibold text-slate-700">例外应用</span> → <span class="font-semibold text-slate-700">高级规则（自上而下第一条命中）</span> → <span class="font-semibold text-slate-700">默认行为</span>。
                   只有同一个应用需要按窗口标题分情况处理时才需要用到这里。
                 </p>
               </div>
 
-              <div class="space-y-1.5">
-                <div class="flex items-center gap-2 rounded-xl border border-slate-950 bg-white px-3 py-2.5 shadow-sm">
-                  <button class="cursor-grab text-slate-300 transition-colors hover:text-slate-500" aria-label="拖拽排序">
-                    <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="18" r="1"/></svg>
-                  </button>
-                  <span class="shrink-0 text-2xs font-medium text-slate-400">窗口标题 · 通配符</span>
-                  <code class="rounded-md bg-slate-100 px-1.5 py-0.5 text-2xs font-medium text-slate-700">*演示模式*</code>
-                  <span class="inline-flex items-center rounded-full bg-amber-50 px-1.5 py-0.5 text-2xs font-medium text-amber-800">关闭</span>
-                  <span id="advHit" class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-2xs font-medium text-emerald-800">
-                    <span class="size-1.5 rounded-full bg-emerald-500"></span> 此刻命中
-                  </span>
-                  <span id="advShadowed" class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-1.5 py-0.5 text-2xs font-medium text-slate-500" title="裁决顺序：例外应用先于高级规则">
-                    <svg class="size-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg>
-                    被例外「Figma」覆盖
-                  </span>
-                  <div class="ml-auto flex shrink-0 items-center gap-1">
-                    <button class="rounded-lg px-2 py-1 text-2xs font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700">编辑</button>
-                    <button class="row-del" aria-label="删除规则">
-                      <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <div id="advList" class="space-y-1.5"></div>
 
-              <button class="btn-outline mt-2.5 h-8 px-3 text-xs">
+              <button id="advAdd" class="btn-outline mt-2.5 h-8 px-3 text-xs">
                 <svg class="mr-1.5 size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
                 添加匹配规则
               </button>
@@ -311,20 +273,24 @@
         </div>
       </div>
 
-      <!-- ════ 底部常驻裁决条 ════ -->
       <!--
-        这个条原先是每个原型状态各写一段静态文案（data-show="normal picker" 一段、
-        "first" 一段、"denied" 一段），而它右边就写着「实时反映规则引擎的裁决结果」。
-        实测把 Figma 例外从「关闭」改成「启用」（高级规则接管、此刻命中亮起）、
-        再切到白名单模式，这个条**三次都纹丝不动**，始终说「效果已关闭 · 来自例外应用「Figma」」。
-        全页唯一职责就是说出当前真相的元素在说谎，而且它是最容易被信的那个。
-        现在整条由 syncVerdict() 一处算出来，裁决链就是卡里印着的那条：
-        例外应用 → 高级规则（自上而下第一条命中）→ 默认行为。
+        ════ 底部常驻裁决条 ════
+
+        全页唯一职责就是说出当前真相的元素。它原先是每个原型状态各写一段静态文案，
+        而右边就印着「实时反映规则引擎的裁决结果」——实测改例外、切白名单三次都纹丝不动。
+        现在整条由 verdict() 一处算出，裁决链就是卡里印着的那条。
+
+        右侧原先那句「实时反映规则引擎的裁决结果」是**关于界面自己**的话：
+        占掉近半条宽度、对用户零价值。换成「为什么？」——用户在这一条上唯一会有的问题，
+        而答案在诊断面板里。
       -->
       <div class="shrink-0 border-t border-slate-200 bg-white px-3 py-2.5">
         <div class="mx-auto flex max-w-[920px] flex-wrap items-center gap-2">
-          <div id="verdictBar" class="flex min-w-0 flex-wrap items-center gap-2"></div>
-          <span class="ml-auto shrink-0 text-2xs text-slate-400">实时反映规则引擎的裁决结果</span>
+          <div id="verdictBar" class="flex min-w-0 flex-1 flex-wrap items-center gap-2"></div>
+          <a href="05-diagnostics.html" class="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-slate-500 underline underline-offset-2 transition-colors hover:text-slate-900">
+            为什么？
+            <svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
         </div>
       </div>
     </template>
@@ -333,187 +299,981 @@
 <script src="../shell.js"></script>
 <script>
 mountShell({ active: 'app-rules', mainClass: 'flex min-w-0 flex-1 flex-col overflow-hidden bg-slate-50',
-  proto: [['normal', '① 常规（已有例外）'], ['picker', '② 添加应用面板'], ['first', '③ 首次进入'], ['denied', '④ 缺少辅助功能权限']],
-  hint: '分段控件、默认行为、高级规则折叠都可点击',
+  proto: [['normal', '① 常规（已有例外）'], ['create', '② 新建规则（三步）'], ['picker', '③ 添加应用面板'], ['first', '④ 首次进入'], ['denied', '⑤ 缺少辅助功能权限'], ['axLimited', '⑥ 有权限但 AX 覆盖不到']],
+  hint: '默认行为、行内控件、浮层、高级规则排序都可点击',
   onProto: (id) => onProtoState(id) });
 </script>
 <script>
 const $ = (id) => document.getElementById(id);
 
-// 原型状态
+/* ══════════════════════════════════════════════════════════════════
+   状态模型
+
+   这一页原先把状态存在 DOM 里（哪个 .seg-item 带 seg-item-on、哪一行有 .hidden），
+   裁决条再反过来读 DOM 算结论。两个后果都是实测踩到的：
+
+     1. 「③ 首次进入」用 data-show 把例外列表整段隐藏，但那些行还在 DOM 里，
+        照旧读就算出「效果已关闭 · 来自例外应用「Figma」」——而首次进入的定义
+        就是一条规则都还没有。当时的修法是加一个 shown() 过滤器绕开它。
+     2. 加了「筛选」之后同一个坑会立刻复发：被搜索框筛掉的行也是隐藏的，
+        而**筛选是视图关心的事，绝不该改变裁决**。shown() 那个补丁分不出这两种隐藏。
+
+   状态放进数据、DOM 只作为它的投影，这类问题从根上不存在：filter 只发生在渲染里，
+   verdict() 读的是 rules / advRules 本身。
+   ══════════════════════════════════════════════════════════════════ */
+
+// 应用表。icon 字段连 app-icon 类名一起存：渲染时直接用，
+// 同时让门禁的「应用头像占位色」豁免规则能在这一行生效（占位色不表达语义）。
+const APPS = [
+  { name: 'Figma',              bundle: 'com.figma.Desktop',          glyph: 'F', icon: 'app-icon bg-slate-900',   seen: '刚刚' },
+  { name: 'Terminal',           bundle: 'com.apple.Terminal',         glyph: 'T', icon: 'app-icon bg-sky-600',     seen: '2 分钟前' },
+  { name: 'Keynote',            bundle: 'com.apple.iWork.Keynote',    glyph: 'K', icon: 'app-icon bg-emerald-600', seen: '12 分钟前' },
+  { name: 'Preview',            bundle: 'com.apple.Preview',          glyph: 'P', icon: 'app-icon bg-amber-600',   seen: '26 分钟前' },
+  { name: 'Music',              bundle: 'com.apple.Music',            glyph: 'M', icon: 'app-icon bg-rose-600',    seen: '1 小时前' },
+  { name: '微信',                bundle: 'com.tencent.xinWeChat',      glyph: 'W', icon: 'app-icon bg-emerald-700' },
+  { name: 'Arc',                bundle: 'company.thebrowser.Browser', glyph: 'A', icon: 'app-icon bg-slate-700' },
+  { name: 'Visual Studio Code', bundle: 'com.microsoft.VSCode',       glyph: 'C', icon: 'app-icon bg-sky-700' },
+  { name: 'Notion',             bundle: 'notion.id',                  glyph: 'N', icon: 'app-icon bg-teal-600' },
+  { name: 'Safari',             bundle: 'com.apple.Safari',           glyph: 'S', icon: 'app-icon bg-sky-800' },
+  { name: 'Slack',              bundle: 'com.tinyspeck.slackmacgap',  glyph: 'S', icon: 'app-icon bg-rose-700' },
+  { name: 'zoom.us',            bundle: 'us.zoom.xos',                glyph: 'Z', icon: 'app-icon bg-sky-900' },
+];
+const appOf = (bundle) => APPS.find((a) => a.bundle === bundle) || APPS[0];
+
+/**
+ * 当前前台窗口。**窗口标题必须是真的**：`*演示模式*` 那条通配符规则要能被验证命中，
+ * 而原先稿子只是把「此刻命中」徽标写在那里、页面上没有任何可匹配的对象——
+ * 一个无法验证的状态徽标和写死的裁决条是同一个问题。
+ */
+const FG = { bundle: 'com.figma.Desktop', title: '季度复盘 — 演示模式' };
+const THEME_NAMES = { mono: '几何', drift: '流光', molten: '熔金', sunset: '夕霞' };
+const THEME_IDS = ['mono', 'drift', 'molten', 'sunset'];
+
 let protoState = 'normal';
+let granted = true;
+// AX 覆盖不到：与 granted 正交（权限给了、元素级仍然取不到），所以是独立一个状态位
+let axLimited = false;
+let mode = 'all';       // all = 黑名单（默认全开）｜only = 白名单（默认全关）
+let rules = [];         // 例外应用：{ bundle, action: 'enable'|'disable', themeId, paused }
+let advRules = [];      // 高级规则：有顺序，自上而下第一条命中
+let query = '';
+let advOpen = null;     // null = 按有无规则自动决定；true/false = 用户手动开合过就锁定
+let pickerTab = 'recent';
+let pickerQuery = '';
+let advSeq = 0;
+
+const seedRules = () => [
+  { bundle: 'com.apple.iWork.Keynote', action: 'disable', themeId: 'global' },
+  { bundle: 'com.figma.Desktop',       action: 'disable', themeId: 'global' },
+  { bundle: 'com.tencent.xinWeChat',   action: 'enable',  themeId: 'sunset' },
+];
+// 两条高级规则而不是一条：「这里的规则有顺序」原先只有一条规则，于是顺序、
+// 拖拽排序、「被上面的规则挡住」三件事全都无法验证。两条都命中当前前台，
+// 排序一换命中的那条就换人——顺序是看得见的。
+const seedAdv = () => [
+  { id: ++advSeq, target: '窗口标题', kind: '通配符', pattern: '*演示模式*', action: 'disable', themeId: 'global' },
+  { id: ++advSeq, target: '进程名',   kind: '精确',   pattern: 'Figma',      action: 'enable',  themeId: 'drift' },
+];
+
+/*
+  `wiz` 必须声明在**所有读它的代码之前**。
+
+  第一版把它放在文件末尾的向导块里（第 1109 行），而 `render()` 在第 1099 行就执行了、
+  并且 `render()` 里调 `renderWizard()`——于是初始化时读到一个还在 TDZ 里的 let，
+  抛 `ReferenceError`，**从那一行起后面所有监听都没绑上**：
+  「继续」按钮点了不动，而页面看起来完全正常。
+
+  这是 README 教训 #7 的又一次复发（可选链防不住 TDZ，声明顺序才是根因），
+  也是教训 #14 的同族。声明提到这里，读它的三处都在其后。
+*/
+let wiz = null;
+
 function onProtoState(s) {
   protoState = s;
-  $('picker').classList.toggle('hidden', s !== 'picker');
-  syncRuleMode();   // 授权状态会改变裁决结果，两者必须一起算
+  granted = s !== 'denied';
+  // 「有权限但 AX 覆盖不到」：granted 仍然是 true——这正是这一档的定义
+  axLimited = s === 'axLimited';
+  mode = 'all';
+  query = '';
+  advOpen = null;
+  pickerTab = 'recent';
+  pickerQuery = '';
+  // 首次进入 = 一条规则都还没有。这是**数据**上的空，不是把已有的行藏起来。
+  rules = s === 'first' ? [] : seedRules();
+  advRules = s === 'first' ? [] : seedAdv();
+  closePicker({ restoreFocus: false });
+  wiz = s === 'create' ? { step: 1, bundle: 'com.figma.Desktop', action: null, themeId: null } : null;
+  render();
+  if (s === 'picker') openPicker($('addAppBtn'));
 }
 
-// 添加应用浮层
-$('addAppBtn').addEventListener('click', () => $('picker').classList.toggle('hidden'));
-$('pickerClose').addEventListener('click', () => $('picker').classList.add('hidden'));
-document.querySelectorAll('.ptab').forEach((tab) => tab.addEventListener('click', () => {
-  document.querySelectorAll('.ptab').forEach((t) => {
-    const on = t === tab;
-    t.className = 'ptab h-7 rounded-lg px-2.5 text-2xs font-medium ' + (on ? 'bg-slate-950 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900');
-  });
-  document.querySelectorAll('[data-ptab]').forEach((p) => p.classList.toggle('hidden', p.dataset.ptab !== tab.dataset.tab));
-}));
+/* ══════════════════════════════════════════════════════════════════
+   空操作：一条规则在当前默认行为下不改变任何裁决
 
-// 默认行为单选
-let ruleMode = 'all';
-function setMode(mode) {
-  ruleMode = mode;
+   对称性原先只做了一半（白名单下的「关闭」有标记，黑名单下的「启用」没有），
+   而更早的版本连穿透都只在例外那一层做、高级规则那一层照旧「决定」——
+   于是白名单下会读出「效果已关闭 · 来自高级规则「*演示模式*」」，
+   而真正关掉它的是默认行为。用户照这句去删那条高级规则，删完效果依然不开。
+
+   顺带修正一处过粗的判断：黑名单下的「启用」**只有跟随全局时**才是空操作。
+   「启用 + 指定主题」（微信 + 夕霞）确实改变了结果，不该算空配置。
+   ══════════════════════════════════════════════════════════════════ */
+const isVoid = (r) => (mode === 'only'
+  ? r.action === 'disable'
+  : r.action === 'enable' && r.themeId === 'global');
+
+/**
+ * 暂停：一条规则**保留配置但不参与裁决**。
+ *
+ * ux 规格 6.2 把「暂停、恢复、删除一条规则」并列为 P0，而稿子原先只有删除——
+ * 于是「这条规则是不是它干的？」这个最常见的排查动作只有一条路：**删掉再看**。
+ * 删掉会连主题选择一起丢，试完还得重建一遍。
+ *
+ * 和「关闭」是两件完全不同的事，不能合并：
+ *   · 关闭 = 这个应用里不要效果（是一种**结果**）
+ *   · 暂停 = 这条规则先别算（是对**规则本身**的开关，与它的结果无关）
+ * 白名单下「关闭」还是空操作，而「暂停」在两种默认行为下都有意义。
+ */
+const isPaused = (r) => !!r.paused;
+// 真正在参与裁决的规则：既没暂停、也不是空操作
+const isLive = (r) => !isPaused(r) && !isVoid(r);
+
+/**
+ * 「空配置」的唯一定义，计数与批量移除必须共用它。
+ *
+ * 暂停的行不算空配置：它此刻不生效的原因是暂停，出路是「恢复」而不是「移除」。
+ * **这个函数是走查当场抓出来的**：我原先只在 render() 里排除了暂停，
+ * 而「移除这些空配置」那个 handler 自己又写了一遍 `rules.filter(isVoid)`——
+ * 于是提示文案说「1 行是空配置」，按下去却删掉 2 行，把用户暂停着的规则一起清了。
+ * 一个数出来的数和一个删下去的数由两处代码分别计算，就一定会有一天不一致。
+ */
+const voidRules = () => rules.filter((r) => !isPaused(r) && isVoid(r));
+
+const PAUSED_WHY = '规则已暂停，此刻不参与裁决；恢复后按它自己的设置生效';
+const voidLabel = () => (mode === 'only' ? '白名单下无效' : '与默认相同');
+const voidWhy = () => (mode === 'only'
+  ? '白名单模式下未列出的应用本来就不生效，「关闭」不改变任何结果'
+  : '默认已经是「在所有应用中启用 + 跟随全局主题」，这条不改变任何结果——选一个主题才有区别');
+
+// 读 appliedTheme 而不是 activeTheme：规则决定的是**运行时**行为。
+// 在工作台把主题切到「流光」准备调参（还没应用到桌面）时，这一页应该照旧显示
+// 桌面正在跑的那个——否则它就在说一件还没发生的事（裁决 1 的语义后果）。
+const globalThemeName = () => (window.appliedTheme ? window.appliedTheme().name : THEME_NAMES.mono);
+const themeName = (id) => (id === 'global' ? globalThemeName() : (THEME_NAMES[id] || id));
+const themeLabel = (id) => (id === 'global' ? `「${globalThemeName()}」（跟随全局）` : `「${themeName(id)}」`);
+
+// 通配符只支持 *，与运行时的 app-matcher 一致
+const wildcard = (pattern, text) => new RegExp('^' + pattern.split('*').map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$').test(text);
+function advMatches(r) {
+  const subject = r.target === '窗口标题' ? FG.title : appOf(FG.bundle).name;
+  return r.kind === '通配符' ? wildcard(r.pattern, subject) : r.pattern === subject;
+}
+
+/**
+ * 裁决的唯一真值源。链条就是卡里印着的那条：
+ * 例外应用 →（空操作则穿透）高级规则（自上而下第一条命中，同样穿透空操作）→ 默认行为。
+ */
+function verdict() {
+  if (!granted) return null;
+  // 暂停的规则在两层里都要跳过——这就是暂停的全部含义。
+  const ex = rules.find((r) => r.bundle === FG.bundle && !isPaused(r));
+  if (ex && !isVoid(ex)) {
+    return { enabled: ex.action === 'enable', themeId: ex.themeId, source: `来自例外应用「${appOf(ex.bundle).name}」` };
+  }
+  const hit = advRules.find((r) => isLive(r) && advMatches(r));
+  if (hit) return { enabled: hit.action === 'enable', themeId: hit.themeId, source: `来自高级规则「${hit.pattern}」`, advId: hit.id };
+  return { enabled: mode === 'all', themeId: 'global', source: '来自默认行为' };
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   渲染
+   ══════════════════════════════════════════════════════════════════ */
+const ICON_TRASH = '<svg class="size-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>';
+const ICON_DOTS = '<svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>';
+const ICON_PAUSE = '<svg class="size-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 4v16M16 4v16"/></svg>';
+const ICON_PLAY = '<svg class="size-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4l14 8-14 8Z"/></svg>';
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+/* ── 行尾 ⋯ 菜单 ─────────────────────────────────────────────
+   走 shell.js 的 placePopover：挂 body + fixed、下方不够就上翻、夹进 #mockWindow。
+   列表最后一行的菜单原地 absolute 会被区块的 overflow-hidden 裁掉——
+   这正是 README 里那三处浮层各自坏过一遍之后收出这个函数的原因。 */
+let openMenuKey = null;
+function closeRowMenus() {
+  document.querySelectorAll('[data-row-pop]').forEach((n) => n.remove());
+  openMenuKey = null;
+}
+function openRowMenu(anchor, key, items) {
+  if (openMenuKey === key) { closeRowMenus(); return; }   // 同一个按钮再点一次是收起
+  closeRowMenus();
+  openMenuKey = key;
+  const pop = document.createElement('div');
+  pop.setAttribute('data-row-pop', key);
+  pop.setAttribute('role', 'menu');
+  pop.className = 'z-50 w-[184px] overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg';
+  pop.innerHTML = items.map((it, i) => `<button role="menuitem" data-mi="${i}" class="row-menu-item${it.danger ? ' row-menu-item-danger' : ''}">
+    ${it.icon}<span class="min-w-0 flex-1 truncate">${it.label}</span>
+  </button>`).join('');
+  placePopover(pop, anchor);
+  pop.querySelectorAll('[data-mi]').forEach((b) => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const item = items[Number(b.dataset.mi)];
+    closeRowMenus();
+    item.run();
+  }));
+  pop.querySelector('[data-mi]').focus();
+}
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('[data-row-pop], [data-rowmenu]')) closeRowMenus();
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeRowMenus(); });
+
+/** 暂停 / 恢复。撤销与重做成对（决策 #1：doUndo 只在撤销函数有返回值时才压 redo 栈）。 */
+function togglePause(r, label) {
+  const was = isPaused(r);
+  r.paused = !was;
+  render();
+  toast(`${was ? '已恢复' : '已暂停'}${label}`, () => {
+    r.paused = was; render();
+    return () => { r.paused = !was; render(); };
+  });
+}
+
+const matchesQuery = (r) => {
+  if (!query) return true;
+  const a = appOf(r.bundle);
+  return `${a.name} ${a.bundle}`.toLowerCase().includes(query.toLowerCase());
+};
+
+function render() {
+  // Ctl.select 打开时会把弹层挪到 body 上，行尾 ⋯ 菜单本来就挂在 body 上，
+  // 而下面马上要重建这些行。不清的话每次渲染都在 body 上留一个孤儿浮层。
+  document.querySelectorAll('body > [data-panel]').forEach((p) => p.remove());
+  closeRowMenus();
+
+  $('deniedNote').classList.toggle('hidden', granted);
+  $('deniedNote').classList.toggle('flex', !granted);
+  /*
+    AX 告知条只在 `axLimited` 这个原型态出现，而且**与缺权限卡互斥**：
+    权限都没给的时候谈「元素级取不到」毫无意义（那时候什么都取不到），
+    两张卡同时在场只会让人以为要修两件事。
+  */
+  const axOn = axLimited && granted;
+  $('axNote').classList.toggle('hidden', !axOn);
+  $('axNote').classList.toggle('flex', axOn);
+  renderWizard();   // 三步引导与列表在同一次渲染里，避免两处状态各自更新
+
+  // ── 默认行为
   document.querySelectorAll('[data-mode]').forEach((card) => {
     const on = card.dataset.mode === mode;
-    card.className = 'mode-card' + (on ? ' mode-card-on' : '');
-    card.querySelector('.mode-dot').className = 'mode-dot' + (on ? ' mode-dot-on' : '');
+    // 只增删状态类，不重建 className（门禁 classname-rebuild-with-layout）
+    card.classList.toggle('mode-card-on', on);
+    card.querySelector('.mode-dot').classList.toggle('mode-dot-on', on);
+    card.setAttribute('aria-checked', String(on));
+    card.tabIndex = on ? 0 : -1;
   });
-  syncRuleMode();
+
+  // ── 白名单空配置提示：只在「删掉」确实是正确出路时出现。
+  // 黑名单下的空配置（启用 + 跟随全局）出路是「选个主题」，而主题选择器就在那一行上，
+  // 所以那一档不给批量移除——否则会诱导用户删掉他刚建好的行。
+  const voids = voidRules();
+  const showPrune = mode === 'only' && voids.length > 0;
+  $('whiteNote').classList.toggle('hidden', !showPrune);
+  $('whiteNote').classList.toggle('flex', showPrune);
+  if (showPrune) $('whiteNoteText').textContent = `白名单模式下未列出的应用本来就不生效，所以设成「关闭」的 ${voids.length} 行是空配置。`;
+
+  // ── 例外应用 / 允许的应用
+  const white = mode === 'only';
+  $('exTitle').textContent = white ? '允许的应用' : '例外应用';
+  $('exDesc').textContent = white
+    ? '只有这些应用会生效，一个应用一条记录'
+    : '一个应用一条记录，互不覆盖，没有优先级';
+  const shown = rules.filter(matchesQuery);
+  // 计数只算**真正在参与裁决**的条目。原先它是写死的 3，白名单下其中 2 条已经被自己
+  // 标成「白名单下无效」——一个把空配置也算进去的计数，说的不是用户想知道的那个数。
+  // 差额要如实分类：无效和已暂停的下一步动作完全不同，合成一个「N 条不生效」没用。
+  const pausedN = rules.filter(isPaused).length;
+  const notes = [];
+  if (voids.length) notes.push(`${voids.length} 条无效`);
+  if (pausedN) notes.push(`${pausedN} 条已暂停`);
+  $('exCount').innerHTML = query
+    ? `${shown.length} / ${rules.length}`
+    : (rules.length
+      ? `${rules.filter(isLive).length}${notes.length ? ` <span class="font-normal text-slate-500" title="${esc(`${voids.length ? voidWhy() + '；' : ''}${PAUSED_WHY}`)}">（另有 ${notes.join('、')}）</span>` : ''}`
+      : '');
+  // 一条规则都没有时列表里是空态，筛选框没有可筛的对象
+  $('exTools').classList.toggle('hidden', rules.length === 0);
+  renderExList(shown);
+
+  // ── 高级规则
+  $('advCount').textContent = String(advRules.length);
+  const open = advOpen === null ? advRules.length > 0 : advOpen;
+  $('advBody').classList.toggle('hidden', !open);
+  $('advChevron').classList.toggle('rotate-180', open);
+  $('advToggle').setAttribute('aria-expanded', String(open));
+  renderAdvList();
+
+  renderVerdict();
+  if (pickerIsOpen()) renderPicker();
 }
 
-/**
- * 白名单模式下「关闭」是空操作——未列出的应用本来就不生效。
- * 原来切了模式只改单选卡外观，列表纹丝不动，于是出现自相矛盾的行。
- */
-function syncRuleMode() {
-  const white = ruleMode === 'only';
-  document.querySelectorAll('[data-exrow]').forEach((row) => {
-    const off = row.querySelector('[data-act="disable"]');
-    const badge = row.querySelector('[data-invalid]');
-    if (!off) return;
-    const isOff = off.classList.contains('seg-item-on');
-    off.classList.toggle('hidden', white);
-    if (badge) badge.classList.toggle('hidden', !(white && isOff));
-    row.classList.toggle('opacity-60', white && isOff);
-  });
-  // 白名单下「关闭」行是无效配置，顶部给出可执行的收尾动作
-  const note = document.getElementById('whiteNote');
-  if (note) note.classList.toggle('hidden', !white || !document.querySelector('[data-invalid]:not(.hidden)'));
-  // 高级规则被例外覆盖：仅在黑名单模式且 Figma 例外为「关闭」时成立
-  const figmaOff = [...document.querySelectorAll('[data-exrow]')].some((r) => r.textContent.includes('Figma') && r.querySelector('[data-act="disable"]')?.classList.contains('seg-item-on'));
-  const shadowed = !white && figmaOff;
-  // 未授权时读不到前台应用，「此刻命中」/「被覆盖」都是无法得知的事实。
-  // 这两枚徽标原先在 ④ 缺权限状态下照旧显示，而同一屏底部的裁决条已经写着
-  // 「无法识别当前前台应用」——一页之内两处互相矛盾。实时判断必须整组收掉，
-  // 而不是让其中一处继续断言（ux 规格第 5 节：权限错误 / 数据为空 / 当前未命中是不同状态）。
-  const live = protoState !== 'denied';
-  document.getElementById('advShadowed')?.classList.toggle('hidden', !live || !shadowed);
-  document.getElementById('advHit')?.classList.toggle('hidden', !live || shadowed);
-  syncVerdict({ live, white, figmaOff, shadowed });
+function renderExList(shown) {
+  const host = $('exList');
+  const white = mode === 'only';
+
+  if (!rules.length) {
+    // 三种空态的语义与下一步动作都不同（ux 规格第 5 节 / README 第 1 批 A）：
+    //   blocked  —— 读不到前台应用，「最近用过的」这条捷径不存在，下一步是去授权
+    //   neutral  —— 本来就没有内容，下一步是从最近用过的应用里挑一个
+    // filtered 在下面（有数据、被筛掉了），下一步是清空筛选。
+    host.innerHTML = granted ? firstRunMarkup() : blockedMarkup();
+    bindEmpty();
+    return;
+  }
+  if (!shown.length) {
+    host.innerHTML = `<div class="px-4 py-8 text-center">
+      <div class="text-xs font-medium text-slate-600">没有匹配「${esc(query)}」的应用</div>
+      <div class="hint-note">应用名与 bundle id 都会被搜到</div>
+      <button id="exClearSearch" class="btn-outline mt-2.5 h-7 px-2.5 text-xs">清空筛选</button>
+    </div>`;
+    $('exClearSearch').addEventListener('click', () => { query = ''; $('exSearch').value = ''; render(); });
+    return;
+  }
+
+  host.innerHTML = shown.map((r, i) => {
+    const a = appOf(r.bundle);
+    const dead = isVoid(r);
+    const paused = isPaused(r);
+    const zebra = i % 2 === 1 ? ' bg-slate-50' : '';
+    const fg = granted && r.bundle === FG.bundle;
+
+    // 状态槽只有一个，永远回答同一个问题：「这一行此刻为什么不起作用」。
+    // 暂停优先于空操作——暂停时它是不是空操作根本无从谈起（恢复了才知道）。
+    const statusChip = paused
+      ? `<span class="row-void" title="${esc(PAUSED_WHY)}">已暂停</span>`
+      : dead ? `<span class="row-void" title="${esc(voidWhy())}">${voidLabel()}</span>` : '';
+    // 主题槽的显隐只看 action，与暂停无关：暂停期间也要能看清「恢复后会用哪套主题」。
+    // invisible 而不是 hidden——各行的控件必须纵向对齐。
+    const themeSlot = `<div class="theme-pick${r.action === 'enable' ? '' : ' invisible'}" data-theme-sel="${esc(r.bundle)}"></div>`;
+
+    let controls;
+    if (white) {
+      // 白名单下「被列出」就等于「已允许」，唯一还需要选的是主题。
+      // 原先这里是把「关闭」那一格隐藏掉的分段控件，剩下一个看起来没被按下的「启用」——
+      // 用户读不出当前状态，也不知道按下去会发生什么。
+      const head = statusChip || `<span class="row-allowed">
+          <svg class="size-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>
+          已允许
+        </span>`;
+      controls = head
+        + (dead && !paused ? `<button class="row-fix" data-fix="${esc(r.bundle)}">改为允许</button>` : '')
+        + themeSlot;
+    } else {
+      controls = `<div class="seg-group" role="radiogroup" aria-label="${esc(a.name)} 的行为">
+          <button class="seg-item${r.action === 'enable' ? ' seg-item-on' : ''}" role="radio" aria-checked="${r.action === 'enable'}" data-act="enable" data-row="${esc(r.bundle)}">启用</button>
+          <button class="seg-item${r.action === 'disable' ? ' seg-item-on' : ''}" role="radio" aria-checked="${r.action === 'disable'}" data-act="disable" data-row="${esc(r.bundle)}">关闭</button>
+        </div>${statusChip}${themeSlot}`;
+    }
+    // 不给暂停 / 无效行加 opacity：这一行的控件仍然可点（暂停期间照旧能改配置），
+    // 而「看着像禁用、其实能点」比没有视觉区分更糟。状态由上面那枚 chip 承担。
+    return `<div data-exrow="${esc(r.bundle)}" class="flex items-center gap-3 px-4 py-2.5${zebra}">
+      <span class="${a.icon}">${a.glyph}</span>
+      <div class="min-w-0 flex-1">
+        <div class="flex items-center gap-2">
+          <span class="truncate text-sm font-medium text-slate-900">${esc(a.name)}</span>
+          ${fg ? '<span class="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-white px-1.5 py-0.5 text-xs font-medium text-slate-600 ring-1 ring-slate-200"><span class="size-1.5 rounded-full bg-sky-500"></span> 刚才在用</span>' : ''}
+        </div>
+        <div class="truncate text-xs text-slate-500">${esc(a.bundle)}</div>
+      </div>
+      <div class="row-controls">${controls}</div>
+      <button class="row-menu" data-rowmenu="ex:${esc(r.bundle)}" aria-label="${esc(a.name)} 的更多操作" aria-haspopup="menu">${ICON_DOTS}</button>
+    </div>`;
+  }).join('');
+
+  bindExRows();
 }
 
-/**
- * 底部裁决条的唯一真值源。裁决链照卡里印的那条走：
- * 例外应用 →（例外在当前默认行为下是空操作时穿透）高级规则 → 默认行为。
- *
- * 「空操作」在两个方向上对称，这一点是白名单联动那条已经确立的：
- * 白名单下的「关闭」是空操作，黑名单下的「启用」同样是空操作——
- * 未列出的应用本来就已经是那个结果，所以那条例外不改变任何裁决，会穿透到下一层。
- */
-function syncVerdict({ live, white, figmaOff }) {
-  const host = document.getElementById('verdictBar');
-  if (!host) return;
-  if (!live) {
+function firstRunMarkup() {
+  const recent = APPS.filter((a) => a.seen).slice(0, 4);
+  return `<div class="px-4 py-3">
+    <div class="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-3">
+      <div class="flex items-center justify-between gap-2">
+        <div class="min-w-0">
+          <div class="text-xs font-medium text-slate-700">从最近用过的应用里选一个</div>
+          <p class="mt-1 text-xs leading-relaxed text-slate-500">不用输入任何东西。点一下就会加进列表，默认「关闭效果」。</p>
+        </div>
+        <button id="firstAll" class="btn-outline h-7 shrink-0 px-2.5 text-xs">查看全部应用</button>
+      </div>
+      <div class="mt-3 grid gap-1.5 group-data-[w=lg]/win:grid-cols-2">
+        ${recent.map((a) => `<button class="first-pick" data-add="${esc(a.bundle)}">
+          <span class="${a.icon}">${a.glyph}</span>
+          <span class="min-w-0 flex-1 text-left">
+            <span class="block truncate text-xs font-medium text-slate-800">${esc(a.name)}</span>
+            <span class="block truncate text-xs text-slate-500">${esc(a.seen)}${a.bundle === FG.bundle ? ' · 刚才在用' : ''}</span>
+          </span>
+          <span class="first-add">+ 关闭效果</span>
+        </button>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+// 缺权限 + 一条规则都没有：这一档「最近用过的应用」根本读不到，
+// 所以不能摆一个空的挑选器（那会让人以为是坏了）。下一步动作是去授权。
+function blockedMarkup() {
+  return `<div class="px-4 py-8 text-center">
+    <div class="text-xs font-medium text-slate-600">还读不到最近用过的应用</div>
+    <div class="mx-auto mt-1 max-w-md text-xs leading-relaxed text-slate-500">授权辅助功能后，这里会列出刚刚用过的应用供你一键添加；在此之前可以用「高级匹配规则」手写进程名。</div>
+    <button id="blockedGrant" class="btn-default mt-2.5 h-7 px-2.5 text-xs">打开系统设置</button>
+  </div>`;
+}
+
+function bindEmpty() {
+  $('firstAll')?.addEventListener('click', () => openPicker($('addAppBtn')));
+  $('blockedGrant')?.addEventListener('click', () => toast('已打开「隐私与安全 → 辅助功能」'));
+  document.querySelectorAll('[data-add]').forEach((b) => b.addEventListener('click', () => addRule(b.dataset.add)));
+}
+
+function bindExRows() {
+  document.querySelectorAll('[data-act]').forEach((b) => b.addEventListener('click', () => {
+    const r = rules.find((x) => x.bundle === b.dataset.row);
+    if (!r || r.action === b.dataset.act) return;
+    const before = r.action;
+    const after = b.dataset.act;
+    r.action = after;
+    render();
+    const name = appOf(r.bundle).name;
+    toast(`${after === 'disable' ? '已关闭' : '已启用'}「${name}」的效果`, () => {
+      r.action = before; render();
+      return () => { r.action = after; render(); };
+    });
+  }));
+
+  document.querySelectorAll('[data-fix]').forEach((b) => b.addEventListener('click', () => {
+    const r = rules.find((x) => x.bundle === b.dataset.fix);
+    if (!r) return;
+    r.action = 'enable';
+    render();
+    toast(`已允许「${appOf(r.bundle).name}」`, () => {
+      r.action = 'disable'; render();
+      return () => { r.action = 'enable'; render(); };
+    });
+  }));
+
+  // 行尾 ⋯：暂停 / 恢复 + 移除（ux 规格 6.2 的 P0 第 4 条「暂停、恢复、删除一条规则」）。
+  // 三个动作横排会把行挤爆——行里已经有分段控件和主题选择器了；收进菜单反而把行尾
+  // 控件从 2 个降到 1 个。菜单不是 hover-only 入口，不违反决策 #4。
+  // 选择器要**限定在自己的列表里**：高级规则行用的是同一个 data-rowmenu，
+  // 全局 querySelectorAll 会把两边的按钮都绑上，于是每个按钮挂两个 handler。
+  $('exList').querySelectorAll('[data-rowmenu]').forEach((b) => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const bundle = b.dataset.rowmenu.slice(3);
+    const r = rules.find((x) => x.bundle === bundle);
+    if (!r) return;
+    const name = appOf(bundle).name;
+    openRowMenu(b, b.dataset.rowmenu, [
+      {
+        label: isPaused(r) ? '恢复这条规则' : '暂停这条规则',
+        icon: isPaused(r) ? ICON_PLAY : ICON_PAUSE,
+        run: () => togglePause(r, `「${name}」的规则`),
+      },
+      { label: '移除', icon: ICON_TRASH, danger: true, run: () => removeRule(bundle) },
+    ]);
+  }));
+
+  bindThemeSelects();
+}
+
+// 删除必须可撤销（ux 规格第 5 节：删除、重置、清空全部必须提供确认或可撤销反馈）。
+// 原先垃圾桶按钮没有任何 handler——而同一行里**可逆**的开关切换反倒给了带撤销的 toast，
+// 最危险的动作反馈最弱，优先级正好是反的。
+function removeRule(bundle) {
+  const i = rules.findIndex((x) => x.bundle === bundle);
+  if (i < 0) return;
+  const [gone] = rules.splice(i, 1);
+  render();
+  toast(`已移除「${appOf(gone.bundle).name}」`, () => {
+    rules.splice(i, 0, gone); render();
+    return () => { rules.splice(rules.indexOf(gone), 1); render(); };
+  });
+}
+
+function bindThemeSelects() {
+
+  // 每行的主题选择器。原先是自己画的一个假下拉（无 handler、点了没反应），
+  // 而且写死一句「跟随全局」——**从不说全局是哪一个**，而那正是这一页唯一会被问到的事。
+  // 现在用共享的 Ctl.select，「跟随全局」右侧直读当前全局主题名，换侧栏主题会跟着变。
+  document.querySelectorAll('[data-theme-sel]').forEach((el) => {
+    const r = rules.find((x) => x.bundle === el.dataset.themeSel);
+    if (!r) return;
+    Ctl.select(el, {
+      value: r.themeId === 'global' ? '跟随全局' : themeName(r.themeId),
+      options: [
+        // side 只给「跟随全局」用——它是这一格唯一需要补充说明的选项（全局是哪个）。
+        // 具体主题名自己就是答案，再挂一个「内置 / 自定义」只是在 136px 里抢位置。
+        { label: '跟随全局', side: globalThemeName(), desc: '全局主题换了就跟着换' },
+        ...THEME_IDS.map((id) => ({ label: THEME_NAMES[id], desc: id === 'sunset' ? '自定义主题' : '内置主题' })),
+      ],
+      onChange: (label) => {
+        const before = r.themeId;
+        const after = label === '跟随全局' ? 'global' : THEME_IDS.find((id) => THEME_NAMES[id] === label);
+        r.themeId = after;
+        render();
+        toast(`「${appOf(r.bundle).name}」改用${themeLabel(after)}`, () => {
+          r.themeId = before; render();
+          return () => { r.themeId = after; render(); };
+        });
+      },
+    });
+  });
+}
+
+function renderAdvList() {
+  const host = $('advList');
+  if (!advRules.length) {
+    host.innerHTML = '<p class="px-1 py-2 text-xs text-slate-500">还没有任何匹配规则。绝大多数需求用上面的列表就够了。</p>';
+    return;
+  }
+  const v = verdict();
+  const firstMatch = advRules.find((r) => isLive(r) && advMatches(r));
+  host.innerHTML = advRules.map((r) => {
+    let badge = '';
+    if (isPaused(r)) {
+      // 暂停优先于其他一切状态：暂停的规则连「有没有命中」都不必回答。
+      badge = `<span class="row-void" title="${esc(PAUSED_WHY)}">已暂停</span>`;
+    } else if (isVoid(r)) {
+      badge = `<span class="row-void" title="${esc(voidWhy())}">${voidLabel()}</span>`;
+    } else if (granted && advMatches(r)) {
+      // 未授权时读不到前台应用，「此刻命中 / 被覆盖」都是无法得知的事实——
+      // 这一组必须整组收掉，不能留一处继续断言（同一屏底部已写着「无法识别当前前台应用」）。
+      if (r !== firstMatch) {
+        badge = `<span class="adv-badge bg-slate-100 text-slate-500" title="自上而下第一条命中的才生效">
+          <svg class="size-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m18 15-6-6-6 6"/></svg>
+          被上面的规则挡住</span>`;
+      } else if (v && v.advId !== r.id) {
+        badge = `<span class="adv-badge bg-slate-100 text-slate-500" title="裁决顺序：例外应用先于高级规则">
+          <svg class="size-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          ${esc(v.source.replace('来自', '被'))}覆盖</span>`;
+      } else {
+        badge = '<span class="adv-badge bg-emerald-50 text-emerald-800"><span class="size-1.5 rounded-full bg-emerald-500"></span> 此刻命中</span>';
+      }
+    }
+    const hit = !!v && v.advId === r.id;
+    const action = r.action === 'disable'
+      ? '<span class="adv-badge bg-amber-50 text-amber-800">关闭</span>'
+      : `<span class="adv-badge bg-emerald-50 text-emerald-800">启用 · ${esc(themeName(r.themeId))}</span>`;
+    return `<div class="adv-row${hit ? ' adv-row-hit' : ''}" data-adv="${r.id}">
+      <button class="shrink-0 cursor-grab text-slate-300 transition-colors hover:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400" data-advmove="${r.id}" aria-label="调整「${esc(r.pattern)}」的顺序，方向键上下移动">
+        <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="6" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="18" r="1"/><circle cx="15" cy="6" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="18" r="1"/></svg>
+      </button>
+      <div class="flex min-w-0 flex-1 items-center gap-2">
+        <span class="shrink-0 whitespace-nowrap text-xs font-medium text-slate-500">${esc(r.target)} · ${esc(r.kind)}</span>
+        <code class="min-w-0 truncate rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-700" title="${esc(r.pattern)}">${esc(r.pattern)}</code>
+        ${action}
+        ${badge}
+      </div>
+      <div class="flex shrink-0 items-center gap-1">
+        <button class="rounded-lg px-2 py-1 text-xs font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700" data-advedit="${r.id}">编辑</button>
+        <button class="row-menu" data-rowmenu="ad:${r.id}" aria-label="规则 ${esc(r.pattern)} 的更多操作" aria-haspopup="menu">${ICON_DOTS}</button>
+      </div>
+    </div>`;
+  }).join('');
+  bindAdvRows();
+}
+
+function moveAdv(id, delta) {
+  const i = advRules.findIndex((r) => r.id === id);
+  const j = i + delta;
+  if (i < 0 || j < 0 || j >= advRules.length) return false;
+  [advRules[i], advRules[j]] = [advRules[j], advRules[i]];
+  render();
+  $('advList').querySelector(`[data-advmove="${id}"]`)?.focus();
+  return true;
+}
+
+function bindAdvRows() {
+  // 排序不能只靠拖：决策 #4 的同一条精神（操作不得只在某一种输入方式下可达）。
+  // 拖拽给鼠标、方向键给键盘，两条路通到同一个 moveAdv。
+  document.querySelectorAll('[data-advmove]').forEach((h) => {
+    const id = Number(h.dataset.advmove);
+    const row = h.closest('[data-adv]');
+    h.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+      e.preventDefault();
+      const delta = e.key === 'ArrowUp' ? -1 : 1;
+      if (moveAdv(id, delta)) toast('已调整规则顺序', () => { moveAdv(id, -delta); return () => moveAdv(id, delta); });
+    });
+    // 只有按住拖柄才可拖：整行 draggable 会让选中 code 里的文字变成拖拽
+    h.addEventListener('pointerdown', () => { row.draggable = true; });
+    row.addEventListener('dragend', () => { row.draggable = false; });
+    row.addEventListener('dragstart', (e) => e.dataTransfer.setData('text/plain', String(id)));
+    row.addEventListener('dragover', (e) => e.preventDefault());
+    row.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const from = Number(e.dataTransfer.getData('text/plain'));
+      const to = Number(row.dataset.adv);
+      if (!from || from === to) return;
+      const fi = advRules.findIndex((r) => r.id === from);
+      const ti = advRules.findIndex((r) => r.id === to);
+      if (fi < 0 || ti < 0) return;
+      const [moved] = advRules.splice(fi, 1);
+      advRules.splice(ti, 0, moved);
+      render();
+      toast('已调整规则顺序', () => {
+        advRules.splice(advRules.indexOf(moved), 1);
+        advRules.splice(fi, 0, moved);
+        render();
+        return () => { advRules.splice(advRules.indexOf(moved), 1); advRules.splice(ti, 0, moved); render(); };
+      });
+    });
+  });
+
+  document.querySelectorAll('[data-advedit]').forEach((b) => b.addEventListener('click', () => {
+    const r = advRules.find((x) => x.id === Number(b.dataset.advedit));
+    toast(`编辑规则「${r.pattern}」· 匹配目标 / 匹配方式 / 动作`);
+  }));
+
+  // 与例外行同一套行尾菜单：暂停高级规则是排查「是不是它干的」最短的一步
+  // （删掉再看会连模式一起丢，试完还得重新写一遍）
+  $('advList').querySelectorAll('[data-rowmenu]').forEach((b) => b.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const id = Number(b.dataset.rowmenu.slice(3));
+    const r = advRules.find((x) => x.id === id);
+    if (!r) return;
+    openRowMenu(b, b.dataset.rowmenu, [
+      {
+        label: isPaused(r) ? '恢复这条规则' : '暂停这条规则',
+        icon: isPaused(r) ? ICON_PLAY : ICON_PAUSE,
+        run: () => togglePause(r, `规则「${r.pattern}」`),
+      },
+      { label: '删除', icon: ICON_TRASH, danger: true, run: () => removeAdv(id) },
+    ]);
+  }));
+}
+
+function removeAdv(id) {
+  const i = advRules.findIndex((x) => x.id === id);
+  if (i < 0) return;
+  const [gone] = advRules.splice(i, 1);
+  render();
+  toast(`已删除规则「${gone.pattern}」`, () => {
+    advRules.splice(i, 0, gone); render();
+    return () => { advRules.splice(advRules.indexOf(gone), 1); render(); };
+  });
+}
+
+function renderVerdict() {
+  const host = $('verdictBar');
+  const v = verdict();
+  if (!v) {
     host.innerHTML = `
-      <span class="grid size-5 place-items-center rounded-full bg-slate-100 text-slate-400">
+      <span class="grid size-5 place-items-center rounded-full bg-slate-100 text-slate-500">
         <svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
       </span>
-      <span class="text-xs text-slate-500">无法识别当前前台应用，规则暂不生效</span>`;
+      <span class="text-xs text-slate-500">读不到刚才使用的应用，规则暂不生效</span>`;
     return;
   }
-  // 只算**真正显示着**的规则。两个理由，都是实测踩出来的：
-  //   1. ③ 首次进入把例外列表整段隐藏（data-show="normal picker denied"），但那些行还在
-  //      DOM 里。照旧去读就会算出「效果已关闭 · 来自例外应用「Figma」」——而首次进入
-  //      的定义就是一条规则都还没有。
-  //   2. 「移除这些空配置」是给行加 .hidden，裁决必须跟着不再算它们。
-  const shown = (el) => !!el && !el.closest('.hidden');
-  const rows = [...document.querySelectorAll('[data-exrow]')].filter(shown);
-  const figmaRow = rows.find((r) => r.textContent.includes('Figma'));
-  const figmaOnShown = !!figmaRow?.querySelector('[data-act="enable"]')?.classList.contains('seg-item-on');
-  const figmaOffShown = figmaOff && shown(figmaRow);
-  const advRuleShown = shown(document.getElementById('advToggle'));
-
-  // 一条规则都没有 → 直接就是默认行为，不必往裁决链里走
-  if (!rows.length && !advRuleShown) {
-    host.innerHTML = verdictMarkup(white ? false : true, '来自默认行为');
-    return;
-  }
-  // 例外这一层是否真的改变了结果
-  const exceptionDecides = white ? figmaOnShown : figmaOffShown;
-  // 例外决定 → 白名单里被列出=启用、黑名单里被关闭=关闭；
-  // 例外是空操作 → 穿透到高级规则，第一条命中就是 *演示模式* → 关闭。
-  const enabled = exceptionDecides ? white : false;
-  const source = exceptionDecides
-    ? '来自例外应用「Figma」'
-    : advRuleShown ? '来自高级规则「*演示模式*」' : '来自默认行为';
-  host.innerHTML = verdictMarkup(exceptionDecides ? enabled : (advRuleShown ? false : !white), source);
-}
-
-function verdictMarkup(enabled, source) {
-  const tone = enabled ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800';
-  return `
-    <span class="app-icon-sm bg-slate-900">F</span>
-    <span class="text-xs text-slate-500">当前前台</span>
-    <span class="truncate text-xs font-medium text-slate-900">Figma</span>
+  const a = appOf(FG.bundle);
+  const tone = v.enabled ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800';
+  host.innerHTML = `
+    <span class="app-icon-sm ${a.icon.replace('app-icon ', '')}">${a.glyph}</span>
+    <span class="shrink-0 text-xs text-slate-500">刚才使用</span>
+    <span class="shrink-0 text-xs font-medium text-slate-900">${esc(a.name)}</span>
+    <span class="min-w-0 truncate text-xs text-slate-500" title="${esc(FG.title)}">${esc(FG.title)}</span>
     <svg class="size-3 shrink-0 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-    <span class="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-2xs font-semibold ${tone}">
-      ${enabled ? '效果已启用' : '效果已关闭'}
-      <span class="font-normal">${source}</span>
+    <span class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-2 py-1 text-xs font-semibold ${tone}">
+      ${v.enabled ? `效果已启用 · 主题${themeLabel(v.themeId)}` : '效果已关闭'}
+      <span class="font-normal">${esc(v.source)}</span>
     </span>`;
 }
-document.querySelectorAll('[data-mode]').forEach((c) => c.addEventListener('click', () => setMode(c.dataset.mode)));
-document.getElementById('pruneWhite')?.addEventListener('click', () => {
-  const rows = [...document.querySelectorAll('[data-exrow]')].filter((r) => r.querySelector('[data-invalid]:not(.hidden)'));
-  rows.forEach((r) => r.classList.add('hidden'));
-  syncRuleMode();
-  toast(`已移除 ${rows.length} 条空配置`, () => { rows.forEach((r) => r.classList.remove('hidden')); syncRuleMode(); });
-});
 
-// 反馈统一走外壳的 toast（README 决策 7）。
-// 这里原先自带一套页内 toast，迁到共享外壳后它的 DOM 不在了，
-// $('toastUndo') 变成 null 直接抛错——从那一行起本页脚本全部没执行。
-const showToast = (title, desc, undo) => toast(desc ? `${title} · ${desc}` : title, undo);
+/* ══════════════════════════════════════════════════════════════════
+   添加应用浮层
+   ══════════════════════════════════════════════════════════════════ */
+let pickerAnchor = null;
+const pickerIsOpen = () => !$('picker').classList.contains('hidden');
 
-// 每行控件：启用 / 关闭 二选一；选「启用」才出现主题选择器（不选就跟随全局）
-document.querySelectorAll('.row-controls').forEach((controls) => {
-  const themePick = controls.querySelector('.theme-pick');
-  const apply = (act) => {
-    controls.querySelectorAll('.seg-item').forEach((i) => {
-      i.className = 'seg-item' + (i.dataset.act === act ? ' seg-item-on' : '');
-    });
-    // invisible 而不是 hidden：保留槽位，各行的分段控件才对齐成一列
-    themePick.classList.toggle('invisible', act !== 'enable');
-    syncRuleMode();   // 行内改动会影响白名单空配置提示与高级规则的覆盖标记
-  };
-  controls.querySelectorAll('.seg-item').forEach((item) => item.addEventListener('click', () => {
-    const before = controls.querySelector('.seg-item-on')?.dataset.act;
-    if (before === item.dataset.act) return;
-    apply(item.dataset.act);
-    const appName = controls.closest('div.flex.items-center.gap-3')?.querySelector('.truncate')?.textContent.trim();
-    showToast(
-      item.dataset.act === 'disable' ? '已关闭该应用的效果' : '已启用该应用的效果',
-      appName || '',
-      () => apply(before),
-    );
-  }));
-});
+function renderPicker() {
+  document.querySelectorAll('.ptab').forEach((t) => {
+    const on = t.dataset.tab === pickerTab;
+    t.classList.toggle('seg-item-on', on);
+    t.setAttribute('aria-selected', String(on));
+  });
+  $('pickerList').classList.toggle('hidden', pickerTab === 'pick');
+  $('pickerPick').classList.toggle('hidden', pickerTab !== 'pick');
+  if (pickerTab === 'pick') return;
 
-// 高级规则折叠
-$('advToggle').addEventListener('click', () => {
-  const open = $('advBody').classList.toggle('hidden') === false;
-  $('advChevron').classList.toggle('rotate-180', open);
-});
+  // 「最近使用」要靠前台监听，未授权时读不到——不能摆一个空列表让人以为是坏了
+  if (pickerTab === 'recent' && !granted) {
+    $('pickerList').innerHTML = `<p class="px-2 py-6 text-center text-xs leading-relaxed text-slate-500">
+      需要辅助功能权限才能记录最近用过的应用。<br />可以先在「已安装」里找，或者用「点选」。</p>`;
+    return;
+  }
 
-// 浮层内的挑选行反馈
-document.querySelectorAll('.pick-row').forEach((row) => row.addEventListener('click', () => {
-  const cta = row.querySelector('.pick-cta');
-  if (!cta) return;
-  cta.className = 'pick-added';
-  cta.textContent = '已添加';
+  const pool = pickerTab === 'recent' ? APPS.filter((a) => a.seen) : APPS;
+  const q = pickerQuery.trim().toLowerCase();
+  const list = pool.filter((a) => !q || `${a.name} ${a.bundle}`.toLowerCase().includes(q));
+  const note = pickerTab === 'recent'
+    ? '前台监听自动记录，已排除 CursorDance 自身'
+    : '扫描 /Applications、/System/Applications 与 ~/Applications';
+
+  // 搜索框原先是个裸 input、没有任何监听——输进去什么都不会发生。
+  // 与 shell.js 侧栏搜索踩过的是同一个「画了控件没接线」。
+  $('pickerList').innerHTML = `<p class="px-2 pb-1 pt-1.5 text-xs text-slate-500">${q ? `匹配「${esc(pickerQuery)}」的 ${list.length} 个应用` : note}</p>`
+    + (list.length ? list.map((a) => {
+      const added = rules.some((r) => r.bundle === a.bundle);
+      return `<button class="pick-row" data-pick="${esc(a.bundle)}"${added ? ' disabled aria-disabled="true"' : ''}>
+        <span class="${a.icon}">${a.glyph}</span>
+        <span class="pick-body">
+          <span class="pick-name">${esc(a.name)}</span>
+          <span class="pick-meta">${esc(a.bundle)}${a.seen && pickerTab === 'recent' ? ` · ${esc(a.seen)}` : ''}</span>
+        </span>
+        <span class="${added ? 'pick-added' : 'pick-cta'}">${added ? '已添加' : '添加'}</span>
+      </button>`;
+    }).join('')
+      : `<p class="px-2 py-6 text-center text-xs text-slate-500">没有匹配「${esc(pickerQuery)}」的应用</p>`);
+
+  $('pickerList').querySelectorAll('[data-pick]').forEach((b) => b.addEventListener('click', () => addRule(b.dataset.pick)));
+}
+
+function addRule(bundle) {
+  if (rules.some((r) => r.bundle === bundle)) return;
+  // 默认「关闭效果」：ux 规格 6.3 的默认创建流程，一个字都不必填
+  const r = { bundle, action: 'disable', themeId: 'global' };
+  rules.push(r);
+  render();
+  toast(`已加入「${appOf(bundle).name}」· 默认关闭效果`, () => {
+    rules = rules.filter((x) => x !== r); render();
+    return () => { rules.push(r); render(); };
+  });
+}
+
+function openPicker(anchor) {
+  pickerAnchor = anchor || $('addAppBtn');
+  const pop = $('picker');
+  // hidden 与 flex 都是 display 工具类，同时写在 class 里靠顺序决胜是不可靠的（同一层）。
+  // 成对开合，和 deniedNote / whiteNote 一样。
+  pop.classList.remove('hidden');
+  pop.classList.add('flex');
+  renderPicker();
+  placePopover(pop, pickerAnchor, { gap: 6 });
+  [$('addAppBtn'), $('addAppBtn2')].forEach((b) => b && b.setAttribute('aria-expanded', 'true'));
+  $('pickerSearch').focus();
+}
+
+function closePicker({ restoreFocus = true } = {}) {
+  const pop = $('picker');
+  if (!pickerIsOpen()) return;
+  pop.classList.add('hidden');
+  pop.classList.remove('flex');
+  [$('addAppBtn'), $('addAppBtn2')].forEach((b) => b && b.setAttribute('aria-expanded', 'false'));
+  if (restoreFocus) pickerAnchor?.focus();
+}
+
+const togglePicker = (anchor) => (pickerIsOpen() ? closePicker() : openPicker(anchor));
+$('addAppBtn').addEventListener('click', () => togglePicker($('addAppBtn')));
+$('addAppBtn2').addEventListener('click', () => togglePicker($('addAppBtn2')));
+$('pickerClose').addEventListener('click', () => closePicker());
+$('pickStart').addEventListener('click', () => toast('点选已开始 · 点击目标窗口，按 Esc 取消'));
+$('pickerSearch').addEventListener('input', (e) => { pickerQuery = e.target.value; renderPicker(); });
+document.querySelectorAll('.ptab').forEach((tab) => tab.addEventListener('click', () => {
+  pickerTab = tab.dataset.tab;
+  renderPicker();
+  placePopover($('picker'), pickerAnchor || $('addAppBtn'), { gap: 6 });
 }));
 
-setMode('all');
-document.querySelector('.ptab').click();
+// Esc 与点外面都要能关：原先只有右下角那个小小的「关闭」能关掉它。
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePicker(); });
+document.addEventListener('click', (e) => {
+  if (!pickerIsOpen()) return;
+  if ($('picker').contains(e.target) || e.target.closest('#addAppBtn, #addAppBtn2')) return;
+  // Ctl.select 的弹层也挂在 body 上，点它不算「点了外面」
+  if (e.target.closest('[data-panel]')) return;
+  closePicker({ restoreFocus: false });
+});
+// 浮层是 fixed 的，内容一滚就会和触发按钮脱开（同 Ctl.select 的取舍：
+// 一个跟着滚动飘的浮层比直接关掉更难用）。改窗口尺寸则重新定位，不关。
+$('pageScroll').addEventListener('scroll', () => closePicker({ restoreFocus: false }), { passive: true });
+window.addEventListener('viewportchange', () => {
+  if (pickerIsOpen()) placePopover($('picker'), pickerAnchor || $('addAppBtn'), { gap: 6 });
+});
+
+/* ══════════════════════════════════════════════════════════════════
+   其余绑定
+   ══════════════════════════════════════════════════════════════════ */
+function setMode(next) {
+  if (mode === next) return;
+  const before = mode;
+  mode = next;
+  render();
+  toast(next === 'only' ? '默认行为改成「仅在指定应用中启用」' : '默认行为改成「在所有应用中启用」', () => {
+    mode = before; render();
+    return () => { mode = next; render(); };
+  });
+}
+document.querySelectorAll('[data-mode]').forEach((c) => c.addEventListener('click', () => setMode(c.dataset.mode)));
+// radiogroup 的键盘约定：方向键在选项间移动并直接选中
+$('modeGroup').addEventListener('keydown', (e) => {
+  if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
+  e.preventDefault();
+  const next = mode === 'all' ? 'only' : 'all';
+  setMode(next);
+  document.querySelector(`[data-mode="${next}"]`).focus();
+});
+
+$('exSearch').addEventListener('input', (e) => { query = e.target.value; render(); });
+
+$('pruneWhite').addEventListener('click', () => {
+  const gone = voidRules();          // 与计数同一个真值源，不再各写一遍
+  const before = rules.slice();
+  rules = rules.filter((r) => !gone.includes(r));
+  render();
+  toast(`已移除 ${gone.length} 条空配置`, () => {
+    rules = before; render();
+    return () => { rules = rules.filter((r) => !gone.includes(r)); render(); };
+  });
+});
+
+$('advToggle').addEventListener('click', () => {
+  advOpen = $('advBody').classList.contains('hidden');
+  render();
+});
+$('advAdd').addEventListener('click', () => {
+  const r = { id: ++advSeq, target: '窗口标题', kind: '通配符', pattern: '*新规则*', action: 'disable', themeId: 'global' };
+  advRules.push(r);
+  advOpen = true;
+  render();
+  toast('已添加匹配规则 · 点「编辑」填写模式', () => {
+    advRules = advRules.filter((x) => x !== r); render();
+    return () => { advRules.push(r); render(); };
+  });
+});
+
+// 侧栏换主题 → 所有「跟随全局」的行要跟着变，裁决条也要跟着变。
+// 原先这一页对侧栏的主题选择完全无反应（实测「几何」→「流光」整页纹丝不动）。
+window.addEventListener('themechange', () => render());
+window.addEventListener('appliedthemechange', () => render());
+
+render();
+/* ══════════════════════════════════════════════════════════════════
+   三步引导（ux §6.3）。三步分别是：选应用 → 选行为 → 自然语言确认。
+
+   两条硬约束：
+   1. **默认流程不出现术语**。进程名、窗口标题、精确/通配符全部收进「高级条件」
+      折叠里，默认路径上一个字都不提（§9 的验收指标）。
+   2. **主按钮叫「完成」**，它只把规则写进草稿；发布到运行时是另一个动作
+      （裁决 1 的第三层：对象类改动保留局部编辑事务）。
+   ══════════════════════════════════════════════════════════════════ */
+
+const WIZ_ACTIONS = [
+  ['disable', '关闭效果', '在这个应用里完全不出现效果'],
+  ['follow', '跟随全局设置', '和其它应用一样，用当前场景'],
+  ['theme', '使用指定场景', '只在这个应用里换一套'],
+];
+
+/** 自然语言总结。ux §6.1 的句式，主语是应用而不是匹配表达式。 */
+function wizSentence() {
+  const app = appOf(wiz.bundle);
+  if (wiz.action === 'disable') return `在「${app.name}」中，关闭 CursorDance。`;
+  if (wiz.action === 'follow') return `在「${app.name}」中，跟随全局设置。`;
+  return `在「${app.name}」中，使用「${THEME_NAMES[wiz.themeId] || '—'}」场景。`;
+}
+
+function renderWizard() {
+  const host = $('wizard');
+  if (!host) return;
+  host.classList.toggle('hidden', !wiz);
+  if (!wiz) return;
+  const app = appOf(wiz.bundle);
+  $('wizStep').textContent = `第 ${wiz.step} / 3 步`;
+  $('wizBack').disabled = wiz.step === 1;
+  $('wizBack').classList.toggle('opacity-40', wiz.step === 1);
+  $('wizNext').textContent = wiz.step === 3 ? '完成' : '继续';
+
+  if (wiz.step === 1) {
+    // 「使用刚才的应用」是突出项（ux §6.3 第一步）；其余最近检测到的作为次级入口
+    const recent = APPS.filter((a) => a.seen);
+    $('wizNote').textContent = '手动填写进程名在「找不到应用？」里';
+    $('wizNext').disabled = false;
+    $('wizBody').innerHTML = `
+      <div role="radiogroup" aria-label="选择应用">
+      <button data-wizapp="${recent[0].bundle}" role="radio" aria-checked="${wiz.bundle === recent[0].bundle}" class="flex w-full items-center gap-2.5 rounded-xl border-2 px-3 py-2.5 text-left transition-colors ${wiz.bundle === recent[0].bundle ? 'border-slate-900 bg-slate-50' : 'border-slate-200 hover:border-slate-300'}">
+        <span class="${recent[0].icon}">${recent[0].glyph}</span>
+        <span class="min-w-0 flex-1">
+          <span class="block text-xs font-medium text-slate-900">${recent[0].name}</span>
+          <span class="mt-0.5 block truncate text-xs text-slate-500">刚才使用的应用 · 季度复盘 — 演示模式</span>
+        </span>
+        ${wiz.bundle === recent[0].bundle ? '<span class="shrink-0 text-xs text-slate-900">✓</span>' : ''}
+      </button>
+      <div class="mt-2 text-xs font-medium text-slate-500">最近检测到</div>
+      <div class="mt-1.5 grid grid-cols-3 gap-1.5">
+        ${recent.slice(1).map((a) => `<button data-wizapp="${a.bundle}" role="radio" aria-checked="${wiz.bundle === a.bundle}" class="flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-left transition-colors ${wiz.bundle === a.bundle ? 'border-slate-900 bg-slate-50' : 'border-slate-200 hover:border-slate-300'}">
+          <span class="${a.icon} size-5 text-2xs">${a.glyph}</span>
+          <span class="min-w-0 flex-1 truncate text-xs font-medium text-slate-700">${a.name}</span>
+        </button>`).join('')}
+      </div>
+      </div>
+      <details class="mt-2 rounded-lg bg-slate-50 px-2.5 py-2">
+        <summary class="cursor-pointer text-xs font-medium text-slate-600">找不到应用？</summary>
+        <p class="hint-note">可以手动填写进程名。这条路径是<strong class="font-medium text-slate-700">兜底</strong>，不在默认流程上——绝大多数人只需要点上面那个。</p>
+      </details>`;
+  } else if (wiz.step === 2) {
+    $('wizNote').textContent = wiz.action ? '' : '选一个行为';
+    $('wizNext').disabled = !wiz.action || (wiz.action === 'theme' && !wiz.themeId);
+    $('wizBody').innerHTML = `<div role="radiogroup" aria-label="行为" class="space-y-1.5">
+      ${WIZ_ACTIONS.map(([id, label, hint]) => `<button role="radio" aria-checked="${wiz.action === id}" data-wizact="${id}" class="flex w-full items-center gap-2.5 rounded-xl border px-3 py-2 text-left transition-colors ${wiz.action === id ? 'border-slate-900 bg-slate-50' : 'border-slate-200 hover:border-slate-300'}">
+        <span class="w-3 shrink-0 text-center text-xs text-slate-900">${wiz.action === id ? '✓' : ''}</span>
+        <span class="min-w-0 flex-1">
+          <span class="block text-xs font-medium text-slate-900">${label}</span>
+          <span class="hint-sub">${hint}</span>
+        </span>
+      </button>`).join('')}
+    </div>
+    ${wiz.action === 'theme' ? `<div role="radiogroup" aria-label="选择主题" class="mt-2 grid grid-cols-4 gap-1.5">
+      ${Object.entries(THEME_NAMES).map(([id, name]) => `<button data-wiztheme="${id}" role="radio" aria-checked="${wiz.themeId === id}" class="rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors ${wiz.themeId === id ? 'border-slate-900 bg-slate-50 text-slate-900' : 'border-slate-200 text-slate-600 hover:border-slate-300'}">${name}</button>`).join('')}
+    </div>` : ''}`;
+  } else {
+    $('wizNote').textContent = '「完成」只写进草稿，应用到桌面是另一个动作';
+    $('wizNext').disabled = false;
+    $('wizBody').innerHTML = `
+      <div class="rounded-xl bg-slate-50 px-3 py-2.5">
+        <p class="text-xs leading-relaxed text-slate-800">${wizSentence()}</p>
+      </div>
+      <details class="mt-2 rounded-lg border border-slate-200 px-2.5 py-2">
+        <summary class="cursor-pointer text-xs font-medium text-slate-600">高级条件</summary>
+        <div class="mt-1.5 space-y-1 text-2xs leading-relaxed text-slate-500">
+          <div>匹配目标：<span class="font-medium text-slate-700">进程名</span></div>
+          <div>匹配方式：<span class="font-medium text-slate-700">精确</span></div>
+          <div>匹配值：<code class="rounded bg-slate-100 px-1">${appOf(wiz.bundle).bundle}</code></div>
+        </div>
+      </details>`;
+  }
+  bindWizard();
+}
+
+function bindWizard() {
+  document.querySelectorAll('[data-wizapp]').forEach((b) => b.addEventListener('click', () => { wiz.bundle = b.dataset.wizapp; renderWizard(); }));
+  document.querySelectorAll('[data-wizact]').forEach((b) => b.addEventListener('click', () => {
+    wiz.action = b.dataset.wizact;
+    if (wiz.action === 'theme' && !wiz.themeId) wiz.themeId = 'drift';
+    renderWizard();
+  }));
+  document.querySelectorAll('[data-wiztheme]').forEach((b) => b.addEventListener('click', () => { wiz.themeId = b.dataset.wiztheme; renderWizard(); }));
+}
+
+$('wizCancel').addEventListener('click', () => { wiz = null; renderWizard(); });
+$('wizBack').addEventListener('click', () => { if (wiz.step > 1) { wiz.step -= 1; renderWizard(); } });
+$('wizNext').addEventListener('click', () => {
+  if (wiz.step < 3) { wiz.step += 1; renderWizard(); return; }
+  // 完成：写进草稿。规则以应用为主体，不是以匹配表达式为主体（§6.6 的信息层级）
+  const app = appOf(wiz.bundle);
+  const row = { bundle: app.bundle, action: wiz.action === 'disable' ? 'off' : 'on', themeId: wiz.action === 'theme' ? wiz.themeId : null, paused: false };
+  rules = [row, ...rules.filter((r) => r.bundle !== app.bundle)];
+  const sentence = wizSentence();
+  wiz = null;
+  render();
+  toast(`已加入草稿：${sentence}`, () => { rules = rules.filter((r) => r.bundle !== app.bundle); render(); return () => { rules = [row, ...rules]; render(); }; });
+});
 </script>
 </body>
 </html>

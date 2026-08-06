@@ -72,13 +72,13 @@
         <!-- ════ 舞台 ════ -->
         <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
           <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
-            <div class="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1" data-show="try calibrate">
-              <button data-goto="try" class="seg h-7 rounded-lg px-3 text-xs font-medium">试用</button>
-              <button data-goto="calibrate" class="seg h-7 rounded-lg px-3 text-xs font-medium">校准</button>
+            <div class="seg-group" role="radiogroup" aria-label="演示台" data-show="try calibrate">
+              <button data-goto="try" role="radio" aria-checked="false" class="seg seg-item">试用</button>
+              <button data-goto="calibrate" role="radio" aria-checked="false" class="seg seg-item">校准</button>
             </div>
             <div data-show="empty" class="text-sm font-medium text-slate-900">上传主皮肤</div>
             <div class="flex items-center gap-2" data-show="try">
-              <span class="text-2xs font-medium text-slate-500">底色</span>
+              <span class="text-xs font-medium text-slate-500">底色</span>
               <div class="flex items-center gap-1.5">
                 <button data-bg="light" class="bg-swatch size-6 rounded-lg border bg-white" aria-label="浅色底"></button>
                 <button data-bg="dark" class="bg-swatch size-6 rounded-lg border bg-slate-900" aria-label="深色底"></button>
@@ -94,14 +94,14 @@
             <div data-show="try">
               <div id="stage" class="relative skin-stage-h overflow-hidden rounded-xl border border-slate-200 bg-white">
                 <!-- 唯一的引导语，鼠标进入后淡出，避免和道具标签重复占视觉 -->
-                <div id="stageHint" class="pointer-events-none absolute inset-x-0 top-7 text-center text-xs font-medium text-slate-400 transition-opacity duration-150">
+                <div id="stageHint" class="pointer-events-none absolute inset-x-0 top-7 text-center text-xs font-medium text-slate-500 transition-opacity duration-150">
                   在这块区域内移动鼠标，皮肤会实时跟随
                 </div>
 
                 <!-- 道具：拖拽触发 grabbing -->
                 <div id="dragBlock" class="absolute left-20 top-[135px] grid h-[88px] w-32 select-none place-items-center rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-600 shadow-sm">
                   拖我
-                  <span class="text-2xs font-normal text-slate-400">触发「拖拽中」</span>
+                  <span class="text-2xs font-normal text-slate-500">触发「拖拽中」</span>
                 </div>
 
                 <!-- 道具：准星（与拖拽方块同一条水平轴） -->
@@ -109,7 +109,7 @@
                   <span class="grid size-9 place-items-center rounded-full border border-slate-300">
                     <span class="size-1.5 rounded-full bg-rose-500"></span>
                   </span>
-                  <span class="absolute -bottom-6 whitespace-nowrap text-2xs font-medium text-slate-400">用尖端点圆心</span>
+                  <span class="absolute -bottom-6 whitespace-nowrap text-xs font-medium text-slate-500">用尖端点圆心</span>
                 </div>
 
                 <!-- 软件光标（运行时同一渲染方式：图片 + 指向点偏移） -->
@@ -127,21 +127,21 @@
                 <div class="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
                   <div class="min-w-0 flex-1">
                     <div class="text-xs font-medium text-slate-600">准星测试</div>
-                    <p class="mt-0.5 text-2xs leading-relaxed text-slate-500">点击上报的坐标就是指向点真实位置，偏差即误差。</p>
+                    <p class="hint-sub">点击上报的坐标就是指向点真实位置，偏差即误差。</p>
                   </div>
                   <div class="flex shrink-0 flex-col items-end gap-1.5">
-                    <span id="aimResult" class="inline-flex items-center gap-1.5 rounded-lg bg-white px-2 py-1 text-2xs font-semibold text-slate-500 ring-1 ring-slate-200">
+                    <span id="aimResult" class="inline-flex items-center gap-1.5 rounded-lg bg-white px-2 py-1 text-xs font-semibold text-slate-500 ring-1 ring-slate-200">
                       还没测过
                     </span>
-                    <button id="aimFix" class="btn-outline hidden h-7 px-2.5 text-2xs">按测量结果修正</button>
+                    <button id="aimFix" class="btn-outline hidden h-7 px-2.5 text-xs">按测量结果修正</button>
                   </div>
                 </div>
                 <div class="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
                   <div class="min-w-0 flex-1">
                     <div class="text-xs font-medium text-slate-600">状态触发</div>
-                    <p class="mt-0.5 text-2xs leading-relaxed text-slate-500">拖动方块会切到「拖拽中」，走运行时同一套状态机。</p>
+                    <p class="hint-sub">拖动方块会切到「拖拽中」，走运行时同一套状态机。</p>
                   </div>
-                  <span id="stateNow" class="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-white px-2 py-1 text-2xs font-semibold text-slate-600 ring-1 ring-slate-200">
+                  <span id="stateNow" class="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-white px-2 py-1 text-xs font-semibold text-slate-600 ring-1 ring-slate-200">
                     <span class="size-1.5 rounded-full bg-emerald-500"></span> 当前状态 · 普通
                   </span>
                 </div>
@@ -157,9 +157,9 @@
                 </div>
                 <div class="min-w-0 flex-1">
                   <div class="text-xs font-medium text-slate-600">待分配 <span class="tabular-nums">1</span></div>
-                  <p class="mt-0.5 text-2xs leading-relaxed text-slate-500">批量导入里没能按文件名认出的素材。拖到右侧槽位即可使用。</p>
+                  <p class="hint-sub">批量导入里没能按文件名认出的素材。拖到右侧槽位即可使用。</p>
                 </div>
-                <button class="shrink-0 text-2xs font-medium text-slate-400 transition-colors hover:text-rose-500">清空</button>
+                <button class="shrink-0 text-xs font-medium text-slate-500 transition-colors hover:text-rose-500">清空</button>
               </div>
             </div>
 
@@ -174,22 +174,22 @@
                 <div id="calibPin" class="absolute size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-rose-500 shadow-sm ring-1 ring-rose-200"></div>
                 <div id="calibGuideX" class="pointer-events-none absolute top-0 h-full w-px bg-rose-200"></div>
                 <div id="calibGuideY" class="pointer-events-none absolute left-0 h-px w-full bg-rose-200"></div>
-                <div class="pointer-events-none absolute bottom-4 left-4 rounded-lg bg-white/90 px-2.5 py-1.5 text-2xs text-slate-500 ring-1 ring-slate-200">
+                <div class="pointer-events-none absolute bottom-4 left-4 stage-note">
                   拖动红点 · 方向键微调 1px · Shift+方向键 10px
                 </div>
-                <div class="pointer-events-none absolute right-4 top-4 rounded-lg bg-white/90 px-2.5 py-1.5 text-2xs font-semibold tabular-nums text-slate-600 ring-1 ring-slate-200">
+                <div class="pointer-events-none absolute right-4 top-4 rounded-lg bg-white/90 px-2.5 py-1.5 text-xs font-semibold tabular-nums text-slate-600 ring-1 ring-slate-200">
                   指向点 <span id="calibReadout">6, 6</span>
                 </div>
-                <div class="pointer-events-none absolute bottom-4 right-4 rounded-lg bg-white/90 px-2.5 py-1.5 text-2xs text-slate-400 ring-1 ring-slate-200">
+                <div class="pointer-events-none absolute bottom-4 right-4 stage-note">
                   虚线为图片真实边界
                 </div>
               </div>
               <div class="mt-2.5 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-                <span class="text-2xs font-medium text-slate-600">快速定位</span>
-                <button data-preset="tip" class="btn-outline h-7 px-2.5 text-2xs">左上尖端</button>
-                <button data-preset="center" class="btn-outline h-7 px-2.5 text-2xs">中心</button>
-                <button data-preset="bottom" class="btn-outline h-7 px-2.5 text-2xs">底部中心</button>
-                <span class="ml-auto text-2xs text-slate-400">按原图像素显示 · 内部按比例存储，改尺寸不会失准</span>
+                <span class="text-xs font-medium text-slate-600">快速定位</span>
+                <button data-preset="tip" class="btn-outline h-7 px-2.5 text-xs">左上尖端</button>
+                <button data-preset="center" class="btn-outline h-7 px-2.5 text-xs">中心</button>
+                <button data-preset="bottom" class="btn-outline h-7 px-2.5 text-xs">底部中心</button>
+                <span class="ml-auto text-2xs text-slate-500">按原图像素显示 · 内部按比例存储，改尺寸不会失准</span>
               </div>
             </div>
 
@@ -197,7 +197,7 @@
             <div data-show="empty">
               <div class="grid skin-stage-h place-items-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50">
                 <div class="max-w-sm px-6 text-center">
-                  <div class="mx-auto grid size-12 place-items-center rounded-full bg-white text-slate-400 shadow-sm ring-1 ring-slate-200">
+                  <div class="mx-auto grid size-12 place-items-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-200">
                     <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3l7.5 18 2.5-7.5L21 11z"/></svg>
                   </div>
                   <p class="mt-3.5 text-sm font-semibold text-slate-900">把图片拖到这里</p>
@@ -208,11 +208,11 @@
                     <button class="btn-default h-8 px-3 text-xs">选择文件</button>
                     <button class="btn-outline h-8 px-3 text-xs">批量导入</button>
                   </div>
-                  <p class="mt-3 text-2xs text-slate-400">PNG / WebP / SVG，单张不超过 300 KB</p>
+                  <p class="mt-3 text-xs text-slate-500">PNG / WebP / SVG，单张不超过 300 KB</p>
                 </div>
               </div>
               <div class="mt-2.5 flex items-start gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-2xs leading-relaxed text-slate-500">
-                <svg class="mt-0.5 size-3.5 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+                <svg class="mt-0.5 size-3.5 shrink-0 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
                 <span>macOS 会隐藏系统光标、用你的皮肤完全替代。Windows 暂时保留系统光标，皮肤作为跟随层叠加显示。</span>
               </div>
             </div>
@@ -241,11 +241,11 @@
                   <h3 class="text-sm font-medium text-slate-900">皮肤槽位</h3>
                   <div id="slotSummary" class="mt-0.5 text-xs text-slate-500"></div>
                 </div>
-                <button id="deriveAll" class="btn-outline h-7 shrink-0 px-2.5 text-2xs" title="把所有继承中的状态一次性派生成独立副本，再逐个改">全部派生</button>
+                <button id="deriveAll" class="btn-outline h-7 shrink-0 px-2.5 text-xs" title="把所有继承中的状态一次性派生成独立副本，再逐个改">全部派生</button>
               </div>
               <label class="mt-2.5 flex cursor-pointer items-center gap-2">
                 <input id="onlyEffective" type="checkbox" class="size-3.5 rounded border-slate-300 accent-slate-900" />
-                <span class="text-2xs text-slate-500">只看现在能生效的状态</span>
+                <span class="text-xs text-slate-500">只看现在能生效的状态</span>
               </label>
             </div>
             <div id="slotList" class="max-h-[420px] space-y-2.5 overflow-y-auto px-4 py-3"></div>
@@ -261,10 +261,10 @@
               <div>
                 <div class="flex items-center justify-between">
                   <span class="text-xs font-medium text-slate-600">显示尺寸</span>
-                  <span class="text-2xs font-semibold tabular-nums text-slate-600"><span id="sizeReadout">48</span> px</span>
+                  <span class="text-xs font-semibold tabular-nums text-slate-600"><span id="sizeReadout">48</span> px</span>
                 </div>
                 <div id="sizeRange" data-slider data-min="24" data-max="72" data-value="48" data-default="48" data-ticks="32,48,64" data-snap="1" class="mt-2.5"></div>
-                <div class="mt-1 flex justify-between text-2xs tabular-nums text-slate-400">
+                <div class="mt-1 flex justify-between text-xs tabular-nums text-slate-500">
                   <span>24</span><span>32</span><span>48</span><span>64</span><span>72</span>
                 </div>
               </div>
@@ -272,22 +272,22 @@
               <div class="border-t border-slate-100 pt-3.5">
                 <div class="flex items-center justify-between gap-2">
                   <span class="text-xs font-medium text-slate-600">指向点</span>
-                  <span class="text-2xs font-semibold tabular-nums text-slate-600">
+                  <span class="text-xs font-semibold tabular-nums text-slate-600">
                     <span id="hotspotReadout">6, 6</span>
                   </span>
                 </div>
-                <p class="mt-1 text-2xs leading-relaxed text-slate-400">系统判定点击的那一个像素。</p>
+                <p class="hint-sub">系统判定点击的那一个像素。</p>
                 <div class="mt-2.5 flex flex-wrap gap-2">
-                  <button data-goto="calibrate" class="btn-default h-7 px-2.5 text-2xs">在舞台上校准</button>
-                  <button data-preset="tip" class="btn-outline h-7 px-2.5 text-2xs">左上尖端</button>
-                  <button data-preset="center" class="btn-outline h-7 px-2.5 text-2xs">中心</button>
+                  <button data-goto="calibrate" class="btn-default h-7 px-2.5 text-xs">在舞台上校准</button>
+                  <button data-preset="tip" class="btn-outline h-7 px-2.5 text-xs">左上尖端</button>
+                  <button data-preset="center" class="btn-outline h-7 px-2.5 text-xs">中心</button>
                 </div>
                 <details class="mt-2.5">
-                  <summary class="cursor-pointer text-2xs font-medium text-slate-500 transition-colors hover:text-slate-700">精确值</summary>
+                  <summary class="cursor-pointer text-xs font-medium text-slate-500 transition-colors hover:text-slate-700">精确值</summary>
                   <div class="mt-2 grid grid-cols-2 gap-2">
-                    <label class="grid gap-1"><span class="text-2xs font-medium text-slate-500">X</span>
+                    <label class="grid gap-1"><span class="text-xs font-medium text-slate-500">X</span>
                       <input id="hotX" type="number" value="6" min="0" max="127" class="h-8 rounded-xl border border-slate-200 bg-white px-2 text-center text-xs tabular-nums text-slate-700 shadow-sm" /></label>
-                    <label class="grid gap-1"><span class="text-2xs font-medium text-slate-500">Y</span>
+                    <label class="grid gap-1"><span class="text-xs font-medium text-slate-500">Y</span>
                       <input id="hotY" type="number" value="6" min="0" max="95" class="h-8 rounded-xl border border-slate-200 bg-white px-2 text-center text-xs tabular-nums text-slate-700 shadow-sm" /></label>
                   </div>
                 </details>
@@ -296,16 +296,67 @@
               <div class="flex items-center justify-between border-t border-slate-100 pt-3.5">
                 <div>
                   <div class="text-xs font-medium text-slate-600">校准状态</div>
-                  <div id="calibStatus" class="mt-0.5 text-2xs text-slate-400">未测试，去舞台点一次准星</div>
+                  <div id="calibStatus" class="mt-0.5 text-xs text-slate-500">未测试，去舞台点一次准星</div>
                 </div>
-                <button class="btn-ghost h-7 px-2.5 text-2xs">清除皮肤</button>
+                <button class="btn-ghost h-7 px-2.5 text-xs">清除皮肤</button>
+              </div>
+            </div>
+          </section>
+
+          <!--
+            ══ 指向反馈（裁决 14）══════════════════════════════════════
+
+            这一节的落点是一次 IA 判断，不是排版决定，所以理由写在这里：
+
+            磁场光晕 / 悬停高亮是**连续的指向状态**——只要指针停在一个可点的东西上
+            它就在，没有"一次触发"。而 `01` 的整个组织轴是 5 个动作页签
+            （左键单击 / 右键单击 / 双击 / 长按 / 滚轮），把一个连续状态挂在
+            "某次点击的输出"下面，语义是错的：用户会去问"那我不点的时候呢"。
+            CLAUDE.md 又明确禁止桌面端新增 hover 动作，所以 `01` 里没有它的位置。
+
+            放在 `02` 是因为它和这一页的东西是**同一次系统查询**：
+            那 9 个「待系统能力」的光标状态靠的就是 AX 元素查询
+            （`AXRole` + `AXFrame` 一起回来），磁场光晕要的也正是这两样。
+            放一起既省一次查询，也让"能力包一开、这一族一起点亮"这件事成立。
+          -->
+          <section id="pointFeedback" data-show="try calibrate" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div class="flex items-start justify-between gap-2 border-b border-slate-100 px-4 py-2.5">
+              <div class="min-w-0">
+                <h3 class="text-sm font-medium text-slate-900">指向反馈</h3>
+                <p class="mt-0.5 hint-sub">指针停在可点的东西上时的持续反馈。它不属于任何一次点击，所以不在「主题与效果」里。</p>
+              </div>
+              <span class="cap-chip shrink-0">需要 AX 元素</span>
+            </div>
+            <div class="space-y-2.5 px-4 py-3">
+              <button id="magnetToggle" class="switch-row" role="switch" aria-checked="false">
+                <span class="min-w-0 text-left">
+                  <span class="block text-xs font-medium text-slate-700">磁场光晕</span>
+                  <span class="mt-0.5 block hint-sub">指针靠近可点元素时，元素边缘泛起一层微光</span>
+                </span>
+                <span id="magnetKnob" class="switch-knob"></span>
+              </button>
+              <div id="magnetFields" class="hidden space-y-2.5 border-t border-slate-100 pt-2.5">
+                <div class="ctl-row">
+                  <span class="ctl-label ctl-label-scrub" data-scrub="magnetRadius">感应半径</span>
+                  <div id="magnetRadius" data-slider data-min="8" data-max="96" data-value="32" data-default="32" data-snap="1" data-ticks="16,32,64"></div>
+                  <span class="ctl-value"><span data-out="magnetRadius">32</span> px</span>
+                </div>
+                <div class="ctl-row">
+                  <span class="ctl-label ctl-label-scrub" data-scrub="magnetStrength">强度</span>
+                  <div id="magnetStrength" data-slider data-min="0" data-max="100" data-value="45" data-default="45"></div>
+                  <span class="ctl-value"><span data-out="magnetStrength">45</span> %</span>
+                </div>
+                <p class="hint-note">
+                  取不到元素的应用里这一项自动关闭，不会退化成"对着空白也发光"——
+                  那会让人以为它在乱亮。哪一次回落了可以在诊断面板查。
+                </p>
               </div>
             </div>
           </section>
 
           <section data-show="empty" class="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center">
             <p class="text-xs font-medium text-slate-500">尺寸与指向点</p>
-            <p class="mx-auto mt-1.5 max-w-[220px] text-2xs leading-relaxed text-slate-400">上传主皮肤后在这里调整，并用准星测试验证。</p>
+            <p class="mx-auto mt-1.5 max-w-[220px] text-2xs leading-relaxed text-slate-500">上传主皮肤后在这里调整，并用准星测试验证。</p>
           </section>
 
         </aside>
@@ -462,8 +513,8 @@ const STATE_GLYPH = {
 };
 
 const REACH_BADGE = {
-  now: '<span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-2xs font-medium text-emerald-800"><span class="size-1.5 rounded-full bg-emerald-500"></span>现在生效</span>',
-  cap: '<span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-slate-100 px-1.5 py-0.5 text-2xs font-medium text-slate-500" title="配置会保存下来；等运行时具备识别该状态的能力后自动生效">待系统能力</span>',
+  now: '<span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-xs font-medium text-emerald-800"><span class="size-1.5 rounded-full bg-emerald-500"></span>现在生效</span>',
+  cap: '<span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-500" title="配置会保存下来；等运行时具备识别该状态的能力后自动生效">待系统能力</span>',
 };
 
 // 槽位状态：'inherit' 继承主皮肤 · 'own' 独立素材
@@ -483,9 +534,9 @@ function renderSlots() {
     if (!states.length) return '';
     return `<div>
       <div class="mb-1.5 flex items-baseline gap-2 px-0.5">
-        <span class="text-2xs font-semibold text-slate-500">${g.name}</span>
-        <span class="text-2xs text-slate-400">${g.hint}</span>
-        <span class="ml-auto text-2xs tabular-nums text-slate-300">${states.length}</span>
+        <span class="text-xs font-semibold text-slate-500">${g.name}</span>
+        <span class="text-2xs text-slate-500">${g.hint}</span>
+        <span class="ml-auto text-xs tabular-nums text-slate-300">${states.length}</span>
       </div>
       <div class="space-y-1">
         ${states.map((st) => slotRow(st, master)).join('')}
@@ -499,7 +550,7 @@ function renderSlots() {
   const own = all.filter((st) => !st.master && slotMode[st.id] === 'own').length;
   const pending = all.filter((st) => st.reach === 'cap').length;
   $('slotSummary').innerHTML = master
-    ? `主皮肤 + ${own} 个独立覆盖 · <span class="text-slate-400">${pending} 个状态待系统能力</span>`
+    ? `主皮肤 + ${own} 个独立覆盖 · <span class="text-slate-500">${pending} 个状态待系统能力</span>`
     : '还没有主皮肤';
   $('deriveAll').disabled = !master;
   $('deriveAll').classList.toggle('opacity-40', !master);
@@ -519,9 +570,9 @@ function slotRow(st, master) {
           <span class="min-w-0 flex-1">
             <span class="flex items-center gap-2">
               <span class="truncate text-sm font-medium text-slate-900">${st.name}</span>
-              <span class="inline-flex shrink-0 items-center rounded-full bg-slate-900 px-1.5 py-0.5 text-2xs font-medium text-white">必需</span>
+              <span class="inline-flex shrink-0 items-center rounded-full bg-slate-900 px-1.5 py-0.5 text-xs font-medium text-white">必需</span>
             </span>
-            <span class="mt-0.5 block truncate text-2xs tabular-nums text-slate-400">arrow.png · 128×96 · 12 KB</span>
+            <span class="mt-0.5 block truncate text-xs tabular-nums text-slate-500">arrow.png · 128×96 · 12 KB</span>
           </span>
           ${REACH_BADGE.now}
         </div>`
@@ -531,14 +582,14 @@ function slotRow(st, master) {
           </span>
           <span class="min-w-0 flex-1">
             <span class="block text-sm font-medium text-slate-900">${st.name}</span>
-            <span class="mt-0.5 block text-2xs text-slate-500">上传后其他状态就能继承它</span>
+            <span class="hint-sub">上传后其他状态就能继承它</span>
           </span>
-          <button class="btn-outline h-7 shrink-0 px-2.5 text-2xs">上传</button>
+          <button class="btn-outline h-7 shrink-0 px-2.5 text-xs">上传</button>
         </div>`;
   }
 
   return `<div class="flex items-center gap-3 rounded-xl border px-3 py-2.5 ${mode === 'own' ? 'border-slate-300 bg-white shadow-sm' : 'border-slate-200 bg-slate-50/60'}">
-    <span class="grid size-11 shrink-0 place-items-center rounded-xl border bg-white ${mode === 'own' ? 'border-slate-200' : 'border-dashed border-slate-200'} ${dimmed ? 'text-slate-400' : 'text-slate-800'}">
+    <span class="grid size-11 shrink-0 place-items-center rounded-xl border bg-white ${mode === 'own' ? 'border-slate-200' : 'border-dashed border-slate-200'} ${dimmed ? 'text-slate-500' : 'text-slate-800'}">
       <svg viewBox="0 0 24 24" class="size-5">${glyph}</svg>
     </span>
     <!--
@@ -550,7 +601,7 @@ function slotRow(st, master) {
       状态名是这一行的身份，必须整名可见（决策同 01 卡头的让位顺序）。
     -->
     <span class="min-w-0 flex-1">
-      <span class="block text-sm font-medium ${master ? 'text-slate-900' : 'text-slate-400'}">${st.name}</span>
+      <span class="block text-sm font-medium ${master ? 'text-slate-900' : 'text-slate-500'}">${st.name}</span>
       <span class="mt-0.5 flex min-w-0 items-center gap-1.5">
         ${REACH_BADGE[st.reach]}
         <!--
@@ -559,12 +610,12 @@ function slotRow(st, master) {
           实测带前缀时第二行被截成「继...」——留下的恰好全是冗余的那部分。
         -->
         <!-- 描述是次级信息，允许截断（名称不允许），但必须能查证 —— title 存全文 -->
-        <span class="truncate text-2xs text-slate-400" title="${mode === 'own' ? st.id + '.png' : st.detail}">${mode === 'own' ? st.id + '.png' : st.detail}</span>
+        <span class="truncate text-xs text-slate-500" title="${mode === 'own' ? st.id + '.png' : st.detail}">${mode === 'own' ? st.id + '.png' : st.detail}</span>
       </span>
     </span>
-    <span class="inline-flex shrink-0 items-center gap-1 rounded-xl border border-slate-200 bg-white p-0.5">
-      <button data-mode="${st.id}|inherit" class="h-6 rounded-lg px-2 text-2xs font-medium ${mode === 'inherit' ? 'bg-slate-950 text-white shadow-sm' : 'text-slate-500'}" ${master ? '' : 'disabled'}>继承</button>
-      <button data-mode="${st.id}|own" class="h-6 rounded-lg px-2 text-2xs font-medium ${mode === 'own' ? 'bg-slate-950 text-white shadow-sm' : 'text-slate-500'}" ${master ? '' : 'disabled'}>独立</button>
+    <span class="seg-group shrink-0" role="radiogroup" aria-label="${st.name} 的素材来源">
+      <button data-mode="${st.id}|inherit" role="radio" aria-checked="${mode === 'inherit'}" class="seg-item${mode === 'inherit' ? ' seg-item-on' : ''}" ${master ? '' : 'disabled'}>继承</button>
+      <button data-mode="${st.id}|own" role="radio" aria-checked="${mode === 'own'}" class="seg-item${mode === 'own' ? ' seg-item-on' : ''}" ${master ? '' : 'disabled'}>独立</button>
     </span>
   </div>`;
 }
@@ -600,12 +651,12 @@ $('aimTarget').addEventListener('click', (e) => {
   const dist = Math.round(Math.hypot(dx, dy));
   lastDelta = { dx, dy };
   const ok = dist <= 4;
-  $('aimResult').className = 'inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-2xs font-semibold ring-1 '
+  $('aimResult').className = 'inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold ring-1 '
     + (ok ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-amber-50 text-amber-800 ring-amber-200');
   $('aimResult').textContent = ok ? ('✓ 偏差 ' + dist + ' px · 指向点准确') : ('偏差 ' + dist + ' px · 指向点可能偏了');
   $('aimFix').classList.toggle('hidden', ok);
   $('calibStatus').textContent = ok ? ('已校准 · 偏差 ' + dist + ' px') : ('偏差 ' + dist + ' px，建议修正');
-  $('calibStatus').className = 'mt-0.5 text-2xs ' + (ok ? 'text-emerald-700' : 'text-amber-700');
+  $('calibStatus').className = 'mt-0.5 text-xs ' + (ok ? 'text-emerald-700' : 'text-amber-700');
 });
 $('aimFix').addEventListener('click', () => {
   if (!lastDelta) return;
@@ -614,7 +665,7 @@ $('aimFix').addEventListener('click', () => {
   hotspot.y = Math.max(0, Math.min(SRC_H - 1, hotspot.y - lastDelta.dy / scale()));
   syncReadouts();
   showToast('已按测量结果修正指向点', `${Math.round(hotspot.x)}, ${Math.round(hotspot.y)}`, prev);
-  $('aimResult').className = 'inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2 py-1 text-2xs font-semibold text-slate-600 ring-1 ring-slate-200';
+  $('aimResult').className = 'inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2 py-1 text-xs font-semibold text-slate-600 ring-1 ring-slate-200';
   $('aimResult').textContent = '已按测量结果修正，再测一次确认';
   $('aimFix').classList.add('hidden');
 });
@@ -634,6 +685,42 @@ function paintCalib() {
   $('calibGuideX').style.left = px + 'px';
   $('calibGuideY').style.top = py + 'px';
 }
+/*
+  校准舞台的图片与图钉是**绝对定位**的，位置由 `st.clientWidth/clientHeight` 居中算出。
+  所以尺寸一变就必须重算——而**切换窗口尺寸档不触发 `resize`**（变的是 `#mockWindow`，
+  浏览器视口没动），只听 resize 等于没听。不重算的后果不是"有点偏"：
+  图钉会停在上一档的像素位上，而它旁边的读数仍然显示正确的指向点坐标——
+  **一个位置错、数字对的校准界面**，比两者都错更难发现。
+  `04` 早就写对了，注释里那句「凡是按实测几何定位的东西都必须重算」就是这条。
+*/
+['resize', 'viewportchange'].forEach((ev) => window.addEventListener(ev, paintCalib));
+/*
+  指向反馈：磁场光晕的开关与它的两个参数。
+
+  展开逻辑与页面别处的 switch-row 一致（aria-checked 与 .switch-on 成对，
+  本轮门禁 aria-state-missing 盯着这一族）。参数区默认收着——
+  关着的时候摆两个调不动的滑块，就是这套稿子反复修过的「无事可做的控件」。
+*/
+(() => {
+  const btn = $('magnetToggle'), knob = $('magnetKnob'), fields = $('magnetFields');
+  if (!btn) return;
+  let on = false;
+  const sync = () => {
+    knob.classList.toggle('switch-on', on);
+    btn.setAttribute('aria-checked', String(on));
+    fields.classList.toggle('hidden', !on);
+  };
+  btn.addEventListener('click', () => {
+    on = !on;
+    sync();
+    // 第一次打开时才装配滑块：装配前它们在 hidden 容器里，量不到轨道宽度
+    if (on) Ctl.mountSliders(fields);
+    showToast(on ? '已开启磁场光晕' : '已关闭磁场光晕', on ? '指针靠近可点元素时会泛光' : '');
+  });
+  sync();
+})();
+
+
 let pinning = false, pinPrev = null;
 $('calibStage').addEventListener('mousedown', (e) => { pinning = true; pinPrev = snapshot(); movePin(e); });
 window.addEventListener('mousemove', (e) => { if (pinning) movePin(e); });
@@ -699,7 +786,8 @@ document.querySelectorAll('.bg-swatch').forEach((btn) => btn.addEventListener('c
 function onProtoState(s) {
   document.querySelectorAll('.seg').forEach((b) => {
     const on = b.dataset.goto === s;
-    b.className = 'seg h-7 rounded-lg px-3 text-xs font-medium ' + (on ? 'bg-slate-950 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900');
+    b.classList.toggle('seg-item-on', on);
+    b.setAttribute('aria-checked', String(on));
   });
   if (s === 'calibrate') paintCalib();
   // 空状态下没有主皮肤，槽位行要相应变成不可操作

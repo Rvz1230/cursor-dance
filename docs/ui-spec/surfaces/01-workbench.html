@@ -17,6 +17,41 @@
       linear-gradient(45deg, #eef2f6 25%, transparent 25%, transparent 75%, #eef2f6 75%);
     background-size: 16px 16px; background-position: 0 0, 8px 8px;
   }
+  /*
+    真实上下文底图。
+
+    原先舞台只有 浅 / 深 / 格 三档，而它们都验证不了这个产品**真正要回答**的问题：
+    「这个效果放在我平时看的东西上面，看得清吗、碍事吗」。
+    白底上很漂亮的浅色粒子，压在一段正文上就是一团糊。
+
+    用 CSS 渐变模拟而不是引图片：稿子不该有外部资源依赖（离线打开也要成立），
+    而这三档要表达的只是**明度分布与文字密度**这两件事，渐变足够了。
+  */
+  .ctx-finder {
+    background-color: #f6f7f9;
+    background-image:
+      linear-gradient(180deg, #ffffff 0 26px, transparent 26px),
+      repeating-linear-gradient(180deg, transparent 0 34px, #e8ebef 34px 35px),
+      linear-gradient(90deg, #eceff3 0 128px, transparent 128px);
+  }
+  .ctx-browser {
+    background-color: #ffffff;
+    background-image:
+      linear-gradient(180deg, #f1f3f6 0 30px, transparent 30px),
+      repeating-linear-gradient(180deg, transparent 0 12px, #e6e9ee 12px 14px);
+    background-size: 100% 100%, 62% 100%;
+    background-position: 0 0, 19% 44px;
+    background-repeat: no-repeat, no-repeat;
+  }
+  .ctx-deck {
+    background-color: #0f172a;
+    background-image:
+      linear-gradient(120deg, #1e293b 0%, #0f172a 60%),
+      linear-gradient(90deg, #334155 0 46%, transparent 46%);
+    background-size: 100% 100%, 60% 10px;
+    background-position: 0 0, 20% 34%;
+    background-repeat: no-repeat, no-repeat;
+  }
 </style>
 </head>
 <body class="bg-slate-200 p-6 text-slate-900">
@@ -29,13 +64,34 @@
       <!-- 动作标签：带已启用效果数 -->
       <div class="shrink-0 px-3 pt-3">
         <div class="rounded-xl border border-slate-200 bg-white px-2.5 py-2.5 shadow-sm">
-          <div id="actionTabs" class="-mx-1 flex gap-2 overflow-x-auto px-1"></div>
+          <div id="actionTabs" role="tablist" aria-label="动作" class="-mx-1 flex gap-2 overflow-x-auto px-1"></div>
         </div>
       </div>
 
-      <div id="cols" class="grid min-h-0 flex-1 gap-1.5 px-3 pt-2.5" style="grid-template-columns: minmax(0,1.05fr) 4px minmax(0,1.25fr)">
+      <!--
+          role="tabpanel"：#actionTabs 是真的 tablist——它切的就是这一整块
+          （配置列 + 预览 + 时间轴都跟着动作换）。补上面板声明之后 tab 语义才成立；
+          门禁 tab-without-tabpanel 盯的正是「有页签、没有面板」这种半成品。
+          aria-labelledby 指向当前页签，由 renderActions 同步。
+        -->
+        <div id="cols" role="tabpanel" aria-labelledby="actionTab-leftClick" class="motion-layout grid min-h-0 flex-1 gap-1.5 px-3 pt-2.5" style="grid-template-columns: minmax(0,1.05fr) 4px minmax(0,1.25fr)">
 
-        <!-- 配置列 -->
+        <!--
+          ── 配置列：八张效果卡直接铺开 ──
+
+          这里曾经有一层「整体手感」宏观旋钮（强度/速度/存在感/色相），
+          八张效果卡收进「高级编辑」折叠。**已按裁决 12 的推翻记录回退**
+          （2026-08-05，理由见 DECISIONS.md：多一层间接、且把主任务推到折叠后面）。
+
+          回退时一并去掉的还有：字段值上的旋钮乘子（`effectiveFieldValue`）、
+          色相偏移（`knobColor`）、以及「速度 100% 的时间基线」那第三份时间快照
+          （`chBase` / `applySpeedFromBase` / `rebaseTimes`）。
+          现在**字段本身就是唯一真值**，时间只有时间轴一个编辑面——
+          这比旋钮层在时的模型少一次投影。
+
+          裁决 12 提出的那个问题仍然存在（从「选一套」到「调一个字段」中间没有过渡层），
+          只是旋钮不是它的答案。真要再解，预设先行（决策 #2）和 `06` 的 AI 都是候选。
+        -->
         <div class="min-h-0 space-y-2 overflow-y-auto pr-1" id="cardCol"></div>
 
         <!--
@@ -76,12 +132,21 @@
               </div>
               <div class="flex shrink-0 items-center gap-1.5">
                 <div class="seg-group">
-                  <button data-bg="light" class="seg-item seg-item-on">浅</button>
-                  <button data-bg="dark" class="seg-item">深</button>
-                  <button data-bg="checker" class="seg-item">格</button>
+                  <button data-bg="light" role="radio" aria-checked="true" class="seg-item seg-item-on">浅</button>
+                  <button data-bg="dark" role="radio" aria-checked="false" class="seg-item">深</button>
+                  <button data-bg="checker" role="radio" aria-checked="false" class="seg-item">格</button>
+                  <button data-bg="finder" role="radio" aria-checked="false" class="seg-item" title="文件管理器：浅底 + 密集行">访达</button>
+                  <button data-bg="browser" role="radio" aria-checked="false" class="seg-item" title="浏览器正文：白底 + 文字块">网页</button>
+                  <button data-bg="deck" role="radio" aria-checked="false" class="seg-item" title="演示稿：深底大留白">演示</button>
                 </div>
-                <button id="onionBtn" class="btn-outline h-7 px-2.5 text-2xs" title="洋葱皮：叠加多帧看运动路径">轨迹</button>
-                <button id="abBtn" class="btn-outline h-7 px-2.5 text-2xs" title="按住对比修改前">A/B</button>
+                <!--
+                  「连打」是唯一能验证节流 / 连击窗 / 错峰 / 预算水位有收益的场景。
+                  单次事件下这四个值互不相干，也就看不出调它们有什么用——
+                  而真实使用是连点、拖动、滚轮的连续流，手感恰恰是它们互相打出来的。
+                -->
+                <button id="burstBtn" class="btn-outline h-7 px-2.5 text-xs" title="按固定脚本连点，看节流与连击窗互相作用">连打</button>
+                <button id="onionBtn" class="btn-outline h-7 px-2.5 text-xs" title="洋葱皮：叠加多帧看运动路径">轨迹</button>
+                <button id="abBtn" class="btn-outline h-7 px-2.5 text-xs" title="按住：把「这一轮动手之前」叠在同一帧上对比">A/B</button>
               </div>
             </div>
 
@@ -90,21 +155,53 @@
                 <div id="stageHint" class="pointer-events-none absolute inset-0 grid place-items-center text-center">
                   <div>
                     <div class="text-xs font-medium text-slate-500">在这里<span id="hintGesture">单击</span>试试</div>
-                    <div class="mt-1 text-2xs text-slate-400">或拖下面的播放头逐帧检视</div>
+                    <div class="mt-1 text-2xs text-slate-500">或拖下面的播放头逐帧检视</div>
                   </div>
                 </div>
                 <div id="onionHost" class="pointer-events-none absolute inset-0"></div>
                 <div id="fxHost" class="pointer-events-none absolute inset-0"></div>
-                <div id="abBadge" class="pointer-events-none absolute right-3 top-3 hidden rounded-lg bg-slate-900 px-2 py-1 text-2xs font-semibold text-white">修改前</div>
+                <!-- 文案跟着语义改：现在是叠放而不是切换，所以说的是「灰的那层是改之前」 -->
+                <div id="abBadge" class="pointer-events-none absolute right-3 top-3 hidden rounded-lg bg-slate-900 px-2 py-1 text-xs font-medium text-white">灰色叠层 = 你这一轮动手之前</div>
+                <!--
+                  被触发区域拦下时的就近说明。「静默不出效果」是这类功能最差的失败方式：
+                  用户会以为是效果坏了，去改粒子参数——而真正拦下它的是「触发区域」那个下拉。
+                  这条与 05 诊断面板的「不在触发区域内 11」是同一件事的两端。
+                -->
+                <!-- 预算水位：只在连打时出现。同显数超上限时多出来的效果被丢掉而不是排队
+                     （排队会让手感变黏），被丢的次数在 05 诊断面板里看得到。 -->
+                <div id="budgetHud" class="pointer-events-none absolute left-3 top-3 hidden rounded-lg bg-slate-900/85 px-2 py-1 text-xs font-medium tabular-nums text-white">
+                  同显 <span id="budgetNow">0</span>/<span id="budgetMax">48</span> · 节流丢弃 <span id="budgetDrop">0</span>
+                </div>
+                <div id="zoneMiss" class="pointer-events-none absolute inset-x-3 bottom-3 hidden rounded-lg bg-amber-50 px-2.5 py-1.5 text-xs text-amber-700 ring-1 ring-amber-200">
+                  这一下不在<span class="font-semibold">触发区域</span>内，被过滤了 · 改「触发行为 · 触发区域」可放宽
+                </div>
               </div>
             </div>
 
             <!--
-              传输控制：窄列下允许换行（垂直代价可接受），但每一组必须 shrink-0，
-              否则「循环区间」「自动重播」这类三四字的按钮会被压成竖排单字。
-              换行 = 还能读；压成单字 = 读不了。
+              传输控制：**必须单行**。
+
+              原先是 `flex-wrap`，理由写着「窄列下允许换行（垂直代价可接受）」——
+              而实测那个垂直代价一点都不可接受：960×680 下这一行从 58px 折成 **94px**，
+              多吃的 36px 正好把纵向预算压穿，于是 `#stage` 带着 min-height:240 溢出去
+              **把这一整行 9 个按钮全盖住**（elementFromPoint 全部返回 #stage）。
+              「换行 = 还能读」这句只在横向成立，纵向它是在偷别人的高度。
+
+              改成三段瘦身，档位由 #mockWindow[data-w] 决定（不是浏览器视口——
+              22 处视口断点全部失效那一课）：
+                lg  ：全文字标签，最舒展
+                md/sm：倍速三档 → 一个紧凑下拉；循环区间 / 自动重播 → 图标按钮
+                       （`aria-label` + `title` 保留可读性，DESIGN.md 要求图标按钮必须有名）
+              实测 md 档单行 34px，纵向预算 593 ≤ 596，三者第一次真的同时装得下。
             -->
-            <div class="flex flex-wrap items-center gap-2 px-4 py-2.5 [&>*]:shrink-0">
+            <!--
+              `sticky bottom-0`：兜底纵滚生效时（720×480 这种低于可用下限的档），
+              舞台会比预览列高，滚动会把这一行推出视口。实测滚到底之后仍有 7 个按钮
+              `elementFromPoint` 命中不到——**「能滚」也要真的滚得到才算数**。
+              钉住之后舞台在它下面滚过去，传输控件永远在原位。
+              非滚动档位上 sticky 是空操作，所以不需要按档位开关。
+            -->
+            <div class="sticky bottom-0 z-10 flex items-center gap-2 border-t border-slate-100 bg-white px-4 py-2 [&>*]:shrink-0">
               <div class="flex items-center gap-0.5 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
                 <button id="playBtn" class="grid size-7 place-items-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100" aria-label="播放/暂停">
                   <svg id="playIcon" class="size-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
@@ -119,12 +216,17 @@
                   <svg class="size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg>
                 </button>
               </div>
-              <div class="seg-group">
-                <button data-speed="1" class="seg-item seg-item-on">1×</button>
-                <button data-speed="0.5" class="seg-item">0.5×</button>
-                <button data-speed="0.25" class="seg-item">0.25×</button>
+              <!-- lg：三档摆开；md/sm：收成一个下拉（同一份 data-speed 语义，两处不会不一致） -->
+              <div class="seg-group hidden group-data-[w=lg]/win:flex" role="radiogroup" aria-label="播放倍速">
+                <button data-speed="1" role="radio" aria-checked="true" class="seg-item seg-item-on">1×</button>
+                <button data-speed="0.5" role="radio" aria-checked="false" class="seg-item">0.5×</button>
+                <button data-speed="0.25" role="radio" aria-checked="false" class="seg-item">0.25×</button>
               </div>
-              <button id="loopBtn" class="btn-outline h-7 px-2.5 text-2xs" title="只循环标尺上选中的区间">循环区间</button>
+              <div id="speedSel" class="w-[72px] group-data-[w=lg]/win:hidden"></div>
+              <button id="loopBtn" class="btn-outline h-7 px-2.5 text-xs" title="只循环标尺上选中的区间" aria-pressed="false" aria-label="循环区间">
+                <svg class="size-3.5 group-data-[w=lg]/win:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>
+                <span class="hidden group-data-[w=lg]/win:inline">循环区间</span>
+              </button>
               <!--
                 自动重播与「循环区间」是两回事，所以是两个控件：
                 循环区间 = 反复播标尺上选中的那一段，段与段之间不留空隙；
@@ -132,14 +234,17 @@
                 调手感时需要的是后者——效果之间要有间隔才看得出单次的样子。
                 间隔档位（2400/1200/600ms）与真实代码 INTERVAL_PRESETS 对齐。
               -->
-              <button id="autoBtn" class="btn-outline h-7 px-2.5 text-2xs" title="整条播完后自动再来一次">自动重播</button>
-              <div id="autoIntervalGroup" class="seg-group hidden" aria-label="自动重播间隔">
-                <button data-interval="2400" class="seg-item">慢</button>
-                <button data-interval="1200" class="seg-item seg-item-on">标准</button>
-                <button data-interval="600" class="seg-item">快</button>
+              <button id="autoBtn" class="btn-outline h-7 px-2.5 text-xs" title="整条播完后自动再来一次" aria-pressed="false" aria-label="自动重播">
+                <svg class="size-3.5 group-data-[w=lg]/win:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none"/></svg>
+                <span class="hidden group-data-[w=lg]/win:inline">自动重播</span>
+              </button>
+              <div id="autoIntervalGroup" class="seg-group hidden" role="radiogroup" aria-label="自动重播间隔">
+                <button data-interval="2400" role="radio" aria-checked="false" class="seg-item">慢</button>
+                <button data-interval="1200" role="radio" aria-checked="true" class="seg-item seg-item-on">标准</button>
+                <button data-interval="600" role="radio" aria-checked="false" class="seg-item">快</button>
               </div>
-              <span class="ml-auto inline-flex h-7 items-center gap-1 rounded-xl bg-slate-50 px-2.5 text-2xs font-semibold tabular-nums text-slate-700 ring-1 ring-slate-200">
-                <span id="timeNow">0</span><span class="text-slate-400">/</span><span id="timeTotal">960</span><span class="font-normal text-slate-400">ms</span>
+              <span class="ml-auto inline-flex h-7 items-center gap-1 rounded-xl bg-slate-50 px-2.5 text-xs font-semibold tabular-nums text-slate-700 ring-1 ring-slate-200">
+                <span id="timeNow">0</span><span class="text-slate-500">/</span><span id="timeTotal">960</span><span class="font-normal text-slate-500">ms</span>
               </span>
             </div>
 
@@ -150,8 +255,8 @@
               所以这里禁掉换行、标签给 nowrap，装不下就横向滚动——
               横滚需要一个动作才能看全，竖排单字连读都读不了。
             -->
-            <div class="flex items-center gap-1.5 border-t border-slate-100 px-4 py-2">
-              <span class="shrink-0 whitespace-nowrap text-2xs font-medium text-slate-500">本次输出</span>
+            <div id="outputRow" class="flex items-center gap-1.5 border-t border-slate-100 px-4 py-2">
+              <span class="shrink-0 whitespace-nowrap text-xs font-medium text-slate-500">本次输出</span>
               <div id="outputTags" class="flex min-w-0 flex-1 gap-1.5 overflow-x-auto whitespace-nowrap"></div>
             </div>
           </section>
@@ -165,28 +270,28 @@
         </div>
         <div class="flex flex-wrap items-center justify-between gap-2 px-3 pb-2">
           <div class="flex min-w-0 items-center gap-2">
-            <button id="drawerToggle" class="grid size-5 place-items-center rounded text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700" aria-label="折叠时间轴">
+            <button id="drawerToggle" class="grid size-5 place-items-center rounded text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700" aria-label="折叠时间轴">
               <svg id="drawerChevron" class="size-3.5 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
             </button>
             <span class="text-xs font-medium text-slate-700">时间轴</span>
-            <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-2xs font-medium tabular-nums text-slate-500">总长 <span id="totalLabel">960</span>ms</span>
-            <span id="drawerSummary" class="truncate text-2xs text-slate-400"></span>
+            <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-xs font-medium tabular-nums text-slate-500">总长 <span id="totalLabel">960</span>ms</span>
+            <span id="drawerSummary" class="truncate text-xs text-slate-500"></span>
           </div>
           <div class="flex flex-wrap items-center gap-1.5">
-            <div class="seg-group">
-                    <button data-snap="20" class="seg-item seg-item-on">20</button>
-                    <button data-snap="10" class="seg-item">10</button>
-                    <button data-snap="0" class="seg-item">关</button>
+            <div class="seg-group" role="radiogroup" aria-label="标尺吸附">
+                    <button data-snap="20" role="radio" aria-checked="true" class="seg-item seg-item-on">20</button>
+                    <button data-snap="10" role="radio" aria-checked="false" class="seg-item">10</button>
+                    <button data-snap="0" role="radio" aria-checked="false" class="seg-item">关</button>
                   </div>
-                  <div class="seg-group">
-                    <button data-zoom="1" class="seg-item seg-item-on">适配</button>
-                    <button data-zoom="2" class="seg-item">2×</button>
-                    <button data-zoom="4" class="seg-item">4×</button>
+                  <div class="seg-group" role="radiogroup" aria-label="时间轴缩放">
+                    <button data-zoom="1" role="radio" aria-checked="true" class="seg-item seg-item-on">适配</button>
+                    <button data-zoom="2" role="radio" aria-checked="false" class="seg-item">2×</button>
+                    <button data-zoom="4" role="radio" aria-checked="false" class="seg-item">4×</button>
                   </div>
-            <button id="copyRhythm" class="text-2xs font-medium text-slate-400 transition-colors hover:text-slate-700" title="把这套时间关系套用到其他动作">复制节奏</button>
+            <button id="copyRhythm" class="text-xs font-medium text-slate-500 transition-colors hover:text-slate-700" title="把这套时间关系套用到其他动作">复制节奏</button>
           </div>
         </div>
-        <div id="drawerBody" class="grid gap-2.5 px-3 pb-3" style="grid-template-columns: minmax(0,1fr) 296px; height: 236px">
+        <div id="drawerBody" class="motion-layout grid gap-2.5 px-3 pb-3" style="grid-template-columns: minmax(0,1fr) 296px; height: 236px">
           <div id="tlScroll" class="min-h-0 overflow-auto rounded-xl border border-slate-200 bg-white px-3 py-2">
             <!--
               轨道最小宽 320px（132 标签 + 10 gap + 320 轨道 + 8 内边距 = 470）。
@@ -196,7 +301,7 @@
               2px 的色块既拖不动块体也拖不动边缘——看得见、够不着。
               现在装不下就让 #tlScroll 横向滚动（DAW 的通行做法），标签列 sticky 钉住。
             -->
-            <div id="tlInner" class="min-w-[470px]">
+            <div id="tlInner" class="motion-layout min-w-[470px]">
               <!--
                 标尺的栅格必须和 .tl-row **严格一致**（132px + minmax(320px,1fr) + gap-2.5 + px-1）。
                 README 已经为此修过一次：原先标尺 96px、轨道 112px，刻度与色块错位、播放头偏 5px。
@@ -208,7 +313,7 @@
                 <div id="ruler" class="relative h-6 cursor-col-resize"></div>
               </div>
               <div id="lanes" class="relative mt-1 space-y-1"></div>
-              <p class="mt-2 text-2xs leading-relaxed text-slate-400">
+              <p class="hint-note">
                 拖色块中部改偏移 · 拖两端改时长 · 拖到别人的<span class="mx-0.5 inline-block size-1.5 rotate-45 bg-slate-900 align-middle"></span>锚点上会<span class="font-medium text-slate-600">建立链接</span> · ⌥ 解除吸附 · S 独奏 / M 静音
               </p>
             </div>
@@ -310,7 +415,11 @@ function applyCols() {
 }
 function syncLayout() {
   applyCols();
-  document.querySelectorAll('[data-shell-layout]').forEach((b) => b.classList.toggle('layout-btn-on', b.dataset.shellLayout === layout));
+  document.querySelectorAll('[data-shell-layout]').forEach((b) => {
+    const on = b.dataset.shellLayout === layout;
+    b.classList.toggle('layout-btn-on', on);
+    b.setAttribute('aria-pressed', String(on));
+  });
 }
 document.querySelectorAll('[data-shell-layout]').forEach((b) => b.addEventListener('click', () => {
   layout = b.dataset.shellLayout;
@@ -324,18 +433,22 @@ function startColDrag(startX) {
   const total = weights[0] + weights[1];
   const gridW = document.getElementById('cols').clientWidth || 1;
   const start = [...weights];
+  // 同抽屉：拖列宽时停掉 L2 过渡，否则列边缘会追不上分隔条
+  document.getElementById('cols').classList.add('motion-none');
   const onMove = (e) => {
     const deltaWeight = ((e.clientX ?? startX) - startX) / gridW * total;
     const left = clampCol(start[0] + deltaWeight);
     weights = [left, clampCol(total - left)];
     layout = '';            // 已是自定义比例，不再谎称命中某个预设
     applyCols();
-    document.querySelectorAll('[data-shell-layout]').forEach((b) => b.classList.remove('layout-btn-on'));
+    document.querySelectorAll('[data-shell-layout]').forEach((b) => { b.classList.remove('layout-btn-on'); b.setAttribute('aria-pressed', 'false'); });
   };
   const onUp = () => {
+    document.getElementById('cols').classList.remove('motion-none');
     window.removeEventListener('pointermove', onMove);
     window.removeEventListener('pointerup', onUp);
     window.removeEventListener('pointercancel', onUp);
+    // 撤销走过渡：这一步是**程序改尺寸**，用户没有在拖，因果需要动效来表达
     toast('已调整列宽', () => { weights = [...start]; applyCols(); });
   };
   window.addEventListener('pointermove', onMove);
@@ -353,7 +466,7 @@ document.getElementById('colSplit').addEventListener('keydown', (e) => {
   weights = [left, clampCol(total - left)];
   layout = '';
   applyCols();
-  document.querySelectorAll('[data-shell-layout]').forEach((b) => b.classList.remove('layout-btn-on'));
+  document.querySelectorAll('[data-shell-layout]').forEach((b) => { b.classList.remove('layout-btn-on'); b.setAttribute('aria-pressed', 'false'); });
 });
 </script>
 <script>
@@ -372,7 +485,7 @@ const ICONS = {
 
 // ── 数据模型：每张卡 = 图标 + 预设组 + 常用字段 + 全部字段数
 //    字段数取自真实实现（TextFeedbackCard 20 项、ParticleFeedbackCard 20 项…）
-const CARDS = [
+function baseCards() { return [
   { key: 'trigger', name: '触发行为', always: true, total: 1, presets: ['即时', '蓄力', '节流'], preset: '即时',
     fields: [
       { label: '触发区域', type: 'select', value: '整屏', options: ['整屏', '中心区域', '边缘'] },
@@ -427,7 +540,7 @@ const CARDS = [
              ['光标', ['光标覆盖', '光标尺寸', '发光颜色']],
              ['拖尾', ['启用拖尾', '拖尾数量', '拖尾不透明度']]],
     fields: [] },
-];
+]; }
 
 const ACTIONS = [
   { id: 'leftClick', label: '左键单击', gesture: '单击', enabled: 3 },
@@ -444,10 +557,13 @@ let actionId = 'leftClick';
 // ── 渲染：动作标签
 function renderActions() {
   $('actionTabs').innerHTML = ACTIONS.map((a) => `
-    <button data-action="${a.id}" class="action-tab${a.id === actionId ? ' action-tab-on' : ''}">
+    <button id="actionTab-${a.id}" data-action="${a.id}" role="tab" aria-selected="${a.id === actionId}" aria-controls="cols" class="action-tab${a.id === actionId ? ' action-tab-on' : ''}">
       ${a.label}
-      ${a.enabled ? `<span class="count-badge">${a.enabled}</span>` : '<span class="text-2xs font-normal opacity-50">未配置</span>'}
+      ${a.enabled ? `<span class="count-badge">${a.enabled}</span>` : '<span class="text-xs font-normal opacity-50">未配置</span>'}
     </button>`).join('');
+  // 面板的可访问名跟着当前页签走（否则读屏器在面板里报的是上一个动作的名字）
+  const panel = $('cols');
+  if (panel) panel.setAttribute('aria-labelledby', `actionTab-${actionId}`);
   document.querySelectorAll('[data-action]').forEach((b) => b.addEventListener('click', () => {
     actionId = b.dataset.action; renderActions(); syncHint();
   }));
@@ -465,14 +581,17 @@ function renderCards() {
           <span class="cfg-icon"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${ICONS[c.key]}</svg></span>
           <span class="min-w-0 flex-1">
             <span class="cfg-name">${c.name}</span>
-            <span class="ml-2 text-2xs text-slate-400">${c.total} 项设置</span>
+            <span class="ml-2 text-xs text-slate-500">${c.total} 项设置</span>
           </span>
-          <button data-toggle="${c.key}" class="switch-knob" aria-label="启用${c.name}"></button>
+          <button data-toggle="${c.key}" role="switch" aria-checked="false" class="switch-knob" aria-label="${c.name}"></button>
         </div>
       </div>`;
     }
-    const fields = c.fields.length ? c.fields.map((f, i) => renderField(c.key, f, i)).join('') : '';
-    const shown = c.fields.length;
+    // 常用字段（决策 #2：只展示 5 个）与「其余项」现在是**同一批对象的两个视图**，
+    // 靠 f.group 区分。原先后者只是一串字段名字符串，所以永远长不出控件。
+    const flat = c.fields.filter((f) => !f.group);
+    const fields = flat.length ? flat.map((f) => renderField(c.key, f, c.fields.indexOf(f))).join('') : '';
+    const shown = flat.length;
     return `<div class="cfg-card cfg-card-on">
       <div class="cfg-head border-b border-slate-100">
         <span class="cfg-icon cfg-icon-on"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${ICONS[c.key]}</svg></span>
@@ -508,19 +627,19 @@ function renderCards() {
           // 摆一个点了没反应的按钮比不摆更糟（同 README 决策 #4 的精神）。
           const changed = (c.fields || []).filter((f) => f.src === 'custom' || f.src === 'ai').length;
           return changed
-            ? `<button data-cardreset="${c.key}" class="shrink-0 rounded-lg px-2 py-1 text-2xs font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900" title="把这张卡的 ${changed} 项改动恢复到预设值">重置</button>`
+            ? `<button data-cardreset="${c.key}" class="shrink-0 rounded-lg px-2 py-1 text-xs font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900" title="把这张卡的 ${changed} 项改动恢复到预设值">重置</button>`
             : '';
         })()}
-        <button data-cardfold="${c.key}" class="grid size-6 shrink-0 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700" aria-label="${c.folded ? '展开' : '折叠'}${c.name}" title="${c.folded ? '展开' : '折叠'}这张卡">
+        <button data-cardfold="${c.key}" class="grid size-6 shrink-0 place-items-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700" aria-label="${c.folded ? '展开' : '折叠'}${c.name}" title="${c.folded ? '展开' : '折叠'}这张卡">
           <svg class="size-3.5 transition-transform ${c.folded ? '' : 'rotate-90'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 6 6 6-6 6"/></svg>
         </button>
-        ${c.always ? '' : `<button data-toggle="${c.key}" class="switch-knob switch-on" aria-label="关闭${c.name}"></button>`}
+        ${c.always ? '' : `<button data-toggle="${c.key}" role="switch" aria-checked="true" class="switch-knob switch-on" aria-label="${c.name}"></button>`}
       </div>
       <div class="space-y-3 px-3 py-3${c.folded ? ' hidden' : ''}">
         <div>
           <div class="mb-2 flex items-center gap-1.5">
             <span class="field-label">预设</span>
-            <span class="text-2xs text-slate-400">点一下填一组参数，再微调</span>
+            <span class="text-2xs text-slate-500">点一下填一组参数，再微调</span>
           </div>
           <div class="flex flex-wrap gap-1.5">
             ${(() => {
@@ -528,27 +647,31 @@ function renderCards() {
               return c.presets.map((p) => {
                 const on = p === c.preset;
                 // 套了预设又手改过，chip 不能继续假装「就是这个预设」
-                return `<button data-preset="${c.key}|${p}" class="preset-chip${on ? ' preset-chip-on' : ''}">${p}${on && changed ? '<span class="ml-1 font-normal opacity-70">·已改</span>' : ''}</button>`;
-              }).join('') + (changed ? `<button data-represet="${c.key}" class="preset-chip border-dashed">回到「${c.preset}」</button>` : '');
+                return `<button data-preset="${c.key}|${p}" role="radio" aria-checked="${on}" class="preset-chip${on ? ' preset-chip-on' : ''}">${presetSample(c.key, p)}${p}${on && changed ? '<span class="ml-1 font-normal opacity-70">·已改</span>' : ''}</button>`;
+              }).join('') + (changed ? `<button data-represet="${c.key}" role="radio" aria-checked="false" class="preset-chip border-dashed">回到「${c.preset}」</button>` : '');
             })()}
           </div>
         </div>
         ${fields ? `<div class="space-y-2.5 border-t border-slate-100 pt-3">${fields}</div>` : ''}
         ${c.total > shown ? `
           <div class="border-t border-slate-100 pt-2.5">
-            <button data-more="${c.key}" class="flex w-full items-center gap-1.5 text-2xs font-medium text-slate-500 transition-colors hover:text-slate-900">
+            <button data-more="${c.key}" aria-expanded="${!!c.more}" class="flex w-full items-center gap-1.5 text-xs font-medium text-slate-500 transition-colors hover:text-slate-900">
               <svg class="size-3 transition-transform ${c.more ? 'rotate-90' : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 6 6 6-6 6"/></svg>
               其余 ${c.total - shown} 项
-              <span class="ml-auto inline-flex items-center gap-1 font-normal text-slate-400">按 <span class="kbd">⌘K</span> 可直接搜字段</span>
+              <span class="ml-auto inline-flex items-center gap-1 text-2xs font-normal text-slate-500">按 <span class="kbd">⌘K</span> 可直接搜字段</span>
             </button>
-            ${c.more && c.groups ? `<div class="mt-2 space-y-1.5">
-              ${c.groups.map(([g, fields]) => `
-                <div class="rounded-lg bg-slate-50 px-2.5 py-2">
-                  <div class="text-2xs font-semibold text-slate-500">${g} <span class="font-normal text-slate-400">${fields.length}</span></div>
-                  <div class="mt-1.5 flex flex-wrap gap-1">
-                    ${fields.map((f) => `<span class="rounded border border-slate-200 bg-white px-1.5 py-0.5 text-2xs text-slate-600">${f}</span>`).join('')}
-                  </div>
-                </div>`).join('')}
+            ${c.more && c.groups ? `<div class="mt-2 space-y-2">
+              ${c.groups.map(([g, labels]) => {
+                const rows = labels
+                  .map((label) => c.fields.find((f) => f.label === label && f.group === g))
+                  .filter(Boolean)
+                  .map((f) => renderField(c.key, f, c.fields.indexOf(f)))
+                  .join('');
+                return `<div class="rounded-lg bg-slate-50/70 px-2.5 py-2 ring-1 ring-slate-200/70">
+                  <div class="text-xs font-medium text-slate-600">${g} <span class="font-normal text-slate-500">${labels.length}</span></div>
+                  <div class="mt-2 space-y-2.5">${rows}</div>
+                </div>`;
+              }).join('')}
             </div>` : ''}
           </div>` : ''}
       </div>
@@ -556,6 +679,23 @@ function renderCards() {
   }).join('');
   bindCardEvents();
   bindCardChrome();
+}
+
+/*
+  ── 「配置变了」的单一漏斗 ──
+
+  一次字段改动要同时影响四处：卡片本身、「本次输出」行、舞台的**最小尺寸**
+  （`stageMin()` 由波纹最大半径 / 粒子扩散半径 / 飘字上浮距离算出）、以及舞台画面。
+  散着调很容易漏掉第三处，表现成「把扩散半径拉到 320，粒子飞出舞台边界被裁掉」。
+
+  拖动**过程中**不能走这个漏斗：`renderCards()` 会重建 DOM，把正在拖的那个滑块拆掉。
+  所以拖动期间只 `paintStage()`，松手 commit 才走漏斗。
+*/
+function afterConfigChange() {
+  renderCards();
+  renderOutputs();
+  syncDrawer();      // 重算舞台最小尺寸 + 抽屉可用高度（内部会 renderTimeline）
+  paintStage();
 }
 
 // 折叠与重置。两者都是「卡级」操作，与效果开关分开：
@@ -600,7 +740,7 @@ function renderField(cardKey, f, i) {
   const id = `f-${cardKey}-${i}`;
   if (f.type === 'num') {
     // 共享滑块 + 可编辑读数：标签可 scrub、拖柄出气泡、双击回默认
-    return `<div class="ctl-row">
+    return `<div class="ctl-row" data-fieldrow="${cardKey}|${f.label}">
       <span class="field-label ctl-label-scrub" data-scrub="${id}">${f.label}${srcDot(cardKey, f)}</span>
       <div id="${id}" data-slider data-min="${f.min}" data-max="${f.max}" data-value="${f.value}"
            data-default="${f.presetValue ?? f.value}" data-field="${cardKey}|${f.label}"></div>
@@ -608,23 +748,43 @@ function renderField(cardKey, f, i) {
     </div>`;
   }
   if (f.type === 'select') {
-    return `<div class="ctl-row-wide">
+    return `<div class="ctl-row-wide" data-fieldrow="${cardKey}|${f.label}">
       <span class="field-label">${f.label}${srcDot(cardKey, f)}</span>
       <div id="${id}" data-select="${cardKey}|${f.label}"></div>
     </div>`;
   }
-  if (f.type === 'color') {
-    const palette = ['#F59E0B', '#0EA5E9', '#0D9488', '#F43F5E', '#8B5CF6', '#0F172A'];
-    return `<div class="grid grid-cols-[104px_minmax(0,1fr)] items-center gap-2.5">
+  if (f.type === 'toggle') {
+    // 开关字段（渐变开关 / 启用拖尾）。`role="switch"` + `aria-checked` 是必须的：
+    // 只靠 class 表达开合，读屏器听不出来（DESIGN.md 可访问性节）。
+    return `<div class="grid grid-cols-[104px_minmax(0,1fr)] items-center gap-2.5" data-fieldrow="${cardKey}|${f.label}">
       <span class="field-label">${f.label}${srcDot(cardKey, f)}</span>
-      <span class="flex flex-wrap gap-1.5">
-        ${palette.map((p) => `<button data-color="${cardKey}|${p}" class="size-6 rounded-lg border ${p === f.value ? 'border-slate-950 ring-2 ring-slate-300' : 'border-slate-200'} shadow-sm" style="background:${p}" aria-label="颜色 ${p}"></button>`).join('')}
+      <span>
+        <button role="switch" aria-checked="${!!f.value}" data-fieldtoggle="${cardKey}|${f.label}" aria-label="${f.label}"
+                class="relative h-5 w-9 shrink-0 rounded-full transition-colors ${f.value ? 'bg-slate-900' : 'bg-slate-200'}">
+          <span class="absolute top-0.5 size-4 rounded-full bg-white shadow-sm transition-[left] ${f.value ? 'left-[18px]' : 'left-0.5'}"></span>
+        </button>
       </span>
     </div>`;
   }
-  return `<div class="grid grid-cols-[104px_minmax(0,1fr)] items-center gap-2.5">
+  if (f.type === 'color') {
+    /* 色板走共享的 `Ctl.colorField`（compact 档：只有色板，尺寸 size-6）。
+       这一页原先手写的那份**语义是对的**（role=radiogroup + aria-checked），
+       比控件库那份还正确——于是「库页是参照实现」这句话当时是反的。
+       现在两边同一份实现，而调色板取 `Ctl.CONTENT_PALETTE`：
+       用户内容色**不受外壳调色板约束**（DESIGN.md 色彩节第 3 类 · 裁决 11），
+       所以里面有 violet 是对的，它不是外壳色。 */
+    return `<div class="grid grid-cols-[104px_minmax(0,1fr)] items-center gap-2.5" data-fieldrow="${cardKey}|${f.label}">
+      <span class="field-label">${f.label}${srcDot(cardKey, f)}</span>
+      <div id="${id}" data-colorfield="${cardKey}|${f.label}" data-label="${f.label}"></div>
+    </div>`;
+  }
+  // 文本字段。原先是一个**裸 `<input>`、没有任何监听**——于是「文案」是死控件，
+  // 舞台永远画写死的 `Nice!`。提交语义与 Ctl.number 对齐：change（失焦或 Enter）才落，
+  // Esc 放弃，空串视为放弃而不是静默清空。
+  return `<div class="grid grid-cols-[104px_minmax(0,1fr)] items-center gap-2.5" data-fieldrow="${cardKey}|${f.label}">
     <span class="field-label">${f.label}${srcDot(cardKey, f)}</span>
-    <input value="${f.value}" class="h-8 rounded-xl border border-slate-200 bg-white px-2 text-xs text-slate-700 shadow-sm" />
+    <input value="${esc(f.value)}" data-text="${cardKey}|${f.label}" aria-label="${f.label}"
+           class="h-8 rounded-xl border border-slate-200 bg-white px-2 text-xs text-slate-700 shadow-sm" />
   </div>`;
 }
 
@@ -643,12 +803,22 @@ function mountCardControls() {
       onChange: (v) => {
         const before = f.value;
         f.value = v; f.src = 'custom';
-        renderCards();
-        const undo = () => { f.value = before; renderCards(); return () => { f.value = v; renderCards(); return undo; }; };
+        afterConfigChange();
+        const undo = () => { f.value = before; afterConfigChange(); return () => { f.value = v; afterConfigChange(); return undo; }; };
         toast(`「${c.name} · ${label}」已改为 ${v}`, undo);
       },
     });
   });
+  /*
+    这里原先带着 `:not([data-knob])`——宏观旋钮（裁决 12）也用 `data-slider`，
+    而这个循环先跑、会给命中的元素打上 `data-mounted`，于是旋钮会被**字段处理器**
+    悄悄认领，症状是「读数动了、别处全不动」。
+
+    旋钮层已按用户判断回退（见 DECISIONS.md 裁决 12 的推翻记录），所以那个排除项
+    随它一起去掉。**教训本身留着**：一个共享选择器悄悄认领别人的元素，
+    是这份稿子最常见的那类缺陷——下次再往 `data-slider` 上加第二类消费者时，
+    先想清楚谁先跑、谁打标记。
+  */
   document.querySelectorAll('[data-slider]:not([data-mounted])').forEach((el) => {
     el.dataset.mounted = '1';
     const out = document.querySelector(`[data-out="${el.id}"]`);
@@ -656,12 +826,44 @@ function mountCardControls() {
     const c = CARDS.find((x) => x.key === key);
     const f = c?.fields.find((x) => x.label === label);
     Ctl.slider(el, {
-      onChange: (v) => { if (out) out.textContent = v; if (f) f.value = v; },
+      // 拖动过程中就重画舞台：这就是「预览面是可交互沙盒」（决策 #8）该有的手感——
+      // 调一个参数要手动去舞台点一下才看到结果，对 ~390 个字段等于 390 次多余点击。
+      // paintStage 是「一帧 = 时间的纯函数」，所以定格在当前播放头上重画是安全的。
+      onChange: (v) => {
+        if (out) out.textContent = v;
+        if (!f) return;
+        /*
+          「改之前的值」必须在这里定格，不能等到 onCommit——那时 f.value 早就是新值了，
+          再读「改之前」读到的是改之后。（这一条与已回退的旋钮层踩的是同一个坑，
+          当时的注释一起留了下来。）定格在**字段对象上**而不是一个模块变量上：
+          共用一个变量的话，A 滑块挂载时定格了 A 的值，接着拖 B，B 的撤销会把 A 的值写进 B。
+        */
+        if (f._from === undefined) f._from = f.value;
+        f.value = v;
+        paintStage();
+      },
       onCommit: (v) => {
         if (!f) return;
         if (f.presetValue === undefined) f.presetValue = v;
+        /*
+          ── 这一条原先只调 `touch()`，于是数值字段改动**既不进撤销栈、也不标脏** ──
+
+          `touch()` 只负责让页头那枚「草稿已存」转一下圈；真正做两件事的是 `toast()`
+          （`markDraftDirty()` + 压撤销栈，见 shell.js）。所以实测：拖任意一个数值滑块，
+          值变了、舞台跟着变了，而作用域条**一直停在「已应用到桌面」**、「应用到桌面」
+          按钮不出现、⌘Z 也撤不回来。
+
+          而同一个文件里 select 字段那条路径是 `toast(…, undo)` ——**页面自己的约定是对的，
+          只有滑块这一条漏了**。而滑块恰好是全应用最高频的那类改动：
+          裁决 1 的第 2 层（草稿 → 运行时需要一次显式动作）对它整个失效。
+        */
+        const before = f._from === undefined ? f.value : f._from;
+        delete f._from;
         f.src = 'custom';
-        renderCards(); touch();
+        afterConfigChange();
+        if (before === v) return;   // 按下又原样放回：不产生记录
+        const undo = () => { f.value = before; afterConfigChange(); return () => { f.value = v; afterConfigChange(); return undo; }; };
+        toast(`「${c.name} · ${label}」已改为 ${v}`, undo);
       },
     });
   });
@@ -702,8 +904,8 @@ function bindCardEvents() {
     (c.fields || []).forEach((f) => {
       if ((f.src === 'custom' || f.src === 'ai') && f.presetValue !== undefined) { f.value = f.presetValue; f.src = 'preset'; }
     });
-    renderCards();
-    const undo = () => { before.forEach(({ f, v, src }) => { f.value = v; f.src = src; }); renderCards(); return () => { document.querySelector(`[data-represet="${c.key}"]`)?.click(); return undo; }; };
+    afterConfigChange();
+    const undo = () => { before.forEach(({ f, v, src }) => { f.value = v; f.src = src; }); afterConfigChange(); return () => { document.querySelector(`[data-represet="${c.key}"]`)?.click(); return undo; }; };
     toast(`「${c.name}」已回到预设 ${c.preset}`, undo);
   }));
   document.querySelectorAll('[data-revert]').forEach((el) => el.addEventListener('dblclick', (e) => {
@@ -714,39 +916,130 @@ function bindCardEvents() {
     if (f.presetValue === undefined) return;
     const before = { v: f.value, src: f.src };
     f.value = f.presetValue; f.src = 'preset';
-    renderCards();
-    toast(`「${label}」已回到预设值 ${f.presetValue}`, () => { f.value = before.v; f.src = before.src; renderCards(); });
+    afterConfigChange();
+    toast(`「${label}」已回到预设值 ${f.presetValue}`, () => { f.value = before.v; f.src = before.src; afterConfigChange(); });
   }));
   document.querySelectorAll('[data-preset]').forEach((b) => b.addEventListener('click', () => {
     const [key, p] = b.dataset.preset.split('|');
     const c = CARDS.find((x) => x.key === key);
     const before = c.preset;
+    // 撤销要能恢复**值**，不只是标签——所以整份字段快照
+    const snap = (c.fields || []).map((f) => ({ f, v: f.value, pv: f.presetValue, src: f.src }));
     c.preset = p;
-    (c.fields || []).forEach((f) => { if (f.src === 'custom' || f.src === 'ai') f.src = 'preset'; });
-    renderCards();
-    const undo = () => { c.preset = before; renderCards(); return () => { c.preset = p; renderCards(); return undo; }; };
+    applyPreset(c, p);
+    afterConfigChange();
+    const restore = () => { c.preset = before; snap.forEach(({ f, v, pv, src }) => { f.value = v; f.presetValue = pv; f.src = src; }); afterConfigChange(); };
+    const undo = () => { restore(); return () => { c.preset = p; applyPreset(c, p); afterConfigChange(); return undo; }; };
     toast(`「${c.name}」已套用预设 ${p}`, undo);
   }));
-  document.querySelectorAll('[data-color]').forEach((b) => b.addEventListener('click', () => {
-    const [key, color] = b.dataset.color.split('|');
+  // 按 label 定位，不再按 `type === 'color'` 取第一个：飘字展开「渐变」分组后
+  // 会有三个颜色字段，按 type 取会永远改到第一个（「打开一个分组把另一个控件改坏」
+  // 这类缺陷完全没有视觉痕迹）。
+  // 撤销 / toast / afterConfigChange 仍然留在这一页——共享层只管控件的行为，
+  // 「改一个字段等于一次可撤销的事务」是这一页的模型，不是控件的职责。
+  document.querySelectorAll('[data-colorfield]:not([data-mounted])').forEach((el) => {
+    el.dataset.mounted = '1';
+    const [key, label] = el.dataset.colorfield.split('|');
     const c = CARDS.find((x) => x.key === key);
-    const f = c.fields.find((x) => x.type === 'color');
-    const before = f.value; f.value = color;
-    c.tweaked = true;
-    renderCards();
-    const undo = () => { f.value = before; renderCards(); return () => { f.value = color; renderCards(); return undo; }; };
-    toast(`「${c.name}」颜色已更新`, undo);
+    const f = c && c.fields.find((x) => x.label === label);
+    if (!f) return;
+    Ctl.colorField(el, {
+      compact: true,
+      value: f.value,
+      onChange: (color) => {
+        if (f.value === color) return;
+        const before = f.value; const beforeSrc = f.src;
+        f.value = color; f.src = 'custom';
+        c.tweaked = true;
+        afterConfigChange();
+        const undo = () => {
+          f.value = before; f.src = beforeSrc; afterConfigChange();
+          return () => { f.value = color; f.src = 'custom'; afterConfigChange(); return undo; };
+        };
+        toast(`「${c.name} · ${label}」已改为 ${color}`, undo);
+      },
+    });
+  });
+
+  document.querySelectorAll('[data-fieldtoggle]').forEach((b) => b.addEventListener('click', () => {
+    const [key, label] = b.dataset.fieldtoggle.split('|');
+    const c = CARDS.find((x) => x.key === key);
+    const f = c.fields.find((x) => x.label === label);
+    const before = f.value;
+    f.value = !f.value; f.src = 'custom'; c.tweaked = true;
+    afterConfigChange();
+    const undo = () => {
+      f.value = before; afterConfigChange();
+      return () => { f.value = !before; afterConfigChange(); return undo; };
+    };
+    toast(`「${c.name} · ${label}」已${f.value ? '开启' : '关闭'}`, undo);
   }));
+
+  // 文本字段的提交语义与 Ctl.number 一致：change 才落、Esc 放弃、空串放弃。
+  document.querySelectorAll('[data-text]:not([data-mounted])').forEach((el) => {
+    el.dataset.mounted = '1';
+    const [key, label] = el.dataset.text.split('|');
+    const c = CARDS.find((x) => x.key === key);
+    const f = c && c.fields.find((x) => x.label === label);
+    if (!f) return;
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { el.value = f.value; el.blur(); }
+      if (e.key === 'Enter') el.blur();
+    });
+    el.addEventListener('change', () => {
+      const v = el.value;
+      // 空串视为放弃编辑保持原值——不能静默把文案清空
+      // （同 NumberField 那个「全选删掉再改主意」的陷阱）
+      if (!v.length) { el.value = f.value; return; }
+      if (v === f.value) return;
+      const before = f.value; const beforeSrc = f.src;
+      f.value = v; f.src = 'custom'; c.tweaked = true;
+      afterConfigChange();
+      const undo = () => {
+        f.value = before; f.src = beforeSrc; afterConfigChange();
+        return () => { f.value = v; f.src = 'custom'; afterConfigChange(); return undo; };
+      };
+      toast(`「${c.name} · ${label}」已改为「${v}」`, undo);
+    });
+  });
 }
 
 // ── 输出标签
+/*
+  ══ 效果类型的分类色：唯一映射源（DECISIONS.md 裁决 11）══════════════
+
+  为什么必须有：`.tl-bar` 原先全是 `border-slate-300 bg-white`，
+  于是时间轴上**五条轨长得完全一样**，通道身份只能靠 132px 的文字标签串行读。
+  而时间轴的首要工作恰恰是「一眼看出谁在什么时候出现」——
+  整个 97KB 的 `01` 里只有 1 个 `bg-sky-400`、1 个 `bg-amber-50`。
+
+  这不是疏忽，是被「颜色只有两类 + 每视图一个强调色」逼出来的。裁决 11 新增了
+  第三类（内容色 / 分类色，封闭集合），这张表就是它在 `01` 的落点。
+
+  **三处必须共用这一份**：时间轴通道块、「本次输出」chip、诊断面板的效果类型标记。
+  否则「哪个是波纹」要在三个地方各学一次——而这正是 README 反复记的
+  「同一个东西在两处不一致」的另一种形态。
+
+  色值取自 `src/components/ui/theme-identity.ts` 的封闭集合（allowlist 里已登记
+  「主题要能一眼分辨，属内容色」），只是把它从主题身份扩到效果类型。
+*/
+/*
+  表已经上移到共享层 `controls.js`（`Ctl.CH_TONE`，与 EASINGS / FONTS /
+  CONTENT_PALETTE 同一批「唯一真值源」）。这里只取引用，**不再抄一份**：
+  05 那份是这一份的复制品，而两份的形状已经开始分叉（它是裸 chip 字符串、
+  还少了 触发 与 光标反馈 两条）。裁决 11 要的「三处共用同一份映射」
+  现在由 `category-tone-table-duplicated` 门禁执行，而不是靠注释提醒。
+*/
+const CH_TONE = Ctl.CH_TONE;
+const toneOf = Ctl.toneOf;
+
 function renderOutputs() {
   const on = CARDS.filter((c) => !c.always && c.on);
   $('outputTags').innerHTML = on.length
     // shrink-0 + whitespace-nowrap：窄列下这些 chip 曾被压成竖排单字
-    ? on.map((c) => `<span class="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-slate-100 px-2 py-0.5 text-2xs font-medium text-slate-600">
+    ? on.map((c) => `<span class="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full ${toneOf(c.key).chip} px-2 py-0.5 text-xs font-medium">
         <svg class="size-2.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">${ICONS[c.key]}</svg>${c.name}</span>`).join('')
-    : '<span class="shrink-0 whitespace-nowrap text-2xs text-slate-400">还没有开启任何效果 —— 打开下方任意一张卡</span>';
+    : '<span class="shrink-0 whitespace-nowrap text-xs text-slate-500">还没有开启任何效果 —— 打开下方任意一张卡</span>';
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -765,7 +1058,7 @@ function renderOutputs() {
 //  6. 舞台与时间轴共用**唯一播放头**：任意毫秒可定格，可只循环一段区间。
 // ══════════════════════════════════════════════════════════════════
 
-const CH_DEFAULT = [
+function baseChannels() { return [
   { id: 'ripple', label: '波纹', ref: 'trigger', off: 0, dur: 620,
     anchors: [['emit', 0], ['peak', 0.62]],
     curves: { 半径: [0, 0, .2, 1], 不透明度: [.4, 0, 1, 1] }, main: '半径' },
@@ -778,9 +1071,298 @@ const CH_DEFAULT = [
     curves: { 上浮: [.2, .7, .3, 1], 缩放: [.34, 1.56, .64, 1], 不透明度: [.4, 0, .6, 1] }, main: '上浮' },
   { id: 'audio', label: '音效', ref: 'trigger', off: 0, dur: 120,
     anchors: [['onset', 0]], curves: { 音量: [0, 0, 1, 1] }, main: '音量' },
-];
+  /*
+    ── 后三条通道（2026-08-05 补，裁决 13）───────────────────────────
+
+    这三条原先**根本不存在**：卡片列有 8 张卡，时间轴只有 5 条轨，于是
+    动画 / 贴纸 / 光标反馈这三张卡在舞台上没有任何出场时机——调什么都不会发生，
+    而界面上 8 张卡看起来完全同权。补齐它不是接几个字段，得先定
+    「它们与触发的时间关系」，理由逐条写在下面（也登记进 DECISIONS.md 裁决 13）。
+
+    它们跟着 `cardOn()` 过滤（见 chList / chLanes），三张卡默认关着，
+    所以默认视图与补齐之前逐像素相同——这一条是刻意的，避免一次结构补齐
+    顺手改掉了默认观感。
+  */
+  // 光标反馈排在最前、也最短：光标是用户的手，按下的那一刻就该有回应。
+  // 它是**唯一一个应该在任何效果出现之前就到位**的反馈——晚于效果的光标反馈
+  // 会被读成"卡了一下"，而不是"我按到了"。
+  { id: 'cursor', label: '光标反馈', ref: 'trigger', off: 0, dur: 240,
+    anchors: [['press', 0], ['release', 0.5]],
+    curves: { 强度: [.3, 0, .7, 1] }, main: '强度' },
+  // 动画是命中点上的形变，属于「直接命中反馈」，所以与触发同时起、比波纹短：
+  // 它要在波纹还在扩的时候就收尾，否则两个都在动、谁也读不出是对谁的回应。
+  { id: 'animation', label: '动画', ref: 'trigger', off: 0, dur: 420,
+    anchors: [['in', 0], ['peak', 0.4]],
+    curves: { 缩放: [.34, 1.4, .64, 1], 不透明度: [.4, 0, .6, 1] }, main: '缩放' },
+  // 贴纸是**内容**，和飘字同族：等波纹峰值把注意力带到命中点之后再出现。
+  // 所以它锚在 ripple.peak 而不是 trigger——一个在波纹还没铺开就蹦出来的贴纸
+  // 会盖掉"这里发生了什么"这条线索本身。
+  { id: 'image', label: '贴纸', ref: 'ripple.peak', off: 0, dur: 900,
+    anchors: [['in', 0], ['peak', 0.35]],
+    curves: { 缩放: [.2, 1.2, .4, 1], 不透明度: [.4, 0, .7, 1] }, main: '缩放' },
+]; }
 const clone = (a) => a.map((c) => ({ ...c, anchors: c.anchors.map((x) => [...x]), curves: Object.fromEntries(Object.entries(c.curves).map(([k, v]) => [k, [...v]])), repeat: c.repeat ? { ...c.repeat } : undefined }));
-let CH = clone(CH_DEFAULT);
+
+/*
+  主题种子已上移到共享层 `shell.js`（唯一真值源）。
+
+  为什么必须上移：侧栏的主题卡要画**从效果数据派生的样张**，而 shell.js 拿不到
+  这一页的局部常量。上一轮为此把主题卡样张整件事延后了，理由写在 README：
+  「要么把种子上移（跨页数据结构变动），要么在 shell 里再写一份——
+  复制的两份数据一定会有一天不一致」。现在做的是前者。
+
+  兜底：shell.js 没加载时（理论上不会，五页都套外壳）退回一份空种子，
+  让这一页仍然可用而不是整段脚本挂掉。
+
+  **名字必须与 shell.js 里那个不同**（这里叫 SEEDS）。第一版两边都写
+  `const THEME_SEEDS`，而经典脚本的顶层 `const` 进的是**共享的全局词法环境**——
+  于是第二个脚本直接 `SyntaxError: Identifier 'THEME_SEEDS' has already been declared`，
+  **整段页面脚本一行都没执行**。表现是页面渲染出来了（标记是静态的）、
+  配置列与时间轴全空、控制台没有可读记录，而 `check:ui-spec` 照旧 PASS——
+  因为它对每段内联脚本单独跑 `new Function()`，看不见跨脚本的重名。
+  已为此加门禁 `cross-script-lexical-collision`。
+*/
+const SEEDS = window.THEME_SEEDS || {};
+
+/*
+  ══ 「其余 N 项」里那 53 个字段的规格 ══════════════════════════════
+
+  为什么必须有这张表：`groups` 原先**只有字段名**，展开后渲染成一排静态 chip，
+  实测两种状态下 `.ctl-row` 恒为 2、可交互元素恒为 17——**8 张卡都是**。
+  也就是说决策 #2 说的「其余收进『显示全部 N 项』」在稿子里只做了「收进」，
+  没做「显示」；按 README 自己的口径（一套主题约 390 个配置决策），
+  绝大多数字段**在稿子里没有任何编辑形态**，而 ⌘K 号称能跳到它们。
+
+  这张表按 label 给类型与取值范围。label 在卡内唯一，所以按 label 索引就够；
+  同名字段（不透明度 / 偏移 X）在不同卡里共用规格是对的——它们本来就是同一种量。
+
+  字段数与卡上的 `total` 严格对齐（触发 1 / 飘字 19 / 动画 7 / 贴纸 5 /
+  粒子 17 / 波纹 5 / 音效 5 / 光标反馈 7 = 66），所以「其余 N 项」那个 N
+  不会再是一个没有对应物的数字。
+*/
+const GROUP_SPECS = {
+  // 飘字
+  文本种类: { type: 'select', value: '固定文案', options: ['固定文案', '随机词库', '按键字符', '连击数'] },
+  取词模式: { type: 'select', value: '顺序', options: ['顺序', '随机', '随机不重复'] },
+  模板: { type: 'text', value: '{text}' },
+  词库: { type: 'select', value: '鼓励短语', options: ['鼓励短语', '拟声词', 'emoji', '自定义…'] },
+  词库播放: { type: 'select', value: '每次一条', options: ['每次一条', '整句一次'] },
+  字体: { type: 'select', value: '系统默认', options: ['系统默认', '圆体', '衬线', '等宽'] },
+  字重: { type: 'select', value: '粗', options: ['常规', '中等', '粗', '特粗'] },
+  描边宽度: { type: 'num', value: 0, min: 0, max: 8, unit: 'px' },
+  阴影: { type: 'select', value: '无', options: ['无', '柔和', '硬边', '发光'] },
+  渐变开关: { type: 'toggle', value: false },
+  渐变起色: { type: 'color', value: '#F59E0B' },
+  渐变止色: { type: 'color', value: '#F43F5E' },
+  连击叠加: { type: 'select', value: '横向排开', options: ['横向排开', '原地叠加', '扇形展开'] },
+  // 动画
+  风格: { type: 'select', value: '脉冲', options: ['脉冲', '抖动', '缩放', '摆动'] },
+  缩放: { type: 'num', value: 120, min: 50, max: 300, unit: '%' },
+  发光: { type: 'num', value: 0, min: 0, max: 40, unit: 'px' },
+  // 贴纸
+  图片: { type: 'text', value: 'sticker.png' },
+  尺寸: { type: 'num', value: 48, min: 12, max: 240, unit: 'px' },
+  // 粒子
+  方向: { type: 'select', value: '四周', options: ['四周', '向上', '向下', '跟随移动'] },
+  运动模式: { type: 'select', value: '扩散', options: ['扩散', '喷发', '飘落', '轨道'] },
+  风力: { type: 'num', value: 0, min: -10, max: 10, unit: '' },
+  弹跳: { type: 'num', value: 0, min: 0, max: 10, unit: '' },
+  拖尾: { type: 'num', value: 0, min: 0, max: 12, unit: '' },
+  大小: { type: 'num', value: 6, min: 1, max: 32, unit: 'px' },
+  取色模式: { type: 'select', value: '单色', options: ['单色', '调色板轮转', '随机', '跟随主题'] },
+  调色板: { type: 'select', value: '暖色', options: ['暖色', '冷色', '单色灰', '霓虹'] },
+  轨道数量: { type: 'num', value: 3, min: 1, max: 12, unit: '条' },
+  轨道半径: { type: 'num', value: 40, min: 8, max: 200, unit: 'px' },
+  轨道速度: { type: 'num', value: 100, min: 10, max: 400, unit: '%' },
+  // 音效
+  音频文件: { type: 'text', value: 'pop.wav' },
+  音量: { type: 'num', value: 70, min: 0, max: 100, unit: '%' },
+  播放速率: { type: 'num', value: 100, min: 50, max: 200, unit: '%' },
+  触发模式: { type: 'select', value: '每次', options: ['每次', '节流', '仅连击首次'] },
+  混音模式: { type: 'select', value: '叠加', options: ['叠加', '打断', '排队'] },
+  // 光标反馈
+  敲击抖动: { type: 'num', value: 2, min: 0, max: 12, unit: 'px' },
+  光标覆盖: { type: 'select', value: '不覆盖', options: ['不覆盖', '按下缩小', '按下高亮'] },
+  光标尺寸: { type: 'num', value: 100, min: 50, max: 200, unit: '%' },
+  发光颜色: { type: 'color', value: '#0EA5E9' },
+  启用拖尾: { type: 'toggle', value: false },
+  拖尾数量: { type: 'num', value: 6, min: 1, max: 24, unit: '个' },
+  拖尾不透明度: { type: 'num', value: 40, min: 0, max: 100, unit: '%' },
+  // 多卡共用
+  颜色: { type: 'color', value: '#0EA5E9' },
+  不透明度: { type: 'num', value: 100, min: 0, max: 100, unit: '%' },
+  '偏移 X': { type: 'num', value: 0, min: -120, max: 120, unit: 'px' },
+  '偏移 Y': { type: 'num', value: 0, min: -120, max: 120, unit: 'px' },
+};
+/*
+  按卡覆盖的规格。
+
+  上面那张表按 label 索引，注释写着「同名字段在不同卡里共用规格是对的——
+  它们本来就是同一种量」。这对「不透明度 / 偏移 X」成立，对**「风格」不成立**：
+  动画的风格是**运动方式**（脉冲 / 抖动 / 缩放 / 摆动），
+  波纹的风格是**描边方式**（描边 / 实心 / 双环）。
+  共用一份规格的后果是波纹卡上出现一个写着「脉冲」的下拉，
+  而它对波纹的画法没有任何含义——这是 preview-fidelity 门禁顺带翻出来的。
+*/
+const GROUP_SPECS_BY_CARD = {
+  ripple: { 风格: { type: 'select', value: '描边', options: ['描边', '实心', '双环'] } },
+};
+
+/*
+  ══ 预设真的要填一组参数（决策 #2）══════════════════════════════════
+
+  走查发现的缺陷：预设 chip 的 handler 只做两件事——`c.preset = p`，
+  以及把 `src === 'custom'|'ai'` 的字段改回 `'preset'`。**一个字段值都没改。**
+  而卡片上那行说明写的是「点一下填一组参数，再微调」，chip 旁边还有
+  「·已改」「回到「弹跳」」这一整套围绕预设的四态溯源。
+
+  也就是说：预设是这一页的**默认入口**（决策 #2 叫「预设先行」），
+  而它点下去什么也不填。这与 A5（舞台忽略字段）、A3（其余项没有控件）同族——
+  都是「界面承诺了一件事，底下没有对应物」。
+
+  下面这张表是每个预设**实际写入的值**。它同时是预设样张的数据来源：
+  样张必须从真实值派生，否则就是一张会说谎的装饰图
+  （而「长成结果的样子」这条原则本来就是为了不说谎）。
+*/
+const PRESET_VALUES = {
+  text: {
+    轻盈:   { 字号: 22, 上浮距离: 48, 描边宽度: 0, 不透明度: 90 },
+    弹跳:   { 字号: 28, 上浮距离: 64, 描边宽度: 0, 不透明度: 100 },
+    爆裂:   { 字号: 40, 上浮距离: 96, 描边宽度: 2, 不透明度: 100 },
+    打字机: { 字号: 20, 上浮距离: 12, 描边宽度: 0, 不透明度: 100 },
+  },
+  particle: {
+    礼花: { 数量: 14, 扩散半径: 96,  大小: 6, 重力: 3, 形状: '圆点' },
+    火花: { 数量: 28, 扩散半径: 132, 大小: 4, 重力: 1, 形状: '星形' },
+    尘埃: { 数量: 18, 扩散半径: 72,  大小: 3, 重力: 6, 形状: '钻石' },
+    气泡: { 数量: 22, 扩散半径: 120, 大小: 9, 重力: 0, 形状: '圆点' },
+  },
+  ripple: {
+    涟漪: { 最大半径: 120, 线宽: 2, 不透明度: 100 },
+    脉冲: { 最大半径: 96,  线宽: 3, 不透明度: 100 },
+    回声: { 最大半径: 200, 线宽: 1, 不透明度: 70 },
+  },
+  trigger: { 即时: {}, 蓄力: {}, 节流: {} },
+  animation: { 脉冲: { 缩放: 120 }, 抖动: { 缩放: 104 }, 缩放: { 缩放: 160 } },
+  image: { 原样: { 尺寸: 48 }, 旋入: { 尺寸: 56 }, 弹入: { 尺寸: 64 } },
+  audio: { 清脆: { 音量: 70 }, 低沉: { 音量: 55 }, 水滴: { 音量: 80 } },
+  cursor: { 跟随状态: { 光标尺寸: 100 }, 按下缩小: { 光标尺寸: 88 }, 按下高亮: { 光标尺寸: 112 } },
+};
+
+/*
+  ══ 预设样张：从 PRESET_VALUES 派生（不是画的）══════════════════════
+
+  稿子自己定过一条手感约定：**「下拉的选项要长成结果的样子」**——
+  缓动画曲线并标过冲百分比、形状画图形、字体用该字体渲染样张。
+  而它只落在了下拉里，**没落在预设 chip 上**，而预设是决策 #2 指定的默认入口、
+  也是这一页最高频的一次选择。用户挑预设时最需要「长成结果的样子」。
+
+  关键约束：样张的几何**必须从 PRESET_VALUES 算出来**。
+  手画一张好看的缩略图 = 又一个会说谎的装饰件（这轮走查删掉的正是这类东西）。
+  改 PRESET_VALUES 任一个数，样张跟着变；数值相同的两个预设，样张必然相同。
+*/
+function presetSample(cardKey, presetName) {
+  const v = (PRESET_VALUES[cardKey] || {})[presetName];
+  if (!v) return '';
+  const tone = toneOf(cardKey).dot.replace('bg-', 'text-');   // 与分类色同源
+  const box = (inner) => `<svg viewBox="0 0 28 16" class="pointer-events-none mr-1 h-4 w-7 shrink-0 ${tone}" aria-hidden="true">${inner}</svg>`;
+
+  if (cardKey === 'text') {
+    // 上浮距离 → 箭头长度；字号 → 字块高度；描边 → 是否带描边框
+    const rise = Math.min(11, Math.round(v.上浮距离 / 10));
+    const h = Math.max(3, Math.min(9, Math.round(v.字号 / 5)));
+    return box(`<rect x="11" y="${14 - h}" width="6" height="${h}" rx="1" fill="currentColor" ${v.描边宽度 ? 'stroke="currentColor" stroke-width="0.8"' : ''}/>
+      <path d="M14 ${14 - h - 1} V ${Math.max(1, 14 - h - 1 - rise)}" stroke="currentColor" stroke-width="1.2" fill="none"/>
+      <path d="M12.4 ${Math.max(2.4, 14 - h - rise)} L14 ${Math.max(1, 14 - h - 1 - rise)} L15.6 ${Math.max(2.4, 14 - h - rise)}" stroke="currentColor" stroke-width="1.2" fill="none"/>`);
+  }
+  if (cardKey === 'particle') {
+    // 数量 → 点数（封顶 9 个）；扩散半径 → 半径；大小 → 点半径；重力 → 整体下坠
+    const n = Math.max(3, Math.min(9, Math.round(v.数量 / 3)));
+    const R = 3 + (v.扩散半径 / 200) * 5;
+    const r = Math.max(0.6, Math.min(2, v.大小 / 5));
+    const dy = (v.重力 / 10) * 2.5;
+    return box(Array.from({ length: n }, (_, i) => {
+      const a = (Math.PI * 2 * i) / n + 0.3;
+      return `<circle cx="${(14 + Math.cos(a) * R).toFixed(1)}" cy="${(8 + Math.sin(a) * R * 0.8 + dy).toFixed(1)}" r="${r.toFixed(1)}" fill="currentColor"/>`;
+    }).join(''));
+  }
+  if (cardKey === 'ripple') {
+    // 最大半径 → 外环半径；线宽 → 描边粗细；不透明度 → 环的透明度
+    const R = 2.5 + (v.最大半径 / 220) * 5;
+    return box(`<circle cx="14" cy="8" r="${R.toFixed(1)}" fill="none" stroke="currentColor" stroke-width="${Math.max(0.7, v.线宽 * 0.55).toFixed(1)}" opacity="${(v.不透明度 / 100).toFixed(2)}"/>
+      <circle cx="14" cy="8" r="${(R * 0.5).toFixed(1)}" fill="none" stroke="currentColor" stroke-width="${Math.max(0.5, v.线宽 * 0.4).toFixed(1)}" opacity="${(v.不透明度 / 160).toFixed(2)}"/>`);
+  }
+  return '';
+}
+
+/** 套用预设：把 PRESET_VALUES 里那一组写进字段，并把来源标回 'preset'。 */
+function applyPreset(c, presetName) {
+  const vals = (PRESET_VALUES[c.key] || {})[presetName] || {};
+  for (const f of (c.fields || [])) {
+    if (Object.prototype.hasOwnProperty.call(vals, f.label)) {
+      f.value = vals[f.label];
+      // presetValue 一起更新：否则「双击回到预设值」会退回上一个预设的数
+      f.presetValue = vals[f.label];
+    }
+    if (f.src === 'custom' || f.src === 'ai') f.src = 'preset';
+  }
+}
+
+/** 把 groups 里的字段名物化成真正的字段对象，带 group 标记。 */
+function materializeGroups(cards) {
+  for (const c of cards) {
+    for (const [g, labels] of (c.groups || [])) {
+      for (const label of labels) {
+        const spec = (GROUP_SPECS_BY_CARD[c.key] || {})[label] || GROUP_SPECS[label];
+        // 没有规格就是**表漏了**，不能静默跳过——静默跳过会让 total 和实际控件数不一致，
+        // 而那正是这一整条缺陷的形态（数出来的数和画出来的东西由两处代码分别算）。
+        if (!spec) { console.warn('[ui-spec] 缺少字段规格：' + c.key + ' · ' + label); continue; }
+        c.fields.push({ ...spec, label, group: g, presetValue: spec.value, src: 'default' });
+      }
+    }
+  }
+  return cards;
+}
+
+/** 生成某个主题的完整编辑状态。桶之间不共享任何对象。 */
+function seedFor(themeId) {
+  // `|| {}` 兜到最后一层：种子表整个缺失时（shell.js 没加载）也不能让这一页挂掉
+  const seed = SEEDS[themeId] || SEEDS.mono || {};
+  const cards = materializeGroups(baseCards());
+  for (const [key, patch] of Object.entries(seed.cards || {})) {
+    const c = cards.find((x) => x.key === key);
+    if (!c) continue;
+    for (const [k, v] of Object.entries(patch)) {
+      if (k === 'preset') { c.preset = v; continue; }
+      const f = c.fields.find((x) => x.label === k);
+      // 种子写的就是这个主题的「预设值」，所以 presetValue 一起给：
+      // 否则「双击回到预设值」会退回到另一个主题的数字。
+      if (f) { f.value = v; f.presetValue = v; f.src = 'preset'; }
+    }
+  }
+  const ch = clone(baseChannels());
+  for (const [id, patch] of Object.entries(seed.ch || {})) {
+    const c = ch.find((x) => x.id === id);
+    if (c) Object.assign(c, patch.repeat ? { ...patch, repeat: { ...patch.repeat } } : patch);
+  }
+  return {
+    cards,
+    ch,
+    // chDefault 与 chBefore 是**两个不同的东西**（README 已经为此修过一次 A/B）：
+    //   chDefault = 这个主题的出厂默认，「重置为默认」的目标，永不改动
+    //   chBefore  = 我这一轮动手之前的样子，A/B 对比的目标，每轮推进
+    chDefault: clone(ch),
+    chBefore: clone(ch),
+    beforeDirty: false,
+    trigger: { throttle: 60, comboWindow: 900, secondClick: 260 },
+  };
+}
+
+// 当前主题的桶。切主题时由 onThemeChange 重新指向——**不是**复制内容过去，
+// 而是换引用：桶里的东西必须留在原主题里。
+let S = themeState(activeTheme().id, seedFor);
+let CARDS = S.cards;
+let CH = S.ch;
 /**
  * A/B 的参照快照。
  *
@@ -790,13 +1372,17 @@ let CH = clone(CH_DEFAULT);
  * 现在按「本次编辑会话的起点」存：每次通过 markBefore() 推进，
  * 松手对比的就真的是你这一轮动手之前的样子。
  */
-let CH_BEFORE = clone(CH_DEFAULT);
-let beforeDirty = false;
+// A/B 参照也**属于当前主题**：「我这一轮动手之前」这句话在另一个主题里没有意义。
+// 所以它存在桶里，切主题时跟着换引用。
+let CH_BEFORE = S.chBefore;
+let CH_DEFAULT = S.chDefault;
 // 第一次改动时把「改之前」定格下来；此后同一轮内不再覆盖，
 // 否则每一步都会把参照推到上一步，A/B 就退化成「对比上一帧」，什么也看不出来。
-function markBefore() { if (!beforeDirty) { CH_BEFORE = clone(CH); beforeDirty = true; } }
+function markBefore() {
+  if (!S.beforeDirty) { CH_BEFORE = S.chBefore = clone(CH); S.beforeDirty = true; }
+}
 
-const TRIGGER = { throttle: 60, comboWindow: 900, secondClick: 260 };
+let TRIGGER = S.trigger;
 let t = 0, playing = false, speed = 1, snap = 20, zoom = 1;
 let onion = false, ab = false, loopOn = false, loopIn = 0, loopOut = 0;
 let loopTouched = false;   // 用户亲手拖过区间就不再替他决定
@@ -918,11 +1504,151 @@ function clampPlayhead() {
 // 而这份稿子开篇承诺的就是「参数与真实运行时对齐」。
 // 原先波纹画 *104、粒子画 *88、飘字上浮 *54，卡片上写的却是 120 / 96 / 64，
 // 三处各说各话，且改卡片对预览毫无影响。
-function cardVal(cardKey, label, fallback) {
-  const c = CARDS.find((x) => x.key === cardKey);
-  const f = c && c.fields.find((x) => x.label === label);
-  return f && Number.isFinite(Number(f.value)) ? Number(f.value) : fallback;
+/*
+  文案是用户输入，而 renderFrame 走 innerHTML 拼串。
+  不转义的话输入一个 `<` 就会把舞台的 HTML 结构撑坏——表现成「打了个字效果就没了」，
+  是最难往输入上归因的一种。
+*/
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
+
+function cardField(cardKey, label) {
+  const c = CARDS.find((x) => x.key === cardKey);
+  return c && c.fields.find((x) => x.label === label);
+}
+function cardVal(cardKey, label, fallback) {
+  const f = cardField(cardKey, label);
+  // 过一遍旋钮：舞台画的必须是**用户看到的实际值**。
+  // 若这里读原始 f.value，旋钮就成了一个「读数变了但预览不动」的假控件——
+  // 而那正是 A5 修掉的那一族缺陷。
+  return f && Number.isFinite(Number(f.value)) ? f.value : fallback;
+}
+/** 文本 / 下拉 / 颜色字段取值。数值走 cardVal，这个走其余三种 type。 */
+function cardStr(cardKey, label, fallback) {
+  const f = cardField(cardKey, label);
+  const v = f && f.value;
+  const out = (typeof v === 'string' && v.length) ? v : fallback;
+  return out;
+}
+/** 开关字段（type: 'toggle'）取值。cardStr 只认字符串，布尔会被它当成「没值」而退回 fallback。 */
+function cardBool(cardKey, label, fallback = false) {
+  const f = cardField(cardKey, label);
+  return f && typeof f.value === 'boolean' ? f.value : fallback;
+}
+
+/*
+  ── 舞台要用到的几张查表 ────────────────────────────────────
+
+  它们都是**示意**而不是实现：真实运行时的字体栈、词库、调色板都在
+  `src/shared/config/` 里。稿子只需要让「改了这个字段舞台真的变了」成立，
+  所以取值集合与卡片上的选项**一一对应**，具体数值不追求与运行时一致。
+*/
+const TEXT_FONT = {
+  系统默认: 'inherit',
+  圆体: '"Hiragino Maru Gothic ProN", "PingFang SC", sans-serif',
+  衬线: 'Georgia, "Songti SC", serif',
+  等宽: 'ui-monospace, Menlo, monospace',
+};
+const TEXT_WEIGHT = { 常规: 400, 中等: 500, 粗: 700, 特粗: 800 };
+const TEXT_SHADOW = {
+  无: 'none',
+  柔和: '0 2px 6px rgba(15,23,42,.35)',
+  硬边: '2px 2px 0 rgba(15,23,42,.55)',
+  发光: '0 0 10px currentColor',
+};
+const WORDBANK = {
+  鼓励短语: ['Nice!', '漂亮', '就是这样'],
+  拟声词: ['Pop', 'Boom', 'Ding'],
+  emoji: ['✨', '🎉', '💥'],
+  '自定义…': ['自定义'],
+};
+const PARTICLE_PALETTE = {
+  暖色: ['#F59E0B', '#F43F5E', '#FB923C'],
+  冷色: ['#0EA5E9', '#0D9488', '#38BDF8'],
+  单色灰: ['#0F172A', '#475569', '#94A3B8'],
+  霓虹: ['#F43F5E', '#0EA5E9', '#F59E0B'],
+};
+/** 方向 → 发射角区间（弧度）。「四周」走整圆均分，其余是扇形。 */
+const PARTICLE_ARC = {
+  四周: null,
+  向上: [-Math.PI * 0.85, -Math.PI * 0.15],
+  向下: [Math.PI * 0.15, Math.PI * 0.85],
+  跟随移动: [-Math.PI * 0.18, Math.PI * 0.18],
+};
+
+/** 舞台上那一句飘字的实际内容：文本种类 → 取词 → 套模板。 */
+function stageCopy() {
+  const kind = cardStr('text', '文本种类', '固定文案');
+  const base = kind === '固定文案' ? cardStr('text', '文案', 'Nice!')
+    : kind === '随机词库' ? (WORDBANK[cardStr('text', '词库', '鼓励短语')] || ['Nice!'])[0]
+    : kind === '按键字符' ? 'K'
+    : '×3';
+  const tpl = cardStr('text', '模板', '{text}');
+  return tpl.includes('{text}') ? tpl.replace('{text}', base) : base;
+}
+/**
+ * 第 i 颗粒子的颜色。
+ *
+ * 「随机」在单帧渲染里必须是**确定性**的：真随机会让同一帧每次重画都换色，
+ * 而拖播放头逐帧检视时那看起来像是效果本身在闪——一个不稳定的预览
+ * 比一个不忠实的预览更难判断。所以按序号做散列。
+ */
+function particleTint(i, mono) {
+  const mode = cardStr('particle', '取色模式', '单色');
+  if (mode === '单色') return mono;
+  if (mode === '跟随主题') return activeTheme().color;
+  const pal = PARTICLE_PALETTE[cardStr('particle', '调色板', '暖色')] || PARTICLE_PALETTE.暖色;
+  return pal[(mode === '调色板轮转' ? i : i * 7 + 3) % pal.length];
+}
+
+/*
+  ── 预览忠实度：哪些字段**不**体现在舞台上，必须显式登记 ──
+
+  走查实测过一次最坏的情形：卡片写「文案 ZZZZ / 字号 34px / 颜色 #F43F5E」，
+  舞台画的是「Nice! / 24px / #f59e0b」——三个最显眼的字段全是硬编码。
+  而 renderFrame 上面那段注释当时就写着「三处各说各话，且改卡片对预览毫无影响」，
+  只不过那一轮只接了 4 个数值字段。
+
+  **一个不忠实的预览会把「预览驱动调参」这个前提整个抽掉**（决策 #8），
+  而且重构时会照抄这份不忠实。所以规则改成：**卡片上每个字段要么在这里有绑定，
+  要么登记进 PREVIEW_EXEMPT 并写明为什么**。由门禁 `preview-fidelity` 机械执行——
+  「缺席没有视觉痕迹」，靠人看永远看不出少接了哪个字段。
+*/
+const PREVIEW_EXEMPT = {
+  // 音效：稿子不放真实音频，舞台用一组跳动的电平条代替起音时刻
+  'audio|音频文件': '稿子不播真实音频，舞台以电平条表示起音时刻',
+  'audio|音量': '同上；电平条高度是示意，不代表真实增益',
+  'audio|播放速率': '同上',
+  'audio|触发模式': '需要连续输入才看得出，归入 P3 的「连打」档',
+  'audio|混音模式': '需要页面媒体作为混音对象，桌面端无此上下文',
+
+  /*
+    ── 动画 / 贴纸 / 光标反馈：**通道已补齐**（裁决 13），豁免只剩两条 ──
+
+    这三张卡此前整族登记在这里，理由是「时间轴只有 5 条通道，它们没有出场时机」。
+    那是个真实的结构事实，但它是**该修的**，不是该豁免的：8 张卡在界面上完全同权，
+    而其中 3 张调什么都不会发生。2026-08-05 补了三条通道，19 条豁免里 17 条已解除。
+
+    剩下这两条是稿子的真实边界，与通道有没有无关：
+  */
+  'image|图片': '占位框里印的是文件名（改它舞台会变），但**不加载真实位图**——那需要一份资源目录',
+  'cursor|拖尾数量': '拖尾是「前几帧的自己」，单帧求值拿不到历史，几何按当前抖动相位往回推算，是示意而非真实轨迹',
+
+  // ── 需要「连续输入」才有意义的字段（与 audio|触发模式 同一类）──
+  'text|取词模式': '顺序/随机的差别要连着触发多次才看得出；单帧渲染必须是确定性的，否则拖播放头会看成效果在闪',
+  'text|词库播放': '同上；「整句一次」要跨多次触发才成立',
+  'text|连击叠加': '同上；叠加形态只在连击窗内出现，归入 P3 的「连打」档',
+
+  // ── 需要多帧状态积分的运动（舞台是纯函数式的单帧渲染）──
+  'particle|运动模式': '喷发/飘落/轨道是三套不同的积分；舞台按 time 单帧求值，没有可积分的状态',
+  'particle|弹跳': '需要与地面碰撞的历史状态，单帧求值拿不到',
+  'particle|拖尾': '残影是「前几帧的自己」，同样需要历史帧',
+  'particle|轨道数量': '属于「运动模式 = 轨道」，与它一起登记',
+  'particle|轨道半径': '同上',
+  'particle|轨道速度': '同上',
+};
+
 
 function renderFrame(time, host, set) {
   const list = chList(set);
@@ -937,14 +1663,35 @@ function renderFrame(time, host, set) {
       // 数量是外观（发多少个）→ 卡片；错峰是时间（隔多久发一个）→ 时间轴。
       const count = cardVal('particle', '数量', ch.repeat.n);
       const spread = cardVal('particle', '扩散半径', 88);
+      // 重力：原先是写死的 `p0 * 24`，于是卡片上那个 0–10 的滑块是个空控件。
+      // 归一化成「重力 3 = 原来的 24px 下坠」，所以默认值下画面逐帧不变。
+      const gravity = cardVal('particle', '重力', 3) * 8;
+      const shape = cardStr('particle', '形状', '圆点');
+      const color = cardStr('particle', '颜色', '#0ea5e9');
+      // 「外观」「发射」「运动」三个分组里的字段也要真的进舞台——
+      // 它们原先只在「其余 N 项」里能改，改完舞台一动不动（preview-fidelity 抓的就是这个）
+      const size0 = cardVal('particle', '大小', 6);
+      const alphaMax = cardVal('particle', '不透明度', 100) / 100;
+      const wind = cardVal('particle', '风力', 0);
+      const arc = PARTICLE_ARC[cardStr('particle', '方向', '四周')];
       for (let i = 0; i < count; i += 1) {
         const p0 = (time - s - i * ch.repeat.stagger) / ch.dur;
         if (p0 < 0 || p0 > 1) continue;
-        const a = (Math.PI * 2 * i) / count + 0.3;
+        // 「四周」整圆均分；扇形方向按序号在区间里排开（count=1 时落在区间中点）
+        const a = arc
+          ? (count > 1 ? arc[0] + ((arc[1] - arc[0]) * i) / (count - 1) : (arc[0] + arc[1]) / 2)
+          : (Math.PI * 2 * i) / count + 0.3;
         const d = E('扩散')(p0) * spread;
-        const al = 1 - E('不透明度')(p0);
-        const sz = 6 - p0 * 2.5;
-        out.push(`<div class="fx rounded-full" style="left:${(x + Math.cos(a) * d).toFixed(1)}px;top:${(y + Math.sin(a) * d + p0 * 24).toFixed(1)}px;width:${sz.toFixed(1)}px;height:${sz.toFixed(1)}px;background:#0ea5e9;transform:translate(-50%,-50%);opacity:${Math.max(0, al).toFixed(3)}"></div>`);
+        const al = (1 - E('不透明度')(p0)) * alphaMax;
+        const sz = Math.max(1, size0 * (1 - p0 * 0.42));
+        const px = (x + Math.cos(a) * d + wind * p0 * 12).toFixed(1);
+        const py = (y + Math.sin(a) * d + p0 * gravity).toFixed(1);
+        const tint = particleTint(i, color);
+        const pos = `left:${px}px;top:${py}px;transform:translate(-50%,-50%);opacity:${Math.max(0, al).toFixed(3)}`;
+        // 圆点走 div（最省节点，粒子数可到 60），其余形状走共享几何 Ctl.shapeSvg
+        out.push(shape === '圆点'
+          ? `<div class="fx rounded-full" style="${pos};width:${sz.toFixed(1)}px;height:${sz.toFixed(1)}px;background:${tint}"></div>`
+          : `<div class="fx" style="${pos}">${Ctl.shapeSvg(shape, (sz * 2).toFixed(1), tint)}</div>`);
       }
       continue;
     }
@@ -952,29 +1699,161 @@ function renderFrame(time, host, set) {
     if (p0 < 0 || p0 > 1) continue;
     if (ch.id === 'ripple') {
       const r = E('半径')(p0) * cardVal('ripple', '最大半径', 104);
-      out.push(`<div class="fx rounded-full" style="left:${x}px;top:${y}px;width:${(r * 2).toFixed(1)}px;height:${(r * 2).toFixed(1)}px;transform:translate(-50%,-50%);border:2px solid #0d9488;opacity:${(1 - E('不透明度')(p0)).toFixed(3)}"></div>`);
+      const lw = cardVal('ripple', '线宽', 2);
+      const color = cardStr('ripple', '颜色', '#0d9488');
+      const al = (1 - E('不透明度')(p0)) * (cardVal('ripple', '不透明度', 100) / 100);
+      const style = cardStr('ripple', '风格', '描边');
+      const geom = `left:${x}px;top:${y}px;transform:translate(-50%,-50%);opacity:${Math.max(0, al).toFixed(3)}`;
+      const box = (rad, extra) => `<div class="fx rounded-full" style="${geom};width:${(rad * 2).toFixed(1)}px;height:${(rad * 2).toFixed(1)}px;${extra}"></div>`;
+      if (style === '实心') out.push(box(r, `background:${color}`));
+      else if (style === '双环') out.push(box(r, `border:${lw}px solid ${color}`) + box(r * 0.62, `border:${lw}px solid ${color}`));
+      else out.push(box(r, `border:${lw}px solid ${color}`));
     } else if (ch.id === 'text') {
       const rise = E('上浮')(p0) * cardVal('text', '上浮距离', 54);
       const sc = 0.6 + E('缩放')(p0) * 0.5;
       const al = p0 < 0.28 ? p0 / 0.28 : 1 - (p0 - 0.28) / 0.72;
-      out.push(`<div class="fx" style="left:${x}px;top:${(y - rise).toFixed(1)}px;color:#f59e0b;font-size:24px;font-weight:700;line-height:1;transform:translate(-50%,-50%) scale(${sc.toFixed(3)});opacity:${Math.max(0, al).toFixed(3)}">Nice!</div>`);
+      const size = cardVal('text', '字号', 24);
+      const color = cardStr('text', '颜色', '#f59e0b');
+      const copy = esc(stageCopy());
+      const ox = cardVal('text', '偏移 X', 0);
+      const oy = cardVal('text', '偏移 Y', 0);
+      const weight = TEXT_WEIGHT[cardStr('text', '字重', '粗')] || 700;
+      const family = TEXT_FONT[cardStr('text', '字体', '系统默认')] || 'inherit';
+      const strokeW = cardVal('text', '描边宽度', 0);
+      const shadow = TEXT_SHADOW[cardStr('text', '阴影', '无')] || 'none';
+      /*
+        渐变开着时 `color` 让位给 background-clip:text——所以这两个字段是**互斥**的，
+        而卡片上它们分处两个分组、看不出这层关系。舞台是唯一能让人发现这件事的地方：
+        打开渐变开关，「颜色」那一格立刻不再起作用。
+      */
+      const grad = cardBool('text', '渐变开关', false);
+      const paint = grad
+        ? `background-image:linear-gradient(180deg,${cardStr('text', '渐变起色', '#f59e0b')},${cardStr('text', '渐变止色', '#f43f5e')});-webkit-background-clip:text;background-clip:text;color:transparent`
+        : `color:${color}`;
+      const stroke = strokeW > 0 ? `;-webkit-text-stroke:${strokeW}px ${color}` : '';
+      out.push(`<div class="fx" style="left:${(x + ox).toFixed(1)}px;top:${(y - rise + oy).toFixed(1)}px;${paint};font-family:${family};font-size:${size}px;font-weight:${weight};text-shadow:${shadow};line-height:1;white-space:pre;transform:translate(-50%,-50%) scale(${sc.toFixed(3)});opacity:${Math.max(0, al).toFixed(3)}${stroke}">${copy}</div>`);
     } else if (ch.id === 'audio') {
       const bars = [0, 1, 2, 3].map((b) => `<span style="display:block;width:2px;height:${Math.max(3, 5 + Math.sin((p0 + b * 0.2) * Math.PI) * 9).toFixed(1)}px;border-radius:9999px;background:#e11d48"></span>`).join('');
       out.push(`<div class="fx" style="left:${(x + 84).toFixed(0)}px;top:${(y - 52).toFixed(0)}px;display:flex;align-items:flex-end;gap:2px;opacity:${(1 - p0).toFixed(3)}">${bars}</div>`);
+    } else if (ch.id === 'animation') {
+      /*
+        动画：命中点上的一次形变。四种风格是**四条不同的位移/形变函数**，
+        共用同一条 `缩放` 曲线做包络——所以「风格」和「缩放」不是同一个量，
+        改任一个舞台都会变（这一点原先在卡片上看不出来，因为两个字段都无处生效）。
+      */
+      const style = cardStr('animation', '风格', '脉冲');
+      const peak = cardVal('animation', '缩放', 120) / 100;
+      const al = (1 - E('不透明度')(p0)) * (cardVal('animation', '不透明度', 100) / 100);
+      const ox = cardVal('animation', '偏移 X', 0);
+      const oy = cardVal('animation', '偏移 Y', 0);
+      const color = cardStr('animation', '颜色', '#0ea5e9');
+      const glow = cardVal('animation', '发光', 0);
+      const env = E('缩放')(p0);
+      const sc = style === '缩放' ? 1 + (peak - 1) * env : 1 + (peak - 1) * Math.sin(env * Math.PI);
+      // 抖动是高频横向位移、摆动是低频旋转——两者都由包络限制振幅，收尾时归零
+      const shake = style === '抖动' ? Math.sin(p0 * Math.PI * 8) * 10 * (1 - p0) : 0;
+      const spin = style === '摆动' ? Math.sin(p0 * Math.PI * 3) * 18 * (1 - p0) : 0;
+      const box = 34;
+      out.push(`<div class="fx rounded-2xl" style="left:${(x + ox + shake).toFixed(1)}px;top:${(y + oy).toFixed(1)}px;width:${box}px;height:${box}px;`
+        + `transform:translate(-50%,-50%) scale(${sc.toFixed(3)}) rotate(${spin.toFixed(1)}deg);`
+        + `border:2px solid ${color};opacity:${Math.max(0, al).toFixed(3)}`
+        + (glow > 0 ? `;box-shadow:0 0 ${glow}px ${color}` : '') + '"></div>');
+    } else if (ch.id === 'image') {
+      /*
+        贴纸：稿子**不加载真实素材**（那需要一份资源目录），但「绑的是哪个素材」
+        是可以如实画出来的——占位框里印文件名。原先 `图片` 字段改了舞台毫无反应，
+        用户没法确认自己到底选中了哪个；现在改文件名，框里的名字跟着变。
+        像素本身仍然是占位，这一条留在 PREVIEW_EXEMPT 的理由里。
+      */
+      const size = cardVal('image', '尺寸', 48);
+      const al = (1 - E('不透明度')(p0)) * (cardVal('image', '不透明度', 100) / 100);
+      const ox = cardVal('image', '偏移 X', 0);
+      const oy = cardVal('image', '偏移 Y', 0);
+      const sc = 0.6 + E('缩放')(p0) * 0.4;
+      const name = esc(cardStr('image', '图片', 'sticker.png'));
+      out.push(`<div class="fx grid place-items-center rounded-xl" style="left:${(x + ox).toFixed(1)}px;top:${(y + oy).toFixed(1)}px;`
+        + `width:${size}px;height:${size}px;transform:translate(-50%,-50%) scale(${sc.toFixed(3)});`
+        + `border:1px dashed #94a3b8;background:rgba(148,163,184,.14);opacity:${Math.max(0, al).toFixed(3)}">`
+        + `<span style="font-size:9px;line-height:1.1;color:#475569;text-align:center;word-break:break-all;padding:2px">${name}</span></div>`);
+    } else if (ch.id === 'cursor') {
+      /*
+        光标反馈：舞台里画一个**软件光标**。
+
+        这一条此前登记的豁免理由是「舞台里没有真实光标可改，02 才是它的界面」——
+        那个理由站不住：真实实现本来就有一层软件光标
+        （`src/desktop/renderer/engine/cursor-overlay.ts`），命中反馈作用在它身上。
+        所以舞台该有的不是"系统光标"，是那一层覆盖物，而它完全可以画。
+        02 管的是**皮肤长什么样**，这里管的是**被敲击时它怎么反应**，两件事。
+      */
+      const env = E('强度')(p0);
+      const jitter = cardVal('cursor', '敲击抖动', 2);
+      const scalePct = cardVal('cursor', '光标尺寸', 100) / 100;
+      const glowColor = cardStr('cursor', '发光颜色', '#0ea5e9');
+      const cover = cardStr('cursor', '光标覆盖', '不覆盖');
+      // 「按下缩小」是形变，「按下高亮」是发光——两档走不同的通路，所以看得出区别
+      const press = cover === '按下缩小' ? 1 - 0.22 * (1 - env) : 1;
+      const lit = cover === '按下高亮' ? 1 - env : 0;
+      /*
+        两个轴刻意**错相**（y 轴 +0.7rad）。第一版是 sin(6πp) / cos(5πp)，
+        它们在 p0=0.5 同时过零——那一瞬间光标精确回到静止位，于是「敲击抖动」
+        这个字段在那个采样点上**完全观察不到**（探针就是在那里判它没绑上的）。
+        抖动应该是一条不回原点的轨迹，而不是两个同步归零的分量。
+      */
+      const jx = jitter * Math.sin(p0 * Math.PI * 6) * (1 - env);
+      const jy = jitter * Math.cos(p0 * Math.PI * 5 + 0.7) * (1 - env);
+      const size = 20 * scalePct * press;
+      const arrow = (px, py, sz, opacity, glowPx) =>
+        `<div class="fx" style="left:${px.toFixed(1)}px;top:${py.toFixed(1)}px;transform:translate(-18%,-12%);opacity:${opacity.toFixed(3)}">`
+        + `<svg style="width:${sz.toFixed(1)}px;height:${sz.toFixed(1)}px;display:block;`
+        + (glowPx > 0 ? `filter:drop-shadow(0 0 ${glowPx.toFixed(1)}px ${glowColor})` : '')
+        + `" viewBox="0 0 24 24"><path d="M5 2l14 9-6.2 1.2L16 20l-3 1.2-3.2-7.4L5 18z" fill="#0f172a" stroke="#fff" stroke-width="1.2"/></svg></div>`;
+      // 拖尾是「前几帧的自己」——单帧渲染拿不到历史，所以按当前抖动相位往回推算，
+      // 几何是示意而非真实历史轨迹（这一点写进 PREVIEW_EXEMPT 的理由）。
+      if (cardBool('cursor', '启用拖尾', false)) {
+        const n = cardVal('cursor', '拖尾数量', 6);
+        const trailAl = cardVal('cursor', '拖尾不透明度', 40) / 100;
+        for (let i = n; i >= 1; i -= 1) {
+          const k = i / n;
+          const tp = Math.max(0, p0 - k * 0.12);
+          out.push(arrow(x + jitter * Math.sin(tp * Math.PI * 6) * (1 - env) - k * 10,
+            y + jitter * Math.cos(tp * Math.PI * 5 + 0.7) * (1 - env) + k * 6,
+            size * (1 - k * 0.3), trailAl * (1 - k) * 0.9, 0));
+        }
+      }
+      out.push(arrow(x + jx, y + jy, size, 1, lit * 12));
     }
   }
   host.innerHTML = out.join('');
 }
 function paintStage() {
-  const set = ab ? CH_BEFORE : CH;
-  renderFrame(t, $('fxHost'), set);
-  if (onion) {
+  /*
+    ── A/B 改成**同帧叠放**，不是瞬切 ──
+
+    原先按住 A/B 是把整个舞台换成 CH_BEFORE 渲染一遍（瞬切）。
+    问题是它要对比的东西恰恰是**最难瞬切读出的**：过冲曲线。
+    走查里那个例子是飘字「上浮」从 (0.20,0.70) 拖成 (0.92,1.09)——
+    两帧分别看，谁也说不出差别在哪；叠在同一帧上，过冲那一段立刻现形。
+
+    实现直接复用已有的 onion skin 机制（`#onionHost` 那 6 层 0.15 透明度）：
+    按住时把「修改前」画进 onionHost 当参照层（虚线感 + 低透明度），
+    `#fxHost` 照旧画当前值。**两者同时在场**才叫对比。
+  */
+  renderFrame(t, $('fxHost'), CH);
+  if (ab) {
+    $('onionHost').innerHTML = '';
+    const box = document.createElement('div');
+    box.className = 'absolute inset-0';
+    // 20% 透明 + 灰度：参照层必须一眼分得出是参照，不能和当前值抢注意力
+    box.style.cssText = 'position:absolute;inset:0;opacity:0.28;filter:grayscale(1)';
+    renderFrame(t, box, CH_BEFORE);
+    $('onionHost').appendChild(box);
+  } else if (onion) {
     $('onionHost').innerHTML = '';
     [0.15, 0.3, 0.45, 0.6, 0.75, 0.9].forEach((f) => {
       const box = document.createElement('div');
       box.className = 'absolute inset-0';
       box.style.opacity = '0.15';
-      renderFrame(totalOf(set) * f, box, set);
+      renderFrame(totalOf(CH) * f, box, CH);
       $('onionHost').appendChild(box);
     });
   } else $('onionHost').innerHTML = '';
@@ -1020,7 +1899,7 @@ function setPlaying(v) {
 $('playBtn').addEventListener('click', () => { if (t >= totalMs()) t = loopOn ? loopIn : 0; setPlaying(!playing); });
 $('replayBtn').addEventListener('click', () => { t = loopOn ? loopIn : 0; $('stageHint').classList.add('hidden'); setPlaying(true); });
 function syncAuto() {
-  $('autoBtn').className = 'h-7 px-2.5 text-2xs ' + (autoReplay ? 'btn-default' : 'btn-outline');
+  $('autoBtn').className = 'h-7 px-2.5 text-xs ' + (autoReplay ? 'btn-default' : 'btn-outline');
   // 间隔档位只在自动重播开着时出现——关着的时候它是空控件
   $('autoIntervalGroup').classList.toggle('hidden', !autoReplay);
 }
@@ -1042,32 +1921,180 @@ document.querySelectorAll('[data-interval]').forEach((b) => b.addEventListener('
 syncAuto();
 $('stepBack').addEventListener('click', () => { setPlaying(false); t = Math.max(0, t - 16); paintStage(); });
 $('stepFwd').addEventListener('click', () => { setPlaying(false); t = Math.min(totalMs(), t + 16); paintStage(); });
-document.querySelectorAll('[data-speed]').forEach((b) => b.addEventListener('click', () => {
-  speed = Number(b.dataset.speed);
-  document.querySelectorAll('[data-speed]').forEach((x) => x.className = 'seg-item' + (x === b ? ' seg-item-on' : ''));
-}));
+/*
+  倍速有两个编辑面（lg 的分段控件 / md 的下拉），所以必须收在一个 setter 里。
+  「同一个值在两处显示而只有一处会更新」是这份稿子里出现过最多次的缺陷
+  （03 的主题选择器、09 的状态行、时间轴与卡片的时间字段），
+  所以新增第二个面的同时就把 setter 建好，而不是等它出问题。
+*/
+let speedSel = null;
+function setSpeed(v, from) {
+  speed = Number(v);
+  document.querySelectorAll('[data-speed]').forEach((x) => {
+    const on = Number(x.dataset.speed) === speed;
+    x.className = 'seg-item' + (on ? ' seg-item-on' : '');
+    x.setAttribute('aria-checked', String(on));
+  });
+  if (from !== 'select' && speedSel) speedSel.set(`${speed}×`);
+}
+document.querySelectorAll('[data-speed]').forEach((b) => b.addEventListener('click', () => setSpeed(b.dataset.speed)));
+speedSel = Ctl.select($('speedSel'), {
+  options: [{ label: '1×' }, { label: '0.5×' }, { label: '0.25×' }],
+  value: '1×',
+  onChange: (v) => setSpeed(parseFloat(v), 'select'),
+});
 $('loopBtn').addEventListener('click', () => {
   loopOn = !loopOn;
   // 这里原先写的是 `if (loopOn && loopOut <= loopIn) { 20% … 70% }`——**永远不执行**：
   // clampLoop 每次渲染都跑，早就把区间钉成 [T-40, T]，于是 loopOut <= loopIn 恒为假。
   // 预期的默认区间是死代码，用户看到的是末尾那条缝。改成用「有没有被拖过」判定。
   if (loopOn && !loopTouched) [loopIn, loopOut] = defaultLoopRange();
-  $('loopBtn').className = 'h-7 px-2.5 text-2xs ' + (loopOn ? 'btn-default' : 'btn-outline');
+  $('loopBtn').className = 'h-7 px-2.5 text-xs ' + (loopOn ? 'btn-default' : 'btn-outline');
   renderTimeline();
 });
 $('onionBtn').addEventListener('click', () => {
   onion = !onion;
-  $('onionBtn').className = 'h-7 px-2.5 text-2xs ' + (onion ? 'btn-default' : 'btn-outline');
+  $('onionBtn').className = 'h-7 px-2.5 text-xs ' + (onion ? 'btn-default' : 'btn-outline');
   paintStage();
 });
+/*
+  ══ 连打：让节流 / 连击窗 / 错峰 / 预算水位真的互相打起来 ══════════════
+
+  为什么必须有这一档：单次事件下这四个值**互不相干**，所以调它们看不出任何区别——
+  而稿子把「节流 60ms · 连击窗 900ms」摆在触发轨上、还专门为它们补了拖拽入口。
+  一个只能演示单次事件的预览，验证不了它们中的任何一个。
+
+  脚本是**固定的**（不是随机）：8 次点击、间隔 90ms，位置沿一条斜线走。
+  固定才能对比——改了节流之后再连打一次，两次的丢弃数可以直接比。
+
+  三件事在这里第一次同时可见：
+    · 节流：间隔 90ms 而节流 60ms → 都放行；把节流拖到 120ms → 一半被丢
+    · 连击窗：900ms 内的点击算同一串，所以 8 次都在窗内
+    · 预算：同显数超过上限时多出来的**丢掉而不是排队**（排队会让手感变黏）
+  用 setTimeout 而不是 rAF：rAF 在面板不合成时不触发，那条自动路径踩过一次。
+*/
+// 与 07「舒适度」的粒子密度上限、05 的预算水位是同一个数。
+// 声明放在使用它的函数**之前**——这是本轮第三次为声明顺序付代价（教训 #7）。
+const BUDGET_MAX = 48;
+// 实测（改脚本间隔验的）：间隔 90ms vs 节流 60ms → 丢 0 次；
+// 把间隔临时改成 40ms → **8 次里丢 4 次**。所以这一档确实在验证节流，不是装饰。
+// 默认留 90ms：它对应「正常连点」，让用户把节流拖宽才看到丢弃，因果更清楚。
+const BURST_SCRIPT = Array.from({ length: 8 }, (_, i) => ({ at: i * 90, x: 0.28 + i * 0.055, y: 0.62 - i * 0.03 }));
+let burstTimers = [];
+let burstDropped = 0;
+let burstLastAt = -1e9;
+
+let burstSampler = null;
+function stopBurst() {
+  // 清理排在任何早退之前（同门禁 interval-cleanup-after-early-return 的要求）
+  if (burstSampler) { clearInterval(burstSampler); burstSampler = null; }
+  burstTimers.forEach(clearTimeout);
+  burstTimers = [];
+  $('burstBtn').className = 'btn-outline h-7 px-2.5 text-xs';
+  $('budgetHud').classList.add('hidden');
+}
+
+function runBurst() {
+  // 清理写在函数**第一行**：既是可重入安全（连点两次「连打」不留孤儿定时器），
+  // 也满足门禁 interval-cleanup-after-early-return——它按整函数文本扫描
+  // 「第一个 return 之前有没有 clearInterval」，不区分嵌套作用域。
+  // 规则比必要更严，但这个方向的严是对的：`09` 的「直到重启」正是靠
+  // 「清理排在早退之后」自己解除的。
+  if (burstSampler) { clearInterval(burstSampler); burstSampler = null; }
+  stopBurst();
+  burstDropped = 0; burstLastAt = -1e9;
+  $('burstBtn').className = 'btn-default h-7 px-2.5 text-xs';
+  $('budgetHud').classList.remove('hidden');
+  $('stageHint').classList.add('hidden');
+  $('budgetMax').textContent = String(BUDGET_MAX);
+  /*
+    采样器在**进入循环之前**建立、并立刻记进 burstSampler。
+
+    先写的版本把它放在循环之后，于是门禁 interval-cleanup-after-early-return 报了出来：
+    循环体里有一条早退（节流丢弃那个 return），清理却排在它后面。
+    虽然那个 return 退出的是内层回调而不是 runBurst 本身，但**规则收得比我严是对的**——
+    `09` 的「直到重启」正是靠这种「清理排在早退之后」的形态自己解除的。
+    提前建立之后，这个函数里不再有任何 return 排在清理之前。
+  */
+  let peak = 0;
+  const sampler = setInterval(() => {
+    peak = Math.max(peak, $('fxHost').children.length);
+    $('budgetNow').textContent = String(Math.min(BUDGET_MAX, peak));
+  }, 40);
+  burstSampler = sampler;
+
+  for (const step of BURST_SCRIPT) {
+    burstTimers.push(setTimeout(() => {
+      // 节流：距上一次放行不足 TRIGGER.throttle 就丢掉。这一条原先无处可验。
+      if (step.at - burstLastAt < TRIGGER.throttle) {
+        burstDropped += 1;
+        $('budgetDrop').textContent = String(burstDropped);
+        return;
+      }
+      burstLastAt = step.at;
+      origin = { x: step.x, y: step.y };
+      t = 0; setPlaying(true);
+    }, step.at));
+  }
+  /*
+    同显数要**采样峰值**，不能在点击那一刻读。
+
+    第一版就是在 setPlaying(true) 之后立刻读 `#fxHost.children.length`——
+    那一刻 t=0，一个粒子都还没画出来，于是 HUD 恒显示 1。
+    **一个读数写着「同显」而实际测的是别的东西，比没有这个读数更糟**
+    （这轮走查删掉的正是这类东西）。
+
+    还要说明这一档的**真实边界**：舞台只有一个播放头，每次点击是重启它而不是
+    叠加一个独立实例。所以这里的「同显」= 单次事件在峰值时刻的效果元素数
+    （粒子 + 波纹 + 飘字），它对得上 07 的「粒子密度上限」与 05 的预算水位，
+    但**不代表多次事件叠加**。多实例叠加需要运行时支持，稿子里不假装有。
+  */
+  burstTimers.push(setTimeout(() => {
+    clearInterval(sampler); burstSampler = null;
+    $('budgetNow').textContent = String(Math.min(BUDGET_MAX, peak));
+    $('burstBtn').className = 'btn-outline h-7 px-2.5 text-xs';
+    toast(`连打 ${BURST_SCRIPT.length} 次 · 峰值同显 ${peak} · 节流丢弃 ${burstDropped} 次（节流 ${TRIGGER.throttle}ms）`);
+  }, BURST_SCRIPT[BURST_SCRIPT.length - 1].at + 900));
+}
+$('burstBtn').addEventListener('click', () => { if (burstTimers.length) stopBurst(); else runBurst(); });
 $('abBtn').addEventListener('pointerdown', () => { ab = true; $('abBadge').classList.remove('hidden'); paintStage(); });
 // 松手后让下一轮改动重新定格参照：这样 A/B 永远是「和我这一波动手之前比」，
 // 而不是和十几轮前的出厂默认比。
-window.addEventListener('pointerup', () => { if (ab) { ab = false; beforeDirty = false; $('abBadge').classList.add('hidden'); paintStage(); } });
+window.addEventListener('pointerup', () => { if (ab) { ab = false; S.beforeDirty = false; $('abBadge').classList.add('hidden'); paintStage(); } });
 $('copyRhythm').addEventListener('click', () => toast('已把这套时间关系复制到「右键单击」「长按」'));
+/*
+  触发区域是**桌面语义**的屏幕区域（整屏 / 中心区域 / 边缘），不是 DOM 语义。
+  （README 已记：`matchesTriggerZone` 里那六种内容型区域在桌面端 target 恒为
+  undefined，四种恒 false、一种恒 true——所以桌面端只能用屏幕区域。）
+
+  它原先是一个纯下拉：选了「中心区域」之后在舞台角落点一下，效果照旧出来。
+  一个**门控字段却不门控任何东西**，等于告诉用户这个设置无效。
+  现在真的判定，并且拦下时明确说出来——这也正是 `05` 那条「40 次里 11 次
+  被区域过滤」的来源，两页对上了同一件事。
+*/
+// 声明放在使用它的 handler **之前**：教训 #7 那族 TDZ 缺陷全都是
+// 「声明写在后面、看起来没事」——症状是页面渲染正常、交互从那一行起全死。
+let zoneMissTimer = null;
+function inTriggerZone(nx, ny) {
+  const zone = cardStr('trigger', '触发区域', '整屏');
+  if (zone === '中心区域') return nx > 0.25 && nx < 0.75 && ny > 0.25 && ny < 0.75;
+  if (zone === '边缘') return nx < 0.2 || nx > 0.8 || ny < 0.2 || ny > 0.8;
+  return true;
+}
 $('stage').addEventListener('click', (e) => {
   const r = $('stage').getBoundingClientRect();
-  origin = { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height };
+  const nx = (e.clientX - r.left) / r.width;
+  const ny = (e.clientY - r.top) / r.height;
+  if (!inTriggerZone(nx, ny)) {
+    // 拦下要给理由。「静默不出效果」是这类功能最差的失败方式。
+    $('stageHint').classList.add('hidden');
+    $('zoneMiss').classList.remove('hidden');
+    clearTimeout(zoneMissTimer);
+    zoneMissTimer = setTimeout(() => $('zoneMiss').classList.add('hidden'), 1600);
+    return;
+  }
+  $('zoneMiss').classList.add('hidden');
+  origin = { x: nx, y: ny };
   $('stageHint').classList.add('hidden');
   t = loopOn ? loopIn : 0; setPlaying(true);
 });
@@ -1075,9 +2102,18 @@ $('stage').addEventListener('click', (e) => {
 // 舞台的高度来自 min-h-0 flex-1（它就是这样撑到 ~300px 的）；
 // 原先这里把 className 重写成含 h-[212px] 的字面量，一点底色就把 flex 尺寸冲掉、
 // 舞台缩回 212px 且不可逆——而 212px 正是时间轴改成底部抽屉要消除的那个数。
-const STAGE_BGS = { light: 'bg-white', dark: 'bg-slate-900', checker: 'checker' };
+const STAGE_BGS = {
+  light: 'bg-white', dark: 'bg-slate-900', checker: 'checker',
+  finder: 'ctx-finder', browser: 'ctx-browser', deck: 'ctx-deck',
+};
 document.querySelectorAll('[data-bg]').forEach((b) => b.addEventListener('click', () => {
-  document.querySelectorAll('[data-bg]').forEach((x) => x.className = 'seg-item' + (x === b ? ' seg-item-on' : ''));
+  document.querySelectorAll('[data-bg]').forEach((x) => {
+    const on = x === b;
+    // 只增删状态类，不重建 className：重建会把 role/aria 之外的类一起冲掉，
+    // 而这正是门禁 classname-rebuild-with-layout 在防的反模式（本轮已在 setSidebar 撞过一次）
+    x.classList.toggle('seg-item-on', on);
+    x.setAttribute('aria-checked', String(on));
+  });
   const stage = $('stage');
   stage.classList.remove(...Object.values(STAGE_BGS));
   stage.classList.add(STAGE_BGS[b.dataset.bg]);
@@ -1138,7 +2174,7 @@ function renderTimeline() {
   let html = `<div class="tl-row group">
       <div class="flex items-center gap-1.5">
         <span class="size-1.5 shrink-0 rounded-full bg-slate-900"></span>
-        <span class="truncate text-2xs font-semibold text-slate-700">触发</span>
+        <span class="truncate text-xs font-semibold text-slate-700">触发</span>
       </div>
       <!--
         触发轨原先是**只读**的：两个窗只是色带、右侧一行静态文字，整条轨 interactive=0。
@@ -1147,7 +2183,18 @@ function renderTimeline() {
         README 说过「方向做反了：时间轴在显示，卡片在编辑」，上一轮只删了卡片那一半。
         现在两个窗的右边缘可拖，兑现「触发的节流窗 / 连击窗和效果放在同一把标尺上」。
       -->
-      <div class="tl-lane" data-lane>
+      <!--
+        data-lane-id="trigger" 不是可选的：CARD_TO_CHANNEL.trigger 就是 'trigger'，
+        而这条轨原先**只有 data-lane 没有 data-lane-id**（只有 CH 循环里的效果轨有）。
+        于是触发行为卡上那枚时间 chip 点下去，revealTrack('trigger') 查不到轨，
+        回落到兜底的 getElementById('drawer')，把 898×189 的**整个抽屉**高亮一遍。
+        而节流 / 连击窗恰好是上一轮刚补上拖拽入口的两个值——卡片指向它们的唯一入口指错了。
+
+        注意：这段注释在 JS 模板字符串内部，所以正文里不能出现反引号——
+        我写这段时就踩了一次，反引号当场终止模板字符串、整段脚本语法错误，
+        由门禁 inline-script-syntax 拦下（README 教训的同一形态，第 N 次）。
+      -->
+      <div class="tl-lane" data-lane data-lane-id="trigger">
         <div class="win-combo" style="left:0;width:${pct(TRIGGER.comboWindow)}%">
           <span class="absolute inset-y-0 right-0 w-1.5 cursor-col-resize" data-trigwin="comboWindow" title="拖动改连击窗"></span>
         </div>
@@ -1156,7 +2203,7 @@ function renderTimeline() {
         </div>
         <span class="ev-dot" style="left:0"></span>
         <span class="ev-dot opacity-40" style="left:${pct(TRIGGER.secondClick)}%"></span>
-        <span class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-2xs text-slate-400">节流 ${TRIGGER.throttle}ms · 连击窗 ${TRIGGER.comboWindow}ms<span class="ml-1 text-slate-300">· 拖窗右缘可改</span></span>
+        <span class="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-xs text-slate-500">节流 ${TRIGGER.throttle}ms · 连击窗 ${TRIGGER.comboWindow}ms<span class="ml-1 text-slate-300">· 拖窗右缘可改</span></span>
       </div>
     </div>`;
 
@@ -1170,22 +2217,23 @@ function renderTimeline() {
     const wPct = Math.max(1.4, pct(ch.dur));
     html += `<div class="tl-row group" data-row="${ch.id}">
       <div class="flex items-center gap-1">
-        <button class="grid size-4 shrink-0 place-items-center rounded text-slate-400 hover:text-slate-700" data-expand="${ch.id}" aria-label="展开属性轨">
+        <button class="grid size-4 shrink-0 place-items-center rounded text-slate-500 hover:text-slate-700" data-expand="${ch.id}" aria-label="展开属性轨">
           <svg class="size-3 transition-transform ${sel ? 'rotate-90' : ''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 6 6 6-6 6"/></svg>
         </button>
-        <span class="truncate text-2xs font-semibold ${muted ? 'text-slate-400' : sel ? 'text-slate-900' : 'text-slate-600'}">${ch.label}</span>
-        ${linked ? '<span class="shrink-0 text-2xs text-slate-400" title="已链接到锚点">⛓</span>' : ''}
+        <span class="size-1.5 shrink-0 rounded-full ${muted ? 'bg-slate-300' : toneOf(ch.id).dot}" aria-hidden="true"></span>
+        <span class="truncate text-xs font-medium ${muted ? 'text-slate-500' : sel ? 'text-slate-900' : 'text-slate-600'}">${ch.label}</span>
+        ${linked ? '<span class="shrink-0 text-2xs text-slate-500" title="已链接到锚点">⛓</span>' : ''}
         <span class="ml-auto flex shrink-0 items-center gap-0.5">
-          ${dirty ? `<button class="tl-iconbtn" data-reset-ch="${ch.id}" title="重置为默认">×</button>` : ''}
-          <button class="tl-iconbtn ${ch.solo ? 'tl-iconbtn-on' : ''}" data-solo="${ch.id}" title="独奏：只播这一条">S</button>
-          <button class="tl-iconbtn ${ch.mute ? 'tl-iconbtn-on' : ''}" data-mute="${ch.id}" title="静音：排除这一条">M</button>
+          ${dirty ? `<button class="tl-iconbtn" aria-pressed="false" data-reset-ch="${ch.id}" title="重置为默认">×</button>` : ''}
+          <button class="tl-iconbtn ${ch.solo ? 'tl-iconbtn-on' : ''}" aria-pressed="${!!ch.solo}" data-solo="${ch.id}" title="独奏：只播这一条">S</button>
+          <button class="tl-iconbtn ${ch.mute ? 'tl-iconbtn-on' : ''}" aria-pressed="${!!ch.mute}" data-mute="${ch.id}" title="静音：排除这一条">M</button>
         </span>
       </div>
       <div class="tl-lane" data-lane data-lane-id="${ch.id}">
         ${ticks.map((ms) => `<div class="pointer-events-none absolute inset-y-0 w-px bg-slate-200/60" style="left:${pct(ms)}%"></div>`).join('')}
         ${linked ? `<div class="link-line" style="left:${pct(startOf(CH.find((x) => x.id === ch.ref.split('.')[0])) + CH.find((x) => x.id === ch.ref.split('.')[0]).dur * anchorAt(CH.find((x) => x.id === ch.ref.split('.')[0]), ch.ref.split('.')[1]))}%;width:${Math.max(0, pct(ch.off))}%;top:2px"></div>
              <span class="link-chip" style="left:${pct(s)}%;top:2px">${ch.off === 0 ? '⛓' : (ch.off > 0 ? '+' : '') + ch.off}</span>` : ''}
-        <div class="tl-bar ${muted ? 'tl-bar-muted' : ''} ${sel ? 'tl-bar-on' : ''}" data-bar="${ch.id}" style="left:${pct(s)}%;width:${wPct}%">
+        <div class="tl-bar ${muted ? 'tl-bar-muted' : toneOf(ch.id).bar} ${sel ? 'tl-bar-on' : ''}" data-bar="${ch.id}" style="left:${pct(s)}%;width:${wPct}%">
           <svg class="pointer-events-none absolute inset-0 size-full" viewBox="0 0 100 20" preserveAspectRatio="none" aria-hidden="true">
             <path d="${areaPath(ch.curves[ch.main] || [0, 0, 1, 1], 100, 20)}" fill="#0f172a" fill-opacity="0.07"/>
           </svg>
@@ -1193,7 +2241,7 @@ function renderTimeline() {
             const off = (i * ch.repeat.stagger / ch.dur) * 100;
             return off > 98 ? '' : `<span class="pointer-events-none absolute inset-y-0.5 w-px bg-slate-900/15" style="left:${off}%"></span>`;
           }).join('') : ''}
-          ${wPct > 16 ? `<span class="pointer-events-none absolute inset-y-0 right-1 flex items-center text-2xs font-semibold tabular-nums text-slate-500">${ch.dur}ms</span>` : ''}
+          ${wPct > 16 ? `<span class="pointer-events-none absolute inset-y-0 right-1 flex items-center text-xs font-semibold tabular-nums text-slate-500">${ch.dur}ms</span>` : ''}
           ${ch.anchors.map(([name, at]) => `<span class="anc ${name === 'peak' || name === 'spread' ? 'anc-peak' : ''}" data-anc="${ch.id}.${name}" style="left:${at * 100}%" title="${name}"></span>`).join('')}
           <span class="absolute inset-y-0 left-0 w-1.5 cursor-col-resize" data-edge="l" data-edge-id="${ch.id}"></span>
           <span class="absolute inset-y-0 right-0 w-1.5 cursor-col-resize" data-edge="r" data-edge-id="${ch.id}"></span>
@@ -1202,7 +2250,7 @@ function renderTimeline() {
     </div>`;
   }
   $('lanes').innerHTML = `<div id="playhead" class="pointer-events-none absolute -top-1 bottom-0 z-20 w-px bg-slate-900" style="left:0px">
-      <span class="absolute -top-0.5 left-1 rounded bg-slate-900 px-1 py-0.5 text-2xs font-semibold tabular-nums text-white">0ms</span></div>` + html;
+      <span class="absolute -top-0.5 left-1 rounded bg-slate-900 px-1 py-0.5 text-xs font-semibold tabular-nums text-white">0ms</span></div>` + html;
   bindTimeline();
   renderInspector();
   paintStage();
@@ -1343,20 +2391,53 @@ function bindTimeline() {
 // 原先没有任何 resize 监听：拖动真实窗口后播放头会留在旧的像素位置，
 // 时间对、位置错——而这恰好是最难察觉的一种错，因为数字读数仍然是对的。
 let resizeRaf = 0;
-window.addEventListener('resize', () => {
-  cancelAnimationFrame(resizeRaf);
+/*
+  必须同时听 `viewportchange`，而不只是 `resize`。
+
+  **切换窗口尺寸档不会触发 `resize`**——变的是 `#mockWindow` 的尺寸，浏览器视口没动。
+  于是这一页所有按实测几何算出来的预算在切档之后全是**上一档的数**：
+  `drawerMaxH()` / `stageMin()` / 播放头像素位 / 列宽下限。
+
+  实测（补上三条通道、6 条轨、切到 720×480 之后）：舞台被分到 47px 而它的最小需求是
+  240px，`deficit = 193`，而兜底的纵滚**没有被打开**（`overflowY` 停在 hidden）——
+  手动调一次 `enforceStageInvariant()` 立刻变成 auto。也就是说 A1 那条不变量
+  在切档路径上从来没被执行过，只是 3 条轨时 deficit 一直没转正，所以没人看见。
+
+  `04` 早就写对了（`['resize','viewportchange'].forEach(...)`），它的注释还写着
+  「凡是按实测几何定位的东西都必须重算」——**这一页正是那句话的反例**。
+*/
+/*
+  ── 为什么这里用 setTimeout 而不是 requestAnimationFrame ────────────────
+
+  原先是 `requestAnimationFrame`。它在真实窗口里没问题，但**走查环境里的浏览器面板
+  会节流 rAF**（README 已经为舞台播放记过同一条），于是切换窗口尺寸档时
+  `viewportchange` 确实派发了（实测 fired=1），而那个 rAF 回调**从来没跑**——
+  这一页所有按实测几何算的东西就都停在上一档。
+
+  也就是说：一个把正确性挂在 rAF 上的实现，在这个环境里**无法被验证**，
+  而无法验证的修复正是这套稿子的纪律要挡掉的东西。`setTimeout(0)` 的批处理效果
+  在这里完全等价，而且可验。
+
+  第二个 timer 是**终态补量**：抽屉高度是 200ms 的 L2 过渡，
+  第一次量到的是动画中途的高度，所以 260ms 后按终态再判一次纵滚兜底。
+*/
+let settleTimer = 0;
+const recomputeLayout = () => {
+  clearTimeout(resizeRaf); clearTimeout(settleTimer);
   // applyCols 也必须重跑：列宽的像素下限是按当前可用宽度算的（见 applyCols 注释），
   // 只重排时间轴会留下一个「比例没跟着窗口走」的中间状态。
-  resizeRaf = requestAnimationFrame(() => { applyCols(); syncDrawer(); renderTimeline(); });
-});
+  resizeRaf = setTimeout(() => { applyCols(); syncDrawer(); renderTimeline(); }, 0);
+  settleTimer = setTimeout(syncPreviewScroll, 260);
+};
+['resize', 'viewportchange'].forEach((ev) => window.addEventListener(ev, recomputeLayout));
 
 document.querySelectorAll('[data-snap]').forEach((b) => b.addEventListener('click', () => {
   snap = Number(b.dataset.snap);
-  document.querySelectorAll('[data-snap]').forEach((x) => x.className = 'seg-item' + (x === b ? ' seg-item-on' : ''));
+  document.querySelectorAll('[data-snap]').forEach((x) => { x.classList.toggle('seg-item-on', x === b); x.setAttribute('aria-checked', String(x === b)); });
 }));
 document.querySelectorAll('[data-zoom]').forEach((b) => b.addEventListener('click', () => {
   zoom = Number(b.dataset.zoom);
-  document.querySelectorAll('[data-zoom]').forEach((x) => x.className = 'seg-item' + (x === b ? ' seg-item-on' : ''));
+  document.querySelectorAll('[data-zoom]').forEach((x) => { x.classList.toggle('seg-item-on', x === b); x.setAttribute('aria-checked', String(x === b)); });
   renderTimeline();
 }));
 
@@ -1364,15 +2445,15 @@ document.querySelectorAll('[data-zoom]').forEach((b) => b.addEventListener('clic
 function renderInspector() {
   const ch = CH.find((x) => x.id === selCh);
   if (!ch || !cardOn(ch.id)) {
-    $('inspector').innerHTML = '<p class="text-2xs text-slate-400">点通道名前的箭头展开它的属性轨——每个属性各有一条曲线，原来这些曲线只存在于运行时代码里。</p>';
+    $('inspector').innerHTML = '<p class="text-2xs text-slate-500">点通道名前的箭头展开它的属性轨——每个属性各有一条曲线，原来这些曲线只存在于运行时代码里。</p>';
     return;
   }
   if (!ch.curves[selProp]) selProp = ch.main;
   const keys = Object.keys(ch.curves);
   $('inspector').innerHTML = `
     <div class="flex items-center justify-between gap-2">
-      <span class="text-2xs font-semibold text-slate-600">${ch.label} · 属性轨</span>
-      <span class="text-2xs tabular-nums text-slate-400" id="bezOut">cubic-bezier(${ch.curves[selProp].map((v) => v.toFixed(2)).join(', ')})</span>
+      <span class="text-xs font-semibold text-slate-600">${ch.label} · 属性轨</span>
+      <span class="text-xs tabular-nums text-slate-500" id="bezOut">cubic-bezier(${ch.curves[selProp].map((v) => v.toFixed(2)).join(', ')})</span>
     </div>
     ${ch.repeat ? `
     <!--
@@ -1383,22 +2464,22 @@ function renderInspector() {
       不是这一根色块的起点或长度，画成第三种拖拽手柄只会和拖块体 / 拖边缘打架。
     -->
     <div class="mt-2 flex items-center gap-2 rounded-lg bg-slate-50 px-2.5 py-1.5">
-      <span class="shrink-0 text-2xs font-medium text-slate-600">错峰间隔</span>
+      <span class="shrink-0 text-xs font-medium text-slate-600">错峰间隔</span>
       <div id="staggerSl" data-slider data-min="0" data-max="60" data-value="${staggerOf(ch)}" data-default="${(CH_DEFAULT.find((x) => x.id === ch.id).repeat || {}).stagger ?? 0}" data-snap="1" class="min-w-0 flex-1"></div>
       <span class="ctl-value shrink-0"><span data-out="staggerSl">${staggerOf(ch)}</span> ms</span>
-      <span class="shrink-0 text-2xs text-slate-400">× ${cardVal('particle', '数量', ch.repeat.n)} 个 = ${cardVal('particle', '数量', ch.repeat.n) * staggerOf(ch)}ms 尾巴</span>
+      <span class="shrink-0 text-xs text-slate-500">× ${cardVal('particle', '数量', ch.repeat.n)} 个 = ${cardVal('particle', '数量', ch.repeat.n) * staggerOf(ch)}ms 尾巴</span>
     </div>` : ''}
     <div class="mt-2 grid gap-2 group-data-[w=lg]/win:grid-cols-[minmax(0,1fr)_112px]">
       <div class="space-y-1">
         ${keys.map((k) => `
           <button class="flex w-full items-center gap-2 text-left" data-prop="${k}">
-            <span class="w-14 shrink-0 truncate text-2xs ${k === selProp ? 'font-semibold text-slate-800' : 'text-slate-500'}">${k}</span>
+            <span class="w-14 shrink-0 truncate text-xs ${k === selProp ? 'font-semibold text-slate-800' : 'text-slate-500'}">${k}</span>
             <span class="sub-lane ${k === selProp ? 'sub-lane-on' : ''} min-w-0 flex-1">
               <svg class="absolute inset-0 size-full" viewBox="0 0 100 20" preserveAspectRatio="none" aria-hidden="true">
                 <path d="${areaPath(ch.curves[k], 100, 20)}" fill="#0f172a" fill-opacity="${k === selProp ? 0.12 : 0.06}"/>
               </svg>
             </span>
-            ${(ch.curves[k][1] > 1 || ch.curves[k][3] > 1) ? '<span class="shrink-0 rounded bg-amber-50 px-1 text-2xs font-medium text-amber-700">过冲</span>' : '<span class="w-6 shrink-0"></span>'}
+            ${(ch.curves[k][1] > 1 || ch.curves[k][3] > 1) ? '<span class="shrink-0 rounded bg-amber-50 px-1 text-xs font-medium text-amber-700">过冲</span>' : '<span class="w-6 shrink-0"></span>'}
           </button>`).join('')}
       </div>
       <div class="relative h-[68px] rounded-lg border border-slate-200 bg-white" data-curve>
@@ -1516,14 +2597,128 @@ function stageMin() {
 // 再切回大屏也回不来（实测三档都停在 140，而大屏本该是 176）。
 // 「窗口小」是暂时的约束，不该吃掉用户的偏好。
 let drawerOpen = true, drawerH = 176;
+
+/*
+  ── chrome 不能是常量 ──
+
+  这里原先写 `const chrome = 300`，注释里逐项列着「标题栏 32 + 工作区导航 ~44 +
+  动作页签 ~64 + 预览工具条 ~96 + 抽屉标题行 ~34 + 边距」。**那 300 是在 1440 下量的。**
+
+  实测 960×680：传输控件行会从 58px **折行成 94px**（倍速三档 + 循环区间 + 自动重播
+  在 427px 宽的列里放不下一行），真实 chrome ≈ 340。于是抽屉多放了 40px，
+  而 `#stage` 带着 `min-height: 240px` 不肯让——它直接**溢出去盖住传输控件行**，
+  9 个播放控制按钮（播放/上一帧/下一帧/重播、1×/0.5×/0.25×、循环区间、自动重播）
+  全部 `elementFromPoint` 返回 `#stage`，一个都点不到。
+
+  这正是上一轮想消掉的那个缺陷的复发形态：上一轮用 `chrome = 300` 替掉了写死的
+  `236 / 176` 两个魔法数，而**替换它的仍然是一个在单一尺寸下量出来的魔法数**。
+  所以这次改成实测相加：谁占了高度就去问谁要，改布局不会再错一次
+  （与 `stageMin()` 同一风格——它也是从卡片真实取值算出来的，不是常量）。
+*/
+/*
+  预算等式（`#main` 是唯一的取景框，纵向三段瓜分它）：
+
+      main = 动作页签 + #cols + #drawer
+      #cols 里预览列 = 预览页头 + 舞台容器 + 传输控件行 + 本次输出行
+
+  所以：drawerBody_max = main − 动作页签 − 抽屉标题行 − 预览列非舞台部分 − stageMin
+
+  每一项都现量。传输控件行折行时它自己会变高，等式跟着变，不需要有人记得改常量。
+*/
+function chromeH() {
+  const H = (el) => (el ? el.getBoundingClientRect().height : 0);
+  const st = $('stage');
+  const holder = st.parentElement;            // 舞台的外层容器（带 px-4 pt-3）
+  const section = holder.parentElement;       // 预览列
+  const main = $('main');
+
+  // 动作页签 = #main 里 #cols 之前的兄弟
+  let tabs = 0;
+  for (const el of main.children) { if (el === $('cols') || el === $('drawer')) break; tabs += H(el); }
+
+  // 预览列里除「舞台容器」以外的部分
+  let sideBands = 0;
+  for (const el of section.children) { if (el !== holder) sideBands += H(el); }
+
+  const holderPad = Math.max(0, H(holder) - H(st));           // 容器内边距
+  const drawerChrome = H($('drawer')) - H($('drawerBody'));   // 抽屉标题行 + grip
+  return tabs + sideBands + holderPad + drawerChrome;
+}
 function drawerMaxH() {
-  const stack = $('drawerBody').closest('#mockWindow') || document.body;
-  const avail = stack.getBoundingClientRect().height;
-  // 外壳固定占用：标题栏 32 + 工作区导航 ~44 + 动作页签 ~64 + 预览工具条 ~96 + 抽屉标题行 ~34 + 边距
-  const chrome = 300;
-  return Math.max(120, Math.min(460, avail - chrome - stageMin().h));
+  const avail = $('main').getBoundingClientRect().height;
+  return Math.max(120, Math.min(460, avail - chromeH() - stageMin().h));
 }
 const effectiveDrawerH = () => Math.max(120, Math.min(drawerH, drawerMaxH()));
+
+/*
+  兜底不变量：算完之后**真的量一遍**舞台有没有压到传输控件行上。
+
+  为什么需要它：`chromeH()` 是实测的，但它是在**上一帧的布局**上量的——
+  改了抽屉高度之后传输控件行可能刚好折行/收行，于是预算又变了。
+  一次性算出来的预算永远会有这种一帧滞后。
+
+  判据是最终结果而不是中间量：`stage.bottom <= transportRow.top`。
+  不成立就继续压抽屉；压到 120 下限仍不成立，说明这个窗口高度装不下三者，
+  改成让预览列整体纵滚——**而不是让 min-height 溢出去盖住兄弟节点**。
+  「装不下」要变成「能滚」，不能变成「看不见也点不到」（教训 #16 的另一面）。
+*/
+function enforceStageInvariant(canSqueezeDrawer = true) {
+  const st = $('stage');
+  const holder = st.parentElement;
+  const section = holder.parentElement;
+  /*
+    判据是**分给舞台的空间够不够它的最小尺寸**，不是「舞台的 rect 有没有压到控件行的 rect」。
+
+    第一版写的是后者，而传输控件行是 `sticky bottom-0`——贴住之后它的 rect 是
+    「视口里的位置」而不是「布局里的位置」，于是只要预览列一滚，rect 判据就恒为
+    「有重叠」，把 overflowY 永久钉在 auto 上。**sticky 元素的 rect 不能用来做布局判据。**
+    改量 `holder.clientHeight` 与 `stageMin().h` 的差：这就是「舞台被压瘦了多少」本身。
+  */
+  const deficit = () => Math.ceil(stageMin().h - holder.clientHeight);
+  for (let guard = 0; canSqueezeDrawer && guard < 12; guard += 1) {
+    const d = deficit();
+    if (d <= 0) break;
+    const cur = parseFloat($('drawerBody').style.height) || effectiveDrawerH();
+    if (cur - d < 120) break;
+    $('drawerBody').style.height = (cur - d) + 'px';
+  }
+  syncPreviewScroll();
+}
+
+/*
+  ── 纵滚兜底的开关，单独一个函数，由 ResizeObserver 驱动 ────────────────
+
+  抽屉压到下限仍装不下 → 预览列整体纵滚（配合控件行 sticky，滚动时控件不会被推走）。
+  用内联样式而不是切 class：`overflow-hidden` 与 `overflow-y-auto` 是同一层工具类，
+  同时出现时谁生效取决于 CSS 里的先后而不是我加的顺序（教训 #22 的同型）。
+
+  **为什么必须由 ResizeObserver 驱动，而不是在每个改布局的地方各调一次**：
+  这个判据依赖「舞台分到多少高度」，而那个高度会因为好几个互不相干的原因变——
+  抽屉开合、窗口尺寸档切换、列宽拖拽、卡片开关改变 stageMin()。
+  逐个挂钩子的做法我试过两版，两版都漏：
+    · 只在 `drawerOpen` 时调 → 在最窄档展开再折叠，`overflowY` 永久留在 auto
+    · 补了 `transitionend` → 只在高度**真的动了**时才补救；
+      「抽屉一直关着、只切窗口档」这条路径不产生 height 过渡，于是切回宽档之后
+      deficit 已经是 -90（富余 90px）而预览列还在滚
+  观察高度本身，这一整类「量早了 / 没人调」就都不存在了。
+*/
+function syncPreviewScroll() {
+  const holder = $('stage').parentElement;
+  holder.parentElement.style.overflowY = stageMin().h - holder.clientHeight > 0 ? 'auto' : 'hidden';
+}
+/*
+  ResizeObserver 是**冗余的第二道**，不是唯一那道。
+
+  它是最直接的表达（观察高度本身，不管高度为什么变），在真实窗口里也确实有效；
+  但走查环境的浏览器面板会把渲染生命周期节流掉，实测 `observe()` 之后
+  连那次必然发生的初始回调都没到（fired=0，而 clientHeight 明明从 330 变成了 102）。
+  所以正确性挂在 `recomputeLayout` 的 setTimeout 上，这条只负责兜住
+  「高度因为我没想到的原因变了」——两者都只写 overflowY，重复执行无副作用。
+*/
+if (typeof ResizeObserver === 'function') {
+  // 只读高度、只写 overflowY，不改任何参与布局的尺寸——所以不会和自己形成反馈环
+  new ResizeObserver(() => syncPreviewScroll()).observe($('stage').parentElement);
+}
 
 /**
  * 窄窗口下抽屉默认折叠。
@@ -1554,7 +2749,28 @@ function syncDrawer() {
   const min = stageMin();
   st.style.minHeight = min.h + 'px';
   st.style.minWidth = min.w + 'px';
+  /*
+    ── 抽屉打开时让出「本次输出」行 ──
+
+    纵向账实测（960×680）：外壳 265 + 舞台最小 240 + 有意义的时间轴 120 = 625，
+    而主区只有 596。**差 29px，这不是能靠削像素解决的**——README 已经为 720×480
+    得出同类结论（可用下限 ≈ 660px 高），960×680 在「舞台与时间轴同时展开」这个
+    场景下同样偏矮，真实下限约 710px。
+
+    所以要让出一整条带，而唯一**有理由**让出的是「本次输出」行：
+    抽屉打开时它是**纯冗余**——时间轴的轨道列表本身就是这一次会输出哪几个效果，
+    而且比那一行更准（它还告诉你各自什么时候出现）。收起抽屉它就回来。
+    这不是取舍，是消除重复。lg 档不缺高度，两者都留着。
+  */
+  const bucket = $('mockWindow').dataset.w;
+  $('outputRow').classList.toggle('hidden', drawerOpen && bucket !== 'lg');
+
   body.style.height = effectiveDrawerH() + 'px';
+  // 预算是上一帧量的，最终结果要再验一次。
+  // **折叠态也要跑**：压抽屉那部分只在展开时有意义，但纵滚兜底的**取消**只能在这里做——
+  // 原先只在 drawerOpen 时调，于是「在最窄档展开抽屉（纵滚打开）→ 再折叠」
+  // 会把 overflowY 永久留在 auto，抽屉都收起来了预览列还在滚。
+  enforceStageInvariant(drawerOpen);
   $('drawerChevron').classList.toggle('-rotate-90', !drawerOpen);
   $('drawerToggle').setAttribute('aria-label', drawerOpen ? '折叠时间轴' : '展开时间轴');
   // 折叠时把关键信息提到标题行，否则抽屉收起来就完全失去上下文
@@ -1564,15 +2780,33 @@ function syncDrawer() {
     : `${list.length} 条轨道 · ${list.filter((c) => c.ref !== 'trigger').length} 条已链接 · 播放头 ${Math.round(t)}ms`;
   if (drawerOpen) renderTimeline();
 }
+/*
+  抽屉高度是 L2 布局过渡（`.motion-layout`，200ms），所以 `syncDrawer()` 里那次
+  `enforceStageInvariant()` 量到的是**动画中途**的高度——压抽屉那一步会少压一点。
+  过渡结束后再压一次；纵滚兜底不用管，它已经由 ResizeObserver 兜住（见 syncPreviewScroll）。
+
+  这是裁决 10（L2 解禁 height 过渡）与 A1（舞台高度不变量）之间的真实耦合，
+  上一轮加过渡时没注意到。
+*/
+$('drawerBody').addEventListener('transitionend', (e) => {
+  if (e.target === $('drawerBody') && e.propertyName === 'height' && drawerOpen) enforceStageInvariant(true);
+});
+
 // 用户亲手开合过就锁定，窗口尺寸变化不再替他决定（见 autoCollapseDrawerIfTight）
 $('drawerToggle').addEventListener('click', () => { drawerAutoDecided = true; drawerOpen = !drawerOpen; syncDrawer(); });
 $('drawerGrip').addEventListener('pointerdown', (e) => {
   if (!drawerOpen) return;
   $('drawerGrip').setPointerCapture(e.pointerId);
   const y0 = e.clientY, h0 = drawerH;
+  // 拖拽**过程中**停掉 L2 过渡：200ms 的过渡会让抽屉滞后于指针，手感变黏。
+  // 松手后恢复，这样「用户主动拖」是直接的、「程序改尺寸」才有因果动效。
+  $('drawerBody').classList.add('motion-none');
   // 上限由可用高度算，不再是写死的 460——在 680px 窗口里 460px 抽屉是不合理的上限
   const mv = (ev) => { drawerH = Math.max(120, Math.min(drawerMaxH(), h0 - (ev.clientY - y0))); syncDrawer(); };
-  const up = () => { $('drawerGrip').removeEventListener('pointermove', mv); $('drawerGrip').removeEventListener('pointerup', up); };
+  const up = () => {
+    $('drawerBody').classList.remove('motion-none');
+    $('drawerGrip').removeEventListener('pointermove', mv); $('drawerGrip').removeEventListener('pointerup', up);
+  };
   $('drawerGrip').addEventListener('pointermove', mv);
   $('drawerGrip').addEventListener('pointerup', up);
 });
@@ -1581,11 +2815,11 @@ $('drawerGrip').addEventListener('pointerdown', (e) => {
 function registerFields() {
   const items = [];
   for (const c of CARDS) {
-    const shown = (c.fields || []).map((f) => f.label);
-    const hidden = (c.groups || []).flatMap(([, fs]) => fs);
-    for (const label of [...shown, ...hidden]) {
-      const inGroup = !shown.includes(label);
-      items.push([`${c.name} · ${label}`, inGroup ? '其余项' : '', () => revealField(c.key, label, inGroup)]);
+    // 注册表与界面**同源**：都从 c.fields 走，f.group 决定它在不在「其余项」里。
+    // 原先注册表读 `c.groups` 里的字符串、界面读 `c.fields` 里的对象，两份来源——
+    // 于是「注册表里有、界面上没有」是必然会发生的，而且没有任何视觉痕迹。
+    for (const f of (c.fields || [])) {
+      items.push([`${c.name} · ${f.label}`, f.group ? `其余项 · ${f.group}` : '', () => revealField(c.key, f.label, !!f.group)]);
     }
   }
   registerCommands('字段', items);
@@ -1619,7 +2853,7 @@ function timeChip(cardKey) {
   // chip **可收缩且截断**（不是 shrink-0）：窄配置列下必须有东西让位，
   // 而它是最该让的那个——同一份时间信息在时间轴上还有一份，卡名没有第二份。
   // title 里给出全文，截断后仍可查证。
-  return `<button data-jumptrack="${cardKey}" class="inline-flex min-w-0 shrink items-center gap-1 rounded-lg bg-slate-50 px-1.5 py-0.5 text-2xs font-medium text-slate-500 ring-1 ring-slate-200 transition-colors hover:bg-slate-100 hover:text-slate-900"
+  return `<button data-jumptrack="${cardKey}" class="inline-flex min-w-0 shrink items-center gap-1 rounded-lg bg-slate-50 px-1.5 py-0.5 text-xs font-medium text-slate-500 ring-1 ring-slate-200 transition-colors hover:bg-slate-100 hover:text-slate-900"
     title="${timeChipText(cardKey)} —— 时间在时间轴上编辑，点这里跳过去">
     <svg class="size-2.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
     <span class="truncate">${timeChipText(cardKey)}</span>
@@ -1640,21 +2874,31 @@ function revealTrack(cardKey) {
   setTimeout(() => target.classList.remove('ring-2', 'ring-slate-400', 'rounded-lg'), 1400);
 }
 
+/*
+  ⌘K → 字段。原先这里有两个独立根因，实测 55 个字段条目里 **51 个落不到字段上**：
+
+  1. `hit?.closest('.ctl-row, .ctl-row-wide, .grid')` —— `#cols` 自己带 `grid` 类，
+     于是任何不在 `.ctl-row` 里的命中都一路爬到 `#cols`（898×341，整个配置区连 8 张卡）。
+     **整块都闪 = 什么都没闪。** 46 个是这一类。
+  2. hit 判定要求 `el.children.length === 0`（叶子节点），而**改过的字段**的标签里
+     带四态溯源小点：`<span class="field-label">字号<span data-revert…></span></span>`
+     → 不是叶子 → 找不到 → 完全没有反馈。也就是**恰好是用户改过、最可能去搜的那些字段**
+     永远不闪（飘字·文案/字号/颜色/上浮距离、波纹·颜色）。5 个是这一类。
+
+  两条都源自「按文本内容去 DOM 里猜」。改成显式锚点 `data-fieldrow="卡|字段"`：
+  锚点由 renderField 统一发出，注册表也从同一份 c.fields 生成，
+  所以「注册表里有、界面上没有」不再可能。
+*/
 function revealField(cardKey, label, inGroup) {
   const c = CARDS.find((x) => x.key === cardKey);
   if (!c.always && !c.on) { c.on = true; renderTimeline(); }   // 字段所在的效果没开就先开
   if (inGroup) c.more = true;
-  renderCards(); renderOutputs();
-  const card = [...document.querySelectorAll('.cfg-card')].find((el) => el.textContent.includes(c.name));
-  if (!card) return;
-  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  // 命中的字段闪一下：跳过去还得自己找是没闭环的
-  const hit = [...card.querySelectorAll('span, div')].find((el) => el.children.length === 0 && el.textContent.trim() === label);
-  const target = hit?.closest('.ctl-row, .ctl-row-wide, .grid') || hit;
-  if (target) {
-    target.classList.add('ring-2', 'ring-slate-400', 'rounded-lg');
-    setTimeout(() => target.classList.remove('ring-2', 'ring-slate-400', 'rounded-lg'), 1400);
-  }
+  afterConfigChange();
+  const target = document.querySelector(`[data-fieldrow="${cardKey}|${label}"]`);
+  if (!target) return;
+  target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  target.classList.add('ring-2', 'ring-slate-400', 'rounded-lg');
+  setTimeout(() => target.classList.remove('ring-2', 'ring-slate-400', 'rounded-lg'), 1400);
 }
 
 function syncHint() {
@@ -1663,7 +2907,9 @@ function syncHint() {
   $('stageHint').classList.remove('hidden');
   renderTimeline();
 }
-window.addEventListener('resize', () => renderTimeline());
+// 这一条是上面 recomputeLayout 的子集（它已经含 renderTimeline），
+// 留着只为覆盖「时间轴自己重排但不需要重算列宽」的场合；两个事件都要听，理由同上。
+['resize', 'viewportchange'].forEach((ev) => window.addEventListener(ev, () => renderTimeline()));
 
 // ── 布局预设
 
@@ -1671,6 +2917,34 @@ window.addEventListener('resize', () => renderTimeline());
 
 
 
+
+/*
+  ══ 切主题：换引用 + 全量重渲染 ══════════════════════════════════════
+
+  **换引用，不是把内容复制过去**——桶里的东西必须留在原主题里，
+  这正是原先那条闭环（在几何改的值出现在流光下、而且在流光里改不回去）的成因。
+
+  重渲染要覆盖全部四处消费者：卡片、输出行、时间轴、舞台。
+  漏任何一处就会得到「切了主题但某一块还是上一个主题的」——
+  也就是把已经修掉的缺陷换个位置重现一遍。
+
+  播放头夹回标尺内：不同主题总长不同（熔金 640ms vs 夕霞 1180ms），
+  切过去之后旧的播放头可能落在标尺之外，那是个不可达状态。
+*/
+window.onThemeChange(() => {
+  S = themeState(activeTheme().id, seedFor);
+  CARDS = S.cards;
+  CH = S.ch;
+  CH_BEFORE = S.chBefore;
+  CH_DEFAULT = S.chDefault;
+  TRIGGER = S.trigger;
+  bezCache.clear();          // 缓动函数按曲线缓存，换主题必须失效
+  ab = false; $('abBadge').classList.add('hidden');
+  clampPlayhead();
+  registerFields();          // ⌘K 的字段注册表跟着主题走（预设名会变）
+  afterConfigChange();       // 卡片 + 输出行 + 舞台最小尺寸 + 舞台画面
+  renderTimeline();
+});
 
 renderActions(); renderCards(); renderOutputs(); syncHint(); syncLayout(); syncDrawer(); registerFields();
 </script>

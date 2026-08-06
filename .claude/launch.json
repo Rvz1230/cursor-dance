@@ -45,6 +45,30 @@
       "cwd": "./docs/ui-spec"
     },
     {
+      "name": "cursor-dance-ui-spec-ux-audit",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "--port", "5513", "--strictPort", "--host", "0.0.0.0"],
+      "port": 5513,
+      "autoPort": false,
+      "cwd": "./docs/ui-spec"
+    },
+    {
+      "name": "cursor-dance-ui-spec-ux-review",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "--port", "5515", "--strictPort", "--host", "0.0.0.0"],
+      "port": 5515,
+      "autoPort": false,
+      "cwd": "./docs/ui-spec"
+    },
+    {
+      "name": "cursor-dance-ui-spec-skin-review",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "--port", "5517", "--strictPort", "--host", "0.0.0.0"],
+      "port": 5517,
+      "autoPort": false,
+      "cwd": "./docs/ui-spec"
+    },
+    {
       "name": "cursor-dance-desktop",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev:electron"],

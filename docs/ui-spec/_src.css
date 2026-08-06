@@ -15,11 +15,16 @@
       dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800;
   }
   .btn-ghost {
-    @apply inline-flex items-center justify-center rounded-xl font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900;
+    @apply inline-flex items-center justify-center rounded-xl font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900
+      dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white;
   }
 
+  /* md 档收一点内边距：那一档五个 chip + 两条竖线实测需要 405px、可用 395px，
+     差 10px——正好让最后一个「诊断面板」需要横滚。px-2.5→px-2 省 5×4=20px，
+     不用隐藏任何东西就够了。sm 档右侧控件已经收成图标，横向反而更宽松，所以只调 md。 */
   .ws-chip {
-    @apply inline-flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900;
+    @apply inline-flex h-7 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900
+      group-data-[w=md]/win:px-2;
   }
   .ws-chip-active {
     @apply border-slate-950 bg-slate-950 text-white shadow-sm hover:bg-slate-950 hover:text-white;
@@ -38,8 +43,11 @@
     @apply inline-flex shrink-0 items-center gap-0.5 rounded-xl border border-slate-200 bg-slate-50 p-0.5
       dark:border-slate-700 dark:bg-slate-800;
   }
+  /* text-2xs → text-xs：分段控件的段名是**控件本身的全部信息**，
+     而 ux 规格第 5 节明写「普通流程不使用 text-2xs 承载必要信息」。
+     11 → 12px，h-6 的行高（1rem = 16px）装得下，实测五页 × 三档零溢出零截断。 */
   .seg-item {
-    @apply inline-flex h-6 items-center rounded-lg px-2 text-2xs font-medium text-slate-500 transition-colors hover:text-slate-900
+    @apply inline-flex h-6 items-center rounded-lg px-2 text-xs font-medium text-slate-500 transition-colors hover:text-slate-900
       dark:text-slate-400 dark:hover:text-slate-100;
   }
   .seg-item-on {
@@ -51,9 +59,53 @@
   .row-controls {
     @apply flex shrink-0 items-center gap-1.5;
   }
-  /* 固定宽度：槽位宽度不能随主题名长短变化，否则各行的分段控件对不齐 */
+  /* 固定宽度：槽位宽度不能随主题名长短变化，否则各行的分段控件对不齐。
+     里面装的是 Ctl.select（不再是自己画一个假下拉），所以只负责占位与对齐。 */
   .theme-pick {
-    @apply inline-flex h-7 w-[88px] shrink-0 items-center justify-between rounded-xl border border-slate-200 bg-white px-2.5 text-2xs font-medium text-slate-600 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50;
+    @apply w-[136px] shrink-0;
+  }
+
+  /* 白名单模式下「被列出」就等于「已允许」，「关闭」是空操作。
+     所以分段控件整块换成这枚静态标记，而不是把「关闭」那一格隐藏掉——
+     只剩一格的分段控件会显示成「一个没被按下的按钮」，用户读不出当前是什么状态。 */
+  .row-allowed {
+    @apply inline-flex h-7 shrink-0 items-center gap-1 whitespace-nowrap rounded-xl border border-emerald-200 bg-emerald-50 px-2 text-xs font-medium text-emerald-800;
+  }
+  /* 空配置 / 已暂停标记：这条规则此刻不改变任何裁决。
+     它是「为什么这行看着没用」的唯一答案，所以是必要信息，不能用 text-2xs。 */
+  .row-void {
+    @apply inline-flex shrink-0 items-center whitespace-nowrap rounded-full bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-500;
+  }
+  /* 空配置行的行内出口。批量「移除这些空配置」只提供了「删掉」这一条路，
+     而用户当初列出这个应用往往是想让它生效——两条出口都要给。 */
+  .row-fix {
+    @apply shrink-0 whitespace-nowrap rounded-lg px-1.5 py-1 text-xs font-medium text-slate-600 underline underline-offset-2 transition-colors hover:bg-slate-100 hover:text-slate-900;
+  }
+
+  /* 行尾的 ⋯ 菜单，承载「暂停 / 恢复 / 移除」。
+     ux 规格 6.2 把「暂停、恢复、删除一条规则」列为 P0，而稿子原先只有删除，
+     而且是一个没有 handler 的垃圾桶。三个动作横排会把行挤爆（行里已经有
+     分段控件 + 主题选择器），收进菜单同时把行尾控件从 2 个降到 1 个。 */
+  .row-menu {
+    @apply grid size-7 shrink-0 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700;
+  }
+  .row-menu-item {
+    @apply flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-slate-700 transition-colors hover:bg-slate-50;
+  }
+  .row-menu-item-danger { @apply text-rose-600 hover:bg-rose-50; }
+
+  /* 高级匹配规则行。左半是「这条规则是什么」（可收缩、模式过长时截断），
+     右半是操作（永不收缩）。窗口标题模式天生就长（真实标题如
+     「Google Chrome — 季度复盘演示模式 — 第 3 页」），
+     不给截断路径的话 720px 档下几枚徽标会被压成竖排单字。
+     降级优先级照 README：横滚 > 换行 > 截断 > 竖排。 */
+  .adv-row {
+    @apply flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm;
+  }
+  .adv-row-hit { @apply border-slate-950; }
+  /* 动作与命中状态是这一行的**结论**，不是补充说明 */
+  .adv-badge {
+    @apply inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-1.5 py-0.5 text-xs font-medium;
   }
 
   .row-del {
@@ -78,23 +130,29 @@
     @apply size-2 rounded-full bg-slate-950;
   }
 
-  /* 添加应用浮层里的行 */
+  /* 添加应用浮层里的行。已添加的行用真的 disabled：原先它仍是可点击的 <button>，
+     点了什么也不会发生，读屏器也读不出「这条不能选」。 */
   .pick-row {
-    @apply flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-left transition-colors hover:bg-slate-50;
+    @apply flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-left transition-colors hover:bg-slate-50
+      disabled:cursor-not-allowed disabled:hover:bg-transparent;
   }
   .pick-body { @apply min-w-0 flex-1; }
   .pick-name { @apply block truncate text-xs font-medium text-slate-800; }
-  .pick-meta { @apply block truncate text-2xs text-slate-400; }
+  /* bundle id 是同名应用的唯一区分依据（浮层底部就写着「按 bundle id 记录」），
+     所以它是必要信息而不是装饰 */
+  .pick-meta { @apply block truncate text-xs text-slate-500; }
   .pick-cta {
-    @apply shrink-0 rounded-lg border border-slate-200 bg-white px-2 py-1 text-2xs font-medium text-slate-600 shadow-sm;
+    @apply shrink-0 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-600 shadow-sm;
   }
-  .pick-added { @apply shrink-0 text-2xs font-medium text-slate-300; }
+  /* 已添加行的说明色从 slate-300 提到 slate-400：300 在白底上对比度约 1.6:1，
+     而它是「这一行为什么不能点」的唯一解释 */
+  .pick-added { @apply shrink-0 text-xs font-medium text-slate-400; }
 
   /* 首次进入的挑选行 */
   .first-pick {
     @apply flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-2.5 py-2 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50;
   }
-  .first-add { @apply shrink-0 text-2xs font-medium text-slate-500; }
+  .first-add { @apply shrink-0 whitespace-nowrap text-xs font-medium text-slate-500; }
 
   /* ── 键盘动效 ── */
 
@@ -103,11 +161,15 @@
     @apply relative flex flex-col gap-1.5 overflow-hidden rounded-xl border border-slate-200 bg-white p-2 text-left shadow-sm transition-colors hover:border-slate-300;
   }
   .preset-tile-on { @apply border-slate-950; }
-  .preset-stage { @apply relative grid h-14 place-items-center overflow-hidden rounded-lg bg-slate-50; }
+  /* h-14 → h-11：四张预设卡是 2×2，舞台每减 12px 就省 24px 纵向。
+     换来的是「字形」的折叠头进入默认窗口首屏——而折叠的全部理由就是标题留在首屏。
+     44px 仍然放得下 text-xl 的样张字，这一格要表达的只是颜色和粗细。
+     这两个类只有 04 用（全稿 grep 过），不影响其他页。 */
+  .preset-stage { @apply relative grid h-11 place-items-center overflow-hidden rounded-lg bg-slate-50; }
   .preset-glyph { @apply text-xl font-bold leading-none; }
   .preset-meta { @apply block min-w-0; }
   .preset-name { @apply block truncate text-xs font-medium text-slate-800; }
-  .preset-desc { @apply block truncate text-2xs text-slate-400; }
+  .preset-desc { @apply block truncate text-2xs text-slate-500; }
 
   .color-swatch { @apply size-7 shrink-0 rounded-lg border border-slate-200 shadow-sm transition-colors; }
   .color-swatch-on { @apply border-slate-950 ring-2 ring-slate-300; }
@@ -122,17 +184,26 @@
   }
   .edge-btn-on { @apply border-slate-950 bg-slate-950 text-white hover:text-white; }
 
-  /* 语义分层图例：样例字随配置实时变化 */
+  /**
+   * 语义分层图例：样例字随配置实时变化。
+   *
+   * 原先每行是两层结构（名称在上、说明在下）+ 36px 样张 = 实测 54px 行高，
+   * 四行连标题共 323px——占掉左列（默认窗口 528px 宽）最大的一块，
+   * 而它表达的是四组各自一个数字的强度。名称和说明摊成一行就够，
+   * 样张缩到 28px 仍然看得出大小差异（这一节要表达的正是大小差异）。
+   * 压到 36px 行高，整节 323 → 190px。
+   */
   .legend-row {
-    @apply flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm transition-colors;
+    @apply flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white px-2.5 py-1 shadow-sm transition-colors;
   }
   .legend-row-hit { @apply border-slate-950 bg-slate-50; }
-  .legend-sample { @apply grid size-9 shrink-0 place-items-center rounded-lg bg-slate-50 font-bold leading-none; }
+  .legend-sample { @apply grid size-7 shrink-0 place-items-center rounded-lg bg-slate-50 font-bold leading-none; }
 
   .mini-select { @apply h-8 rounded-xl border border-slate-200 bg-white px-2 text-xs text-slate-700 shadow-sm; }
 
   .switch-row {
-    @apply flex w-full items-center justify-between gap-2 rounded-lg px-1 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50;
+    @apply flex w-full items-center justify-between gap-2 rounded-lg px-1 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50
+      dark:text-slate-300 dark:hover:bg-slate-800;
   }
   /* 深色下必须反相：否则 on=slate-950 融进面板、off=slate-300 反而更亮，
      两个状态的视觉权重是颠倒的。 */
@@ -148,8 +219,11 @@
     @apply inline-flex h-8 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-600 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50;
   }
   .action-tab-on { @apply border-slate-950 bg-slate-950 text-white shadow-sm hover:bg-slate-950 hover:text-white; }
+  /* text-2xs → text-xs：这个数字是「这个动作配过几个效果」，是这枚徽标的**全部内容**，
+     属裁决 8 第 1 步点名的「状态徽标 / 表格里的值」。h-4 = 16px，
+     而 text-xs 的行高正好 1rem = 16px，所以徽标不变高，只是数字宽约 9%。 */
   .count-badge {
-    @apply inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-100 px-1 text-2xs font-semibold tabular-nums text-emerald-700;
+    @apply inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-emerald-100 px-1 text-xs font-semibold tabular-nums text-emerald-700;
   }
   .action-tab-on .count-badge { @apply bg-white/20 text-white; }
 
@@ -157,11 +231,33 @@
   .cfg-card { @apply overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm; }
   .cfg-card-on { @apply border-slate-300; }
   .cfg-head { @apply flex items-center gap-2.5 px-3 py-2.5; }
-  /* 图标底统一 slate——颜色只用来表达「已启用」，不做装饰 */
-  .cfg-icon { @apply grid size-8 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600; }
-  .cfg-icon-on { @apply bg-slate-900 text-white; }
+  /**
+   * 图标底统一 slate（决策 #3：颜色只用来表达「已启用」，不做装饰），
+   * 但表达方式是**低权重**的（DECISIONS.md 裁决 15）——底色两态相同，
+   * 变的是字形深浅 + 一圈 ring。
+   *
+   * 原先是 `bg-slate-900 text-white` 实心深底，三条硬规则同时踩：
+   *   · DESIGN.md「实心深底是最重的视觉权重，只留给页面主操作」，而效果卡有 8 张同权卡片。
+   *     反模式清单里还有一条「一屏出现 3 个以上 bg-slate-900 实心块」。
+   *   · DESIGN.md「选中态必须同时有非颜色的编码，不能只靠深浅」。
+   *   · **深色下这条编码直接消失**：`bg-slate-900` 落在 `.surface`（也是 slate-900）上，
+   *     实测对比度 1.00。一个在深色模式里不存在的状态编码等于没有编码。
+   *
+   * 非颜色编码不在这里补：卡头最右侧本来就有一个 `role="switch"` 的开关，
+   * 拨柄位置就是它。01 卡头那段注释已经论证过「不要第三次编码同一个 bit」。
+   *
+   * 裁决登记在 `DECISIONS.md` 裁决 16（冲突双方 / 理由 / 影响 / 保留问题都在那里）。
+   */
+  .cfg-icon {
+    @apply grid size-8 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-400 ring-1 ring-transparent
+      dark:bg-slate-800 dark:text-slate-500;
+  }
+  .cfg-icon-on {
+    @apply text-slate-900 ring-slate-900/15
+      dark:text-slate-100 dark:ring-slate-100/25;
+  }
   .cfg-name { @apply text-sm font-medium text-slate-900; }
-  .cfg-sum { @apply truncate text-2xs text-slate-400; }
+  .cfg-sum { @apply truncate text-2xs text-slate-500; }
   /* .on-dot 已删除：启用态由图标底色（决策 #3）与同行的开关表达，
      第三次编码在真实默认宽度下撑爆了卡头。留空注释是为了让下次想加回来的人先看到理由。 */
 
@@ -180,58 +276,225 @@
   [data-w="sm"] .skin-stage-h { height: 240px; }
 
   /**
-   * 04 的屏幕预览高度。同样原先写死（404px），同样是在 892px 外壳里挑的：
-   * 在真实默认的 680px 窗口下它单独就吃掉主区 596px 的 68%，
-   * 于是入场方向、字号、缩放、语义分层这些**主任务控件**全在折叠线以下。
-   * 预览是辅助元素，不该拿走首屏。
+   * 04 的屏幕预览舞台。原先是三档写死**高度**（404 / 320 / 250）而宽度弹性，
+   * 实测得到 2.35 : 1.66 : 2.40 三种完全不同的形状——只有 md 一档接近真实屏幕，
+   * lg 和 sm 都是宽扁的信箱条。
+   *
+   * 这不是审美问题。这块预览的职责是「判断字符在真实桌面上落在哪、看不看得清」，
+   * 而位置全是按锚点框的比例算的（globalOffsetY、键位散开带、雨滴行程都是），
+   * **形状错了纵向落点就是错的**——在 2.35:1 的条上把字符调到看着舒服的高度，
+   * 换到 16:10 的真屏幕上会偏得很明显。
+   *
+   * 改成锁定 16:10（对齐 1440×900），高度由宽度反推；限宽而不限高，
+   * 这样纵向预算仍然按窗口档位收敛，形状却始终是一块屏幕。
+   * 上限套在**外层 .relative 舞台**而不是 #screen 上：四条入场边按钮是
+   * 相对那一层定位的，只缩 #screen 会让四条边与屏幕框脱开。
    */
-  .kbd-screen-h { height: 404px; }
-  [data-w="md"] .kbd-screen-h { height: 320px; }
-  [data-w="sm"] .kbd-screen-h { height: 250px; }
+  .kbd-stage { width: 100%; max-width: 646px; }
+  [data-w="md"] .kbd-stage { max-width: 530px; }
+  [data-w="sm"] .kbd-stage { max-width: 336px; }
 
   /* 预设 chip：把「一组字段」变成一次点击 */
   .preset-chip {
     @apply inline-flex h-7 shrink-0 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-2xs font-medium text-slate-600 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50;
   }
   .preset-chip-on { @apply border-slate-950 bg-slate-950 text-white hover:bg-slate-950 hover:text-white; }
-
-  /* 滑块 + 可编辑读数：51 个滑块里有一半是精确值，拖不准 */
-  .num-input {
-    @apply h-6 w-14 rounded-lg border border-slate-200 bg-white px-1 text-center text-2xs font-semibold tabular-nums text-slate-700 shadow-sm
-      dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200;
+  /* 长得像 chip 但**没有选中态**的一次性动作（06 的意图快捷入口：点一下填一句提问）。
+     与 .preset-chip 分开是因为 aria 语义不同：那个是 role=radio（我现在选的是哪一个），
+     这个是普通按钮（点了就发生一件事）。两者共用一个类的话，
+     aria-state-missing 门禁只能二选一：要么放过真正缺状态的 chip，
+     要么逼这几个按钮挂一个永远为 false 的 aria-pressed——那是往稿子里写一句谎。 */
+  .chip-action {
+    @apply inline-flex h-7 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 text-xs font-medium text-slate-600
+      shadow-sm transition-colors hover:border-slate-300 hover:text-slate-900;
   }
-  .field-label { @apply text-xs font-medium text-slate-600; }
+
+  /**
+   * 可输入数值框（`Ctl.number` 的外观，51 个滑块里有一半是精确值、拖不准）。
+   *
+   * 收成组件类的理由和 `.hint-*` 一样：这三串原先写死在 `controls.js` 的模板里，
+   * 于是**深色分支无处可加**——实测 library/components.html 在深色下这个框是一块白底，
+   * 而它旁边的滑块（同样写死 slate-900）整段消失。写死在 JS 模板里的样式
+   * 等于把这个组件永久钉在浅色模式上。
+   *
+   * 上一版这里叫 `.num-input`（h-6 w-14），自 `Ctl.number` 自绘输入框之后**已无引用**，
+   * 只剩注释里提它——一并删掉，不留一个查不到消费者的类。
+   */
+  .num-field {
+    @apply h-8 w-24 rounded-xl border border-slate-200 bg-white pl-2 pr-10 text-xs font-semibold tabular-nums text-slate-800 shadow-sm
+      focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200
+      dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-slate-500 dark:focus:ring-slate-700;
+  }
+  .num-unit {
+    @apply pointer-events-none absolute right-6 top-1/2 -translate-y-1/2 text-xs text-slate-500 dark:text-slate-400;
+  }
+  .num-step {
+    @apply grid h-3 w-4 place-items-center rounded-sm text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700
+      dark:text-slate-400 dark:hover:bg-slate-700 dark:hover:text-slate-100;
+  }
+  .field-label { @apply text-xs font-medium text-slate-600 dark:text-slate-300; }
 
   /* 布局预设 */
-  .layout-btn { @apply grid size-7 place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700; }
+  .layout-btn { @apply grid size-7 place-items-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700; }
   .layout-btn-on { @apply bg-slate-950 text-white hover:bg-slate-950 hover:text-white; }
 
-  /* 侧边栏主题卡：操作常显，dirty 只有一处表达 */
+  /**
+   * 侧边栏主题卡。操作常显（决策 #4），dirty 只有一处表达。
+   *
+   * 紧凑化：改成 items-center + py-1.5，一张卡从 ~100px 降到 ~48px。
+   * 侧栏的任务是「快速切主题」，一屏看得见几个比每条摘要读全更重要——
+   * 摘要改成一行截断，全文进 title。名称与图标永不截断（它们是身份）。
+   *
+   * 选中态改用左侧竖条 + 浅底，不再用整框描边：
+   * 四张卡各一圈 slate-950 描边在 248px 宽里显得很吵，而竖条只在**一侧**发声，
+   * 恰好也是列表类控件表达选中的通行做法（Finder 边栏、VS Code 资源管理器都是）。
+   */
   .side-theme {
-    @apply relative flex w-full items-start gap-2.5 rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-left shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50;
+    @apply relative flex w-full items-center gap-2.5 rounded-xl border border-transparent bg-white px-2.5 py-1.5 text-left transition-colors hover:bg-slate-50;
   }
-  .side-theme-on { @apply border-slate-950; }
+  .side-theme::before {
+    content: '';
+    @apply absolute left-0 top-1/2 h-0 w-0.5 -translate-y-1/2 rounded-full bg-slate-950 transition-all;
+  }
+  .side-theme-on { @apply bg-white shadow-sm ring-1 ring-slate-200; }
+  .side-theme-on::before { @apply h-5; }
 
   /* 命令面板 */
   .cmdk-item {
     @apply flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs text-slate-700 transition-colors hover:bg-slate-100;
   }
   .cmdk-item-on { @apply bg-slate-100; }
+
+  /* 原生托盘菜单（09）。行高 26px、勾选列 12px、分隔线 1px——按 macOS 菜单的节奏，
+     不是自绘面板的节奏（裁决 9）。与 cmdk-item 分开是有意的：命令面板是搜索结果列表，
+     托盘是菜单，两者的密度和勾选语义不同，合成一个类会让其中一边将来被迫妥协。 */
+  .menu-item {
+    @apply flex w-full items-center gap-2 rounded px-2 py-1 text-xs text-slate-700 transition-colors hover:bg-slate-100;
+  }
+  .menu-sep { @apply my-1 h-px bg-slate-200/80; }
+  .menu-label { @apply px-2 pb-0.5 pt-1 text-2xs font-medium text-slate-500; }
   .kbd {
     @apply inline-flex h-5 items-center rounded border border-slate-200 bg-slate-50 px-1.5 text-2xs font-medium tabular-nums text-slate-500
       dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400;
   }
 
-  /* ── 通用组件库（含深色令牌层验证） ── */
+  /* 能力标记：告诉你这一节依赖哪项可选能力（07「解锁更多信号」是它的开关处）。
+     它是**前提**而不是状态，所以不用语义四色——用中性底 + 细边，
+     避免被读成"这里出问题了"。 */
+  .cap-chip { @apply inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-2xs font-medium text-slate-500; }
+
+  /* ── 页头在最窄档收起文字标签 ──
+     720×480（Electron 允许拖到的最小尺寸）下实测出来的账：页头这一行总宽 694px，
+     右侧四个辅助控件吃掉 **527px**，留给五个工作区页签的只有 155px——
+     一级导航拿到 24%，而它是这一行里唯一的主任务。后果不是「有点挤」：
+     `elementFromPoint` 实测五个页签里**三个**的中心点落在横向滚动区之外，
+     点它们等于点到右侧控件。
+
+     所以最窄档只留图标（`aria-label` / `title` 已经在标记里，图标态不丢可读性），
+     省下约 270px 还给导航。判据跟着 `#mockWindow[data-w]` 走，
+     不是浏览器视口——这一点是 viewport-breakpoint-in-shell 那条门禁的存在理由。 */
+  .hdr-label { @apply hidden group-data-[w=md]/win:inline group-data-[w=lg]/win:inline; }
+
+  /* ── 11px 补充说明的两种形态 ──
+     ux §5 的硬约束是「普通流程不使用 text-2xs 承载**必要信息**」，
+     它约束的是**信息的分量**，不是字号本身。所以收敛分两步走，只有第二步才是重命名：
+       1. 承载结论的 11px（按钮标签、读数值、状态徽标、表格里的值）→ 一律提到 text-xs。
+       2. 剩下的合法用途只有「标签下面那一行解释」和「卡片底部那段说明」两种形态，
+          它们原先各被手抄了 20 遍。抄 20 遍的后果不是丑，是**判据无法执行**：
+          门禁按页数 text-2xs 时，40 处合法用法会把预算吃干，于是真正的违规
+          （一个 11px 的按钮标签）反而被淹没在计数里。
+     收进组件类之后，页面里剩下的每一个 text-2xs 都是「值得单独看一眼」的用法，
+     text-2xs-budget 门禁的计数才有意义。 */
+  .hint-sub { @apply mt-0.5 block text-2xs leading-relaxed text-slate-500; }
+  .hint-note { @apply mt-1.5 text-2xs leading-relaxed text-slate-500; }
+  /* 行内补充说明（跟在控件同一行右侧的那句「…主要影响入场那一小段」）。
+     与 hint-sub 的区别只有一件事：它不带自己的外边距，由所在行的 gap 决定间距。 */
+  .hint-inline { @apply text-2xs leading-relaxed text-slate-500; }
+  /* 警告卡里的补充说明。语义色不同，所以不能并进上面三个。 */
+  .hint-warn { @apply text-2xs leading-relaxed text-amber-800; }
+  /* 同样三种形态的深色令牌版（组件画册用 ink-* 验证深色层，配色不能写死 slate）。
+     判据与上面逐字相同，只有取色方式不同——所以分开写，不是分开定义判据。 */
+  .hint-sub-ink { @apply mt-0.5 block text-2xs leading-relaxed ink-3; }
+  .hint-note-ink { @apply mt-1.5 text-2xs leading-relaxed ink-3; }
+  .hint-inline-ink { @apply text-2xs leading-relaxed ink-3; }
+  /* 舞台内的示意标注：贴在被标注元素旁的小牌（打字机基线、带宽上沿…），
+     以及舞台角落那张说明卡。它们标的是**演示台的构造**，不是产品信息——
+     真实桌面上没有这些牌子，所以 11px 在这里不构成「用小字承载必要信息」。 */
+  .stage-tag { @apply rounded bg-white/90 px-1.5 py-0.5 text-2xs font-medium text-slate-500 ring-1 ring-slate-200; }
+  .stage-note { @apply rounded-lg bg-white/90 px-2.5 py-1.5 text-2xs text-slate-500 ring-1 ring-slate-200; }
+  /* 单字图标徽标（主题/导入项的方形头像）。11px 在这里不承载信息——
+     它只是把一个字塞进 24–32px 的方块里，字号是几何约束而不是信息层级。 */
+  .glyph-badge { @apply place-items-center text-2xs font-semibold; }
+
+  /* ── 原型状态条（稿子脚手架，不是产品界面） ──
+     这一条**不会**出现在真实应用里：它是「同一页的第 ②/③ 个状态长什么样」的切换器。
+     抽成组件类的三个理由，按重要性排：
+       1. 它原先在 shell.js / 07 / 08 / 09 里各写了一遍**逐字相同**的 Tailwind 串，
+          而其中三处还各自手写了一遍 `b.className = 'proto-btn h-7 … ' + (on ? … : …)`
+          的整串重建——只想换个选中态，却把基础类一起重写了（这正是
+          classname-rebuild-with-layout 那条门禁记的形态，只是这里没有尺寸类所以它没报）。
+       2. 有了 `-on` 变体，选中态就走 classList.toggle，四处的重建可以一起删掉。
+       3. `text-2xs` 的产品预算不该被脚手架吃掉：文字挪进这里之后，
+          页面里的 text-2xs 计数只反映**产品界面**的用量（text-2xs-budget 门禁按页计数）。 */
+  .proto-btn {
+    @apply h-7 rounded-lg px-2.5 text-2xs font-medium text-slate-300 transition-colors hover:bg-slate-800;
+  }
+  .proto-btn-on { @apply bg-white text-slate-900 hover:bg-white; }
+  .proto-label { @apply mr-1 text-2xs font-semibold text-white; }
+  .proto-note { @apply ml-auto text-2xs text-slate-500; }
+  /* 窗口尺寸条同样是脚手架（三档模拟窗口的切换器），底色是白的所以标签色不同 */
+  .vp-label { @apply mr-1 text-2xs font-semibold text-slate-900; }
+  .vp-note { @apply ml-auto text-2xs text-slate-500; }
+  .vp-note-warn { @apply ml-auto text-2xs font-medium text-amber-700; }
+
+  /* ══ 通用组件库：深色语义令牌层 ══════════════════════════════════════
+     决策 #10 说「深色模式进路线图，令牌层已在 library/components.html 验证」。
+     本轮实测那句话是假的：那一页深色下有 14 个元素与容器**同色**（对比度 1.00），
+     而它自己就是唯一的验证处。修法是把缺的层补上，不是在页面上手写更多 dark:。
+
+     **三层底色，不是两层。** 原先只有 surface / surface-sunken，
+     而界面实际有三层：页面底 → 卡片 → 卡片里的小面板（toast、空态图标圈、卡内卡）。
+     第三层原先复用 `surface`，浅色下靠描边还能读，深色下就是 slate-900 套 slate-900。 */
   .surface { @apply bg-white dark:bg-slate-900; }
   .surface-sunken { @apply bg-slate-50 dark:bg-slate-950; }
+  /* 浮起一层：浅色靠 ring 分隔（白底套白底），深色靠更亮一档的填充。
+     两种模式用不同手段表达同一件事——因为浅色能往下压（阴影/描边），深色只能往上提。 */
+  .surface-raised { @apply bg-white ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700; }
   .hairline { @apply border-slate-200 dark:border-slate-700; }
+  /* 文字**只有三级**。原先写了四级，而 `.ink-4` 在浅色下是 slate-500——
+     与 `.ink-3` 计算值逐位相同（实测都是 rgb(100,116,139)），
+     所以第四级从来只存在于那张表里。为什么不能真的给它 slate-400：
+     slate-400 在白底上约 2.6:1，连非文本图形的 3:1 都不到，
+     那是这一层被提到 500 的原因。**删掉一个假层级比让表说一句真话更对。** */
   .ink { @apply text-slate-900 dark:text-slate-100; }
   .ink-2 { @apply text-slate-600 dark:text-slate-300; }
   .ink-3 { @apply text-slate-500 dark:text-slate-400; }
-  .ink-4 { @apply text-slate-400 dark:text-slate-500; }
   .gal-card { @apply rounded-xl border shadow-sm hairline surface; }
   .skel { @apply animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800; }
+
+  /* 面板（Panel）的卡头节奏。抽出来的直接原因：库页自己的 7 个分区
+     把这四行 Tailwind 逐字抄了 7 遍，而库页正是 Panel 的形态依据——
+     一页在**示范**一个组件，同时在**手抄**这个组件。 */
+  .panel-head { @apply border-b px-4 py-3 hairline; }
+  .panel-title { @apply text-sm font-medium ink; }
+  .panel-sub { @apply mt-0.5 text-xs ink-3; }
+  .panel-body { @apply px-4 py-4; }
+  /* 画廊里每个组件块的标题行：组件名 + 一句「现在有几处手写」的脚手架标注。
+     标注是关于**这份稿子自己**的话（不是产品信息），所以 11px 在这里合法，
+     与 .stage-note / .proto-* 同族；收成组件类之后 text-2xs-budget 数出来的
+     才只是产品界面的用量。 */
+  .gal-item { @apply mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-1; }
+  .gal-name { @apply text-xs font-medium ink-2; }
+  .gal-note { @apply text-2xs ink-3; }
+  /* 行内代码。原先 `rounded bg-slate-100 px-1 dark:bg-slate-800` 在库页里手抄了 10 遍。 */
+  .code-ink { @apply rounded bg-slate-100 px-1 dark:bg-slate-800; }
+  /* 配 `divide-y` 用（divide-* 的颜色也要跟着令牌层走） */
+  .divide-hairline { @apply divide-slate-200 dark:divide-slate-700; }
+  /* 语义徽标：清理项的「删 / 推」。语义色在深色下换 -300 字 + -950 底（保持对比度）。 */
+  .tag-sem { @apply mt-0.5 inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-semibold; }
+  .tag-danger { @apply bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300; }
+  .tag-warn { @apply bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300; }
+  .tag-ok { @apply bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300; }
 
   /* ── Move 1：品牌色接管身份时刻（品牌标记 / 活跃导航 / 主操作 / focus ring） ──
      语义色分工不变：emerald=已启用，rose=危险，sky=信息。
@@ -265,51 +528,171 @@
   .ctl-label { @apply flex items-center gap-1.5 text-xs font-medium text-slate-600; }
   /* 按住标签左右拖动可改值（Blender / AE 式 scrub），光标提示 col-resize */
   .ctl-label-scrub { @apply cursor-col-resize select-none hover:text-slate-900; }
-  .ctl-value { @apply w-[74px] shrink-0 text-right text-2xs font-semibold tabular-nums text-slate-700; }
-  /* 与默认值不同时出现的小点 */
-  .ctl-dirty { @apply size-1.5 shrink-0 rounded-full bg-slate-400; }
+  /* text-2xs → text-xs：**读数是这个控件的全部输出**，而裁决 8 第 1 步明写
+     「承载结论的 11px 一律提到 text-xs：按钮标签、读数值、状态徽标…」。
+     与本文件上面 `.seg-item` 那一条是同一个理由（段名是控件本身的全部信息）。
 
-  /* 自绘滑块：原生 input[type=range] 做不了双拖柄、双向填充和数值气泡 */
+     它此前躲过了 text-2xs-budget，因为那道门禁的 collectFiles 白名单只有
+     `.html` / `.js`——**11px 一旦收进组件类就永久脱离了预算**。
+     `library/controls` 那个「31→1」的漂亮数字里，1 是页面里剩的那一处，
+     而 9 个读数的 11px 全在这一行，一次都没被数到。
+     行高与 text-xs 相同（都 1rem），所以行不变高；实测最宽读数「2400 ms」
+     在 12px 下 53px，远小于固定的 74px，不会撑破。 */
+  .ctl-value { @apply w-[74px] shrink-0 text-right text-xs font-semibold tabular-nums text-slate-700; }
+  /* 与默认值不同时出现的小点。由 Ctl.slider 统一维护（找不到就补一个），
+     不再由页面各自手写——上一版只有 library/controls.html 写了 4 处。 */
+  .ctl-dirty { @apply size-1.5 shrink-0 rounded-full bg-slate-400; }
+  /* 字段行下面那句说明，缩进对齐控件列。
+     104px = 92（标签列）+ 12（gap-3），所以它必须和 .ctl-row 放在一起：
+     此前这个魔数以 `hint-note pl-[104px]` 的形态散在标记里 6 处，
+     而标签列宽一改就有 6 处要跟着改，且改漏的那几处没有任何报错。 */
+  .ctl-hint { @apply mt-1.5 pl-[104px] text-2xs leading-relaxed text-slate-500; }
+
+  /* 自绘滑块：原生 input[type=range] 做不了双拖柄、双向填充和数值气泡。
+     深色分支是补上的（本来一处都没有）：`.sl-fill` 与 `.sl-thumb` 都写死 slate-900，
+     而 `.surface` 在深色下也是 slate-900——实测两者对比度 1.00，
+     于是**深色下滑块看起来是空的**，读不出当前值。
+     滑块是全稿 51 处的控件，所以这一条不是「库页的深色瑕疵」，是共享控件缺一半状态。 */
   .sl { @apply relative h-5 w-full cursor-pointer select-none touch-none; }
-  .sl-track { @apply absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-slate-200; }
-  .sl-fill { @apply absolute top-1/2 h-1 -translate-y-1/2 rounded-full bg-slate-900; }
+  .sl-track { @apply absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-slate-200 dark:bg-slate-700; }
+  .sl-fill { @apply absolute top-1/2 h-1 -translate-y-1/2 rounded-full bg-slate-900 dark:bg-slate-100; }
   .sl-thumb {
     @apply absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-slate-900 shadow-sm
-      transition-[transform,box-shadow] duration-150;
+      transition-[transform,box-shadow] duration-150
+      dark:border-slate-900 dark:bg-slate-100;
   }
   .sl:hover .sl-thumb { @apply scale-110; }
-  .sl-thumb-active { @apply scale-125 ring-2 ring-slate-300; }
-  .sl-tick { @apply absolute top-1/2 h-2 w-px -translate-x-1/2 -translate-y-1/2 bg-slate-300; }
+  .sl-thumb-active { @apply scale-125 ring-2 ring-slate-300 dark:ring-slate-600; }
+  .sl-tick { @apply absolute top-1/2 h-2 w-px -translate-x-1/2 -translate-y-1/2 bg-slate-300 dark:bg-slate-600; }
   /* 默认值标记：轨道下方一个小三角，双击拖柄回到这里 */
-  .sl-default { @apply absolute top-1/2 size-1 -translate-x-1/2 translate-y-1.5 rotate-45 bg-slate-400; }
+  .sl-default { @apply absolute top-1/2 size-1 -translate-x-1/2 translate-y-1.5 rotate-45 bg-slate-400 dark:bg-slate-500; }
+  /* 拖拽气泡也是读数（拖的时候它是**唯一**能看的读数，因为指针盖着别处），
+     所以同样按裁决 8 第 1 步提到 text-xs。 */
   .sl-bubble {
     @apply pointer-events-none absolute -top-7 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-900 px-1.5 py-0.5
-      text-2xs font-semibold tabular-nums text-white shadow-lg;
+      text-xs font-semibold tabular-nums text-white shadow-lg
+      dark:bg-slate-100 dark:text-slate-900;
   }
+  /* 键盘可达：拖柄是 role="slider" + tabindex=0，没有可见焦点环等于键盘用户看不见自己在哪 */
+  .sl-thumb:focus-visible { @apply outline-none ring-2 ring-slate-400 ring-offset-2 dark:ring-slate-500; }
   /* 禁用态必须由 CSS 承担：.sl-fill 是 @apply 组件类，元素上没有 bg-slate-900
      这个类名，JS 里 classList.replace 会静默失败。 */
   .sl-disabled { @apply cursor-not-allowed; }
-  .sl-disabled .sl-track { @apply bg-slate-100; }
-  .sl-disabled .sl-fill { @apply bg-slate-300; }
-  .sl-disabled .sl-thumb { @apply bg-slate-300 ring-0; }
+  .sl-disabled .sl-track { @apply bg-slate-100 dark:bg-slate-800; }
+  .sl-disabled .sl-fill { @apply bg-slate-300 dark:bg-slate-700; }
+  .sl-disabled .sl-thumb { @apply bg-slate-300 ring-0 dark:bg-slate-700; }
   .sl-disabled:hover .sl-thumb { @apply scale-100; }
-  .sl-disabled .sl-tick, .sl-disabled .sl-default { @apply bg-slate-200; }
+  .sl-disabled .sl-tick, .sl-disabled .sl-default { @apply bg-slate-200 dark:bg-slate-700; }
 
   /* 下拉：带描述行和预览缩略图的选项 */
   .opt-row {
     @apply flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-slate-100;
   }
   .opt-row-on { @apply bg-slate-100; }
+  /* 高亮 ≠ 已选。`↑↓ 移动高亮 / ↵ 确认` 这个两段式模型需要两种视觉：
+     已选是底色（我上次选的是这个），高亮是描边（↵ 会落在这个）。
+     只有一种视觉的话，「↵ 确认」这句说明在界面上无从表达——
+     用户不知道自己要确认的是哪一条。 */
+  .opt-row-hi { @apply bg-slate-50 ring-2 ring-inset ring-slate-300; }
   .opt-name { @apply block truncate text-xs font-medium text-slate-800; }
-  .opt-desc { @apply block truncate text-2xs text-slate-400; }
+  .opt-desc { @apply block truncate text-2xs text-slate-500; }
   .opt-thumb { @apply grid size-8 shrink-0 place-items-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50; }
+  /* 选项超过 8 条时的筛选框（Ctl.select 自动出现）。sticky 而不是跟着滚：
+     滚到第 30 条时把筛选框滚出视野，等于筛选只在列表顶部可用。 */
+  .opt-search {
+    @apply sticky top-0 z-10 mb-1 flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2
+      focus-within:border-slate-400 focus-within:ring-2 focus-within:ring-slate-200;
+  }
+  .opt-search input { @apply h-7 w-full min-w-0 border-0 bg-transparent text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none; }
+  /* 组标题。分隔线只加在**非第一组**上，否则筛选后第一条上面会多一根悬空的线 */
+  .opt-group { @apply px-2 pb-0.5 pt-1 text-2xs font-medium text-slate-500; }
+  .opt-group-sep { @apply mt-1 border-t border-slate-100; }
+  /* 空态是结论（「筛出来 0 条」），所以 text-xs 而不是 11px */
+  .opt-empty { @apply px-2 py-3 text-center text-xs text-slate-500; }
 
-  /* 二维偏移板 / 角度盘 / 曲线编辑器 */
+  /* ── 颜色字段：色板 + hex + 吸管 + 结果预览 ──
+     选中态用 classList.toggle('swatch-on')，**不是**重写整串 className。
+     两份手写实现（库页与 01）里库页那份是靠整串覆盖的，
+     于是别人往色板上加的任何类都会在下一次点击时静默消失。 */
+  .swatch { @apply size-7 rounded-lg border border-slate-200 shadow-sm transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2; }
+  /* 窄栏一档（01 的效果卡右栏约 300px）。只是尺寸，不是另一个控件。 */
+  .swatch-sm { @apply size-6; }
+  .swatch-on { @apply border-2 border-slate-950 ring-2 ring-slate-300; }
+  /* 结果预览：棋盘格底 + 当前色按不透明度盖上去。
+     没有棋盘格的话不透明度改了看不出来——90% 和 40% 在白底上几乎同色，
+     而「不透明度」这个字段的全部意义就是那个差别。 */
+  .swatch-preview {
+    @apply relative ml-1 grid size-7 shrink-0 place-items-center overflow-hidden rounded-lg border border-slate-200 shadow-sm;
+    background-image:
+      linear-gradient(45deg, theme(colors.slate.200) 25%, transparent 25%, transparent 75%, theme(colors.slate.200) 75%),
+      linear-gradient(45deg, theme(colors.slate.200) 25%, transparent 25%, transparent 75%, theme(colors.slate.200) 75%);
+    background-size: 8px 8px;
+    background-position: 0 0, 4px 4px;
+    background-color: #fff;
+  }
+  .swatch-preview > span { @apply absolute inset-0; }
+
+  /* ── 快捷键捕获 ──
+     三种态：未绑定（虚线框，在等你点）/ 捕获中（实心黑框，在等你按）/ 已绑定（键帽）。
+     此前这三态在两个页面里各靠一段整串 className 重建实现。 */
+  .keycap {
+    @apply inline-flex h-8 items-center gap-1 rounded-xl border border-slate-200 bg-white px-2 text-xs font-medium text-slate-700 shadow-sm
+      transition-colors hover:border-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400;
+  }
+  .keycap-empty { @apply border-dashed border-slate-300 px-2.5 text-slate-500 hover:text-slate-700; }
+  .keycap-capturing { @apply border-2 border-slate-950 px-2.5 text-slate-900 hover:border-slate-950; }
+
+  /* ── 二维偏移板 ──
+     边缘轴轨是可访问性方案，也是表达：这个控件由 X / Y 两个分量组成。
+     换成「圆点上叠两个 role=slider」的话，document.elementFromPoint 在其中一个
+     中心返回的是另一个，可达性探针会当场误报——而误报会淹掉真问题。 */
   .pad { @apply relative aspect-square w-full cursor-crosshair rounded-xl border border-slate-200 bg-slate-50; }
-  .pad-dot { @apply absolute size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-slate-900 shadow-sm; }
+  .pad-cross-v { @apply pointer-events-none absolute left-1/2 top-0 h-full w-px bg-slate-200; }
+  .pad-cross-h { @apply pointer-events-none absolute left-0 top-1/2 h-px w-full bg-slate-200; }
+  .pad-dot { @apply pointer-events-none absolute size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-slate-900 shadow-sm; }
+  /* 轨道**满铺**而不是内缩：标记的 left/top 用的是「占 pad 宽高的百分比」，
+     与圆点同一套坐标。轨道内缩的话这两者就差一个 inset，值一样、位置不一样——
+     「位置错、数字对」正是 README 记过的那一族（02 的校准图钉）。 */
+  .pad-axis { @apply absolute cursor-pointer bg-slate-200/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-400; }
+  .pad-axis-x { @apply inset-x-0 bottom-0 h-2.5 rounded-b-xl; }
+  .pad-axis-y { @apply inset-y-0 left-0 w-2.5 rounded-l-xl; }
+  .pad-axis-mark { @apply absolute size-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-slate-900; }
+  .pad-axis-x .pad-axis-mark { @apply top-1/2; }
+  .pad-axis-y .pad-axis-mark { @apply left-1/2; }
+
+  /* ── 角度盘 ── */
   .dial { @apply relative size-[86px] shrink-0 cursor-grab rounded-full border border-slate-200 bg-slate-50 active:cursor-grabbing; }
-  .curve { @apply relative h-[104px] w-full rounded-xl border border-slate-200 bg-slate-50; }
-  .curve-handle { @apply absolute size-3 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-full border-2 border-white bg-slate-900 shadow-sm active:cursor-grabbing; }
+  .dial-ring { @apply pointer-events-none absolute inset-2 rounded-full border border-dashed border-slate-200; }
+  .dial-arm { @apply pointer-events-none absolute left-1/2 top-1/2 h-px origin-left bg-slate-900; }
+  .dial-hub { @apply pointer-events-none absolute left-1/2 top-1/2 size-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-slate-900; }
+  .dial-knob {
+    @apply absolute size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-slate-900 shadow-sm
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-1;
+  }
+
+  /* ── 曲线编辑器 ──
+     高度从 104px 提到 160px 的理由是几何而不是观感：可见范围必须覆盖
+     钳位范围 [-0.6, 1.6]（Ctl.curve 的 V_MIN / V_MAX），
+     而 0–1 这一段还得占到足够高度才读得出形状。104px 时它只有 47px。
+     上一版可见范围只到 1.125，于是「弹跳」默认值 y1=1.56 的拖柄
+     实测浮在盒子上方 40px——页面上一颗与任何容器都无关的黑点。 */
+  .curve { @apply relative h-[160px] w-full rounded-xl border border-slate-200 bg-slate-50; }
+  /* 过冲的视觉信号只有两处：曲线本身转琥珀 + 读数后面那句「过冲 N%」。
+     曾经还给整个盒子加过琥珀底，但默认曲线就是「弹跳」（过冲 9.8%），
+     于是控件的**默认态看起来像一条警告**——而过冲不是错误，是这条曲线的性质。 */
+  .curve-guide { @apply pointer-events-none absolute left-1 -translate-y-1/2 text-2xs tabular-nums text-slate-400; }
+  .curve-handle {
+    @apply absolute size-3 -translate-x-1/2 -translate-y-1/2 cursor-grab rounded-full border-2 border-white bg-slate-900 shadow-sm active:cursor-grabbing
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-1;
+  }
+
+  /* ── 复选（含半选） ──
+     方框由 Ctl.bindChecks 注入并按 aria-checked 投影，三种态一份真值。
+     上一版这三个按钮**没有任何监听**，半选只是一根画上去的横线。 */
+  .check-row { @apply flex w-full items-center gap-2.5 rounded-lg px-1 py-1.5 text-left transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400; }
+  .check-box { @apply grid size-4 shrink-0 place-items-center rounded border border-slate-300 bg-white text-white; }
+  .check-box-on { @apply border-slate-950 bg-slate-950; }
+  .check-dash { @apply h-0.5 w-2 rounded-full bg-white; }
 
   /* 时间轴 */
   /* 注意：`group` 是标记类而不是工具类，不能 @apply（Tailwind 会直接报错），
@@ -322,13 +705,20 @@
   /* 横滚时轨名必须钉住，否则滚两屏就不知道在看哪条轨了 */
   .tl-row > :first-child { @apply sticky left-0 z-10 bg-white; }
   .tl-row:hover > :first-child { @apply bg-slate-50; }
+  /* 底色与描边色**不在这里定**：由分类色类（CH_TONE.bar）给，通道之间要能一眼分辨
+     （裁决 11）。这里只留几何、光影与手势。
+     顺序上工具类层在组件类层之后，所以元素上的底色与描边色工具类会赢——
+     但这也意味着 .tl-bar-on 不能再用 border-color 表达选中，否则会被分类色盖掉，
+     于是改用 ring（它与分类色不在同一属性上，两者可以叠加）。
+     注意：这段注释里不能出现 星号紧跟斜杠 的写法，那会提前闭合 CSS 注释——
+     我刚在这里踩过一次，编译直接报 postcss selector 错误，与「模板字符串里的反引号」同族。 */
   .tl-bar {
-    @apply absolute top-1/2 h-5 -translate-y-1/2 cursor-grab rounded-md border border-slate-300 bg-white shadow-sm
+    @apply absolute top-1/2 h-5 -translate-y-1/2 cursor-grab rounded-md border shadow-sm
       transition-[box-shadow,filter] duration-150 hover:shadow-md active:cursor-grabbing;
   }
-  .tl-bar-on { @apply border-slate-900 ring-1 ring-slate-900/10; }
+  .tl-bar-on { @apply ring-2 ring-slate-900/45; }
   .tl-bar-muted { @apply border-dashed border-slate-300 bg-slate-50 opacity-50; }
-  .tl-iconbtn { @apply grid size-5 shrink-0 place-items-center rounded text-2xs font-semibold text-slate-400 transition-colors hover:bg-slate-200 hover:text-slate-700; }
+  .tl-iconbtn { @apply grid size-5 shrink-0 place-items-center rounded text-2xs font-semibold text-slate-500 transition-colors hover:bg-slate-200 hover:text-slate-700; }
   .tl-iconbtn-on { @apply bg-slate-900 text-white hover:bg-slate-900 hover:text-white; }
 
   /* ══ 时间轴 v2：锚点、链接、循环区间、属性子轨 ══ */
@@ -359,4 +749,34 @@
   /* 属性子轨 */
   .sub-lane { @apply relative h-5 rounded bg-slate-50 ring-1 ring-inset ring-slate-200/80; }
   .sub-lane-on { @apply bg-white ring-slate-900/30; }
+
+  /* ══ L2 · 布局因果层（DESIGN.md 动效三层 / DECISIONS.md 裁决 10）══════
+
+     用途：抽屉展开折叠、侧栏展开折叠、卡片折叠、列宽 commit、分区切换。
+
+     职责是**表达因果**，不是装饰。判据很具体：一次操作同时改变了两个区域的尺寸时
+     （展开抽屉 → 舞台变小 → 传输控件行下移），没有过渡的话用户读不出这两件事的关系，
+     只会觉得「那块东西消失了」——A1 那个「控制条被盖住」之所以读不懂，一半原因就是瞬跳。
+
+     全稿实测过：改这一层之前 `transition-colors` 91 处、尺寸变化 **0 处有过渡**，
+     `prefers-reduced-motion` **0 处**。也就是说这套 UI 只会动颜色。
+
+     属性**逐条列举**（不用 transition-all，三层都禁）。谁需要动谁加类，
+     不做成全局 `*` 选择器——那会把 L3 内容效果也一起接管。 */
+  .motion-layout {
+    @apply transition-[height,width,max-height,grid-template-columns,transform,opacity] duration-200 ease-out;
+  }
+  /* 拖拽**过程中**必须停掉过渡，否则会滞后跟手（拖抽屉、拖列宽）。
+     松手 commit 时再让它过渡。 */
+  .motion-none { @apply transition-none; }
+
+  /* prefers-reduced-motion 是**硬约束**（DESIGN.md 可访问性节）：
+     L2 降为 0ms。写在 CSS 里而不是用 JS 判断——JS 判断会漏掉运行中改系统设置的情况。
+     L1（颜色）保留：颜色过渡不构成动态刺激。
+     L3（手动预览）也保留：用户主动点一下要看效果，那是他的意图，不该被剥夺。 */
+  @media (prefers-reduced-motion: reduce) {
+    .motion-layout { @apply transition-none; }
+    /* 骨架脉冲与 AI 活动跳点属于「持续自发动画」，这一档一并停掉 */
+    .animate-pulse, .animate-spin { animation: none !important; }
+  }
 }

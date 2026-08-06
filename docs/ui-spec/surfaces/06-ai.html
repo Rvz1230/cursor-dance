@@ -20,7 +20,7 @@
     <!-- ══ 左：目标区（简化的工作台，用于演示定位与高亮） ══ -->
     <div class="flex min-h-0 flex-col gap-2.5 overflow-y-auto pr-1">
       <div class="rounded-xl border border-dashed border-slate-300 bg-white px-3 py-2">
-        <p class="text-2xs leading-relaxed text-slate-500">
+        <p class="hint-inline">
           左侧是<span class="font-medium text-slate-700">工作台的简化示意</span>，只为演示「hover 提案项 → 高亮它要改的位置」。
           实现时它就是真实的效果卡与时间轴。
         </p>
@@ -53,7 +53,7 @@
         <div class="min-w-0">
           <h3 class="flex items-center gap-2 text-sm font-medium text-slate-900">
             AI 助手
-            <span class="inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-2xs font-medium text-slate-600">只提案，不写入</span>
+            <span class="inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-600">只提案，不写入</span>
           </h3>
           <div class="mt-0.5 text-xs text-slate-500">产出一份可逐项接受的补丁</div>
         </div>
@@ -64,12 +64,38 @@
 
       <!-- ① 空态 -->
       <div data-show="empty" class="flex min-h-0 flex-1 flex-col items-center justify-center px-6 text-center">
-        <div class="grid size-11 place-items-center rounded-full bg-slate-100 text-slate-400">
+        <div class="grid size-11 place-items-center rounded-full bg-slate-100 text-slate-500">
           <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8V4H8M4 8h16v12H4zM9 16h6"/></svg>
         </div>
         <p class="mt-3 text-xs font-medium text-slate-600">说一句你想要的手感</p>
-        <p class="mx-auto mt-1.5 max-w-[260px] text-2xs leading-relaxed text-slate-500">
+        <p class="mx-auto mt-1.5 max-w-[260px] text-xs leading-relaxed text-slate-500">
           它会读当前配置、时间关系和最近的诊断，产出一份补丁。<span class="font-medium text-slate-700">在你逐项确认之前，什么都不会写入。</span>
+        </p>
+        <!--
+          ── 一个 AI 入口，按意图路由（DECISIONS.md 裁决 7）──
+
+          原先稿子有两个 AI 页面：06「提案人」（在闭区间里选值，交付字段补丁）与
+          10「创作型 Agent」（写效果程序，交付一段规格）。**两条工具链可以并存，
+          两个产品概念不行**——那个稿子已被归档为 `10-agent-merged-into-06.html`。
+
+          合并的理由是 06 自己用过的那一条：它那一版取消了「快速 / Agent」模式选择，
+          理由是**「模式是实现细节，不该由用户决定」**。同一条理由在「两个 AI 助手」
+          这一层同样适用，只是层级更高一级。
+
+          所以这里把三种意图摆出来，路由由系统判断：
+            调整当前场景 → 字段补丁链（五种 op，逐项接受）
+            排查为什么没效果 → 只读工具 + 诊断
+            从描述创建新场景 → 效果程序链（DSL + 无头渲染 + 客观指标 + 新颖性距离）
+          用户看到的始终是一个助手。
+        -->
+        <div class="mx-auto mt-3 flex max-w-[280px] flex-wrap justify-center gap-1.5">
+          <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">调整当前场景</span>
+          <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">排查为什么没效果</span>
+          <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">从描述创建新场景</span>
+        </div>
+        <p class="mx-auto mt-2 max-w-[280px] text-2xs leading-relaxed text-slate-500">
+          三种都在这一个入口里。<span class="font-medium text-slate-700">用哪条链由它自己判断</span>——
+          模式是实现细节，不该由你来选。
         </p>
       </div>
 
@@ -79,10 +105,10 @@
         <!-- 过程区（只读工具，可折叠） -->
         <div class="shrink-0 border-b border-slate-100">
           <button id="stepsToggle" class="flex w-full items-center gap-2 px-4 py-2 text-left transition-colors hover:bg-slate-50">
-            <svg id="stepsChevron" class="size-3.5 shrink-0 text-slate-400 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 6 6 6-6 6"/></svg>
-            <span class="text-2xs font-semibold text-slate-600">过程</span>
-            <span id="stepsSummary" class="min-w-0 flex-1 truncate text-2xs text-slate-400"></span>
-            <span class="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-2xs font-medium text-slate-500">全部只读</span>
+            <svg id="stepsChevron" class="size-3.5 shrink-0 text-slate-500 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 6 6 6-6 6"/></svg>
+            <span class="text-xs font-semibold text-slate-600">过程</span>
+            <span id="stepsSummary" class="min-w-0 flex-1 truncate text-xs text-slate-500"></span>
+            <span class="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-medium text-slate-500">全部只读</span>
           </button>
           <div id="stepsBody" class="hidden space-y-1 px-4 pb-2.5"></div>
         </div>
@@ -91,11 +117,11 @@
         <div class="min-h-0 flex-1 overflow-y-auto">
           <div id="answer" class="border-b border-slate-100 px-4 py-3"></div>
           <div id="opsHead" class="flex flex-wrap items-center justify-between gap-2 px-4 py-2">
-            <span class="text-2xs font-semibold text-slate-600">改动 <span id="opsCount">0</span> 项</span>
+            <span class="text-xs font-semibold text-slate-600">改动 <span id="opsCount">0</span> 项</span>
             <div class="flex items-center gap-1.5">
-              <button id="selAll" class="text-2xs font-medium text-slate-500 underline underline-offset-2 hover:text-slate-900">全选</button>
+              <button id="selAll" class="text-xs font-medium text-slate-500 underline underline-offset-2 hover:text-slate-900">全选</button>
               <span class="text-slate-300">·</span>
-              <button id="selNone" class="text-2xs font-medium text-slate-500 underline underline-offset-2 hover:text-slate-900">全不选</button>
+              <button id="selNone" class="text-xs font-medium text-slate-500 underline underline-offset-2 hover:text-slate-900">全不选</button>
             </div>
           </div>
           <div id="ops" class="space-y-1.5 px-3 pb-3"></div>
@@ -105,9 +131,9 @@
         <!-- 底部操作 -->
         <div class="shrink-0 space-y-2 border-t border-slate-100 bg-slate-50/60 px-4 py-2.5">
           <div class="flex flex-wrap items-center gap-1.5">
-            <button id="abBtn" class="btn-outline h-7 px-2.5 text-2xs" title="按住查看接受后的效果">A/B 试听</button>
-            <button id="savePreset" class="btn-outline h-7 px-2.5 text-2xs">存为预设</button>
-            <span id="budgetHint" class="ml-auto text-2xs text-slate-500"></span>
+            <button id="abBtn" class="btn-outline h-7 px-2.5 text-xs" title="按住查看接受后的效果">A/B 试听</button>
+            <button id="savePreset" class="btn-outline h-7 px-2.5 text-xs">存为预设</button>
+            <span id="budgetHint" class="ml-auto text-xs text-slate-500"></span>
           </div>
           <div class="flex items-center gap-1.5">
             <button id="acceptBtn" class="btn-default h-8 flex-1 px-3 text-xs">接受选中的 <span id="acceptCount">0</span> 项</button>
@@ -121,17 +147,17 @@
         <div id="intents" class="mb-2 flex flex-wrap gap-1.5"></div>
         <div class="relative">
           <textarea id="ask" rows="2" placeholder="想要什么手感？例：点击再克制一点，但保留粒子"
-            class="w-full resize-none rounded-xl border border-slate-200 bg-white px-2.5 py-2 pr-9 text-xs leading-relaxed text-slate-700 shadow-sm placeholder:text-slate-400 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"></textarea>
+            class="w-full resize-none rounded-xl border border-slate-200 bg-white px-2.5 py-2 pr-9 text-xs leading-relaxed text-slate-700 shadow-sm placeholder:text-slate-500 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-200"></textarea>
           <button id="sendBtn" class="absolute bottom-2 right-2 grid size-6 place-items-center rounded-lg bg-slate-950 text-white transition-colors hover:bg-slate-800" aria-label="发送">
             <svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
           </button>
         </div>
         <!-- 隐私：诊断含前台应用名，默认脱敏 -->
-        <button id="privacyToggle" class="mt-2 flex w-full items-start gap-2 rounded-lg px-1 py-1 text-left transition-colors hover:bg-slate-50">
+        <button id="privacyToggle" role="switch" aria-checked="false" class="mt-2 flex w-full items-start gap-2 rounded-lg px-1 py-1 text-left transition-colors hover:bg-slate-50">
           <span id="privacyKnob" class="switch-knob mt-0.5"></span>
           <span class="min-w-0 flex-1">
-            <span class="block text-2xs font-medium text-slate-600">诊断里带上应用名</span>
-            <span id="privacyDesc" class="mt-0.5 block text-2xs leading-relaxed text-slate-400">当前发送为「某应用」。开启后会发送真实名称（如 Figma），建议更准。</span>
+            <span class="block text-xs font-medium text-slate-600">诊断里带上应用名</span>
+            <span id="privacyDesc" class="hint-sub">当前发送为「某应用」。开启后会发送真实名称（如 Figma），建议更准。</span>
           </span>
         </button>
       </div>
@@ -170,18 +196,18 @@ function renderTarget() {
   $('targetCards').innerHTML = CARDS.map((c) => `
     <div data-tcard="${c.key}" class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm transition-colors">
       <div class="flex items-center gap-2.5">
-        <span class="grid size-7 shrink-0 place-items-center rounded-xl text-2xs font-semibold ${c.on ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'}">${c.name[0]}</span>
+        <span class="grid size-7 shrink-0 place-items-center rounded-xl glyph-badge ${c.on ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'}">${c.name[0]}</span>
         <span class="min-w-0 flex-1">
           <span class="flex items-center gap-2">
             <span class="text-xs font-medium text-slate-900">${c.name}</span>
-            ${c.on ? '<span class="inline-flex items-center gap-1 text-2xs font-semibold text-emerald-700"><span class="size-1.5 rounded-full bg-emerald-500"></span>已启用</span>' : '<span class="text-2xs text-slate-400">已关闭</span>'}
+            ${c.on ? '<span class="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700"><span class="size-1.5 rounded-full bg-emerald-500"></span>已启用</span>' : '<span class="text-2xs text-slate-500">已关闭</span>'}
           </span>
-          <span class="mt-0.5 block text-2xs text-slate-400">${c.preset}</span>
+          <span class="hint-sub">${c.preset}</span>
         </span>
       </div>
       <div class="mt-2 flex flex-wrap gap-1.5">
         ${c.fields.map(([label, value, src]) => `
-          <span data-tfield="${c.key}|${label}" class="inline-flex items-center gap-1 rounded-lg bg-slate-50 px-1.5 py-0.5 text-2xs text-slate-600 ring-1 ring-slate-200">
+          <span data-tfield="${c.key}|${label}" class="inline-flex items-center gap-1 rounded-lg bg-slate-50 px-1.5 py-0.5 text-xs text-slate-600 ring-1 ring-slate-200">
             <span class="size-1.5 rounded-full ${SRC_DOT[src]}" title="${SRC_NAME[src]}"></span>${label} <span class="font-semibold tabular-nums">${value}</span>
           </span>`).join('')}
       </div>
@@ -190,11 +216,11 @@ function renderTarget() {
   const T = Math.max(...LANES.map((l) => l.start + l.dur));
   $('targetLanes').innerHTML = LANES.map((l) => `
     <div data-tlane="${l.key}" class="grid grid-cols-[52px_minmax(0,1fr)] items-center gap-2 rounded-lg px-1 py-0.5 transition-colors">
-      <span class="truncate text-2xs font-semibold text-slate-600">${l.label}</span>
+      <span class="truncate text-xs font-semibold text-slate-600">${l.label}</span>
       <span class="relative block h-5 rounded bg-slate-100/70">
         <span class="absolute top-1/2 h-4 -translate-y-1/2 rounded border border-slate-300 bg-white shadow-sm"
               style="left:${(l.start / T) * 100}%;width:${Math.max(1.5, (l.dur / T) * 100)}%">
-          ${l.ref !== 'trigger' ? '<span class="absolute -top-0.5 left-0.5 text-[8px] leading-3 text-slate-400">⛓</span>' : ''}
+          ${l.ref !== 'trigger' ? '<span class="absolute -top-0.5 left-0.5 text-[8px] leading-3 text-slate-500">⛓</span>' : ''}
         </span>
       </span>
     </div>`).join('');
@@ -253,7 +279,7 @@ function renderSteps() {
   $('stepsSummary').textContent = stepsOpen ? '' : steps.map((s) => s[0]).join(' → ');
   $('stepsBody').innerHTML = steps.map(([tool, note], i) => `
     <div class="flex items-baseline gap-2">
-      <span class="w-4 shrink-0 text-2xs tabular-nums text-slate-300">${i + 1}</span>
+      <span class="w-4 shrink-0 text-xs tabular-nums text-slate-300">${i + 1}</span>
       <code class="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 font-mono text-2xs ${tool === 'propose_patch' ? 'text-slate-900' : 'text-slate-500'}">${tool}</code>
       <span class="min-w-0 flex-1 text-2xs leading-relaxed text-slate-500">${note}</span>
     </div>`).join('');
@@ -268,23 +294,23 @@ function renderOps() {
       : `<span class="rounded px-1 py-0.5 font-semibold tabular-nums ${tone}">${v}</span>`);
     return `<div data-op="${op.id}" class="rounded-xl border ${op.accept ? 'border-slate-900' : 'border-slate-200'} bg-white px-3 py-2.5 shadow-sm transition-colors">
       <div class="flex items-start gap-2.5">
-        <button data-toggle-op="${op.id}" class="mt-0.5 grid size-4 shrink-0 place-items-center rounded border ${op.accept ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-300 bg-white'}" aria-label="接受这一项">
+        <button data-toggle-op="${op.id}" role="checkbox" aria-checked="${!!op.accept}" class="mt-0.5 grid size-4 shrink-0 place-items-center rounded border ${op.accept ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-300 bg-white'}" aria-label="接受这一项">
           ${op.accept ? '<svg class="size-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5"><path d="M20 6 9 17l-5-5"/></svg>' : ''}
         </button>
         <div class="min-w-0 flex-1">
           <div class="flex flex-wrap items-center gap-1.5">
-            <span class="inline-flex items-center rounded px-1.5 py-0.5 text-2xs font-semibold ${kindTone}">${kindLabel}</span>
+            <span class="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-semibold ${kindTone}">${kindLabel}</span>
             <span class="min-w-0 truncate text-xs font-medium text-slate-800">${op.target}</span>
           </div>
-          <div class="mt-1.5 flex flex-wrap items-center gap-1.5 text-2xs">
+          <div class="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
             ${val(op.from, op.fromCurve, 'bg-slate-100 text-slate-500 line-through')}
             <svg class="size-3 shrink-0 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
             ${val(op.to, op.toCurve, 'bg-slate-900 text-white')}
-            ${op.keepsLink ? '<span class="inline-flex items-center gap-1 rounded bg-slate-50 px-1.5 py-0.5 text-2xs text-slate-500 ring-1 ring-slate-200">⛓ 保留链接</span>' : ''}
-            ${op.budget ? `<span class="inline-flex items-center rounded bg-emerald-50 px-1.5 py-0.5 text-2xs font-medium text-emerald-700">${budget}</span>` : ''}
+            ${op.keepsLink ? '<span class="inline-flex items-center gap-1 rounded bg-slate-50 px-1.5 py-0.5 text-xs text-slate-500 ring-1 ring-slate-200">⛓ 保留链接</span>' : ''}
+            ${op.budget ? `<span class="inline-flex items-center rounded bg-emerald-50 px-1.5 py-0.5 text-xs font-medium text-emerald-700">${budget}</span>` : ''}
           </div>
-          <p class="mt-1.5 text-2xs leading-relaxed text-slate-500">${op.reason}</p>
-          ${op.conflict ? `<p class="mt-1.5 inline-flex items-start gap-1 rounded-lg bg-amber-50 px-1.5 py-1 text-2xs leading-relaxed text-amber-800">
+          <p class="hint-note">${op.reason}</p>
+          ${op.conflict ? `<p class="mt-1.5 inline-flex items-start gap-1 rounded-lg bg-amber-50 px-1.5 py-1 text-xs leading-relaxed text-amber-800">
             <svg class="mt-0.5 size-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
             ${op.conflict}</p>` : ''}
         </div>
@@ -334,7 +360,7 @@ function renderRisks() {
     <p class="flex items-start gap-1.5 rounded-xl bg-amber-50 px-2.5 py-2 text-2xs leading-relaxed text-amber-800">
       <svg class="mt-0.5 size-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>${r}</p>`).join('');
   $('answer').innerHTML = `<p class="text-xs leading-relaxed text-slate-700">${answerHtml}</p>`
-    + (link ? `<button class="mt-2 text-2xs font-medium text-slate-900 underline underline-offset-2">${link}</button>` : '');
+    + (link ? `<button class="mt-2 text-xs font-medium text-slate-900 underline underline-offset-2">${link}</button>` : '');
   $('budgetHint').textContent = budget && state !== 'accepted' ? budget : '';
 }
 
@@ -376,7 +402,8 @@ $('abBtn').addEventListener('pointerdown', () => { ab = true; $('abBtn').textCon
 window.addEventListener('pointerup', () => { if (ab) { ab = false; $('abBtn').textContent = 'A/B 试听'; } });
 $('privacyToggle').addEventListener('click', () => {
   privacy = !privacy;
-  $('privacyKnob').className = 'switch-knob mt-0.5' + (privacy ? ' switch-on' : '');
+  $('privacyKnob').classList.toggle('switch-on', privacy);
+  $('privacyToggle').setAttribute('aria-checked', String(privacy));
   $('privacyDesc').textContent = privacy
     ? '会发送真实应用名（如 Figma）。仅用于本次请求，不留存。'
     : '当前发送为「某应用」。开启后会发送真实名称（如 Figma），建议更准。';
@@ -388,7 +415,7 @@ $('sendBtn').addEventListener('click', () => {
 });
 
 const INTENTS = ['更克制', '更夸张', '贴合深色桌面', '降低性能开销', '为什么没效果'];
-$('intents').innerHTML = INTENTS.map((t) => `<button data-intent="${t}" class="preset-chip">${t}</button>`).join('');
+$('intents').innerHTML = INTENTS.map((t) => `<button data-intent="${t}" class="chip-action">${t}</button>`).join('');
 $('intents').querySelectorAll('[data-intent]').forEach((b) => b.addEventListener('click', () => {
   $('ask').value = b.dataset.intent === '为什么没效果' ? '我配好了但点击经常没效果，为什么' : `让点击${b.dataset.intent}`;
   $('sendBtn').click();
@@ -403,7 +430,8 @@ Ctl.select($('scopeSel'), {
 function setProtoLocal(id) {
   document.querySelectorAll('.proto-btn').forEach((b) => {
     const on = b.dataset.proto === id;
-    b.className = 'proto-btn h-7 rounded-lg px-2.5 text-2xs font-medium ' + (on ? 'bg-white text-slate-900' : 'text-slate-300 hover:bg-slate-800');
+    b.classList.toggle('proto-btn-on', on);
+    b.setAttribute('aria-checked', String(on));
   });
   onProtoState(id);
   document.querySelectorAll('[data-show]').forEach((el) => {

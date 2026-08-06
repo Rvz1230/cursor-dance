@@ -1,9 +1,58 @@
 # CLAUDE.md
 
+## 当前阶段：UI 原型稿优先（2026-08-04 起）
+
+**`docs/ui-spec/` 是桌面版前端重构的唯一依据，优先级高于其它一切文档。**
+
+稿子里一个假的预览、一个说谎的裁决条，都会被原样实现进真实代码——所以稿子的
+正确性就是重构的正确性。当前阶段的任务是把稿子修到能当依据用，**不是**改 `src/`。
+
+三条纪律：
+
+1. **稿子与其它文档冲突时以稿子为准**，但**必须在 `docs/ui-spec/DECISIONS.md` 登记裁决**
+   （现状 / 冲突双方 / 裁决 / 理由 / 影响页面）。不允许静默偏离——已经发生过
+   8 次静默反转，后果是重构的人会同时读到两份互相矛盾的"已定稿"规格。
+2. **不改 `src/`。** 可以改：`docs/ui-spec/**`、`docs/*.md`、`DESIGN.md`、
+   `CLAUDE.md`、`scripts/check-*.mjs` 门禁。读 `src/` 来核对稿子是鼓励的
+   （功能对等清点、以及查"稿子是不是复刻了一个已修好的缺陷"都靠它）。
+3. **「页面渲染正常」永远不是验证结论。** 必须真的点，而且要**改一个状态再看别处**
+   ——稿子里绝大多数缺陷都是「A 变了 B 没跟着变」这一类，只点单个控件永远发现不了。
+
+### 改动稿子后的必跑流程
+
+```bash
+# 1. 重编样式（新增任何类之后必跑，否则 Tailwind 会按 content 扫描把 @layer components 摇掉）
+npx tailwindcss -c docs/ui-spec/tailwind.config.cjs -i docs/ui-spec/_src.css -o docs/ui-spec/mockup.css --minify
+# 2. 两道门禁（各自都做过「注入违规 → 确认报出 rule id → 还原」自测）
+npm run check:ui-spec && npm run check:design-tokens
+```
+
+再用 `preview_*` 起 dev server（**不要用 curl 判断服务在不在**，沙箱只放行两个 host），
+在三档窗口（960×680 默认 / 1440×892 大屏 / 720×480 最小）下跑机械探针，四项都必须为 0：
+
+| 探针 | 判据 |
+| --- | --- |
+| 可达性 | `document.elementFromPoint` 在每个可交互元素中心的返回值必须是它自己或其子孙。**先排除落在滚动容器可见框之外的元素**，否则横向滚动条里的每个页签都会被误报，真正的问题会淹在噪声里 |
+| aria 状态成对 | 带选中/展开态的 `<button>` 必须有 `aria-pressed\|checked\|selected\|expanded`，**且每次点击之后与视觉类同侧** |
+| 滑块可访问名 | `.sl-thumb` 的 `aria-label` / `aria-valuemin` / `aria-valuemax` 缺失数为 0（`Ctl.slider` 推导不到名字时会留 `data-noname` 并 warn） |
+| 竖排单字 | 宽度 < 1.6em 且高度 > 2.2em 的纯文本节点数为 0 |
+
+**静态门禁与运行时探针必须两边都跑，缺一不可。** 这不是保险起见：
+`aria-state-missing` 有一版判据把 `class="action-tab${on ? …}"` 整族漏掉了
+（基类紧跟模板占位符、中间没有空格），静态侧打印 PASS，而浏览器里 5 个动作页签
+一个 aria 状态都没有——**是运行时探针把它翻出来的**。反过来，
+`text-2xs` 每页计数这类事只有静态侧数得准。
+
+探针里凡是「改一个状态再看别处」的检查，**先确认测试自己是幂等的、测量点是对的**：
+有一次把 9 个字段判成「绑定没生效」，实际是上一批已经把值设成了目标值，再设一次自然没变化；
+还有一次测量点选在飘字入场之前（t=420，而它 424.4ms 才开始）。
+**两次都是探针在说谎，不是稿子在说谎。**
+
 ## Session Startup
-When starting a new session for **desktop app development**, read these two files first (in order):
-1. `PROGRESS.md` — current phase, completed tasks, active branch, blockers
-2. `steady-painting-yeti-prompts.md` — copy the prompt for the next unchecked task
+When starting a new session for **desktop app development**, read these files first (in order):
+1. `docs/ui-spec/DECISIONS.md` — 决策裁决表，冲突以它为准
+2. `PROGRESS.md` — current phase, completed tasks, active branch, blockers
+3. `steady-painting-yeti-prompts.md` — copy the prompt for the next unchecked task
 
 Do NOT re-read the full plan (`docs/plans/steady-painting-yeti.md`) unless crossing a phase boundary or hitting an unexpected issue not covered by the prompts.
 
@@ -159,8 +208,15 @@ Desktop removes: audio ducking (no page media to duck), site-matcher (replaced b
 Independent Vite + React build for the public website. Not part of the Electron app.
 
 ## Design
-- `DESIGN.md` — unified design language for both extension and desktop (colors, typography, spacing, radius, shadows, motion)
+- `docs/ui-spec/DECISIONS.md` — **决策裁决表，冲突以它为准**
+- `docs/ui-spec/README.md` — 稿子怎么画的、走查记录、实现级教训（教训不因裁决失效）
+- `DESIGN.md` — unified design language for both extension and desktop。动效与色彩两节
+  已在 2026-08-04 按裁决 10/11 重写：**动效三层模型**（L1 反馈 150ms / L2 布局因果 200ms
+  允许 transform / L3 内容效果不受约束）、**颜色三类**（外壳 / 语义 / 内容·分类色）、
+  `prefers-reduced-motion` 改为硬约束
 - `DESIGN-desktop.md` — desktop-only UI surfaces (window chrome, tray, keyboard, branding)
+- `docs/ux-rearchitecture-spec.md` — 信息架构与任务流的原始论证。**其保存栏 / `DirtyState`
+  相关条目已被裁决 1 废弃**，其余（作用域表、§5 页面约束、§6 应用规则模型、§8 实现边界）仍有效
 
 ## No-go areas
 
@@ -176,6 +232,19 @@ Independent Vite + React build for the public website. Not part of the Electron 
 - Do NOT add audio ducking on desktop (no page media)
 - Do NOT let engine logic diverge between extension and desktop — cross-platform behavior belongs in `src/shared/effect-core/` or `src/shared/effect-runtime/`
 - Keep the action-config, text-semantics, and compute-specs parity tests green whenever shared engine semantics change
+
+### 已被裁决替换的 no-go 条目（保留可追溯，不要再当规则引用）
+
+这些条目仍写在上面或 `DESIGN.md` 里，但已由 `docs/ui-spec/DECISIONS.md` 推翻：
+
+| 原条目 | 替换来源 |
+| --- | --- |
+| 「颜色只有两类」/「每视图只用一个强调色」适用于全部界面 | 裁决 11：新增内容色/分类色，`每视图一个强调色` 只约束外壳 |
+| 「禁止 transform 过渡（仅 `active:scale`）」/「时长统一 150ms」 | 裁决 10：L2 布局因果层允许 transform，200ms |
+| 「自动保存 + 撤销，删掉保存按钮」= 编辑即刻生效到运行时 | 裁决 1：草稿与运行时分开，新增「应用到桌面」 |
+| `text-2xs` = 10px | 裁决 8：统一 11px |
+| 托盘面板是「最高频入口」（320px 自绘面板） | 裁决 9：跟随 `PROGRESS.md` R1-6，降级成原生菜单 |
+| 创作型 Agent 与 AI 助手是两个页面、「不要合并」 | 裁决 7：已并入 `06`，对用户只有一个 AI 入口 |
 
 ### General
 - Read `docs/project-stabilization-todo.md` and `docs/engineering-backlog.md` before large architecture changes

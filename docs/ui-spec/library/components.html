@@ -16,106 +16,146 @@
 
 <div class="mx-auto max-w-[1080px]">
 
-  <!-- ══ PageHeader：这一块本身就是要抽出来的组件 ══ -->
+  <!--
+    ══ PageHeader ══
+    这一块自己就是 PageHeader 的一个实例（`ui/page-header.tsx` 的形态依据），
+    所以它的 markup 与下面 PageHeader 那一节演示的是同一套类，不是两套。
+  -->
   <div class="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
     <div class="min-w-0">
       <h1 class="text-base font-semibold ink text-balance">通用组件库</h1>
       <p class="mt-1 max-w-2xl text-xs leading-relaxed ink-3 text-pretty">
-        补齐三个新模块里反复手写的组件，统一反馈渠道，并验证深色模式的语义令牌层。
+        十个共享组件的形态依据，全部可交互。深色开关走语义令牌层——这一页同时是那一层唯一的验证处。
       </p>
     </div>
-    <div class="flex shrink-0 items-center gap-2">
-      <div class="seg-group">
-        <button data-mode="light" class="seg-item">浅色</button>
-        <button data-mode="dark" class="seg-item">深色</button>
+    <div class="flex shrink-0 flex-wrap items-center gap-2">
+      <div class="seg-group" role="radiogroup" aria-label="配色" data-seg="mode">
+        <button data-mode="light" role="radio" aria-checked="true" tabindex="0" class="seg-item seg-item-on">浅色</button>
+        <button data-mode="dark" role="radio" aria-checked="false" tabindex="-1" class="seg-item">深色</button>
       </div>
-      <a href="../index.html" class="btn-outline h-8 px-3 text-xs dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">← 规范首页</a>
+      <a href="controls.html" class="btn-outline h-8 px-3 text-xs">配置控件库</a>
+      <a href="../index.html" class="btn-outline h-8 px-3 text-xs">← 规范首页</a>
     </div>
   </div>
 
   <div class="space-y-3">
 
-    <!-- ── 1. 新增组件 ── -->
+    <!-- ════════ A. 五个新增组件 ════════ -->
     <section class="gal-card">
-      <div class="border-b px-4 py-3 hairline">
-        <h3 class="text-sm font-medium ink">新增组件</h3>
-        <p class="mt-0.5 text-xs ink-3">这五个现在每处都在手写，抽出来后新页面不必再重复一遍。</p>
+      <div class="panel-head">
+        <h2 class="panel-title">新增组件 · 5 个</h2>
+        <p class="panel-sub">这五个原先在各页各写一遍。抽出来的收益不是少打字，是<span class="font-medium ink-2">间距、窄屏折行、键盘行为只有一种</span>。</p>
       </div>
       <div class="space-y-4 px-4 py-4">
 
-        <!-- EmptyState -->
+        <!-- ── PageHeader ── -->
         <div>
-          <div class="mb-2 flex items-baseline gap-2">
-            <span class="text-xs font-medium ink-2">EmptyState</span>
-            <span class="text-2xs ink-4">现有 3 处手写：应用规则 / 效果卡空态 / 主题库</span>
+          <div class="gal-item">
+            <span class="gal-name">PageHeader</span>
+            <span class="gal-note">接入点 StatesPanel；<code class="code-ink">title</code> / <code class="code-ink">description?</code> / <code class="code-ink">actions?</code></span>
           </div>
-          <div class="grid gap-2 md:grid-cols-3">
-            <div class="rounded-xl border border-dashed px-4 py-6 text-center hairline">
-              <div class="mx-auto grid size-10 place-items-center rounded-full surface ink-4 shadow-sm ring-1 ring-slate-200 dark:ring-slate-700">
-                <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
+          <div class="space-y-2">
+            <div class="rounded-xl border border-dashed p-3 hairline">
+              <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div class="min-w-0">
+                  <h3 class="text-base font-semibold ink text-balance">光标皮肤</h3>
+                  <p class="mt-1 max-w-2xl text-xs leading-relaxed ink-3 text-pretty">替换系统光标，并为指向、按下、拖拽这些状态各配一套反馈。</p>
+                </div>
+                <div class="flex shrink-0 flex-wrap items-center gap-2">
+                  <div class="seg-group" role="radiogroup" aria-label="示例：模式" data-seg="ph">
+                    <button role="radio" aria-checked="true" tabindex="0" class="seg-item seg-item-on">试用</button>
+                    <button role="radio" aria-checked="false" tabindex="-1" class="seg-item">校准</button>
+                  </div>
+                  <button class="btn-default h-8 px-3 text-xs" data-toast="已导入皮肤">导入皮肤</button>
+                </div>
               </div>
-              <p class="mt-3 text-xs font-medium ink-2">还没有内容</p>
-              <p class="mx-auto mt-1.5 max-w-[220px] text-2xs leading-relaxed ink-3">一句话说明这里会出现什么。</p>
-              <button class="btn-default mt-3 h-7 px-2.5 text-2xs">主操作</button>
             </div>
-            <div class="rounded-xl border border-dashed px-4 py-6 text-center hairline">
-              <div class="mx-auto grid size-10 place-items-center rounded-full surface ink-4 shadow-sm ring-1 ring-slate-200 dark:ring-slate-700">
-                <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-              </div>
-              <p class="mt-3 text-xs font-medium ink-2">没有匹配结果</p>
-              <p class="mx-auto mt-1.5 max-w-[220px] text-2xs leading-relaxed ink-3">换个关键词，或清空筛选条件。</p>
-              <button class="btn-outline mt-3 h-7 px-2.5 text-2xs dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">清空筛选</button>
-            </div>
-            <div class="rounded-xl border border-dashed px-4 py-6 text-center hairline">
-              <div class="mx-auto grid size-10 place-items-center rounded-full bg-amber-50 text-amber-600 ring-1 ring-amber-200 dark:bg-amber-950 dark:ring-amber-900">
-                <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
-              </div>
-              <p class="mt-3 text-xs font-medium ink-2">需要系统授权</p>
-              <p class="mx-auto mt-1.5 max-w-[220px] text-2xs leading-relaxed ink-3">授权后这里会列出可用内容。</p>
-              <button class="btn-outline mt-3 h-7 px-2.5 text-2xs dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">打开系统设置</button>
-            </div>
+            <p class="hint-note-ink">
+              三个变体只差在 <code class="code-ink">actions</code> 与 <code class="code-ink">description</code> 有没有：<span class="font-medium ink-2">操作区窄屏时整块落到标题下方</span>
+              （<code class="code-ink">flex-col</code> → <code class="code-ink">lg:flex-row</code>），而不是挤在同一行截断。<code class="code-ink">actions</code> 里再套 <code class="code-ink">flex-wrap</code>，
+              否则三个按钮在最窄档会把标题挤成竖排——这一条是 04 踩过的。
+            </p>
           </div>
         </div>
 
-        <!-- Segmented + NumberField -->
+        <!-- ── EmptyState ── -->
+        <div class="border-t pt-4 hairline">
+          <div class="gal-item">
+            <span class="gal-name">EmptyState</span>
+            <span class="gal-note">接入点 AppRulesPanel / PreviewStage / PreviewTimeline；<code class="code-ink">tone</code> 三态</span>
+          </div>
+          <div class="grid gap-2 md:grid-cols-3">
+            <div class="rounded-xl border border-dashed px-4 py-6 text-center hairline">
+              <div class="mx-auto grid size-10 place-items-center rounded-full surface-raised ink-3 shadow-sm">
+                <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
+              </div>
+              <p class="mt-3 text-xs font-medium ink-2">还没有应用规则</p>
+              <p class="mx-auto mt-1.5 max-w-[220px] text-xs leading-relaxed ink-3 text-pretty">加一条之后，指定的应用里会换用另一套主题。</p>
+              <button class="btn-default mt-3 h-7 px-2.5 text-xs" data-toast="已新建规则">添加规则</button>
+            </div>
+            <div class="rounded-xl border border-dashed px-4 py-6 text-center hairline">
+              <div class="mx-auto grid size-10 place-items-center rounded-full surface-raised ink-3 shadow-sm">
+                <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              </div>
+              <p class="mt-3 text-xs font-medium ink-2">没有匹配结果</p>
+              <p class="mx-auto mt-1.5 max-w-[220px] text-xs leading-relaxed ink-3 text-pretty">「figma」筛掉了全部 6 条规则。</p>
+              <button class="btn-outline mt-3 h-7 px-2.5 text-xs" data-toast="已清空筛选">清空筛选</button>
+            </div>
+            <div class="rounded-xl border border-dashed px-4 py-6 text-center hairline">
+              <div class="mx-auto grid size-10 place-items-center rounded-full bg-amber-50 text-amber-600 ring-1 ring-amber-200 dark:bg-amber-950 dark:text-amber-400 dark:ring-amber-900">
+                <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+              </div>
+              <p class="mt-3 text-xs font-medium ink-2">需要辅助功能授权</p>
+              <p class="mx-auto mt-1.5 max-w-[220px] text-xs leading-relaxed ink-3 text-pretty">授权后这里会列出正在运行的应用。</p>
+              <button class="btn-outline mt-3 h-7 px-2.5 text-xs" data-toast="已打开系统设置">打开系统设置</button>
+            </div>
+          </div>
+          <p class="hint-note-ink">
+            分三个 tone 不是为了配色：<span class="font-medium ink-2">三种空态的下一步动作完全不同</span>——
+            <code class="code-ink">neutral</code> 要「创建」、<code class="code-ink">filtered</code> 要「清空筛选」、<code class="code-ink">blocked</code> 要「去授权」。
+            都画成一个灰盒子的话，用户读完还是不知道该干什么。
+            说明文字用 <code class="code-ink">text-xs</code> 而不是 11px：空态里那句话就是这一块的全部内容，
+            按裁决 8 属于「结论」（<code class="code-ink">empty-state.tsx</code> 现在是 <code class="code-ink">text-2xs</code>，实现时跟着提）。
+          </p>
+        </div>
+
+        <!-- ── Segmented ── -->
         <div class="grid gap-4 border-t pt-4 hairline md:grid-cols-2">
           <div>
-            <div class="mb-2 flex items-baseline gap-2">
-              <span class="text-xs font-medium ink-2">Segmented</span>
-              <span class="text-2xs ink-4">三个原型里用了 4 次，项目里还没有</span>
+            <div class="gal-item">
+              <span class="gal-name">Segmented</span>
+              <span class="gal-note">接入点 KeyboardPanel「显示模式」；<code class="code-ink">options</code> / <code class="code-ink">fill</code> / <code class="code-ink">disabled</code> / <code class="code-ink">disabledReason</code></span>
             </div>
             <div class="space-y-2">
-              <div class="seg-group">
-                <button class="seg-item seg-item-on">试用</button>
-                <button class="seg-item">校准</button>
+              <div class="seg-group" role="radiogroup" aria-label="示例：两段" data-seg="a">
+                <button role="radio" aria-checked="true" tabindex="0" class="seg-item seg-item-on">试用</button>
+                <button role="radio" aria-checked="false" tabindex="-1" class="seg-item">校准</button>
               </div>
-              <div class="seg-group w-full">
-                <button class="seg-item flex-1 justify-center seg-item-on">真实输入</button>
-                <button class="seg-item flex-1 justify-center">物理键名</button>
+              <div class="seg-group w-full" role="radiogroup" aria-label="示例：撑满一行" data-seg="b">
+                <button role="radio" aria-checked="true" tabindex="0" class="seg-item flex-1 justify-center seg-item-on">真实输入</button>
+                <button role="radio" aria-checked="false" tabindex="-1" class="seg-item flex-1 justify-center">物理键名</button>
               </div>
-              <div class="seg-group">
-                <button class="seg-item">启用</button>
-                <button class="seg-item seg-item-on">关闭</button>
-                <button class="seg-item">主题 ▾</button>
+              <div class="seg-group" role="radiogroup" aria-label="示例：单项不可用" data-seg="c">
+                <button role="radio" aria-checked="false" tabindex="-1" class="seg-item">启用</button>
+                <button role="radio" aria-checked="true" tabindex="0" class="seg-item seg-item-on">关闭</button>
+                <button role="radio" aria-checked="false" tabindex="-1" class="seg-item" disabled title="白名单模式下「指定主题」不参与裁决">指定主题</button>
               </div>
+              <div class="seg-group" role="radiogroup" aria-label="示例：整体不可用" data-seg="d" data-disabled="1">
+                <button role="radio" aria-checked="true" tabindex="0" class="seg-item seg-item-on" disabled>左对齐</button>
+                <button role="radio" aria-checked="false" tabindex="-1" class="seg-item" disabled>居中</button>
+              </div>
+              <p class="hint-note-ink">
+                <span class="font-medium ink-2">每次点击后 <code class="code-ink">aria-checked</code> 必须与视觉类同侧</span>，方向键 ←→ 移动选择、
+                组内只有当前项 <code class="code-ink">tabindex=0</code>（roving）。单项不可用<span class="font-medium ink-2">必须给理由</span>（挂在 <code class="code-ink">title</code> 上）——
+                一个点了没反应又不解释的段是最让人困惑的控件；整体不可用是另一个层级（所属效果被关掉时）。
+              </p>
             </div>
           </div>
           <div>
-            <div class="mb-2 flex items-baseline gap-2">
-              <span class="text-xs font-medium ink-2">NumberField</span>
-              <span class="text-2xs ink-4">51 个滑块里近半是精确值，读数须可输入</span>
+            <div class="gal-item">
+              <span class="gal-name">NumberField</span>
+              <span class="gal-note">从 CursorSkinStudio 提升上来；51 个滑块里近半是精确值</span>
             </div>
-            <!--
-              这块演示原先是**假的**，而且说明文字描述的是一个已经修掉的缺陷：
-              · 读数是裸 `<input class="num-input">`，**没有任何监听**——
-                「改读数也回写滑块」这句从来没实现，输进去什么都不会发生。
-              · 说明写「超范围自动 clamp」，而 README「第 1 批 A」记录的正是
-                「每次 onChange 都立刻 clamp」这个**输入陷阱**：`min=12` 时想输「50」
-                按下「5」就被夹成 12、第二键变成 122。照这页实现会把它重新做一遍
-                （与教训 #11「稿子复刻了已修缺陷的原始逻辑」同一形态）。
-              现在改用共享的 `Ctl.number`（提交时机是 change = 失焦或 Enter），
-              并真的双向绑定；说明文字改成如实描述提交语义。
-            -->
             <div class="space-y-2.5">
               <div class="grid grid-cols-[72px_minmax(0,1fr)_auto] items-center gap-2.5">
                 <span class="text-xs font-medium ink-2">时长</span>
@@ -127,7 +167,7 @@
                 <div data-slider data-pair="size" data-min="12" data-max="96" data-value="28" data-default="28"></div>
                 <div data-number="size" data-min="12" data-max="96" data-value="28" data-unit="px"></div>
               </div>
-              <p class="text-2xs leading-relaxed ink-4">
+              <p class="hint-inline-ink">
                 拖滑块改读数，改读数也回写滑块。<span class="font-medium ink-2">失焦或 ↵ 才提交并 clamp</span>——
                 编辑期间保留草稿，所以 min=12 时也能输入「50」；<span class="font-medium ink-2">Esc 放弃</span>，
                 空串或非数字视为放弃、保持原值。超范围时闪一下琥珀环表示「已帮你夹到边界」。
@@ -136,14 +176,14 @@
           </div>
         </div>
 
-        <!-- Skeleton -->
+        <!-- ── Skeleton ── -->
         <div class="border-t pt-4 hairline">
-          <div class="mb-2 flex items-baseline gap-2">
-            <span class="text-xs font-medium ink-2">Skeleton</span>
-            <span class="text-2xs ink-4">替掉 DeferredPanelFallback 的居中 spinner —— 现在懒加载时页面看起来像空了</span>
+          <div class="gal-item">
+            <span class="gal-name">Skeleton</span>
+            <span class="gal-note">接入点 ThemeWorkbenchPage 的 DeferredPanelFallback；<code class="code-ink">rows</code> 按被替换面板的密度给</span>
           </div>
           <div class="grid gap-2 md:grid-cols-2">
-            <div class="gal-card p-3">
+            <div class="gal-card p-3" role="status" aria-label="正在加载">
               <div class="flex items-center gap-2.5">
                 <div class="skel size-8 rounded-xl"></div>
                 <div class="min-w-0 flex-1 space-y-1.5">
@@ -156,226 +196,663 @@
                 <div class="skel h-7 w-full"></div>
               </div>
             </div>
-            <div class="grid place-items-center rounded-xl border border-dashed hairline">
-              <div class="flex items-center gap-2 text-xs ink-4">
-                <svg class="size-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a9 9 0 1 0 9 9"/></svg>
-                现在的样子：一个转圈
+            <!-- data-antipattern：改前对照组（居中 spinner），check-ui-spec.mjs 按该标记放行 -->
+            <div data-antipattern class="grid place-items-center rounded-xl border border-dashed hairline">
+              <div class="flex items-center gap-2 text-xs ink-3">
+                <svg class="size-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9"/></svg>
+                改前：一个转圈
               </div>
             </div>
           </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── 2. 反馈渠道分工 ── -->
-    <section class="gal-card">
-      <div class="border-b px-4 py-3 hairline">
-        <h3 class="text-sm font-medium ink">反馈渠道：三套并存 → 定死分工</h3>
-        <p class="mt-0.5 text-xs ink-3">现在 toast、InlineStatus、各面板手写的 tone map 三套混用。</p>
-      </div>
-      <div class="space-y-3 px-4 py-4">
-        <div class="grid gap-2 md:grid-cols-3">
-          <div class="rounded-xl border p-3 hairline">
-            <div class="text-2xs font-semibold ink-2">Toast · 一次性结果</div>
-            <p class="mt-1 text-2xs leading-relaxed ink-3">操作成功／失败，带撤销。2.6s 自动消失。</p>
-            <div class="mt-2.5 flex items-center gap-3 rounded-xl border px-3 py-2 shadow-sm hairline surface">
-              <span class="text-xs font-medium ink-2">已套用预设 礼花</span>
-              <button class="text-2xs font-semibold underline underline-offset-2 ink">撤销</button>
-            </div>
-          </div>
-          <div class="rounded-xl border p-3 hairline">
-            <div class="text-2xs font-semibold ink-2">InlineStatus · 持续状态</div>
-            <p class="mt-1 text-2xs leading-relaxed ink-3">缺权限、平台不支持。不会自动消失。</p>
-            <div class="mt-2.5 flex items-start gap-2 rounded-xl bg-amber-50 px-3 py-2 dark:bg-amber-950/50">
-              <svg class="mt-0.5 size-3.5 shrink-0 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
-              <span class="text-2xs leading-relaxed text-amber-900 dark:text-amber-200">Windows 暂不支持替换系统光标。</span>
-            </div>
-          </div>
-          <div class="rounded-xl border p-3 hairline">
-            <div class="text-2xs font-semibold ink-2">字段内联 · 校验错误</div>
-            <p class="mt-1 text-2xs leading-relaxed ink-3">紧邻出错的那个输入框，不飘到别处。</p>
-            <div class="mt-2.5">
-              <input value="" placeholder="匹配值" class="h-8 w-full rounded-xl border border-rose-300 bg-white px-2 text-xs text-slate-700 shadow-sm dark:bg-slate-900 dark:text-slate-200" />
-              <p class="mt-1.5 text-2xs font-medium text-rose-600 dark:text-rose-400">请填写匹配值</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ── 3. 图标色：改前 / 改后 ── -->
-    <section class="gal-card">
-      <div class="border-b px-4 py-3 hairline">
-        <h3 class="text-sm font-medium ink">面板图标色：9 种强调色 → 统一 slate</h3>
-        <p class="mt-0.5 text-xs ink-3">
-          DESIGN.md 写明「功能色仅用于语义目的」「每视图只用一个强调色」，而 PANEL_META 给 9 个面板配了 9 种颜色，其中 fuchsia / violet / cyan 根本不在色板里。
-        </p>
-      </div>
-      <div class="grid gap-4 px-4 py-4 md:grid-cols-2">
-        <div>
-          <div class="mb-2 text-2xs font-semibold ink-4">改前</div>
-          <!-- data-antipattern：这一组是故意的反例对照组，check-ui-spec.mjs 按该标记放行 -->
-          <div data-antipattern="nine-color-icon-tone" class="flex flex-wrap gap-1.5">
-            <span data-antipattern class="grid size-9 place-items-center rounded-xl bg-emerald-100 text-emerald-700">触</span>
-            <span data-antipattern class="grid size-9 place-items-center rounded-xl bg-amber-100 text-amber-700">字</span>
-            <span data-antipattern class="grid size-9 place-items-center rounded-xl bg-sky-100 text-sky-700">粒</span>
-            <span data-antipattern class="grid size-9 place-items-center rounded-xl bg-teal-100 text-teal-700">波</span>
-            <span data-antipattern class="grid size-9 place-items-center rounded-xl bg-rose-100 text-rose-700">音</span>
-            <span data-antipattern class="grid size-9 place-items-center rounded-xl bg-cyan-100 text-cyan-700">动</span>
-            <span data-antipattern class="grid size-9 place-items-center rounded-xl bg-fuchsia-100 text-fuchsia-700">贴</span>
-            <span data-antipattern class="grid size-9 place-items-center rounded-xl bg-slate-200 text-slate-700">标</span>
-            <span data-antipattern class="grid size-9 place-items-center rounded-xl bg-violet-100 text-violet-700">键</span>
-          </div>
-          <p class="mt-2 text-2xs leading-relaxed ink-4">八张卡排一列就是八种颜色，颜色不承载信息。</p>
-        </div>
-        <div>
-          <div class="mb-2 text-2xs font-semibold ink-4">改后 · 颜色只表达「已启用」</div>
-          <div class="flex flex-wrap gap-1.5">
-            <span class="grid size-9 place-items-center rounded-xl bg-slate-900 text-white">触</span>
-            <span class="grid size-9 place-items-center rounded-xl bg-slate-900 text-white">字</span>
-            <span class="grid size-9 place-items-center rounded-xl bg-slate-900 text-white">粒</span>
-            <span class="grid size-9 place-items-center rounded-xl bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">波</span>
-            <span class="grid size-9 place-items-center rounded-xl bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">音</span>
-            <span class="grid size-9 place-items-center rounded-xl bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">动</span>
-            <span class="grid size-9 place-items-center rounded-xl bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">贴</span>
-            <span class="grid size-9 place-items-center rounded-xl bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">标</span>
-            <span class="grid size-9 place-items-center rounded-xl bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">键</span>
-          </div>
-          <p class="mt-2 flex items-center gap-1.5 text-2xs leading-relaxed ink-4">
-            <span class="inline-flex items-center gap-1 text-2xs font-semibold text-emerald-700 dark:text-emerald-400"><span class="size-1.5 rounded-full bg-emerald-500"></span>已启用</span>
-            用一个 emerald 点表达，深色底 = 启用，浅灰 = 关闭。
+          <p class="hint-note-ink">
+            骨架保留了「马上会出现什么形状」，所以出现时不跳版；转圈只说明「在等」。
+            行数按实际密度给，<span class="font-medium ink-2">不要所有地方都用同一个数</span>——骨架的意义就是形状要对得上。
+            <code class="code-ink">prefers-reduced-motion</code> 下脉冲会停（写在 <code class="code-ink">_src.css</code> 的媒体查询里，不靠 JS 判断）。
           </p>
         </div>
       </div>
     </section>
 
-    <!-- ── 4. 可访问性 ── -->
+    <!-- ════════ B. 项目里已有的五个 ════════ -->
     <section class="gal-card">
-      <div class="border-b px-4 py-3 hairline">
-        <h3 class="text-sm font-medium ink">可访问性：hover 才出现 → 常显</h3>
-        <p class="mt-0.5 text-xs ink-3">
-          至少 4 处只在 hover 时可达（theme-card 的重命名与更多菜单、规则行的编辑与删除）。键盘和触控板用户发现不了。
+      <div class="panel-head">
+        <h2 class="panel-title">项目里已有 · 5 个（这一页是它们的形态依据）</h2>
+        <p class="panel-sub">
+          上一版这五个只出现在散文里：Panel / Toast / InlineStatus 被提到过，IconButton / Tabs 只出现在「清理项」的文字中。
+          一个组件在形态依据里没有形态，等于没有依据。
         </p>
       </div>
-      <div class="grid gap-4 px-4 py-4 md:grid-cols-2">
+      <div class="space-y-4 px-4 py-4">
+
+        <!-- ── Panel ── -->
         <div>
-          <div class="mb-2 text-2xs font-semibold ink-4">改前 · 鼠标移上去才出现</div>
-          <div class="group flex items-center gap-2.5 rounded-xl border px-3 py-2.5 shadow-sm hairline surface">
-            <span class="grid size-8 place-items-center rounded-xl bg-slate-100 text-slate-500 dark:bg-slate-800">▣</span>
-            <span class="min-w-0 flex-1 text-xs font-medium ink-2">夕霞</span>
-            <button data-antipattern class="rounded-lg px-2 py-1 text-2xs font-medium opacity-0 transition-opacity ink-3 group-hover:opacity-100">编辑</button>
-            <button data-antipattern class="grid size-6 place-items-center rounded-lg opacity-0 transition-opacity ink-4 group-hover:opacity-100">⋯</button>
+          <div class="gal-item">
+            <span class="gal-name">Panel</span>
+            <span class="gal-note"><code class="code-ink">ui/panel.tsx</code>；<code class="code-ink">title</code> / <code class="code-ink">summary?</code> / <code class="code-ink">action?</code> / <code class="code-ink">icon?</code> / <code class="code-ink">collapsible</code> / <code class="code-ink">enabled</code></span>
           </div>
-          <p data-antipattern class="mt-2 text-2xs leading-relaxed ink-4">已机械检测：<code class="rounded bg-slate-100 px-1 dark:bg-slate-800">opacity-0 …group-hover:opacity-100</code> 已进 <code class="rounded bg-slate-100 px-1 dark:bg-slate-800">check-design-tokens.mjs</code> 与 <code class="rounded bg-slate-100 px-1 dark:bg-slate-800">check-ui-spec.mjs</code>；带 <code class="rounded bg-slate-100 px-1 dark:bg-slate-800">group-focus-within</code> 的可 Tab 到，不算违规。</p>
+          <div class="grid gap-2 md:grid-cols-2">
+            <div class="cfg-card cfg-card-on">
+              <div class="cfg-head border-b hairline">
+                <span class="cfg-icon cfg-icon-on">
+                  <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 20 20 4M14 4h6v6"/></svg>
+                </span>
+                <span class="min-w-0 flex-1">
+                  <span class="cfg-name shrink-0 whitespace-nowrap">飘字</span>
+                  <span class="cfg-sum block">弹跳 · 2 项已改 · 11 项设置</span>
+                </span>
+                <button data-panelfold aria-expanded="true" aria-controls="panelDemoBody" class="grid size-6 place-items-center rounded-lg ink-3 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="折叠这张卡">
+                  <svg data-foldarrow class="size-3.5 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <button data-panelswitch role="switch" aria-checked="true" class="switch-knob switch-on" aria-label="启用飘字"></button>
+              </div>
+              <div id="panelDemoBody" class="motion-layout overflow-hidden">
+                <div class="space-y-2 px-3 py-2.5">
+                  <div class="grid grid-cols-[72px_minmax(0,1fr)_auto] items-center gap-2.5">
+                    <span class="text-xs font-medium ink-2">上浮距离</span>
+                    <div data-slider data-pair="rise" data-min="0" data-max="160" data-value="64" data-default="64"></div>
+                    <div data-number="rise" data-min="0" data-max="160" data-value="64" data-unit="px"></div>
+                  </div>
+                  <p class="hint-inline-ink">折叠 ≠ 关闭：折叠只影响视觉密度，配置照旧生效，所以是两个独立控件。</p>
+                </div>
+              </div>
+            </div>
+            <div class="cfg-card">
+              <div class="cfg-head">
+                <span class="cfg-icon">
+                  <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="8"/></svg>
+                </span>
+                <span class="min-w-0 flex-1">
+                  <span class="cfg-name">波纹</span>
+                  <span class="ml-2 text-xs ink-3">9 项设置</span>
+                </span>
+                <button data-panelswitch2 role="switch" aria-checked="false" class="switch-knob" aria-label="启用波纹"></button>
+              </div>
+            </div>
+          </div>
+          <p class="hint-note-ink">
+            未启用时收成一行（只剩「N 项设置」），启用后展开——这是 01 的效果卡形态。
+            <code class="code-ink">enabled</code> 驱动图标底色，而<span class="font-medium ink-2">底色两态相同、变的是字形深浅加一圈 ring</span>：
+            实心深底是本设计语言里最重的权重，只留给页面主操作（<a class="underline underline-offset-2" href="../DECISIONS.md">裁决 16</a>）。
+            状态的非颜色编码由同一行最右侧那个开关的拨柄位置承担，不需要第三次编码同一个 bit。
+          </p>
         </div>
-        <div>
-          <div class="mb-2 text-2xs font-semibold ink-4">改后 · 常显、可 Tab 到</div>
-          <div class="flex items-center gap-2.5 rounded-xl border px-3 py-2.5 shadow-sm hairline surface">
-            <span class="grid size-8 place-items-center rounded-xl bg-slate-100 text-slate-500 dark:bg-slate-800">▣</span>
-            <span class="min-w-0 flex-1 text-xs font-medium ink-2">夕霞</span>
-            <span class="size-1.5 rounded-full bg-amber-400" title="有未保存的改动"></span>
-            <button class="rounded-lg px-2 py-1 text-2xs font-medium ink-3 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800">编辑</button>
-            <button class="grid size-6 place-items-center rounded-lg ink-4 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="更多操作">⋯</button>
+
+        <!-- ── Toast ── -->
+        <div class="border-t pt-4 hairline">
+          <div class="gal-item">
+            <span class="gal-name">Toast</span>
+            <span class="gal-note"><code class="code-ink">ui/toast.tsx</code> + <code class="code-ink">shell.js</code> 的 <code class="code-ink">toast()</code>；一次性结果，2.6s 自动消失</span>
           </div>
-          <p class="mt-2 text-2xs leading-relaxed ink-4">拖拽排序另配 <span class="kbd dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">⌥↑</span> <span class="kbd dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">⌥↓</span> 键盘替代。</p>
+          <div class="flex flex-wrap items-center gap-2">
+            <button class="btn-outline h-8 px-3 text-xs" data-toast="已套用预设 礼花" data-undo="1">带撤销</button>
+            <button class="btn-outline h-8 px-3 text-xs" data-toast="已导出「流光」到桌面">不带撤销</button>
+            <button class="btn-outline h-8 px-3 text-xs" data-toast="已把「几何」应用到桌面" data-meta="1">元操作（不标脏）</button>
+          </div>
+          <p class="hint-note-ink">
+            <span class="font-medium ink-2">带撤销是默认，不是可选</span>（决策 #7）：一个没有撤销出口的一次性提示只是在通知用户「已经来不及了」。
+            第三个按钮是元操作——<code class="code-ink">toast()</code> 除了弹提示还顺手做两件事（压撤销栈、把草稿标脏），
+            而「应用到桌面」自己也弹 toast，于是它先把脏标记清掉、紧接着 toast 又标回去，
+            实测点完之后作用域条照旧显示「未应用」。所以第三个参数把「这是一次配置改动吗」显式化：
+            <span class="font-medium ink-2">一个函数默默替调用方决定语义，就一定会有一天决定错</span>。
+            真实实现只有一处（<code class="code-ink">shell.js</code> 的 <code class="code-ink">toast()</code>）；库页不套外壳，所以这里自起一个 host，
+            markup 与它逐字相同。实现时 toast 要走令牌层——<code class="code-ink">shell.js</code> 那份写死了 <code class="code-ink">bg-white</code>，深色下会是一块白板。
+          </p>
+        </div>
+
+        <!-- ── InlineStatus ── -->
+        <div class="border-t pt-4 hairline">
+          <div class="gal-item">
+            <span class="gal-name">InlineStatus</span>
+            <span class="gal-note"><code class="code-ink">ui/inline-status.tsx</code>；五个 tone + <code class="code-ink">role="status"</code>，不会自动消失</span>
+          </div>
+          <div class="grid gap-2 md:grid-cols-2">
+            <div role="status" class="flex items-start gap-2 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
+              <svg class="mt-0.5 size-3.5 shrink-0 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+              <div class="min-w-0 flex-1">Windows 暂不支持替换系统光标。</div>
+            </div>
+            <div role="status" class="flex items-start gap-2 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 text-xs leading-5 text-sky-700 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-200">
+              <svg class="mt-0.5 size-3.5 shrink-0 text-sky-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 8h.01M11 12h1v4h1"/><circle cx="12" cy="12" r="9"/></svg>
+              <div class="min-w-0 flex-1">这套主题由 AI 提议，你还没接受任何一项。</div>
+            </div>
+            <div role="status" class="flex items-start gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs leading-5 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">
+              <svg class="mt-0.5 size-3.5 shrink-0 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+              <div class="min-w-0 flex-1">辅助功能已授权，全部 11 个光标状态可用。</div>
+            </div>
+            <div role="alert" class="flex items-start gap-2 rounded-xl border border-rose-100 bg-rose-50 px-3 py-2 text-xs leading-5 text-rose-700 dark:border-rose-900 dark:bg-rose-950 dark:text-rose-200">
+              <svg class="mt-0.5 size-3.5 shrink-0 text-rose-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 9-6 6M9 9l6 6"/><circle cx="12" cy="12" r="9"/></svg>
+              <div class="min-w-0 flex-1">AI 服务连接失败，检查设置里的接口地址。</div>
+            </div>
+          </div>
+          <p class="hint-note-ink">
+            第五个 tone 是 <code class="code-ink">neutral</code>（中性底，用于「这里为什么是空的」这类既非成功也非警告的说明）。
+            <span class="font-medium ink-2"><code class="code-ink">role</code> 要跟着分量走</span>：<code class="code-ink">status</code> 是礼貌播报，
+            出错那一条用 <code class="code-ink">alert</code>（打断当前朗读）——两者用同一个 role 的话，读屏用户要么被每条提示打断，要么错过真正的错误。
+          </p>
+        </div>
+
+        <!-- ── IconButton ── -->
+        <div class="grid gap-4 border-t pt-4 hairline md:grid-cols-2">
+          <div>
+            <div class="gal-item">
+              <span class="gal-name">IconButton</span>
+              <span class="gal-note"><code class="code-ink">ui/icon-button.tsx</code>；<code class="code-ink">label</code> 必填，2 个使用者，其余图标按钮全在各处手写</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <button class="grid size-8 place-items-center rounded-xl ink-3 transition-colors hover:bg-slate-100 hover:text-slate-900 active:scale-[0.97] dark:hover:bg-slate-800 dark:hover:text-white" aria-label="重播" title="重播">
+                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg>
+              </button>
+              <button class="grid size-8 place-items-center rounded-xl ink-3 transition-colors hover:bg-slate-100 hover:text-slate-900 active:scale-[0.97] dark:hover:bg-slate-800 dark:hover:text-white" aria-label="更多操作" title="更多操作">
+                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
+              </button>
+              <button class="grid size-8 place-items-center rounded-xl text-rose-500 transition-colors hover:bg-rose-50 active:scale-[0.97] dark:hover:bg-rose-950" aria-label="删除这条规则" title="删除这条规则">
+                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>
+              </button>
+              <button class="grid size-8 place-items-center rounded-xl ink-3 disabled:pointer-events-none disabled:opacity-50" aria-label="重做（没有可重做的改动）" title="重做（没有可重做的改动）" disabled>
+                <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5"/></svg>
+              </button>
+            </div>
+            <p class="hint-note-ink">
+              <code class="code-ink">label</code> 是<span class="font-medium ink-2">必填 prop</span>，所以换过去等于机械地满足门禁 <code class="code-ink">icon-button-unnamed</code>
+              （纯图标控件的名字是它唯一的说明）。禁用态要把原因写进名字里——
+              一个只是变灰的按钮不解释自己为什么按不动。
+            </p>
+          </div>
+
+          <!-- ── Tabs ── -->
+          <div>
+            <div class="gal-item">
+              <span class="gal-name">Tabs</span>
+              <span class="gal-note"><code class="code-ink">ui/tabs.tsx</code>；2 个使用者（WorkbenchChrome / ThemeComposerModal）</span>
+            </div>
+            <div class="inline-flex h-10 items-center justify-center rounded-full bg-white/80 p-1 ring-1 ring-black/5 dark:bg-slate-800/80 dark:ring-white/10" role="tablist" aria-label="示例：真正的多页签容器" data-tabs>
+              <button role="tab" id="tabA" aria-selected="true" aria-controls="tabPanel" tabindex="0" class="inline-flex items-center justify-center whitespace-nowrap rounded-full bg-slate-950 px-3 py-1.5 text-sm font-medium text-white ring-1 ring-black/5 transition-colors dark:bg-slate-100 dark:text-slate-900">外观</button>
+              <button role="tab" id="tabB" aria-selected="false" aria-controls="tabPanel" tabindex="-1" class="inline-flex items-center justify-center whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium ink-2 ring-1 ring-black/5 transition-colors hover:bg-slate-100 dark:hover:bg-slate-700">时间</button>
+              <button role="tab" id="tabC" aria-selected="false" aria-controls="tabPanel" tabindex="-1" class="inline-flex items-center justify-center whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-medium ink-2 ring-1 ring-black/5 transition-colors hover:bg-slate-100 dark:hover:bg-slate-700">音效</button>
+            </div>
+            <div id="tabPanel" role="tabpanel" aria-labelledby="tabA" tabindex="0" class="mt-2 rounded-xl border border-dashed px-3 py-2.5 text-xs ink-2 hairline">外观：文案、字号、颜色、上浮距离。</div>
+            <p class="hint-note-ink">
+              <span class="font-medium ink-2"><code class="code-ink">role="tab"</code> 只用于「一组页签控制同文档里的一组面板」</span>——
+              用在跨文档导航上，读屏器会报「标签页 1/5」并等着面板出现，而激活它会把整个文档卸载掉（外壳的工作区导航因此改成 <code class="code-ink">nav</code> + <code class="code-ink">aria-current</code>）。
+              这块的形态与稿子其余部分是<span class="font-medium ink-2">两套语言</span>：<code class="code-ink">rounded-full</code> + <code class="code-ink">h-10</code> + <code class="code-ink">ring-black/5</code> + <code class="code-ink">text-sm</code>，
+              而稿子是 <code class="code-ink">rounded-xl</code> + <code class="code-ink">hairline</code> + <code class="code-ink">text-xs</code>。见「清理项」。
+            </p>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- ── 5. 快捷键 ── -->
+    <!-- ════════ C. 反馈渠道分工 ════════ -->
     <section class="gal-card">
-      <div class="border-b px-4 py-3 hairline">
-        <h3 class="text-sm font-medium ink">快捷键：从零到一套</h3>
-        <p class="mt-0.5 text-xs ink-3">现在整个 renderer 里 0 个 keydown 监听，主进程只有托盘菜单。</p>
+      <div class="panel-head">
+        <h2 class="panel-title">反馈渠道：三套并存 → 定死分工</h2>
+        <p class="panel-sub">决策 #7。三个渠道的形态都在上一节，这里只定「什么时候用哪个」——混用是现状里最常见的错。</p>
       </div>
-      <div class="grid gap-2 px-4 py-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div class="flex items-center justify-between rounded-xl border px-3 py-2 hairline"><span class="text-2xs ink-2">撤销上一步</span><span class="kbd dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">⌘Z</span></div>
-        <div class="flex items-center justify-between rounded-xl border px-3 py-2 hairline"><span class="text-2xs ink-2">命令面板</span><span class="kbd dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">⌘K</span></div>
-        <div class="flex items-center justify-between rounded-xl border px-3 py-2 hairline"><span class="text-2xs ink-2">切换工作区</span><span class="kbd dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">⌘1–5</span></div>
-        <div class="flex items-center justify-between rounded-xl border px-3 py-2 hairline"><span class="text-2xs ink-2">新建主题</span><span class="kbd dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">⌘N</span></div>
-        <div class="flex items-center justify-between rounded-xl border px-3 py-2 hairline"><span class="text-2xs ink-2">AI 助手</span><span class="kbd dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400">⌘J</span></div>
-        <div class="flex items-center justify-between rounded-xl border border-dashed px-3 py-2 hairline"><span class="text-2xs ink-4">保存 ⌘S</span><span class="text-2xs font-medium ink-4">不再需要 · 自动保存</span></div>
-      </div>
-    </section>
-
-    <!-- ── 6. 深色令牌层 ── -->
-    <section class="gal-card">
-      <div class="border-b px-4 py-3 hairline">
-        <h3 class="text-sm font-medium ink">深色模式：先加一层语义令牌</h3>
-        <p class="mt-0.5 text-xs ink-3">
-          现在全站直接写死 <code class="rounded bg-slate-100 px-1 dark:bg-slate-800">bg-white</code> / <code class="rounded bg-slate-100 px-1 dark:bg-slate-800">text-slate-900</code>，无法整体切换。先定义语义层，再机械替换。整页右上角的开关就走这一层。
-        </p>
-      </div>
-      <div class="px-4 py-4">
+      <div class="panel-body">
         <div class="overflow-hidden rounded-xl border hairline">
           <table class="w-full text-left">
             <thead class="surface-sunken">
               <tr>
-                <th class="px-3 py-2 text-2xs font-semibold ink-3">语义名</th>
-                <th class="px-3 py-2 text-2xs font-semibold ink-3">浅色</th>
-                <th class="px-3 py-2 text-2xs font-semibold ink-3">深色</th>
-                <th class="px-3 py-2 text-2xs font-semibold ink-3">用途</th>
+                <th class="px-3 py-2 text-xs font-semibold ink-3">渠道</th>
+                <th class="px-3 py-2 text-xs font-semibold ink-3">用在</th>
+                <th class="px-3 py-2 text-xs font-semibold ink-3">不要用在</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-200 dark:divide-slate-700">
-              <tr><td class="px-3 py-2 text-2xs font-medium ink-2">surface</td><td class="px-3 py-2 text-2xs ink-3">white</td><td class="px-3 py-2 text-2xs ink-3">slate-900</td><td class="px-3 py-2 text-2xs ink-4">卡片 / 面板底</td></tr>
-              <tr><td class="px-3 py-2 text-2xs font-medium ink-2">surface-sunken</td><td class="px-3 py-2 text-2xs ink-3">slate-50</td><td class="px-3 py-2 text-2xs ink-3">slate-950</td><td class="px-3 py-2 text-2xs ink-4">页面底 / 次级面板</td></tr>
-              <tr><td class="px-3 py-2 text-2xs font-medium ink-2">hairline</td><td class="px-3 py-2 text-2xs ink-3">slate-200</td><td class="px-3 py-2 text-2xs ink-3">slate-700</td><td class="px-3 py-2 text-2xs ink-4">1px 描边</td></tr>
-              <tr><td class="px-3 py-2 text-2xs font-medium ink-2">ink / ink-2 / ink-3 / ink-4</td><td class="px-3 py-2 text-2xs ink-3">900 / 600 / 500 / 400</td><td class="px-3 py-2 text-2xs ink-3">100 / 300 / 400 / 500</td><td class="px-3 py-2 text-2xs ink-4">标题 / 标签 / 描述 / 辅助</td></tr>
+            <tbody class="divide-y divide-hairline">
+              <tr>
+                <td class="px-3 py-2 text-xs font-medium ink-2">Toast</td>
+                <td class="px-3 py-2 text-xs ink-3">一次性结果：已套用、已删除、已应用到桌面。带撤销</td>
+                <td class="px-3 py-2 text-xs ink-3">持续状态——2.6s 后消失，而缺权限不会自己好</td>
+              </tr>
+              <tr>
+                <td class="px-3 py-2 text-xs font-medium ink-2">InlineStatus</td>
+                <td class="px-3 py-2 text-xs ink-3">持续状态：缺权限、平台不支持、这一档为什么是灰的</td>
+                <td class="px-3 py-2 text-xs ink-3">操作结果——它不消失，会堆成一片没人读的横条</td>
+              </tr>
+              <tr>
+                <td class="px-3 py-2 text-xs font-medium ink-2">字段内联</td>
+                <td class="px-3 py-2 text-xs ink-3">校验错误，紧邻出错的那个输入框</td>
+                <td class="px-3 py-2 text-xs ink-3">全局错误——飘到别处等于让用户自己找是哪一格</td>
+              </tr>
             </tbody>
           </table>
         </div>
-        <p class="mt-2.5 text-2xs leading-relaxed ink-4">
-          功能色（emerald / rose / amber / teal / sky）在深色下换成 <code class="rounded bg-slate-100 px-1 dark:bg-slate-800">-400</code> 字色 + <code class="rounded bg-slate-100 px-1 dark:bg-slate-800">-950</code> 底色，保持对比度。这一步做完，其余页面是机械替换。
+        <div class="mt-3 max-w-sm">
+          <label class="text-xs font-medium ink-2" for="ruleValue">匹配值</label>
+          <input id="ruleValue" value="" placeholder="例如 Figma" aria-describedby="ruleValueErr"
+            class="mt-1 h-8 w-full rounded-xl border border-rose-300 bg-white px-2 text-xs text-slate-700 shadow-sm dark:border-rose-800 dark:bg-slate-800 dark:text-slate-100" />
+          <p id="ruleValueErr" class="mt-1.5 text-xs font-medium text-rose-600 dark:text-rose-400">请填写匹配值</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════ D. 颜色的三层职责 ════════ -->
+    <section class="gal-card">
+      <div class="panel-head">
+        <h2 class="panel-title">颜色分三层职责：外壳 / 状态 / 分类</h2>
+        <p class="panel-sub">
+          <code class="code-ink">PANEL_META</code> 曾给 9 个面板配 9 种颜色（其中 fuchsia / violet / cyan 根本不在色板里）。
+          删掉它是对的，但只说「统一 slate」会漏掉另外两层——效果类型<span class="font-medium ink-2">确实</span>有颜色身份，它属于第三层（裁决 11）。
+        </p>
+      </div>
+      <div class="space-y-4 px-4 py-4">
+        <div class="grid gap-4 md:grid-cols-2">
+          <div>
+            <div class="mb-2 text-xs font-semibold ink-3">改前 · 外壳借用了分类色</div>
+            <!-- data-antipattern：这一组是故意的反例对照组，check-ui-spec.mjs 按该标记放行 -->
+            <div data-antipattern="nine-color-icon-tone" class="flex flex-wrap gap-1.5">
+              <span data-antipattern class="grid size-9 place-items-center rounded-xl bg-emerald-100 text-emerald-700">触</span>
+              <span data-antipattern class="grid size-9 place-items-center rounded-xl bg-amber-100 text-amber-700">字</span>
+              <span data-antipattern class="grid size-9 place-items-center rounded-xl bg-sky-100 text-sky-700">粒</span>
+              <span data-antipattern class="grid size-9 place-items-center rounded-xl bg-teal-100 text-teal-700">波</span>
+              <span data-antipattern class="grid size-9 place-items-center rounded-xl bg-rose-100 text-rose-700">音</span>
+              <span data-antipattern class="grid size-9 place-items-center rounded-xl bg-cyan-100 text-cyan-700">动</span>
+              <span data-antipattern class="grid size-9 place-items-center rounded-xl bg-fuchsia-100 text-fuchsia-700">贴</span>
+              <span data-antipattern class="grid size-9 place-items-center rounded-xl bg-slate-200 text-slate-700">标</span>
+              <span data-antipattern class="grid size-9 place-items-center rounded-xl bg-violet-100 text-violet-700">键</span>
+            </div>
+            <p data-antipattern class="hint-note-ink">
+              八张卡排一列就是八种颜色，而颜色在这里<span class="font-medium ink-2">不承载任何信息</span>——它反而把「启用了没有」这个真正要看的状态淹掉了。
+            </p>
+          </div>
+          <div>
+            <div class="mb-2 text-xs font-semibold ink-3">改后 · 外壳只表达「启用了没有」</div>
+            <div class="space-y-1.5" data-tonedemo></div>
+            <p class="hint-note-ink">
+              状态是<span class="font-medium ink-2">低权重</span>表达：底色两态相同，变的是字形深浅 + 一圈 ring，
+              而<span class="font-medium ink-2">非颜色编码由右侧开关的拨柄位置承担</span>（不能只靠深浅——那是 a11y 硬约束）。
+              点一下开关，同一行的三处表达一起翻。
+            </p>
+          </div>
+        </div>
+        <div class="border-t pt-4 hairline">
+          <div class="gal-item">
+            <span class="gal-name">分类色 · 第三层</span>
+            <span class="gal-note">唯一映射源 <code class="code-ink">Ctl.CH_TONE</code>（封闭集合，由 <code class="code-ink">category-tone-table-duplicated</code> 门禁锁住）</span>
+          </div>
+          <div class="flex flex-wrap items-center gap-1.5" data-chips></div>
+          <p class="hint-note-ink">
+            这几个 chip 是<span class="font-medium ink-2">渲染出来的</span>，页面里没有一个颜色类——因为分类色只允许存在于那一张表里。
+            裁决 11 要求三处共用同一份映射：时间轴通道块、01 的「本次输出」chip、05 的事件流。
+            上一版是<span class="font-medium ink-2">两张手抄表</span>（01 是对象、05 是裸字符串还少两条），
+            而门禁按表<span class="font-medium ink-2">名</span>豁免，所以第二张照旧通过——「唯一」这个前提从来没有被执行过。
+            现在两页都读同一份，门禁也补上了。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════ E. 可访问性 ════════ -->
+    <section class="gal-card">
+      <div class="panel-head">
+        <h2 class="panel-title">可访问性：hover 才出现 → 常显</h2>
+        <p class="panel-sub">至少 4 处只在 hover 时可达（主题卡的重命名与更多菜单、规则行的编辑与删除）。键盘和触控板用户发现不了。</p>
+      </div>
+      <div class="grid gap-4 px-4 py-4 md:grid-cols-2">
+        <div>
+          <div class="mb-2 text-xs font-semibold ink-3">改前 · 鼠标移上去才出现</div>
+          <div class="group flex items-center gap-2.5 rounded-xl border px-3 py-2.5 shadow-sm hairline surface">
+            <span class="grid size-8 place-items-center rounded-xl bg-slate-100 text-slate-500 glyph-badge dark:bg-slate-800 dark:text-slate-400">夕</span>
+            <span class="min-w-0 flex-1 text-xs font-medium ink-2">夕霞</span>
+            <button data-antipattern class="rounded-lg px-2 py-1 text-xs font-medium opacity-0 transition-opacity ink-3 group-hover:opacity-100">编辑</button>
+            <button data-antipattern class="grid size-6 place-items-center rounded-lg opacity-0 transition-opacity ink-3 group-hover:opacity-100" aria-label="更多操作">⋯</button>
+          </div>
+          <p data-antipattern class="hint-note-ink">已机械检测：<code class="code-ink">opacity-0 …group-hover:opacity-100</code> 已进 <code class="code-ink">check-design-tokens.mjs</code> 与 <code class="code-ink">check-ui-spec.mjs</code>；带 <code class="code-ink">group-focus-within</code> 的可 Tab 到，不算违规。</p>
+        </div>
+        <div>
+          <div class="mb-2 text-xs font-semibold ink-3">改后 · 常显、可 Tab 到</div>
+          <div class="flex items-center gap-2.5 rounded-xl border px-3 py-2.5 shadow-sm hairline surface">
+            <span class="grid size-8 place-items-center rounded-xl bg-slate-100 text-slate-500 glyph-badge dark:bg-slate-800 dark:text-slate-400">夕</span>
+            <span class="min-w-0 flex-1 text-xs font-medium ink-2">夕霞</span>
+            <span class="inline-flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-400"><span class="size-1.5 rounded-full bg-amber-500"></span>未应用</span>
+            <button class="rounded-lg px-2 py-1 text-xs font-medium ink-3 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800">编辑</button>
+            <button class="grid size-6 place-items-center rounded-lg ink-3 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800" aria-label="更多操作" title="更多操作">⋯</button>
+          </div>
+          <p class="hint-note-ink">
+            「未应用」用文字 + 一个点，不只用点：<span class="font-medium ink-2">一个孤立的琥珀点没有人能读出它是什么意思</span>。
+            拖拽排序另配 <span class="kbd">⌥↑</span> <span class="kbd">⌥↓</span> 键盘替代（决策 #4 的同一条精神：不能只在一种输入方式下可达）。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════ F. 快捷键 ════════ -->
+    <section class="gal-card">
+      <div class="panel-head">
+        <h2 class="panel-title">快捷键：从零到一套</h2>
+        <p class="panel-sub">
+          真实 renderer 里 0 个 keydown 监听，主进程只有托盘菜单。右列是<span class="font-medium ink-2">稿子里的注册状态</span>——
+          一个只有徽标、没有注册的键位比没有更糟：它吃掉原生行为又什么都不做。
+        </p>
+      </div>
+      <div class="panel-body">
+        <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <div class="flex items-center justify-between gap-2 rounded-xl border px-3 py-2 hairline"><span class="text-xs ink-2">撤销上一步</span><span class="flex items-center gap-1.5"><span class="kbd">⌘Z</span><span class="size-1.5 rounded-full bg-emerald-500" title="已注册"></span></span></div>
+          <div class="flex items-center justify-between gap-2 rounded-xl border px-3 py-2 hairline"><span class="text-xs ink-2">重做</span><span class="flex items-center gap-1.5"><span class="kbd">⌘⇧Z</span><span class="size-1.5 rounded-full bg-emerald-500" title="已注册"></span></span></div>
+          <div class="flex items-center justify-between gap-2 rounded-xl border px-3 py-2 hairline"><span class="text-xs ink-2">命令面板</span><span class="flex items-center gap-1.5"><span class="kbd">⌘K</span><span class="size-1.5 rounded-full bg-emerald-500" title="已注册"></span></span></div>
+          <div class="flex items-center justify-between gap-2 rounded-xl border px-3 py-2 hairline"><span class="text-xs ink-2">切换工作区</span><span class="flex items-center gap-1.5"><span class="kbd">⌘1–5</span><span class="size-1.5 rounded-full bg-emerald-500" title="已注册"></span></span></div>
+          <div class="flex items-center justify-between gap-2 rounded-xl border px-3 py-2 hairline"><span class="text-xs ink-2">新建主题</span><span class="flex items-center gap-1.5"><span class="kbd">⌘N</span><span class="size-1.5 rounded-full bg-emerald-500" title="已注册"></span></span></div>
+          <div class="flex items-center justify-between gap-2 rounded-xl border px-3 py-2 hairline"><span class="text-xs ink-2">AI 助手</span><span class="flex items-center gap-1.5"><span class="kbd">⌘J</span><span class="size-1.5 rounded-full bg-emerald-500" title="已注册"></span></span></div>
+          <div class="flex items-center justify-between gap-2 rounded-xl border px-3 py-2 hairline"><span class="text-xs ink-2">关闭浮层 / 取消</span><span class="flex items-center gap-1.5"><span class="kbd">Esc</span><span class="size-1.5 rounded-full bg-emerald-500" title="已注册"></span></span></div>
+          <div class="flex items-center justify-between gap-2 rounded-xl border border-dashed px-3 py-2 hairline"><span class="text-xs ink-2">全局设置窗口</span><span class="flex items-center gap-1.5"><span class="kbd">⌘,</span><span class="size-1.5 rounded-full bg-slate-300 dark:bg-slate-600" title="待实现：07 是独立窗口，稿子里没有窗口管理器"></span></span></div>
+          <div class="flex items-center justify-between gap-2 rounded-xl border border-dashed px-3 py-2 hairline"><span class="text-xs ink-2">应用到桌面</span><span class="text-xs font-medium ink-3">刻意不给键位</span></div>
+        </div>
+        <p class="hint-note-ink">
+          <code class="code-ink">⌘S</code> 不再存在，但理由变了：<span class="font-medium ink-2">不是「自动保存所以不需要」</span>，
+          而是裁决 1 把它拆成了两件事——参数改动自动落<span class="font-medium ink-2">草稿</span>（页头「草稿已存」），草稿到运行时要一次显式的「应用到桌面」。
+          后者<span class="font-medium ink-2">刻意不给快捷键</span>：桌面端的「应用」会立刻改变你此刻正在用的桌面，
+          一个手滑就能按到的键配不上这个后果。
+          捕获面（04 的屏幕预览）激活时外壳整体让位、只留 Esc——否则「试试 ⌘K」这句提示会打开命令面板并抢走焦点。
         </p>
       </div>
     </section>
 
-    <!-- ── 7. 清理 ── -->
+    <!-- ════════ G. 深色语义令牌层 ════════ -->
     <section class="gal-card">
-      <div class="border-b px-4 py-3 hairline">
-        <h3 class="text-sm font-medium ink">清理项</h3>
+      <div class="panel-head">
+        <h2 class="panel-title">深色模式：语义令牌层（这一页是它唯一的验证处）</h2>
+        <p class="panel-sub">
+          决策 #10 写着「令牌层已在 <code class="code-ink">library/components.html</code> 验证」。本轮实测那句话是假的：
+          <span class="font-medium ink-2">深色下有 14 个元素与容器同色</span>（对比度 1.00），其中滑块的已填充段整段消失——深色下读不出当前值。
+        </p>
       </div>
-      <div class="divide-y divide-slate-200 px-4 dark:divide-slate-700">
+      <div class="panel-body">
+        <div class="overflow-hidden rounded-xl border hairline">
+          <table class="w-full text-left">
+            <thead class="surface-sunken">
+              <tr>
+                <th class="px-3 py-2 text-xs font-semibold ink-3">语义名</th>
+                <th class="px-3 py-2 text-xs font-semibold ink-3">浅色</th>
+                <th class="px-3 py-2 text-xs font-semibold ink-3">深色</th>
+                <th class="px-3 py-2 text-xs font-semibold ink-3">用途</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-hairline">
+              <tr><td class="px-3 py-2 text-xs font-medium ink-2">surface</td><td class="px-3 py-2 text-xs ink-3">white</td><td class="px-3 py-2 text-xs ink-3">slate-900</td><td class="px-3 py-2 text-xs ink-3">卡片 / 面板底</td></tr>
+              <tr><td class="px-3 py-2 text-xs font-medium ink-2">surface-sunken</td><td class="px-3 py-2 text-xs ink-3">slate-50</td><td class="px-3 py-2 text-xs ink-3">slate-950</td><td class="px-3 py-2 text-xs ink-3">页面底 / 次级面板</td></tr>
+              <tr><td class="px-3 py-2 text-xs font-medium ink-2">surface-raised</td><td class="px-3 py-2 text-xs ink-3">white + ring slate-200</td><td class="px-3 py-2 text-xs ink-3">slate-800 + ring slate-700</td><td class="px-3 py-2 text-xs ink-3">面板里的小面板（toast / 空态图标圈 / 卡内卡）</td></tr>
+              <tr><td class="px-3 py-2 text-xs font-medium ink-2">hairline</td><td class="px-3 py-2 text-xs ink-3">slate-200</td><td class="px-3 py-2 text-xs ink-3">slate-700</td><td class="px-3 py-2 text-xs ink-3">1px 描边 / divide</td></tr>
+              <tr><td class="px-3 py-2 text-xs font-medium ink-2">ink</td><td class="px-3 py-2 text-xs ink-3">slate-900</td><td class="px-3 py-2 text-xs ink-3">slate-100</td><td class="px-3 py-2 text-xs ink-3">标题</td></tr>
+              <tr><td class="px-3 py-2 text-xs font-medium ink-2">ink-2</td><td class="px-3 py-2 text-xs ink-3">slate-600</td><td class="px-3 py-2 text-xs ink-3">slate-300</td><td class="px-3 py-2 text-xs ink-3">标签 / 正文</td></tr>
+              <tr><td class="px-3 py-2 text-xs font-medium ink-2">ink-3</td><td class="px-3 py-2 text-xs ink-3">slate-500</td><td class="px-3 py-2 text-xs ink-3">slate-400</td><td class="px-3 py-2 text-xs ink-3">说明 / 辅助</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="hint-note-ink">
+          两处改动都不是「补个色」：<br />
+          <span class="font-medium ink-2">底色从两层变三层</span>——界面实际有三层（页面底 → 卡片 → 卡片里的小面板），
+          第三层原先复用 <code class="code-ink">surface</code>，浅色下靠描边还能读，深色下就是 slate-900 套 slate-900。
+          浅色靠 ring 分隔、深色靠更亮一档填充：两种模式用不同手段表达同一件事，因为浅色能往下压、深色只能往上提。<br />
+          <span class="font-medium ink-2">文字从四级删成三级</span>——上一版这张表写着 <code class="code-ink">ink-4</code> 浅色是 slate-400，
+          而 <code class="code-ink">_src.css</code> 里它是 slate-500，与 <code class="code-ink">ink-3</code> <span class="font-medium ink-2">计算值逐位相同</span>（都是 <code class="code-ink">rgb(100,116,139)</code>）。
+          也就是说第四级只存在于这张表里，而这张表是这一层唯一的文档。
+          为什么不能真给它 slate-400：白底上约 2.6:1，连非文本图形的 3:1 都不到——那正是它当初被提到 500 的原因。
+          删掉一个假层级，比让表说一句真话更对。
+        </p>
+        <p class="hint-note-ink">
+          功能色（emerald / rose / sky / amber）在深色下换 <code class="code-ink">-300</code> 字色 + <code class="code-ink">-950</code> 底色。
+          做完这一层，其余页面是机械替换——<span class="font-medium ink-2">而「机械」的判据是页面里不再手写 <code class="code-ink">dark:</code></span>：
+          这一页上一版有 74 处，其中 <code class="code-ink">btn-outline</code> 与 <code class="code-ink">kbd</code> 共 11 处是在重复它们自己的类里已经写好的深色分支。
+        </p>
+      </div>
+    </section>
+
+    <!-- ════════ H. 清理项 ════════ -->
+    <section class="gal-card">
+      <div class="panel-head">
+        <h2 class="panel-title">清理项 · 实现侧要对齐的数</h2>
+        <p class="panel-sub">上一版这里第一条描述的是一个<span class="font-medium ink-2">已经修好</span>的缺陷。稿子描述已修缺陷比稿子缺一块更危险——照它改会把修好的东西改回去。</p>
+      </div>
+      <div class="divide-y divide-hairline px-4">
         <div class="flex items-start gap-3 py-3">
-          <span class="mt-0.5 inline-flex shrink-0 items-center rounded-full bg-rose-50 px-2 py-0.5 text-2xs font-semibold text-rose-700 dark:bg-rose-950 dark:text-rose-300">删</span>
+          <span class="tag-sem tag-ok">已修</span>
           <div class="min-w-0">
-            <div class="text-xs font-medium ink-2">Panel 的 <code class="rounded bg-slate-100 px-1 dark:bg-slate-800">enabled</code> 死参数</div>
-            <p class="mt-0.5 text-2xs leading-relaxed ink-3">解构成 <code class="rounded bg-slate-100 px-1 dark:bg-slate-800">_enabled</code> 后从未使用，但有 5 处在传它，读代码的人会以为它能置灰面板。</p>
+            <div class="text-xs font-medium ink-2">Panel 的 <code class="code-ink">enabled</code> 不再是死参数</div>
+            <p class="hint-sub-ink">
+              <code class="code-ink">panel.tsx</code> 现在用它驱动图标底色，<code class="code-ink">iconTone</code> prop 已删除（20 处调用点一并清掉）。
+              上一版这里写「解构成 <code class="code-ink">_enabled</code> 后从未使用」——那是修好之前的状态。
+              <span class="font-medium ink-2">剩下的真实待办是另一件事</span>：<code class="code-ink">ICON_TONE_ENABLED</code> 现在是 <code class="code-ink">bg-slate-900 text-white</code>，按裁决 16 要改成低权重编码。
+            </p>
           </div>
         </div>
         <div class="flex items-start gap-3 py-3">
-          <span class="mt-0.5 inline-flex shrink-0 items-center rounded-full bg-amber-50 px-2 py-0.5 text-2xs font-semibold text-amber-800 dark:bg-amber-950 dark:text-amber-300">推</span>
+          <span class="tag-sem tag-warn">推</span>
           <div class="min-w-0">
             <div class="text-xs font-medium ink-2">IconButton 只有 2 个使用者</div>
-            <p class="mt-0.5 text-2xs leading-relaxed ink-3">其余图标按钮全在各处手写。要么全站换过去，要么删掉这个组件。</p>
+            <p class="hint-sub-ink">
+              <code class="code-ink">AiSchemePanel</code> 与 <code class="code-ink">AiConversationMessage</code>，其余图标按钮全在各处手写。
+              现在「全站换过去」这一支有判据背书：门禁 <code class="code-ink">icon-button-unnamed</code> 要求纯图标控件必须有名字，而 IconButton 的 <code class="code-ink">label</code> 是必填 prop。
+            </p>
           </div>
         </div>
         <div class="flex items-start gap-3 py-3">
-          <span class="mt-0.5 inline-flex shrink-0 items-center rounded-full bg-amber-50 px-2 py-0.5 text-2xs font-semibold text-amber-800 dark:bg-amber-950 dark:text-amber-300">推</span>
+          <span class="tag-sem tag-warn">推</span>
           <div class="min-w-0">
-            <div class="text-xs font-medium ink-2">Tabs 只有 1 个使用者</div>
-            <p class="mt-0.5 text-2xs leading-relaxed ink-3">新增的 Segmented 覆盖了大部分场景；Tabs 保留给真正的多页签容器。</p>
+            <div class="text-xs font-medium ink-2">Tabs 是手写的，而且是第 2 套页签语言</div>
+            <p class="hint-sub-ink">
+              使用者是 2 个（不是上一版写的 1 个）：<code class="code-ink">WorkbenchChrome</code>、<code class="code-ink">ThemeComposerModal</code>。
+              但真正的问题是另外两件：它<span class="font-medium ink-2">不是 Radix 基元</span>（<code class="code-ink">DESIGN.md</code>「组件基元」要求全部走 Radix），
+              且样式与稿子其余部分不同源（<code class="code-ink">rounded-full</code> / <code class="code-ink">h-10</code> / <code class="code-ink">ring-black/5</code> / <code class="code-ink">text-sm</code>）。Segmented 覆盖不了它——真正的多页签容器仍然需要 Tabs。
+            </p>
+          </div>
+        </div>
+        <div class="flex items-start gap-3 py-3">
+          <span class="tag-sem tag-danger">对齐</span>
+          <div class="min-w-0">
+            <div class="text-xs font-medium ink-2">三个数两边不一致</div>
+            <p class="hint-sub-ink">
+              <code class="code-ink">segmented.tsx</code> 是 <code class="code-ink">h-7 px-3</code> / 容器 <code class="code-ink">p-1 gap-1</code>，稿子是 <code class="code-ink">h-6 px-2</code> / <code class="code-ink">p-0.5 gap-0.5</code>——
+              <span class="font-medium ink-2">按稿子收紧</span>（稿子那组数是三档窗口下量过的，五页零溢出零截断）。
+              <code class="code-ink">toast.tsx</code> 的 <code class="code-ink">duration</code> 是 2800ms，而稿子与 <code class="code-ink">shell.js</code> 都是 2600。
+              <code class="code-ink">empty-state.tsx</code> 的说明文字是 <code class="code-ink">text-2xs</code>，按裁决 8 提到 <code class="code-ink">text-xs</code>。
+              三个都不影响功能，所以永远不会有人为它们提 bug——只会在两份规格之间长期不一致。
+            </p>
           </div>
         </div>
       </div>
     </section>
   </div>
 
-  <p class="mt-4 text-2xs ink-4">原型页 · 不是产品页面。改动后重新编译样式见 index。</p>
+  <p class="mt-4 text-xs ink-3">原型页 · 不是产品页面。改动后必须重编样式（见规范首页）并重跑两道门禁。</p>
 </div>
 
+<!-- toast 挂载点：与 shell.js 的 #toastHost 同名同形态（库页不套外壳，所以自起一个） -->
+<div id="toastHost" class="pointer-events-none fixed left-1/2 top-4 z-50 flex -translate-x-1/2 flex-col gap-2"></div>
+
 <script>
-function setMode(m) {
-  document.documentElement.classList.toggle('dark', m === 'dark');
-  document.querySelectorAll('[data-mode]').forEach((b) => {
-    b.className = 'seg-item' + (b.dataset.mode === m ? ' seg-item-on' : '');
+const $ = (id) => document.getElementById(id);
+
+/*
+  ══ 分段控件的**唯一**实现 ══════════════════════════════════════════
+
+  上一版这一页有两个问题，都是实测点出来的：
+    · 配色切换用 `b.className = 'seg-item' + (on ? …)` 整串重建，**根本没同步 aria**——
+      点「深色」之后浅色格是 `class=seg-item`（视觉 off）却 `aria-checked=true`，
+      两者**反向**。静态门禁看不见这种事（属性在标记里是对的），只有运行时探针能翻出来。
+    · Segmented 的三组演示**没有任何 handler**，点「校准」前后 class 与 aria 逐位相同——
+      而这一页正是 `Segmented` 的形态依据。
+
+  所以这里只写一处实现，配色切换与四组演示共用它：
+  同一个漏斗保证「aria 与视觉类同侧」这件事不可能只做一半。
+  真实代码里对应 `segmented.tsx`（role=radiogroup + role=radio + aria-checked）。
+*/
+function bindSeg(group, onChange) {
+  const items = [...group.querySelectorAll('.seg-item')];
+  const select = (btn) => {
+    if (btn.disabled) return;
+    items.forEach((b) => {
+      const on = b === btn;
+      b.classList.toggle('seg-item-on', on);          // 只切这一个类，不重建 className
+      b.setAttribute('aria-checked', String(on));     // 与视觉类**同一次**写入
+      b.tabIndex = on ? 0 : -1;                       // roving tabindex
+    });
+    onChange?.(btn);
+  };
+  items.forEach((btn, i) => {
+    btn.addEventListener('click', () => select(btn));
+    btn.addEventListener('keydown', (e) => {
+      const dir = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -1, ArrowDown: 1 }[e.key];
+      if (!dir) return;
+      e.preventDefault();
+      // 跳过禁用项：停在一个点不动的格子上，方向键就成了死路
+      for (let step = 1; step <= items.length; step += 1) {
+        const next = items[(i + dir * step + items.length * step) % items.length];
+        if (next && !next.disabled) { next.focus(); select(next); return; }
+      }
+    });
+  });
+  return { select };
+}
+
+/*
+  toast：形态与 `shell.js` 的 `toast()` 逐字相同（那里是唯一实现）。
+  第三个参数 `meta` 对应 shell 的 `{ draft: false }`——发布/回退这类元操作
+  不该把草稿标脏，否则「应用到桌面」会先清脏再被自己的 toast 标回去。
+*/
+function toast(text, undo, meta) {
+  const host = $('toastHost');
+  const el = document.createElement('div');
+  el.className = 'pointer-events-auto flex items-center gap-3 rounded-xl border px-3 py-2 shadow-lg hairline surface-raised';
+  el.innerHTML = `<span class="text-xs font-medium ink-2">${text}</span>`;
+  if (meta) el.insertAdjacentHTML('beforeend', '<span class="text-xs ink-3">不计入草稿</span>');
+  if (undo) {
+    const b = document.createElement('button');
+    b.className = 'text-xs font-semibold underline underline-offset-2 ink';
+    b.textContent = '撤销';
+    b.addEventListener('click', () => el.remove());
+    el.appendChild(b);
+  }
+  host.appendChild(el);
+  setTimeout(() => el.remove(), 2600);
+}
+
+// ── 深色模式：走语义令牌层，页面里不判断颜色 ──
+bindSeg(document.querySelector('[data-seg="mode"]'), (btn) => {
+  document.documentElement.classList.toggle('dark', btn.dataset.mode === 'dark');
+});
+// 其余分段控件（含两个 disabled 变体）共用同一实现
+document.querySelectorAll('[data-seg]:not([data-seg="mode"])').forEach((g) => bindSeg(g));
+
+// ── 所有演示按钮都真的有反馈：一个点了没反应的控件在形态依据里等于一句谎 ──
+document.querySelectorAll('[data-toast]').forEach((b) => {
+  b.addEventListener('click', () => toast(b.dataset.toast, b.dataset.undo, b.dataset.meta));
+});
+
+/*
+  ── Panel：折叠 ──
+
+  尺寸变化必须带 L2 过渡（裁决 10 的布局因果层）：瞬跳之下用户读不出是谁挤了谁。
+  `#panelDemoBody` 上挂着 `.motion-layout`，门禁 `layout-transition-missing` 查的就是这个配对。
+
+  **展开态刻意是 `max-height: none`，不是一个量出来的像素值。**
+  第一版写的是「装载时量一次 `scrollHeight` 存着」，走查当场翻出后果：
+  那次测量发生在预览窗格只有 355px 宽的时候，段落折成了很多行，量到 578px；
+  等窗口变宽、内容其实只需要 78px 时，那个 578 还留在 style 里。
+  反方向更糟——在宽窗口量到 78px 之后把窗口收窄，内容需要 120px，
+  于是**折叠过一次的卡片会把自己的内容裁掉一截**，而且没有任何报错。
+  这与门禁 `measured-geometry-without-viewportchange` 记的是同一族：
+  **一个存下来的几何值，从存下的那一刻就开始过期。**
+
+  所以测量只用于「动画的那一帧」：关闭时先把当前真实高度写进去再压到 0
+  （否则 `none → 0` 不产生过渡），展开时写一次目标高度、动画结束后立刻交还给 `none`。
+*/
+{
+  const btn = document.querySelector('[data-panelfold]');
+  const arrow = document.querySelector('[data-foldarrow]');
+  const body = $('panelDemoBody');
+  body.style.maxHeight = 'none';                      // 初始展开：不存任何像素值
+  body.addEventListener('transitionend', (e) => {
+    if (e.propertyName !== 'max-height') return;
+    if (btn.getAttribute('aria-expanded') === 'true') body.style.maxHeight = 'none';
+  });
+  btn.addEventListener('click', () => {
+    const open = btn.getAttribute('aria-expanded') === 'true';
+    btn.setAttribute('aria-expanded', String(!open));
+    arrow.classList.toggle('rotate-180', open);
+    if (open) {
+      $('panelDemoBody').style.maxHeight = `${body.scrollHeight}px`;   // 从 none 落到实数才有起点
+      void body.offsetHeight;                                          // 强制回流，否则两次赋值被合并成一次
+      $('panelDemoBody').style.maxHeight = '0px';
+    } else {
+      $('panelDemoBody').style.maxHeight = `${body.scrollHeight}px`;   // 动画终点，transitionend 后交还 none
+    }
   });
 }
-document.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
-setMode('light');
-// 滑块与数值框**双向**绑定，两边都用共享实现（这一页是它们的形态依据，
-// 自己另写一套就等于又多了一个实现，正是「组件库没落地」那笔欠债的成因）。
+
+/*
+  ── 开关：视觉、aria、以及**别处**的表达一起翻 ──
+  「改一个状态再看别处」是这一族缺陷的判据：`.cfg-icon-on` 与开关是同一个 bit 的两处表达，
+  只翻一处就会出现「图标说启用、开关说关闭」。
+*/
+function bindSwitch(btn, icon) {
+  btn.addEventListener('click', () => {
+    const on = btn.getAttribute('aria-checked') !== 'true';
+    btn.setAttribute('aria-checked', String(on));
+    btn.classList.toggle('switch-on', on);
+    icon?.classList.toggle('cfg-icon-on', on);
+  });
+}
+bindSwitch(document.querySelector('[data-panelswitch]'), document.querySelector('.cfg-card-on .cfg-icon'));
+bindSwitch(document.querySelector('[data-panelswitch2]'), document.querySelector('.cfg-card:not(.cfg-card-on) .cfg-icon'));
+
+// ── Tabs：一组页签控制**同文档**里的一个面板（否则不该用这套 role） ──
+{
+  const PANELS = { tabA: '外观：文案、字号、颜色、上浮距离。', tabB: '时间：偏移、时长、缓动曲线、错峰——全部在时间轴里改。', tabC: '音效：音色、音量、随机音高。' };
+  const tabs = [...document.querySelectorAll('[data-tabs] [role="tab"]')];
+  const pick = (t) => {
+    tabs.forEach((x) => {
+      const on = x === t;
+      x.setAttribute('aria-selected', String(on));
+      x.tabIndex = on ? 0 : -1;
+      x.classList.toggle('bg-slate-950', on);
+      x.classList.toggle('text-white', on);
+      x.classList.toggle('dark:bg-slate-100', on);
+      x.classList.toggle('dark:text-slate-900', on);
+      x.classList.toggle('ink-2', !on);
+    });
+    const panel = $('tabPanel');
+    panel.textContent = PANELS[t.id];
+    panel.setAttribute('aria-labelledby', t.id);
+  };
+  tabs.forEach((t, i) => {
+    t.addEventListener('click', () => pick(t));
+    t.addEventListener('keydown', (e) => {
+      const dir = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
+      if (!dir) return;
+      e.preventDefault();
+      const next = tabs[(i + dir + tabs.length) % tabs.length];
+      next.focus(); pick(next);
+    });
+  });
+}
+
+/*
+  ── 状态编码演示 + 分类色 ──
+  两块都从 `Ctl.CH_TONE` 渲染，页面里**没有一个分类色类**：
+  分类色是封闭集合，只允许存在于那一张表里（门禁 category-tone-table-duplicated）。
+*/
+{
+  const ON = ['trigger', 'text', 'particle'];
+  document.querySelector('[data-tonedemo]').innerHTML = ['trigger', 'text', 'particle', 'ripple']
+    .map((k) => {
+      const on = ON.includes(k);
+      return `<div class="flex items-center gap-2.5 rounded-xl border px-2.5 py-1.5 hairline surface">
+        <span class="cfg-icon${on ? ' cfg-icon-on' : ''} glyph-badge">${Ctl.CH_TONE[k].name.slice(0, 1)}</span>
+        <span class="min-w-0 flex-1 text-xs font-medium ink-2">${Ctl.CH_TONE[k].name}</span>
+        <button role="switch" aria-checked="${on}" class="switch-knob${on ? ' switch-on' : ''}" aria-label="启用${Ctl.CH_TONE[k].name}"></button>
+      </div>`;
+    }).join('');
+  document.querySelectorAll('[data-tonedemo] [role="switch"]').forEach((b) => {
+    bindSwitch(b, b.parentElement.querySelector('.cfg-icon'));
+  });
+  document.querySelector('[data-chips]').innerHTML = Object.entries(Ctl.CH_TONE)
+    .map(([, t]) => `<span class="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${t.chip}">
+      <span class="size-1.5 rounded-full ${t.dot}"></span>${t.name}</span>`).join('');
+}
+
+/*
+  滑块与数值框**双向**绑定，两边都用共享实现（这一页是它们的形态依据，
+  自己另写一套就等于又多了一个实现，正是「组件库没落地」那笔欠债的成因）。
+*/
 window.addEventListener('load', () => {
   const numbers = new Map();
   // 先建数值框：滑块的 onChange 要能找到它

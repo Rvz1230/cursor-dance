@@ -115,7 +115,18 @@ const COLOR_ALLOWLIST = [
   },
   {
     file: "src/app/pages/theme-workbench/components/preview-rail/TimelineTrackRow.tsx",
-    why: "TODO 时间轴轨道色（第 4 批 · 工作台 + 时间轴一并收敛）",
+    /*
+      不再是 TODO：DECISIONS.md 裁决 11 把「内容色 / 分类色」立为正式的第三类颜色，
+      时间轴通道色是它的合法用法，不是待收敛的欠债。
+
+      稿子侧已落地（`docs/ui-spec/surfaces/01-workbench.html` 的 `CH_TONE`），
+      并且实测三处共用一份映射：时间轴通道块、「本次输出」chip、诊断面板的效果类型。
+
+      实现时的约束（这条才是重点）：**必须提成一个共享常量**，
+      不能像稿子那样在两个页面各写一份——复制的两份表一定会有一天不一致，
+      而「同一个效果类型在不同界面用不同颜色」已被 DESIGN.md 列为反模式。
+    */
+    why: "时间轴通道的分类色（裁决 11 的正式用法，封闭集合；实现须提成共享常量)",
   },
   {
     file: "src/components/ui/data-pill.tsx",
