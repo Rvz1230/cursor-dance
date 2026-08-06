@@ -21,7 +21,7 @@
 - [x] 第 6 批：统一组件、命名和工程约束——删除 `WorkbenchControls` 混合入口，运行时统一使用 theme 命名，新增可执行 conventions 门禁。
 - [x] 第 7 批：替换新 UI 外壳与工作台整体布局——工作区意图分组、主题作用域、应用/恢复链路、布局预设和命令面板均已接入真实状态与命令。
 - [x] 第 8 批：统一共享控件族和设计 Token——删除三套旧包装，统一 Slider / Select / NumberField / ColorField / XYPad 交互契约，并建立控件数据唯一来源。
-- [x] 主题库侧边栏专项：展开态改为紧凑 listbox 与 roving tabindex，折叠态补齐搜索、新建和库操作入口，保留真实主题 CRUD、脏状态切换确认与折叠持久化。
+- [x] 主题库侧边栏专项：严格对齐 `01-workbench` 原型的展开/折叠视觉，主题样张由真实主题配置派生；使用紧凑 listbox 与 roving tabindex，保留真实主题 CRUD、脏状态切换确认与折叠持久化。
 
 最近完成提交：
 

@@ -24,52 +24,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-type ThemeTone = "amber" | "teal" | "sky" | "rose" | "slate";
-
-export interface ThemeToneClasses {
-  readonly chip: string;
-  readonly icon: string;
-  readonly border: string;
-}
-
-const THEME_TONE_CLASSES: Readonly<Record<ThemeTone, ThemeToneClasses>> = {
-  amber: {
-    chip: "bg-amber-100 text-amber-700 ring-amber-200",
-    icon: "bg-amber-100 text-amber-700",
-    border: "border-amber-200",
-  },
-  teal: {
-    chip: "bg-teal-100 text-teal-700 ring-teal-200",
-    icon: "bg-teal-100 text-teal-700",
-    border: "border-teal-200",
-  },
-  sky: {
-    chip: "bg-sky-100 text-sky-700 ring-sky-200",
-    icon: "bg-sky-100 text-sky-700",
-    border: "border-sky-200",
-  },
-  rose: {
-    chip: "bg-rose-100 text-rose-700 ring-rose-200",
-    icon: "bg-rose-100 text-rose-700",
-    border: "border-rose-200",
-  },
-  slate: {
-    chip: "bg-slate-100 text-slate-700 ring-slate-200",
-    icon: "bg-slate-200 text-slate-700",
-    border: "border-slate-200",
-  },
-};
-
-const FALLBACK_TONE: ThemeTone = "teal";
-
-function isThemeTone(value: string): value is ThemeTone {
-  return value in THEME_TONE_CLASSES;
-}
-
-export function toneClasses(tone: string | undefined | null): ThemeToneClasses {
-  return THEME_TONE_CLASSES[tone && isThemeTone(tone) ? tone : FALLBACK_TONE];
-}
-
 export interface ThemeIconOption {
   readonly name: string;
   readonly Icon: LucideIcon;

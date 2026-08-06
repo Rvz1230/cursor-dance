@@ -3,13 +3,13 @@ import { PanelLeftClose, PanelLeftOpen, Plus, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/components/ui/utils";
-import { resolveThemeIcon, toneClasses } from "@/components/ui/theme-identity";
+import { resolveThemeIcon } from "@/components/ui/theme-identity";
 import { readEditorState, writeEditorState } from "../lib/workbenchConfig";
 import { ThemeComposerModal } from "./theme-library/ThemeComposerModal";
 import { ThemeLibraryDialogs } from "./theme-library/ThemeLibraryDialogs";
 import { ThemeLibraryOption } from "./theme-library/ThemeLibraryOption";
 import { ThemeLibraryMenu } from "./theme-library/ThemeLibraryMenu";
-import type { WorkbenchThemeMeta } from "../hooks/workbenchStateTypes";
+import type { WorkbenchActionConfig, WorkbenchThemeMeta } from "../hooks/workbenchStateTypes";
 import {
   filterThemeLibrary,
   getThemeNavigationIndex,
@@ -18,6 +18,7 @@ import {
 
 export function ThemeLibrarySidebar({
   themes,
+  themeRecords,
   themeId,
   setThemeId,
   createTheme,
@@ -55,6 +56,12 @@ export function ThemeLibrarySidebar({
   const filteredThemes = useMemo(
     () => filterThemeLibrary<WorkbenchThemeMeta>(themes, query),
     [query, themes],
+  );
+  const themeActionConfigs = useMemo(
+    () => new Map<string, WorkbenchActionConfig>(
+      themeRecords.map((record) => [record.meta.id, record.draft.actionConfigs.leftClick]),
+    ),
+    [themeRecords],
   );
   const rovingThemeId = getThemeRovingId(filteredThemes, themeId, focusedThemeId);
   const currentThemeName = themes.find((theme) => theme.id === themeId)?.name || "当前主题";
@@ -235,7 +242,6 @@ export function ThemeLibrarySidebar({
             {themes.map((theme) => {
               const selected = theme.id === themeId;
               const ThemeIcon = resolveThemeIcon(theme.icon);
-              const tones = toneClasses(theme.tone);
               return (
                 <button
                   key={theme.id}
@@ -250,7 +256,7 @@ export function ThemeLibrarySidebar({
                   )}
                   onClick={() => handleThemeClick(theme.id)}
                 >
-                  <span className={cn("grid size-7 place-items-center rounded-lg", selected ? "bg-slate-950 text-white" : tones.icon)}>
+                  <span className={cn("grid size-7 place-items-center rounded-lg", selected ? "bg-slate-950 text-white" : "bg-slate-100 text-slate-500")}>
                     <ThemeIcon className="size-3.5" />
                   </span>
                   {dirtyThemes?.[theme.id] ? <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-amber-400 ring-2 ring-slate-100" aria-label="有未保存的更改" /> : null}
@@ -324,6 +330,7 @@ export function ThemeLibrarySidebar({
               <ThemeLibraryOption
                 key={theme.id}
                 theme={theme}
+                actionConfig={themeActionConfigs.get(theme.id)}
                 selected={theme.id === themeId}
                 roving={theme.id === rovingThemeId}
                 canDelete={theme.kind !== "内置" && themes.length > 1}

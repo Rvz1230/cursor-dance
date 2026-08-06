@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Download, FileJson, MoreHorizontal } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
@@ -33,32 +33,29 @@ export function ThemeLibraryMenu({
           <MoreHorizontal className="size-4" aria-hidden="true" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-52 p-1" align={align} sideOffset={6}>
-        <div className="px-2.5 pb-1 pt-1.5 text-2xs font-medium text-slate-400">
-          主题库 · {themeCount} 个主题
-        </div>
+      <PopoverContent className="w-[200px] rounded-xl p-1" align={align} sideOffset={4}>
         <button
           type="button"
-          className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs text-slate-700 hover:bg-slate-50"
+          className="flex w-full items-baseline gap-2 rounded-lg px-3 py-1.5 text-left text-xs text-slate-700 hover:bg-slate-50 focus-visible:bg-slate-50 focus-visible:outline-none"
           onClick={() => {
             setOpen(false);
             onImport();
           }}
         >
-          <FileJson className="size-4 text-slate-400" aria-hidden="true" />
-          <span className="min-w-0 flex-1">导入 JSON…</span>
+          <span className="min-w-0 flex-1">导入…</span>
+          <span className="shrink-0 text-xs text-slate-500">.json</span>
         </button>
         <button
           type="button"
-          className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400"
+          className="flex w-full items-baseline gap-2 rounded-lg px-3 py-1.5 text-left text-xs text-slate-700 hover:bg-slate-50 focus-visible:bg-slate-50 focus-visible:outline-none disabled:cursor-not-allowed disabled:text-slate-400"
           onClick={() => {
             setOpen(false);
             onExportCurrent();
           }}
           disabled={!themeCount}
         >
-          <Download className="size-4 text-slate-400" aria-hidden="true" />
-          <span className="min-w-0 flex-1 truncate">导出“{currentThemeName}”</span>
+          <span className="min-w-0 flex-1 truncate">导出当前主题</span>
+          <span className="max-w-20 shrink-0 truncate text-xs text-slate-500">{currentThemeName}</span>
         </button>
       </PopoverContent>
     </Popover>

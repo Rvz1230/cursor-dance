@@ -61,6 +61,7 @@ export function useThemeWorkbenchState() {
     selected,
     undoStack,
     themes: themeMetadata,
+    themeRecords: state.domain.themes,
     activeTheme,
     draft,
     currentActionConfig,

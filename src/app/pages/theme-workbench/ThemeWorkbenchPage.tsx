@@ -105,6 +105,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
     state,
     selected,
     themes,
+    themeRecords,
     activeTheme,
     draft,
     currentActionConfig,
@@ -340,6 +341,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
             {themeScoped ? (
               <ThemeLibrarySidebar
                 themes={themes}
+                themeRecords={themeRecords}
                 themeId={selected.themeId}
                 setThemeId={setThemeId}
                 createTheme={createTheme}

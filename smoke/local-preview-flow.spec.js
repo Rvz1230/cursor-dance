@@ -298,6 +298,14 @@ test("workbench dialogs, save toast, color picker, and slider controls are usabl
   const themeLibrary = workbenchPage.getByRole("listbox", { name: "主题库" });
   const themeSearch = workbenchPage.getByRole("textbox", { name: "搜索主题" });
   await expect(themeLibrary.getByRole("option")).toHaveCount(5);
+  const themeSignatures = await themeLibrary.getByRole("option").evaluateAll((options) =>
+    options.map((option) => {
+      const ripple = option.querySelector("svg circle[stroke]")?.getAttribute("stroke");
+      const text = option.querySelector('svg rect[x="30"]')?.getAttribute("fill");
+      return `${ripple}|${text}`;
+    }),
+  );
+  expect(new Set(themeSignatures).size).toBeGreaterThan(1);
   await expect.poll(() => themeLibrary.getByRole("option").evaluateAll((options) =>
     options.filter((option) => option.tabIndex === 0).length,
   )).toBe(1);
@@ -312,7 +320,7 @@ test("workbench dialogs, save toast, color picker, and slider controls are usabl
   await expect(themeLibrary.getByRole("option").last()).toBeFocused();
 
   await workbenchPage.getByRole("button", { name: "Smoke UX Theme 更多操作" }).click();
-  await workbenchPage.getByRole("button", { name: "复制" }).click();
+  await workbenchPage.getByRole("button", { name: "复制为自定义主题" }).click();
   await expect(workbenchPage.getByText("已复制主题", { exact: true })).toBeVisible();
   await expect(workbenchPage.getByText(/^已复制为/)).toHaveCount(0);
 

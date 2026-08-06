@@ -1,13 +1,15 @@
 import { useState } from "react";
-import { Copy, Download, MoreHorizontal, Pencil, Shapes, Trash2 } from "lucide-react";
+import { MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/components/ui/utils";
-import { ICON_OPTIONS, resolveThemeIcon, toneClasses } from "@/components/ui/theme-identity";
-import type { WorkbenchThemeMeta } from "../../hooks/workbenchStateTypes";
+import { ICON_OPTIONS } from "@/components/ui/theme-identity";
+import type { WorkbenchActionConfig, WorkbenchThemeMeta } from "../../hooks/workbenchStateTypes";
+import { ThemeSignature } from "./ThemeSignature";
 
 interface ThemeLibraryOptionProps {
   theme: WorkbenchThemeMeta;
+  actionConfig?: WorkbenchActionConfig;
   selected: boolean;
   roving: boolean;
   canDelete: boolean;
@@ -24,6 +26,7 @@ interface ThemeLibraryOptionProps {
 
 export function ThemeLibraryOption({
   theme,
+  actionConfig,
   selected,
   roving,
   canDelete,
@@ -40,8 +43,6 @@ export function ThemeLibraryOption({
   const [menuOpen, setMenuOpen] = useState(false);
   const [showIcons, setShowIcons] = useState(false);
   const [editingName, setEditingName] = useState("");
-  const tones = toneClasses(theme.tone);
-  const ThemeIcon = resolveThemeIcon(theme.icon);
 
   function closeMenu() {
     setMenuOpen(false);
@@ -61,26 +62,31 @@ export function ThemeLibraryOption({
       aria-selected={selected}
       tabIndex={roving ? 0 : -1}
       className={cn(
-        "group relative flex min-h-12 cursor-default items-center gap-2 rounded-xl border px-2 py-1.5 text-left transition-[background-color,border-color,box-shadow] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400",
+        "group relative flex min-h-[47px] w-full cursor-default items-center gap-2.5 rounded-xl border border-transparent bg-white px-2.5 py-1.5 text-left transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400",
         selected
-          ? "border-slate-300 bg-white shadow-sm"
-          : "border-transparent hover:border-slate-200 hover:bg-white/70",
+          ? "shadow-sm ring-1 ring-slate-200"
+          : "",
       )}
       onClick={onSelect}
       onFocus={onFocus}
       onKeyDown={onKeyDown}
     >
-      {selected ? <span className="absolute inset-y-2 left-0 w-0.5 rounded-r-full bg-slate-950" aria-hidden="true" /> : null}
+      <span
+        className={cn(
+          "absolute left-0 top-1/2 w-0.5 -translate-y-1/2 rounded-full bg-slate-950 transition-[height]",
+          selected ? "h-5" : "h-0",
+        )}
+        aria-hidden="true"
+      />
       <span
         className={cn(
           "relative grid h-8 w-11 shrink-0 place-items-center overflow-hidden rounded-lg border",
           selected ? "border-slate-300 bg-white" : "border-slate-200 bg-slate-50",
         )}
-        title={`${theme.name} 的主题标识`}
+        title={`${theme.name} 的效果样张（由主题数据派生）`}
         aria-hidden="true"
       >
-        <span className={cn("absolute -bottom-3 -right-2 size-8 rounded-full opacity-70", tones.icon)} />
-        <ThemeIcon className="relative size-4 text-slate-700" />
+        <ThemeSignature actionConfig={actionConfig} />
       </span>
 
       <span className="min-w-0 flex-1">
@@ -120,27 +126,24 @@ export function ThemeLibraryOption({
             variant="ghost"
             size="icon"
             tabIndex={-1}
-            className="size-7 shrink-0 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            className="size-6 shrink-0 rounded-lg text-slate-300 hover:bg-slate-100 hover:text-slate-700"
             aria-label={`${theme.name} 更多操作`}
             onClick={(event) => event.stopPropagation()}
           >
             <MoreHorizontal className="size-4" aria-hidden="true" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-48 p-1" align="end" sideOffset={4} onClick={(event) => event.stopPropagation()}>
+        <PopoverContent className="w-[188px] rounded-xl p-1" align="end" sideOffset={4} onClick={(event) => event.stopPropagation()}>
           {showIcons ? (
             <>
-              <div className="flex items-center justify-between px-2 pb-1 pt-1.5">
-                <span className="text-2xs font-medium text-slate-500">选择主题图标</span>
-                <button type="button" className="text-2xs text-slate-500 hover:text-slate-900" onClick={() => setShowIcons(false)}>返回</button>
-              </div>
-              <div className="grid grid-cols-5 gap-1 p-1">
+              <div className="mb-1 px-1 pt-1 text-xs font-semibold text-slate-500">换图标</div>
+              <div className="grid grid-cols-6 gap-1 p-1">
                 {ICON_OPTIONS.map(({ name, Icon }) => (
                   <button
                     key={name}
                     type="button"
                     className={cn(
-                      "grid size-8 place-items-center rounded-lg",
+                      "grid size-7 place-items-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400",
                       theme.icon === name ? "bg-slate-950 text-white" : "text-slate-600 hover:bg-slate-100",
                     )}
                     aria-label={`使用 ${name} 图标`}
@@ -149,19 +152,18 @@ export function ThemeLibraryOption({
                       closeMenu();
                     }}
                   >
-                    <Icon className="size-4" />
+                    <Icon className="size-3.5" />
                   </button>
                 ))}
               </div>
             </>
           ) : (
             <>
-              <MenuAction icon={Pencil} label="重命名" onClick={() => { closeMenu(); setEditingName(theme.name); }} />
-              <MenuAction icon={Shapes} label="更换图标…" onClick={() => setShowIcons(true)} />
-              <MenuAction icon={Copy} label="复制" onClick={() => { closeMenu(); onDuplicate(); }} />
-              <MenuAction icon={Download} label="导出" onClick={() => { closeMenu(); onExport(); }} />
-              <div className="my-1 h-px bg-slate-100" />
-              <MenuAction icon={Trash2} label="删除" danger disabled={!canDelete} onClick={() => { closeMenu(); onDelete(); }} />
+              <MenuAction label="复制为自定义主题" onClick={() => { closeMenu(); onDuplicate(); }} />
+              <MenuAction label="重命名" onClick={() => { closeMenu(); setEditingName(theme.name); }} />
+              <MenuAction label="换图标" onClick={() => setShowIcons(true)} />
+              <MenuAction label="导出为 .json" onClick={() => { closeMenu(); onExport(); }} />
+              <MenuAction label="删除" danger disabled={!canDelete} onClick={() => { closeMenu(); onDelete(); }} />
             </>
           )}
         </PopoverContent>
@@ -171,13 +173,11 @@ export function ThemeLibraryOption({
 }
 
 function MenuAction({
-  icon: Icon,
   label,
   onClick,
   danger = false,
   disabled = false,
 }: {
-  icon: typeof Pencil;
   label: string;
   onClick: () => void;
   danger?: boolean;
@@ -187,14 +187,14 @@ function MenuAction({
     <button
       type="button"
       className={cn(
-        "flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:bg-transparent",
-        danger && !disabled ? "text-rose-600 hover:bg-rose-50" : "text-slate-700",
+        "flex w-full items-center gap-2 rounded-lg px-3 py-1.5 text-left text-xs hover:bg-slate-50 focus-visible:bg-slate-50 focus-visible:outline-none disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent",
+        danger && !disabled ? "text-rose-600" : "text-slate-700",
       )}
       onClick={onClick}
       disabled={disabled}
     >
-      <Icon className="size-4" aria-hidden="true" />
-      {label}
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      {disabled ? <span className="shrink-0 text-xs text-slate-300">不可用</span> : null}
     </button>
   );
 }
