@@ -12,7 +12,7 @@ import {
   type WorkbenchRepositoryCodec,
 } from "./types";
 import { createBrowserFallbackSupport } from "./support";
-import type { CursorDanceConfig } from "@/shared/config/default-config";
+import type { CursorDanceConfig } from "@/shared/domain/cursor-dance";
 
 function readStoredConfig(key: string, codec: WorkbenchRepositoryCodec): CursorDanceConfig | null {
   if (!canUseLocalStorage()) return null;

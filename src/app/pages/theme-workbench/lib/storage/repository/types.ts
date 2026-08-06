@@ -21,7 +21,18 @@ export type WorkbenchEditorState = {
   libraryCollapsed?: boolean;
 };
 
-export type RecentCursorAsset = Record<string, unknown> & {
+export interface CursorAssetDraft {
+  imageDataUrl?: string;
+  mimeType?: string;
+  hotspotX?: number;
+  hotspotY?: number;
+  size?: number;
+  sourceWidth?: number;
+  sourceHeight?: number;
+  name?: string;
+}
+
+export type RecentCursorAsset = CursorAssetDraft & Record<string, unknown> & {
   id: string;
   imageDataUrl: string;
 };
@@ -60,4 +71,4 @@ export function notifyRepositoryListener<T>(listener: RepositoryListener<T>, val
     console.error("[cursordance] repository listener failed:", error);
   });
 }
-import type { CursorDanceConfig } from "@/shared/config/default-config";
+import type { CursorDanceConfig } from "@/shared/domain/cursor-dance";

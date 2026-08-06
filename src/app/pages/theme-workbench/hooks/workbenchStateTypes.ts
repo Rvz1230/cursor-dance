@@ -2,50 +2,19 @@ import type { Dispatch, MutableRefObject } from "react";
 import type { AppRule } from "@/shared/app-rules";
 import type { KeyFeedbackConfig } from "@/shared/config/key-feedback";
 import type { RecentCursorAsset } from "../lib/storage/repository/types";
-import type { CursorDanceConfig } from "@/shared/config/default-config";
+import type { CursorBinding, CursorDanceConfig, CursorSkin } from "@/shared/domain/cursor-dance";
 
 export type WorkbenchActionConfig = Record<string, unknown>;
 
-/** Legacy flat cursor asset kept at the Workbench persistence boundary. */
-export interface CursorStateAsset {
-  imageDataUrl?: string;
-  mimeType?: string;
-  hotspotX?: number;
-  hotspotY?: number;
-  size?: number;
-  sourceWidth?: number;
-  sourceHeight?: number;
-  name?: string;
-}
-
-/** Editable cursor-skin state. Fields are optional while the UI assembles a state. */
-export interface CursorSkinState {
-  image?: {
-    kind?: string;
-    mimeType?: string;
-    dataUrl?: string;
-    assetId?: string;
-    width?: number;
-    height?: number;
-  };
-  hotspot?: { x: number; y: number };
-  size?: { mode?: string; boxSize?: number };
-}
-
-interface WorkbenchCursorSkin {
-  version: number;
-  enabled: boolean;
-  transitionMs: number;
-  states: Record<string, CursorSkinState>;
-}
-
+/**
+ * Editor state around the canonical theme fields. `reset*` values are UI baselines only;
+ * persistence strips them and writes the shared domain model directly.
+ */
 export interface WorkbenchThemeDraft {
   actionConfigs: Record<string, WorkbenchActionConfig>;
   resetActionConfigs: Record<string, WorkbenchActionConfig>;
-  cursorModes: Record<string, string>;
-  cursorStateActions: Record<string, string>;
-  cursorStateAssets: Record<string, CursorStateAsset>;
-  cursorSkin: WorkbenchCursorSkin;
+  cursorBindings: Record<string, CursorBinding>;
+  cursorSkin: CursorSkin;
   keyFeedbackConfig: KeyFeedbackConfig;
   resetKeyFeedbackConfig: KeyFeedbackConfig;
   atmosphere: Record<string, unknown>;
@@ -53,9 +22,10 @@ export interface WorkbenchThemeDraft {
 
 export type CursorCommandDraft = Pick<
   WorkbenchThemeDraft,
-  "cursorModes" | "cursorStateActions" | "cursorStateAssets" | "cursorSkin"
+  "cursorBindings" | "cursorSkin"
 >;
 
+/** Workbench-only presentation metadata; never serialized as the runtime theme model. */
 export interface ThemeLibraryItem {
   id: string;
   name: string;

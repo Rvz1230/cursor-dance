@@ -1,10 +1,10 @@
 import type {
-  ContextRuleActionV4,
-  ContextRuleV4,
-  WebContextRuleV4,
-} from "./config-schema-v4";
+  ContextRule,
+  ContextRuleAction,
+  WebContextRule,
+} from "./domain/cursor-dance";
 
-type WebHostPattern = WebContextRuleV4["match"];
+type WebHostPattern = WebContextRule["match"];
 
 function isWebHostPattern(value: unknown): value is WebHostPattern {
   if (!value || typeof value !== "object") return false;
@@ -34,10 +34,10 @@ export function matchHostPattern(host: unknown, pattern: unknown): boolean {
   }
 }
 
-function isEnabledWebRule(rule: unknown): rule is WebContextRuleV4 {
+function isEnabledWebRule(rule: unknown): rule is WebContextRule {
   if (!rule || typeof rule !== "object") return false;
-  const candidate = rule as Partial<ContextRuleV4>;
-  const action = candidate.action as Partial<ContextRuleActionV4> | undefined;
+  const candidate = rule as Partial<ContextRule>;
+  const action = candidate.action as Partial<ContextRuleAction> | undefined;
   return candidate.context === "web"
     && candidate.enabled === true
     && isWebHostPattern(candidate.match)
@@ -48,7 +48,7 @@ export function findWebContextRule(
   rules: unknown,
   host: unknown,
   path: unknown,
-): WebContextRuleV4 | null {
+): WebContextRule | null {
   if (!Array.isArray(rules)) return null;
   const pathname = typeof path === "string" && path.startsWith("/") ? path : `/${path || ""}`;
   for (const rule of rules) {
@@ -64,6 +64,6 @@ export function resolveWebContextRule(
   rules: unknown,
   host: unknown,
   path: unknown,
-): ContextRuleActionV4 | null {
+): ContextRuleAction | null {
   return findWebContextRule(rules, host, path)?.action || null;
 }

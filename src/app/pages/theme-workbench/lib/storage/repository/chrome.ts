@@ -21,11 +21,11 @@ import {
 } from "./types";
 import { mergeEditorState, normalizeEditorState } from "./local-editor-state";
 import { dedupeRecentAssets, normalizeRecentAsset } from "./support";
-import type { CursorDanceConfig } from "@/shared/config/default-config";
 import type {
-  CursorDanceThemeV4,
-  CursorSkinStateV4,
-} from "@/shared/config-schema-v4";
+  CursorDanceConfig,
+  CursorDanceTheme,
+  CursorSkinState,
+} from "@/shared/domain/cursor-dance";
 
 const DIAGNOSTIC_EVENTS_STORAGE_KEY = "cursordance.diagnosticEvents";
 
@@ -57,8 +57,8 @@ function withResolvedCursorAssets(
   config: CursorDanceConfig,
   assetEntries: Record<string, unknown>,
 ): CursorDanceConfig {
-  const themes: CursorDanceThemeV4[] = config.themes.map((theme) => {
-    const states: Record<string, CursorSkinStateV4> = Object.fromEntries(
+  const themes: CursorDanceTheme[] = config.themes.map((theme) => {
+    const states: Record<string, CursorSkinState> = Object.fromEntries(
       Object.entries(theme.cursorSkin.states).map(([stateId, state]) => {
         const image = state.image;
         if (image.kind !== "asset") return [stateId, state];
@@ -88,8 +88,8 @@ function withResolvedCursorAssets(
 }
 
 function stripInlineCursorAssets(config: CursorDanceConfig): CursorDanceConfig {
-  const themes: CursorDanceThemeV4[] = config.themes.map((theme) => {
-    const states: Record<string, CursorSkinStateV4> = Object.fromEntries(
+  const themes: CursorDanceTheme[] = config.themes.map((theme) => {
+    const states: Record<string, CursorSkinState> = Object.fromEntries(
       Object.entries(theme.cursorSkin.states).map(([stateId, state]) => {
         const image = state.image;
         if (image.kind !== "dataUrl") return [stateId, state];

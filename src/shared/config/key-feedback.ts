@@ -1,11 +1,11 @@
-import type { KeyFeedbackConfigV4 } from "../config-schema-v4";
+import type { KeyFeedbackConfig as DomainKeyFeedbackConfig } from "../domain/cursor-dance";
 
 // CursorDance 键盘动效配置类型
 //
 // 字段与 Flutter 版 key_feedback_config.dart 对齐，保证跨平台配置文件兼容。
 // trail / splash 字段 schema 保留但不实现不暴露 UI。
 
-export type KeyFeedbackConfig = KeyFeedbackConfigV4;
+export type KeyFeedbackConfig = DomainKeyFeedbackConfig;
 
 export const defaultKeyFeedbackConfig: KeyFeedbackConfig = {
   enabled: true,

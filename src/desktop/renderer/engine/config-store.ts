@@ -38,7 +38,7 @@ import {
   getActionCursorFeedbackConfig,
 } from "./action-config";
 import { resolveDesktopContextAction, type ActiveAppInfo } from "../../../shared/app-rules";
-import type { ContextRuleActionV4 } from "../../../shared/config-schema-v4";
+import type { ContextRuleAction } from "../../../shared/domain/cursor-dance";
 
 interface ConfigStoreConstants {
   CONFIG_STORAGE_KEY: string;
@@ -75,7 +75,7 @@ export interface ConfigStoreApi extends ConfigStore {
   normalizeConfig(value: unknown): CursorDanceConfig;
   isLocalPreviewHost(): boolean;
   getActiveScheme(): ThemePack;
-  getResolvedAppRule(): ContextRuleActionV4 | null;
+  getResolvedAppRule(): ContextRuleAction | null;
   isCurrentSiteEnabled(): boolean;
   getActionConfig(scheme: ThemePack | null | undefined, actionId: string): Record<string, unknown> | null;
   getCursorStateBinding(scheme: ThemePack | null | undefined, stateId: string, sourceActionId: string): {
@@ -130,7 +130,7 @@ export function createConfigStore(deps: ConfigStoreDeps): ConfigStoreApi {
     return hostname === "localhost" || hostname === "127.0.0.1";
   }
 
-  function getResolvedAppRule(): ContextRuleActionV4 | null {
+  function getResolvedAppRule(): ContextRuleAction | null {
     return resolveDesktopContextAction(getConfig().contextRules, getActiveAppInfo?.());
   }
 

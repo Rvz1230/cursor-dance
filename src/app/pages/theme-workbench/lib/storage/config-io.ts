@@ -1,6 +1,6 @@
 import { getWorkbenchRepository } from "./repository";
 import type { WorkbenchEditorState } from "./repository/types";
-import type { CursorDanceConfig } from "@/shared/config/default-config";
+import type { CursorDanceConfig } from "@/shared/domain/cursor-dance";
 
 export function readExtensionConfig(): Promise<CursorDanceConfig> {
   return getWorkbenchRepository().readConfig();

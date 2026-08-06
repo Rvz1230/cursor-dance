@@ -72,7 +72,7 @@ function createValidConfig() {
               width: 48,
               height: 48,
             },
-            hotspot: { x: 8, y: 8 },
+            hotspot: { x: 8 / 48, y: 8 / 48 },
             size: { mode: "fixedBox", boxSize: 48 },
           },
           pointer: {
@@ -83,7 +83,7 @@ function createValidConfig() {
               width: 64,
               height: 64,
             },
-            hotspot: { x: 4, y: 2 },
+            hotspot: { x: 4 / 64, y: 2 / 64 },
             size: { mode: "source" },
           },
         },
@@ -217,5 +217,12 @@ describe("schema v4 contract", () => {
       "themes[0].cursorSkin.states.default.image.assetId",
     ]));
     expect(() => assertCursorDanceConfigV4(config)).toThrow(/Invalid CursorDance schema v4 configuration/);
+  });
+
+  it("rejects legacy pixel hotspots outside the normalized domain", () => {
+    const config = createValidConfig();
+    config.themes[0].cursorSkin.states.default.hotspot.x = 8;
+
+    expect(issuePaths(config)).toContain("themes[0].cursorSkin.states.default.hotspot.x");
   });
 });

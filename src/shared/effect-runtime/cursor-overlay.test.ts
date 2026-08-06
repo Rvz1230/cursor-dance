@@ -41,14 +41,14 @@ function createHarness() {
 describe("shared cursor overlay", () => {
   it("normalizes fixed and intrinsic cursor skin sizes", () => {
     const fixed = cursorSkinStateToOverlayState({
-      image: { kind: "dataUrl", dataUrl: "data:image/png;base64,AA", width: 32, height: 48 },
+      image: { kind: "dataUrl", mimeType: "image/png", dataUrl: "data:image/png;base64,AA", width: 32, height: 48 },
       size: { mode: "fixedBox", boxSize: 64 },
-      // 存量像素指向点（> 1）按原图尺寸折算：4/32、5/48
-      hotspot: { x: 4, y: 5 },
+      hotspot: { x: 4 / 32, y: 5 / 48 },
     });
     const intrinsic = cursorSkinStateToOverlayState({
-      image: { kind: "asset", assetId: "asset", width: 32, height: 48 },
-      size: { mode: "intrinsic" },
+      image: { kind: "asset", assetId: "asset", mimeType: "image/png", width: 32, height: 48 },
+      hotspot: { x: 0.5, y: 0.5 },
+      size: { mode: "source" },
     }, () => "asset://resolved");
 
     expect(fixed).toEqual({
@@ -92,10 +92,9 @@ describe("shared cursor overlay", () => {
     ] as const) {
       const { overlay, state } = createHarness();
       const overlayState = cursorSkinStateToOverlayState({
-        image: { kind: "dataUrl", dataUrl: "data:image/png;base64,AA", width: imageSize, height: imageSize },
+        image: { kind: "dataUrl", mimeType: "image/png", dataUrl: "data:image/png;base64,AA", width: imageSize, height: imageSize },
         size: { mode: "fixedBox", boxSize },
-        // 原图正中：像素表达法下是 imageSize/2
-        hotspot: { x: imageSize / 2, y: imageSize / 2 },
+        hotspot: { x: 0.5, y: 0.5 },
       });
       overlay.syncStateCursorOverlay(200, 200, overlayState);
       expect(state.stateCursorNode?.style.transform)

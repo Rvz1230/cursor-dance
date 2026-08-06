@@ -9,7 +9,7 @@ import {
   type WorkbenchRepositoryCodec,
 } from "./types";
 import { createBrowserFallbackSupport } from "./support";
-import type { CursorDanceConfig } from "@/shared/config/default-config";
+import type { CursorDanceConfig } from "@/shared/domain/cursor-dance";
 
 type TransportImage = {
   kind?: unknown;

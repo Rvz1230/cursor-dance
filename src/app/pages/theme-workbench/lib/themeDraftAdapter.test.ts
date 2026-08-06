@@ -142,8 +142,7 @@ describe("themeDraftAdapter schema v4", () => {
   it("keeps cursor bindings and inline skin images through a round trip", () => {
     const state = hydrate();
     const draft = state.draftsByTheme[state.selection.themeId];
-    draft.cursorModes.pointer = "覆盖";
-    draft.cursorStateActions.pointer = "rightClick";
+    draft.cursorBindings.pointer = { mode: "override", actionId: "rightClick" };
     draft.cursorSkin = {
       version: 1,
       enabled: true,
@@ -157,7 +156,7 @@ describe("themeDraftAdapter schema v4", () => {
             width: 64,
             height: 64,
           },
-          hotspot: { x: 8, y: 9 },
+          hotspot: { x: 8 / 64, y: 9 / 64 },
           size: { mode: "fixedBox", boxSize: 56 },
         },
       },
@@ -167,7 +166,10 @@ describe("themeDraftAdapter schema v4", () => {
     expect(stored.themes[0].cursorBindings.pointer).toEqual({ mode: "override", actionId: "rightClick" });
     const rehydrated = hydrate(stored);
     const nextDraft = rehydrated.draftsByTheme[state.selection.themeId];
-    expect(nextDraft.cursorModes.pointer).toBe("覆盖");
-    expect(nextDraft.cursorStateAssets.pointer.imageDataUrl).toBe("data:image/png;base64,cursor");
+    expect(nextDraft.cursorBindings.pointer).toEqual({ mode: "override", actionId: "rightClick" });
+    expect(nextDraft.cursorSkin.states.pointer.image).toMatchObject({
+      kind: "dataUrl",
+      dataUrl: "data:image/png;base64,cursor",
+    });
   });
 });

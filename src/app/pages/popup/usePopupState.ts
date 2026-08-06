@@ -31,7 +31,7 @@ import type {
   RuntimeDiagnosticEntry,
   WorkbenchEditorState,
 } from "../theme-workbench/lib/storage/repository/types";
-import type { CursorDanceConfig } from "@/shared/config/default-config";
+import type { CursorDanceConfig } from "@/shared/domain/cursor-dance";
 
 const EMPTY_SITE: PopupSiteContext = {
   host: "",

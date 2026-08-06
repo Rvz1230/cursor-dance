@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { app } from "electron";
-import type { CursorDanceConfigV4, CursorDanceThemeV4 } from "../../shared/config-schema-v4";
+import type { CursorDanceConfig, CursorDanceTheme } from "../../shared/domain/cursor-dance";
 import {
   DESKTOP_ASSET_SCHEME,
   assetIdFromDesktopAssetUrl,
@@ -175,11 +175,11 @@ async function materializeThemeAssets(themeValue: unknown): Promise<void> {
   }
 }
 
-export async function materializeConfigAssets(config: CursorDanceConfigV4): Promise<CursorDanceConfigV4> {
+export async function materializeConfigAssets(config: CursorDanceConfig): Promise<CursorDanceConfig> {
   const next = cloneJson(config) as unknown as JsonRecord;
   const themes = Array.isArray(next.themes) ? next.themes : [];
   for (const theme of themes) await materializeThemeAssets(theme);
-  return next as unknown as CursorDanceConfigV4;
+  return next as unknown as CursorDanceConfig;
 }
 
 async function hydrateThemeAssetsInPlace(themeValue: unknown): Promise<void> {
@@ -210,15 +210,15 @@ async function hydrateThemeAssetsInPlace(themeValue: unknown): Promise<void> {
   }
 }
 
-export async function hydrateThemeAssets(theme: CursorDanceThemeV4): Promise<CursorDanceThemeV4> {
+export async function hydrateThemeAssets(theme: CursorDanceTheme): Promise<CursorDanceTheme> {
   const next = cloneJson(theme) as unknown as JsonRecord;
   await hydrateThemeAssetsInPlace(next);
-  return next as unknown as CursorDanceThemeV4;
+  return next as unknown as CursorDanceTheme;
 }
 
 export async function hydrateThemeExportContents(contents: string): Promise<string> {
   const payload = JSON.parse(contents) as JsonRecord;
-  const theme = payload.theme as CursorDanceThemeV4;
+  const theme = payload.theme as CursorDanceTheme;
   return `${JSON.stringify({ ...payload, theme: await hydrateThemeAssets(theme) }, null, 2)}\n`;
 }
 

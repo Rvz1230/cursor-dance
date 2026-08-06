@@ -4,46 +4,29 @@ import {
   CURSORDANCE_CONFIG_SCHEMA_VERSION,
   assertCursorDanceConfigV4,
   validateCursorDanceConfigV4,
-  type CursorBindingV4,
-  type CursorDanceConfigV4,
-  type CursorDanceThemeV4,
-  type CursorSkinV4,
 } from "../config-schema-v4";
+import {
+  createCursorBindings,
+  createCursorSkin,
+  type CursorDanceConfig,
+  type CursorDanceTheme,
+} from "../domain/cursor-dance";
 import { defaultKeyFeedbackConfig } from "./key-feedback";
 import { CURSOR_STATE_IDS } from "../cursor-states";
 
-export type CursorDanceConfig = CursorDanceConfigV4;
-export type ThemePack = CursorDanceThemeV4;
+export type { CursorDanceConfig };
+export type ThemePack = CursorDanceTheme;
 
 export function cloneValue<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
-function createDefaultCursorBindings(): Record<string, CursorBindingV4> {
-  return Object.fromEntries(CURSOR_STATE_IDS.map((stateId) => [
-    stateId,
-    {
-      mode: stateId === "default" ? "override" : "inherit",
-      actionId: "leftClick",
-    },
-  ]));
-}
-
-function createDefaultCursorSkin(): CursorSkinV4 {
-  return {
-    version: 1,
-    enabled: true,
-    transitionMs: 80,
-    states: {},
-  };
-}
-
-export function createDefaultThemes(): CursorDanceThemeV4[] {
+export function createDefaultThemes(): CursorDanceTheme[] {
   return BUILTIN_THEME_METADATA.map((definition) => ({
     ...definition,
     actionConfigs: {},
-    cursorBindings: createDefaultCursorBindings(),
-    cursorSkin: createDefaultCursorSkin(),
+    cursorBindings: createCursorBindings(CURSOR_STATE_IDS),
+    cursorSkin: createCursorSkin(),
     keyFeedbackConfig: cloneValue(defaultKeyFeedbackConfig),
   }));
 }
@@ -75,7 +58,7 @@ const BUILTIN_THEME_METADATA = [
   },
 ] as const;
 
-export const defaultConfig: CursorDanceConfigV4 = {
+export const defaultConfig: CursorDanceConfig = {
   schemaVersion: CURSORDANCE_CONFIG_SCHEMA_VERSION,
   enabled: true,
   activeThemeId: "mono-geo",
@@ -95,8 +78,8 @@ assertCursorDanceConfigV4(defaultConfig);
  */
 export function normalizeConfig(
   value: unknown,
-  fallbackConfig: CursorDanceConfigV4 = defaultConfig,
-): CursorDanceConfigV4 {
+  fallbackConfig: CursorDanceConfig = defaultConfig,
+): CursorDanceConfig {
   assertCursorDanceConfigV4(fallbackConfig);
   const validation = validateCursorDanceConfigV4(value);
   return validation.ok ? validation.value : fallbackConfig;

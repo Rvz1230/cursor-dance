@@ -1,7 +1,7 @@
 import {
   validateCursorDanceConfigV4,
-  type CursorDanceConfigV4,
 } from "../../shared/config-schema-v4";
+import type { CursorDanceConfig } from "../../shared/domain/cursor-dance";
 
 export const MAX_CONFIG_PAYLOAD_BYTES = 8 * 1024 * 1024;
 export const MAX_THEME_FILE_BYTES = 8 * 1024 * 1024;
@@ -37,7 +37,7 @@ function assertMaxBytes(value: unknown, maxBytes: number, label: string): void {
   }
 }
 
-export function validateConfigPayload(payload: unknown): CursorDanceConfigV4 {
+export function validateConfigPayload(payload: unknown): CursorDanceConfig {
   assertMaxBytes(payload, MAX_CONFIG_PAYLOAD_BYTES, "config payload");
   const validation = validateCursorDanceConfigV4(payload);
   if (validation.ok === false) {

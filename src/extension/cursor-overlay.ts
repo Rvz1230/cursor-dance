@@ -4,12 +4,13 @@ import {
   type CursorOverlayModule,
   type CursorOverlayRenderState,
 } from "@/shared/effect-runtime/cursor-overlay";
+import type { CursorSkinState } from "@/shared/domain/cursor-dance";
 
 interface ExtensionCursorConfigStore {
   isCurrentSiteEnabled(): boolean;
   getActiveScheme(): unknown;
   resolveCursorStateId(target: unknown): string;
-  getEffectiveCursorStateConfig(scheme: unknown, stateId: string): unknown;
+  getEffectiveCursorStateConfig(scheme: unknown, stateId: string): CursorSkinState | null;
 }
 
 interface ContentCursorOverlayRuntime {

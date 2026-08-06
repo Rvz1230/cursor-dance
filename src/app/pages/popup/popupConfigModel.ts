@@ -1,9 +1,9 @@
-import type { ContextRuleActionV4 } from "@/shared/config-schema-v4";
+import type { ContextRuleAction } from "@/shared/domain/cursor-dance";
 import { findWebContextRule, resolveWebContextRule } from "@/shared/web-context-rules";
 import type { WorkbenchEditorState } from "../theme-workbench/lib/storage/repository/types";
 import type { WorkbenchThemeDraft } from "../theme-workbench/hooks/workbenchStateTypes";
 import { ACTIONS } from "../theme-workbench/model/workbenchSchema";
-import type { CursorDanceConfig } from "@/shared/config/default-config";
+import type { CursorDanceConfig } from "@/shared/domain/cursor-dance";
 
 export interface PopupSiteContext {
   host: string;
@@ -51,12 +51,12 @@ export function getSiteAction(
   config: CursorDanceConfig | null,
   host: string,
   path: string,
-): ContextRuleActionV4 | null {
+): ContextRuleAction | null {
   return resolveWebContextRule(config?.contextRules, host, path);
 }
 
 export function getEffectiveActiveThemeId(
-  siteAction: ContextRuleActionV4 | null,
+  siteAction: ContextRuleAction | null,
   activeThemeId: string,
 ): string {
   return siteAction?.type === "enable" && siteAction.themeId

@@ -130,8 +130,6 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
     updateActionConfig,
     updateActionConfigs,
     updateAtmosphere,
-    updateCursorStateAsset,
-    updateCursorStateAssetForState,
     recentCursorAssets,
     rememberRecentCursorAsset,
     updateCursorSkinState,
@@ -376,8 +374,6 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                       clearCursorSkinState={clearCursorSkinState}
                       copyDefaultCursorSkinState={copyDefaultCursorSkinState}
                       resetCursorSkin={resetCursorSkin}
-                      updateCursorStateAsset={updateCursorStateAsset}
-                      updateCursorStateAssetForState={updateCursorStateAssetForState}
                       rememberRecentCursorAsset={rememberRecentCursorAsset}
                     />
                   </Suspense>

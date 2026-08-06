@@ -1,8 +1,9 @@
 import type {
-  ContextRuleActionV4,
-  CursorDanceConfigV4,
-  CursorDanceThemeV4,
-} from "../config-schema-v4";
+  ContextRuleAction,
+  CursorDanceConfig,
+  CursorDanceTheme,
+  CursorSkinState,
+} from "../domain/cursor-dance";
 import { getDefaultActionConfigs } from "../effect-core/default-action-configs";
 import type { CursorStateId } from "../cursor-states";
 
@@ -15,8 +16,8 @@ interface RuntimeConfigDiagnostics {
 
 interface RuntimeConfigCoreOptions {
   window: Window;
-  getConfig(): CursorDanceConfigV4;
-  resolveContextAction(): ContextRuleActionV4 | null;
+  getConfig(): CursorDanceConfig;
+  resolveContextAction(): ContextRuleAction | null;
   interactiveSelector: string;
   textEditableSelector: string;
   diagnostics?: RuntimeConfigDiagnostics;
@@ -66,7 +67,7 @@ export function createRuntimeConfigCore(options: RuntimeConfigCoreOptions) {
     return ElementCtor && target instanceof ElementCtor ? target : null;
   }
 
-  function getActiveTheme(): CursorDanceThemeV4 {
+  function getActiveTheme(): CursorDanceTheme {
     const config = getConfig();
     const action = resolveContextAction();
     const themeId = action?.type === "enable" ? action.themeId : undefined;
@@ -86,7 +87,7 @@ export function createRuntimeConfigCore(options: RuntimeConfigCoreOptions) {
   }
 
   function getActionConfig(
-    theme: CursorDanceThemeV4 | null | undefined,
+    theme: CursorDanceTheme | null | undefined,
     actionId: string,
   ): ActionConfig | null {
     if (!theme) return null;
@@ -98,7 +99,7 @@ export function createRuntimeConfigCore(options: RuntimeConfigCoreOptions) {
   }
 
   function getCursorStateBinding(
-    theme: CursorDanceThemeV4 | null | undefined,
+    theme: CursorDanceTheme | null | undefined,
     stateId: string,
     sourceActionId: string,
   ): { cursorStateId: string; actionId: string; inheritedFromDefault: boolean } {
@@ -116,9 +117,9 @@ export function createRuntimeConfigCore(options: RuntimeConfigCoreOptions) {
   }
 
   function getEffectiveCursorStateConfig(
-    theme: CursorDanceThemeV4 | null | undefined,
+    theme: CursorDanceTheme | null | undefined,
     stateId: string,
-  ): unknown {
+  ): CursorSkinState | null {
     return theme?.cursorSkin.states[stateId] ?? theme?.cursorSkin.states.default ?? null;
   }
 

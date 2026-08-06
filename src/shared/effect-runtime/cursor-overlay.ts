@@ -2,7 +2,8 @@
 // desktop overlay or extension adapter; this module only renders normalized
 // coordinates and cursor state.
 
-import { hotspotOffsetPx, normalizeHotspot } from "@/shared/effect-core/cursor-hotspot";
+import { hotspotOffsetPx } from "@/shared/effect-core/cursor-hotspot";
+import type { CursorSkinState } from "@/shared/domain/cursor-dance";
 
 export interface CursorOverlayState {
   imageDataUrl?: string;
@@ -30,7 +31,7 @@ export interface CursorOverlayDeps {
 }
 
 export function cursorSkinStateToOverlayState(
-  value: unknown,
+  state: CursorSkinState | null | undefined,
   resolveImageSource: (image: unknown) => string = (image) => {
     if (!image || typeof image !== "object") return "";
     const candidate = image as { kind?: unknown; dataUrl?: unknown };
@@ -39,25 +40,19 @@ export function cursorSkinStateToOverlayState(
       : "";
   },
 ): CursorOverlayState | undefined {
-  if (!value || typeof value !== "object") return undefined;
-  const state = value as {
-    image?: { width?: unknown; height?: unknown };
-    size?: { mode?: unknown; boxSize?: unknown };
-    hotspot?: { x?: unknown; y?: unknown };
-  };
+  if (!state) return undefined;
   const imageDataUrl = resolveImageSource(state.image);
   if (!imageDataUrl) return undefined;
-  const imageWidth = typeof state.image?.width === "number" ? state.image.width : 48;
-  const imageHeight = typeof state.image?.height === "number" ? state.image.height : 48;
+  const imageWidth = state.image.width || 48;
+  const imageHeight = state.image.height || 48;
   const sourceSize = Math.max(imageWidth || 48, imageHeight || 48);
-  const fixedSize = typeof state.size?.boxSize === "number" ? state.size.boxSize : 48;
-  const size = state.size?.mode === "fixedBox" ? (fixedSize || 48) : sourceSize;
-  const hotspot = normalizeHotspot(state.hotspot, imageWidth, imageHeight);
+  const fixedSize = state.size.boxSize || 48;
+  const size = state.size.mode === "fixedBox" ? fixedSize : sourceSize;
   return {
     imageDataUrl,
     size,
-    hotspotNormX: hotspot.x,
-    hotspotNormY: hotspot.y,
+    hotspotNormX: state.hotspot.x,
+    hotspotNormY: state.hotspot.y,
   };
 }
 

@@ -5,6 +5,7 @@ import { InlineStatus } from "@/components/ui/inline-status";
 import { PageHeader } from "@/components/ui/page-header";
 import { isDesktop } from "@/shared/runtime";
 import { hotspotToImagePixels, normalizeHotspot } from "@/shared/effect-core/cursor-hotspot";
+import type { CursorSkin, CursorSkinState } from "@/shared/domain/cursor-dance";
 import { CURSOR_STATES } from "../model/workbenchSchema";
 import { validateCursorAssetFile } from "../lib/cursorAssetPresets";
 import {
@@ -26,26 +27,22 @@ import {
   inferMimeType,
   matchStateId,
   readFileAsDataUrl,
-  type CursorSkinLike,
-  type CursorSkinStateLike,
   type Hotspot,
-  type LegacyCursorAsset,
 } from "./cursor-skin/cursorSkinModel";
+import type { CursorAssetDraft, RecentCursorAsset } from "../lib/storage/repository/types";
 
 type StatusTone = "success" | "error" | "warning" | "info";
 
 export interface StatesPanelProps {
   stateId: string;
   setStateId: (next: string) => void;
-  cursorSkin: CursorSkinLike | null;
-  recentCursorAssets?: readonly LegacyCursorAsset[];
-  updateCursorSkinState: (stateId: string, skinState: CursorSkinStateLike) => void;
+  cursorSkin: CursorSkin | null;
+  recentCursorAssets?: readonly RecentCursorAsset[];
+  updateCursorSkinState: (stateId: string, skinState: CursorSkinState) => void;
   clearCursorSkinState: (stateId: string) => void;
   copyDefaultCursorSkinState: (stateId: string) => void;
   resetCursorSkin: () => void;
-  rememberRecentCursorAsset?: (asset: LegacyCursorAsset) => void | Promise<void>;
-  updateCursorStateAsset?: (asset: LegacyCursorAsset) => void;
-  updateCursorStateAssetForState?: (stateId: string, asset: LegacyCursorAsset) => void;
+  rememberRecentCursorAsset?: (asset: CursorAssetDraft) => void | Promise<void>;
 }
 
 export function StatesPanel({
@@ -58,8 +55,6 @@ export function StatesPanel({
   copyDefaultCursorSkinState,
   resetCursorSkin,
   rememberRecentCursorAsset,
-  updateCursorStateAsset,
-  updateCursorStateAssetForState,
 }: StatesPanelProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const batchInputRef = useRef<HTMLInputElement | null>(null);
@@ -88,7 +83,7 @@ export function StatesPanel({
     setMessageTone("info");
   }, [stateId]);
 
-  async function buildSkinStateFromFile(file: File, targetStateId: string): Promise<CursorSkinStateLike> {
+  async function buildSkinStateFromFile(file: File, targetStateId: string): Promise<CursorSkinState> {
     const validationMessage = validateCursorAssetFile(file, MAX_CURSOR_UPLOAD_BYTES);
     if (validationMessage) throw new Error(validationMessage);
     const dataUrl = await readFileAsDataUrl(file);
@@ -112,25 +107,23 @@ export function StatesPanel({
     try {
       const skinState = await buildSkinStateFromFile(file, targetStateId);
       updateCursorSkinState(targetStateId, skinState);
-      // LegacyCursorAsset 的 hotspotX/Y 是原图像素，skinState.hotspot 是分数——这里要折回去。
-      const legacyHotspot = hotspotToImagePixels(
-        normalizeHotspot(skinState.hotspot, skinState.image?.width, skinState.image?.height),
+      // 最近素材的 hotspotX/Y 是原图像素；领域模型的 hotspot 是 0–1 分数。
+      const cachedHotspot = hotspotToImagePixels(
+        normalizeHotspot(skinState.hotspot),
         skinState.image?.width,
         skinState.image?.height,
       );
-      const legacyAsset: LegacyCursorAsset = {
-        imageDataUrl: skinState.image?.dataUrl,
-        hotspotX: legacyHotspot.x,
-        hotspotY: legacyHotspot.y,
-        size: skinState.size?.boxSize || DEFAULT_BOX_SIZE,
-        sourceWidth: skinState.image?.width,
-        sourceHeight: skinState.image?.height,
+      const recentAsset: CursorAssetDraft = {
+        imageDataUrl: skinState.image.kind === "dataUrl" ? skinState.image.dataUrl : undefined,
+        hotspotX: cachedHotspot.x,
+        hotspotY: cachedHotspot.y,
+        size: skinState.size.boxSize || DEFAULT_BOX_SIZE,
+        sourceWidth: skinState.image.width,
+        sourceHeight: skinState.image.height,
         name: file.name,
-        mimeType: skinState.image?.mimeType,
+        mimeType: skinState.image.mimeType,
       };
-      if (targetStateId === stateId) updateCursorStateAsset?.(legacyAsset);
-      else updateCursorStateAssetForState?.(targetStateId, legacyAsset);
-      void rememberRecentCursorAsset?.(legacyAsset);
+      void rememberRecentCursorAsset?.(recentAsset);
       const label = CURSOR_STATES.find((state) => state.id === targetStateId)?.label || targetStateId;
       setMessage(`已应用到「${label}」。`);
       setMessageTone("success");
@@ -174,10 +167,9 @@ export function StatesPanel({
     updateCursorSkinState(stateId, { ...currentSkinState, size: { mode: "fixedBox", boxSize } });
   }
 
-  function applyRecentAsset(asset: LegacyCursorAsset) {
+  function applyRecentAsset(asset: RecentCursorAsset) {
     if (!asset?.imageDataUrl) return;
     updateCursorSkinState(stateId, buildSkinStateFromAsset(asset));
-    updateCursorStateAsset?.(asset);
   }
 
   return (

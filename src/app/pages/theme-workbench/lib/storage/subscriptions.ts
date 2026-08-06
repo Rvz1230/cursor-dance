@@ -3,7 +3,7 @@ import type {
   RepositoryListener,
   RuntimeDiagnosticEntry,
 } from "./repository/types";
-import type { CursorDanceConfig } from "@/shared/config/default-config";
+import type { CursorDanceConfig } from "@/shared/domain/cursor-dance";
 
 export function subscribeExtensionConfig(onChange: RepositoryListener<CursorDanceConfig>) {
   return getWorkbenchRepository().subscribeConfig(onChange);

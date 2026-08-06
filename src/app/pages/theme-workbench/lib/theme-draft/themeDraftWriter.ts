@@ -1,5 +1,5 @@
 import { normalizeKeyFeedbackConfig } from "@/shared/config/key-feedback";
-import type { CursorDanceConfigV4 } from "@/shared/config-schema-v4";
+import type { CursorDanceConfig } from "@/shared/domain/cursor-dance";
 import { isDesktop } from "@/shared/runtime";
 import { pickKnownCursorStates } from "@/shared/cursor-states";
 import type {
@@ -18,7 +18,7 @@ interface BuildStoredThemeOptions {
   includeAtmosphere?: boolean;
 }
 
-function getStoredTheme(config: CursorDanceConfigV4, themeId: string) {
+function getStoredTheme(config: CursorDanceConfig, themeId: string) {
   return config.themes.find((theme) => theme.id === themeId)
     ?? getDefaultConfig().themes.find((theme) => theme.id === themeId)
     ?? null;
@@ -35,12 +35,13 @@ function normalizeCursorSkinStates(
 }
 
 function buildCursorBindings(draft: WorkbenchThemeDraft) {
-  return Object.fromEntries(CURSOR_STATES.map((state) => [state.id, {
-    mode: state.id === "default" || draft.cursorModes[state.id] === "覆盖"
-      ? "override" as const
-      : "inherit" as const,
-    actionId: draft.cursorStateActions[state.id] || "leftClick",
-  }]));
+  return Object.fromEntries(CURSOR_STATES.map((state) => {
+    const binding = draft.cursorBindings[state.id];
+    return [state.id, {
+      mode: state.id === "default" ? "override" as const : (binding?.mode || "inherit"),
+      actionId: binding?.actionId || "leftClick",
+    }];
+  }));
 }
 
 function buildStoredActionConfigs(draft: WorkbenchThemeDraft) {
@@ -57,7 +58,7 @@ function buildStoredActionConfigs(draft: WorkbenchThemeDraft) {
 function buildStoredTheme(
   themeId: string,
   draft: WorkbenchThemeDraft,
-  previousConfig: CursorDanceConfigV4,
+  previousConfig: CursorDanceConfig,
   themeRecord: ThemeLibraryItem | undefined,
   options: BuildStoredThemeOptions = {},
 ) {
@@ -78,7 +79,7 @@ function buildStoredTheme(
 }
 
 function buildStoredThemeFromState(
-  previousConfig: CursorDanceConfigV4,
+  previousConfig: CursorDanceConfig,
   state: WorkbenchPersistableState,
   themeId: string,
   options: BuildStoredThemeOptions = {},
@@ -113,7 +114,7 @@ export function buildStoredThemePackFromWorkbench(
 export function buildStoredConfigFromWorkbench(
   previousConfig: unknown,
   state: WorkbenchPersistableState,
-): CursorDanceConfigV4 {
+): CursorDanceConfig {
   const normalizedPrevious = normalizeStoredConfig(previousConfig);
   const themes = state.themeLibrary.map((theme) =>
     buildStoredThemeFromState(normalizedPrevious, state, theme.id),

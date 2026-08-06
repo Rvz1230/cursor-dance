@@ -10,12 +10,8 @@
  * 且没跟着被夹后的尺寸换算。128×128 的图配 fixedBox 32 时，正确偏移是 16px，
  * 运行时减了 64px——偏出一个半光标身位。
  *
- * 存量数据是原图像素。这里**不**引入 schema 版本号来区分：`normalizeConfig` 的既定策略是
- * 「非 v4 数据整体重置、不做字段迁移」（见 `shared/config/default-config.ts`），把
- * `cursorSkin.version` 从 1 改成 2 会让所有存量配置校验失败、连主题一起重置——
- * 代价远大于收益。改用取值范围判别：归一化值必然 ≤ 1，而像素指向点几乎必然 > 1。
- * 该判别天然幂等（转换后必然 ≤ 1，不会被二次除）。唯一的边界代价：恰好落在像素
- * (0|1, 0|1) 的存量指向点会被当成分数看，那是图片角上 1px 的差别。
+ * 最新领域模型只接受归一化分数；像素缓存只能在明确的素材导入边界调用
+ * `hotspotFromImagePixels`。不再根据数值范围猜测旧格式。
  */
 
 /** 原图尺寸未知时的回落值，与 cursor-overlay / cursorSkinModel 的既有 `|| 48` 一致。 */
@@ -45,20 +41,16 @@ function clamp01(value: number): number {
 }
 
 /**
- * 读出归一化指向点。存量像素值（> 1）按原图尺寸折算成分数；已是分数的原样夹取。
+ * 读出并夹取归一化指向点。不负责识别或迁移旧像素格式。
  */
 export function normalizeHotspot(
   hotspot: HotspotLike | null | undefined,
-  imageWidth?: unknown,
-  imageHeight?: unknown,
 ): Hotspot {
   const rawX = finite(hotspot?.x);
   const rawY = finite(hotspot?.y);
-  const width = positiveSize(imageWidth);
-  const height = positiveSize(imageHeight);
   return {
-    x: clamp01(rawX > 1 ? rawX / width : rawX),
-    y: clamp01(rawY > 1 ? rawY / height : rawY),
+    x: clamp01(rawX),
+    y: clamp01(rawY),
   };
 }
 

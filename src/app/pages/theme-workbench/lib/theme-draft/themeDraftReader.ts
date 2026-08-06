@@ -1,10 +1,8 @@
-import type { CursorSkinV4 } from "@/shared/config-schema-v4";
+import type { CursorSkin } from "@/shared/domain/cursor-dance";
 import { normalizeKeyFeedbackConfig } from "@/shared/config/key-feedback";
 import { isDesktop } from "@/shared/runtime";
-import { hotspotToImagePixels, normalizeHotspot } from "@/shared/effect-core/cursor-hotspot";
 import {
   isDesktopAssetId,
-  resolveDesktopImageSource,
   toDesktopAssetUrl,
 } from "@/shared/asset-reference";
 import type {
@@ -28,7 +26,7 @@ interface ThemeInput {
   id?: string;
   actionConfigs?: Readonly<Record<string, Record<string, unknown>>>;
   cursorBindings?: Readonly<Record<string, { mode?: string; actionId?: string }>>;
-  cursorSkin?: CursorSkinV4;
+  cursorSkin?: CursorSkin;
   keyFeedbackConfig?: unknown;
   atmosphere?: Record<string, unknown>;
 }
@@ -40,36 +38,6 @@ type HydratedWorkbenchState = Pick<
 > & {
   ui: Pick<WorkbenchState["ui"], "enabled" | "unsaved">;
 };
-
-function assetFromCursorSkinState(skinState: CursorSkinV4["states"][string] | undefined) {
-  const imageDataUrl = resolveDesktopImageSource(skinState?.image);
-  if (!imageDataUrl || !skinState) return null;
-  const size = skinState.size.mode === "fixedBox"
-    ? (skinState.size.boxSize || 48)
-    : Math.max(skinState.image.width || 48, skinState.image.height || 48);
-  const sourceWidth = skinState.image.width || size;
-  const sourceHeight = skinState.image.height || size;
-  // 扁平素材形状的 hotspotX/Y 是原图像素；cursorSkin.hotspot 是 0–1 分数。
-  const hotspot = hotspotToImagePixels(
-    normalizeHotspot(skinState.hotspot, sourceWidth, sourceHeight),
-    sourceWidth,
-    sourceHeight,
-  );
-  return {
-    imageDataUrl,
-    hotspotX: hotspot.x,
-    hotspotY: hotspot.y,
-    size,
-    sourceWidth,
-    sourceHeight,
-    mimeType: skinState.image.mimeType,
-  };
-}
-
-function toWorkbenchCursorMode(stateId: string, mode: string | undefined): string {
-  if (stateId === "default") return "源";
-  return mode === "override" ? "覆盖" : "继承";
-}
 
 function buildDraftActionConfigs(
   baseDraft: WorkbenchThemeDraft,
@@ -100,35 +68,28 @@ function buildResetActionConfigs(
     : buildDraftActionConfigs({ ...baseDraft, actionConfigs }, { actionConfigs });
 }
 
-function buildDraftCursorMaps(baseDraft: WorkbenchThemeDraft, theme: ThemeInput) {
-  const entries = CURSOR_STATES.map((state) => {
+function buildDraftCursorBindings(baseDraft: WorkbenchThemeDraft, theme: ThemeInput) {
+  return Object.fromEntries(CURSOR_STATES.map((state) => {
     const binding = theme.cursorBindings?.[state.id];
-    const asset = assetFromCursorSkinState(theme.cursorSkin?.states?.[state.id]);
-    return [state.id, {
-      mode: binding ? toWorkbenchCursorMode(state.id, binding.mode) : baseDraft.cursorModes[state.id],
-      actionId: binding?.actionId || baseDraft.cursorStateActions[state.id],
-      asset: { ...baseDraft.cursorStateAssets[state.id], ...(asset || {}) },
-    }] as const;
-  });
-  return {
-    cursorModes: Object.fromEntries(entries.map(([id, value]) => [id, value.mode])),
-    cursorStateActions: Object.fromEntries(entries.map(([id, value]) => [id, value.actionId])),
-    cursorStateAssets: Object.fromEntries(entries.map(([id, value]) => [id, value.asset])),
-  };
+    return [state.id, binding
+      ? {
+          mode: state.id === "default" || binding.mode === "override" ? "override" : "inherit",
+          actionId: binding.actionId || "leftClick",
+        }
+      : baseDraft.cursorBindings[state.id]];
+  })) as WorkbenchThemeDraft["cursorBindings"];
 }
 
 function buildDraftFromTheme(theme: ThemeInput): WorkbenchThemeDraft {
   const baseDraft = createThemeDraft(theme.id) as WorkbenchThemeDraft;
-  const cursorDraft = buildDraftCursorMaps(baseDraft, theme);
   const actionConfigs = buildDraftActionConfigs(baseDraft, theme);
   const keyFeedbackConfig = normalizeKeyFeedbackConfig(
     theme.keyFeedbackConfig || baseDraft.keyFeedbackConfig,
   );
   return {
     ...baseDraft,
-    ...cursorDraft,
-    cursorSkin: (theme.cursorSkin as unknown as WorkbenchThemeDraft["cursorSkin"] | undefined)
-      || baseDraft.cursorSkin,
+    cursorBindings: buildDraftCursorBindings(baseDraft, theme),
+    cursorSkin: theme.cursorSkin || baseDraft.cursorSkin,
     keyFeedbackConfig,
     resetKeyFeedbackConfig: keyFeedbackConfig,
     actionConfigs,

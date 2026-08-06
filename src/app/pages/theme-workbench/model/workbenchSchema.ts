@@ -60,6 +60,7 @@ import { ANIMATION_EASING_OPTIONS } from "./actionConfigOptions";
 import { getDefaultActionConfigs } from "@/shared/effect-core/default-action-configs";
 import { isDesktop } from "@/shared/runtime";
 import { getCursorStatesForPlatform, type CursorStateId } from "@/shared/cursor-states";
+import { createCursorBindings, createCursorSkin } from "@/shared/domain/cursor-dance";
 
 export const WORKSPACES = [
   { id: "workbench", label: "主题工作台", icon: Wand2 },
@@ -238,42 +239,13 @@ export function formatActionLabel(actionId) {
   return ACTIONS.find((item) => item.id === actionId)?.label ?? "左键单击";
 }
 
-export function buildDefaultCursorStateActions() {
-  return Object.fromEntries(CURSOR_STATES.map((item) => [item.id, "leftClick"]));
-}
-
-export function buildDefaultCursorStateAssets() {
-  return Object.fromEntries(
-    CURSOR_STATES.map((item) => [
-      item.id,
-      {
-        imageDataUrl: "",
-        hotspotX: item.defaultHotspot === "center" ? 24 : 10,
-        hotspotY: item.defaultHotspot === "center" ? 24 : 8,
-        size: 48,
-      },
-    ])
-  );
-}
-
-function buildDefaultCursorSkin() {
-  return {
-    version: 1,
-    enabled: true,
-    transitionMs: 80,
-    states: {},
-  };
-}
-
 export function createThemeDraft(themeId) {
   const actionConfigs = getDefaultActionConfigs(themeId);
   return {
     actionConfigs,
     resetActionConfigs: getDefaultActionConfigs(themeId),
-    cursorModes: Object.fromEntries(CURSOR_STATES.map((item) => [item.id, item.id === "default" ? "源" : "继承"])),
-    cursorStateActions: buildDefaultCursorStateActions(),
-    cursorStateAssets: buildDefaultCursorStateAssets(),
-    cursorSkin: buildDefaultCursorSkin(),
+    cursorBindings: createCursorBindings(CURSOR_STATES.map((item) => item.id)),
+    cursorSkin: createCursorSkin(),
     keyFeedbackConfig: { ...defaultKeyFeedbackConfig },
     resetKeyFeedbackConfig: { ...defaultKeyFeedbackConfig },
     atmosphere: { mode: "none" },

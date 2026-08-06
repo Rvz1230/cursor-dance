@@ -1,6 +1,6 @@
 /** @platform shared — desktop application rule schema and pure matching helpers. */
 
-import type { ContextRuleActionV4, ContextRuleV4 } from "./config-schema-v4";
+import type { ContextRule, ContextRuleAction } from "./domain/cursor-dance";
 
 export type AppRuleTarget = "process" | "title";
 export type AppRulePatternType = "exact" | "glob";
@@ -96,9 +96,9 @@ export function activeAppInfoFromSnapshot(snapshot: ActiveWindowSnapshot | null 
 }
 
 export function resolveDesktopContextAction(
-  rules: readonly ContextRuleV4[] | null | undefined,
+  rules: readonly ContextRule[] | null | undefined,
   info: ActiveAppInfo | null | undefined,
-): ContextRuleActionV4 | null {
+): ContextRuleAction | null {
   if (!Array.isArray(rules) || !info) return null;
   for (const rule of rules) {
     if (

@@ -11,13 +11,14 @@ import {
 import { createRuntimeConfigCore } from "@/shared/effect-runtime/runtime-config";
 import { resolveWebContextRule } from "./site-matcher";
 import type {
-  CursorDanceConfigV4,
-  CursorDanceThemeV4,
-} from "@/shared/config-schema-v4";
+  CursorDanceConfig,
+  CursorDanceTheme,
+  CursorSkinState,
+} from "@/shared/domain/cursor-dance";
 
 type ActionConfig = Record<string, unknown>;
-type ContentTheme = CursorDanceThemeV4;
-export type ContentConfig = CursorDanceConfigV4;
+type ContentTheme = CursorDanceTheme;
+export type ContentConfig = CursorDanceConfig;
 
 interface ChromeStorageArea {
   get(keys: string[]): Promise<Record<string, unknown>>;
@@ -70,7 +71,7 @@ export interface ContentConfigStore {
     actionId: string;
     inheritedFromDefault: boolean;
   };
-  getEffectiveCursorStateConfig(scheme: ContentTheme | null | undefined, stateId: string): unknown;
+  getEffectiveCursorStateConfig(scheme: ContentTheme | null | undefined, stateId: string): CursorSkinState | null;
   resolveCursorStateId(target: unknown): string;
   matchesTriggerZone(target: unknown, triggerZone: unknown, event: unknown, meta?: Record<string, unknown>): boolean;
   isCurrentSiteEnabled(): boolean;

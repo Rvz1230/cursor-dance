@@ -6,6 +6,8 @@ import { NumberField } from "@/components/ui/number-field";
 import { cn } from "@/components/ui/utils";
 import { resolveDesktopImageSource } from "@/shared/asset-reference";
 import type { CursorStateId } from "@/shared/cursor-states";
+import type { CursorSkinState } from "@/shared/domain/cursor-dance";
+import type { RecentCursorAsset } from "../../lib/storage/repository/types";
 import {
   hotspotFromImagePixels,
   hotspotToImagePixels,
@@ -16,7 +18,6 @@ import {
   clamp,
   getDefaultHotspot,
   getDisplaySize,
-  type CursorSkinStateLike,
   type CursorStateMeta,
   type Hotspot,
 } from "./cursorSkinModel";
@@ -25,8 +26,8 @@ const PREVIEW_STAGE_SIZE = 340;
 const DISPLAY_SIZE_OPTIONS = [32, 48, 64] as const;
 
 export interface CursorStateCard extends CursorStateMeta {
-  ownState: CursorSkinStateLike | null;
-  resolvedState: CursorSkinStateLike | null;
+  ownState: CursorSkinState | null;
+  resolvedState: CursorSkinState | null;
   inherited: boolean;
 }
 
@@ -35,7 +36,7 @@ export function CursorImage({
   inherited = false,
   className = "",
 }: {
-  skinState: CursorSkinStateLike | null;
+  skinState: CursorSkinState | null;
   inherited?: boolean;
   className?: string;
 }) {
@@ -108,7 +109,7 @@ export function DropUpload({
   onDropFiles,
   fileInputRef,
 }: {
-  skinState: CursorSkinStateLike | null;
+  skinState: CursorSkinState | null;
   stateMeta: CursorStateMeta;
   onPick: (file: File | undefined) => void;
   onDropFiles: (files: FileList | null) => void;
@@ -169,7 +170,7 @@ export function HotspotStudio({
   onChangeHotspot,
   onChangeSize,
 }: {
-  skinState: CursorSkinStateLike | null;
+  skinState: CursorSkinState | null;
   stateMeta: CursorStateMeta;
   onChangeHotspot: (hotspot: Hotspot) => void;
   onChangeSize: (boxSize: number) => void;
@@ -183,7 +184,7 @@ export function HotspotStudio({
   const naturalHeight = image?.height || DEFAULT_BOX_SIZE;
   // 存储是 0–1 分数，但这一屏的交互（拖拽 / 方向键 / 数值框）全部按原图像素进行——
   // 用户想的就是「图片上的第几个像素」。分数与像素的换算只发生在这两个边界上。
-  const hotspot = normalizeHotspot(skinState?.hotspot, naturalWidth, naturalHeight);
+  const hotspot = normalizeHotspot(skinState?.hotspot);
   const hotspotPx = hotspotToImagePixels(hotspot, naturalWidth, naturalHeight);
   const scale = Math.min(1, (PREVIEW_STAGE_SIZE * 0.68) / Math.max(displaySize, 1));
   const previewSize = displaySize * scale;
@@ -423,11 +424,6 @@ export function TryZone({
       </div>
     </div>
   );
-}
-
-export interface RecentCursorAsset {
-  imageDataUrl?: string;
-  name?: string;
 }
 
 export function RecentAssets({

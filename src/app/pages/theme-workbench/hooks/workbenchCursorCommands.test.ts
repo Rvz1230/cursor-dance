@@ -4,14 +4,25 @@ import { createWorkbenchCursorCommands } from "./workbenchCursorCommands";
 import type { WorkbenchThemeDraft } from "./workbenchStateTypes";
 
 function createHarness(cursorStateId = "pointer") {
-  const defaultSkinState = { hotspot: { x: 2, y: 3 } };
+  const defaultSkinState = {
+    image: {
+      kind: "dataUrl" as const,
+      mimeType: "image/png" as const,
+      dataUrl: "data:image/png;base64,default",
+      width: 48,
+      height: 48,
+    },
+    hotspot: { x: 0.2, y: 0.2 },
+    size: { mode: "fixedBox" as const, boxSize: 48 },
+  };
   const skinStates: Record<string, typeof defaultSkinState> = { default: defaultSkinState };
   let current: WorkbenchThemeDraft = {
     actionConfigs: {},
     resetActionConfigs: {},
-    cursorModes: { default: "源", pointer: "继承" },
-    cursorStateActions: { default: "leftClick", pointer: "leftClick" },
-    cursorStateAssets: { default: { size: 48 }, pointer: {} },
+    cursorBindings: {
+      default: { mode: "override", actionId: "leftClick" },
+      pointer: { mode: "inherit", actionId: "leftClick" },
+    },
     cursorSkin: {
       version: 1,
       enabled: true,
@@ -33,11 +44,14 @@ function createHarness(cursorStateId = "pointer") {
 }
 
 describe("workbench cursor commands", () => {
-  it("marks non-default state assets as overrides", () => {
+  it("updates the canonical cursor skin directly", () => {
     const harness = createHarness();
-    harness.commands.updateCursorStateAsset({ size: 64 });
-    expect(harness.current().cursorModes.pointer).toBe("覆盖");
-    expect(harness.current().cursorStateAssets.pointer).toEqual({ size: 64 });
+    const pointerState = {
+      ...harness.current().cursorSkin.states.default,
+      size: { mode: "fixedBox" as const, boxSize: 64 },
+    };
+    harness.commands.updateCursorSkinState("pointer", pointerState);
+    expect(harness.current().cursorSkin.states.pointer).toEqual(pointerState);
   });
 
   it("copies the default skin without sharing nested references", () => {

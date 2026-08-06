@@ -1,20 +1,19 @@
 import type { AppRule } from "@/shared/app-rules";
 import type {
-  ContextRuleActionV4,
-  ContextRuleV4,
-  WebContextRuleV4,
-} from "@/shared/config-schema-v4";
+  ContextRule,
+  ContextRuleAction,
+  DesktopContextRule,
+  WebContextRule,
+} from "@/shared/domain/cursor-dance";
 import type { SiteRule, WorkbenchRuleAction } from "../../hooks/workbenchStateTypes";
 
-type DesktopContextRuleV4 = Extract<ContextRuleV4, { context: "desktop" }>;
-
-function contextActionToWorkbench(action: ContextRuleActionV4): WorkbenchRuleAction {
+function contextActionToWorkbench(action: ContextRuleAction): WorkbenchRuleAction {
   return action.type === "disable"
     ? "disable"
     : { enable: true, ...(action.themeId ? { theme: action.themeId } : {}) };
 }
 
-function webRuleToWorkbench(rule: WebContextRuleV4): SiteRule {
+function webRuleToWorkbench(rule: WebContextRule): SiteRule {
   const path = rule.match.path || "";
   return {
     id: rule.id,
@@ -26,7 +25,7 @@ function webRuleToWorkbench(rule: WebContextRuleV4): SiteRule {
   };
 }
 
-function desktopRuleToWorkbench(rule: DesktopContextRuleV4): AppRule {
+function desktopRuleToWorkbench(rule: DesktopContextRule): AppRule {
   return {
     id: rule.id,
     enabled: rule.enabled,
@@ -39,21 +38,21 @@ function desktopRuleToWorkbench(rule: DesktopContextRuleV4): AppRule {
   };
 }
 
-export function contextRulesToWorkbench(rules: readonly ContextRuleV4[]): {
+export function contextRulesToWorkbench(rules: readonly ContextRule[]): {
   siteRules: SiteRule[];
   appRules: AppRule[];
 } {
   return {
     siteRules: rules
-      .filter((rule): rule is WebContextRuleV4 => rule.context === "web")
+      .filter((rule): rule is WebContextRule => rule.context === "web")
       .map(webRuleToWorkbench),
     appRules: rules
-      .filter((rule): rule is DesktopContextRuleV4 => rule.context === "desktop")
+      .filter((rule): rule is DesktopContextRule => rule.context === "desktop")
       .map(desktopRuleToWorkbench),
   };
 }
 
-function workbenchActionToContext(action: WorkbenchRuleAction): ContextRuleActionV4 {
+function workbenchActionToContext(action: WorkbenchRuleAction): ContextRuleAction {
   return action === "disable"
     ? { type: "disable" }
     : { type: "enable", ...(action.theme ? { themeId: action.theme } : {}) };
@@ -73,7 +72,7 @@ function splitWebPattern(value: string): { host: string; path?: string } {
  * 导出是为了让「规则匹配测试器」与生产解析走同一份语义，
  * 避免测试器和实际生效结果给出不同答案。
  */
-export function workbenchWebPatternToMatch(pattern: SiteRule["pattern"]): WebContextRuleV4["match"] {
+export function workbenchWebPatternToMatch(pattern: SiteRule["pattern"]): WebContextRule["match"] {
   const isPathRule = pattern.type === "path";
   return {
     type: pattern.type === "glob" || (isPathRule && pattern.hostType === "glob")
@@ -83,7 +82,7 @@ export function workbenchWebPatternToMatch(pattern: SiteRule["pattern"]): WebCon
   };
 }
 
-function workbenchWebRuleToContext(rule: SiteRule): WebContextRuleV4 {
+function workbenchWebRuleToContext(rule: SiteRule): WebContextRule {
   return {
     id: rule.id,
     context: "web",
@@ -93,7 +92,7 @@ function workbenchWebRuleToContext(rule: SiteRule): WebContextRuleV4 {
   };
 }
 
-function workbenchDesktopRuleToContext(rule: AppRule): DesktopContextRuleV4 {
+function workbenchDesktopRuleToContext(rule: AppRule): DesktopContextRule {
   return {
     id: rule.id,
     context: "desktop",
@@ -110,7 +109,7 @@ function workbenchDesktopRuleToContext(rule: AppRule): DesktopContextRuleV4 {
 export function workbenchRulesToContext(
   siteRules: SiteRule[],
   appRules: AppRule[],
-): ContextRuleV4[] {
+): ContextRule[] {
   return [
     ...siteRules.map(workbenchWebRuleToContext),
     ...appRules.map(workbenchDesktopRuleToContext),

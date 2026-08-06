@@ -8,30 +8,16 @@ import {
 
 describe("normalizeHotspot", () => {
   it("passes normalized fractions through untouched", () => {
-    expect(normalizeHotspot({ x: 0.5, y: 0.25 }, 128, 128)).toEqual({ x: 0.5, y: 0.25 });
-  });
-
-  it("folds legacy pixel values down by the image size", () => {
-    expect(normalizeHotspot({ x: 64, y: 32 }, 128, 64)).toEqual({ x: 0.5, y: 0.5 });
-  });
-
-  it("is idempotent — a converted value is never divided twice", () => {
-    const once = normalizeHotspot({ x: 64, y: 64 }, 128, 128);
-    const twice = normalizeHotspot(once, 128, 128);
-    expect(twice).toEqual(once);
+    expect(normalizeHotspot({ x: 0.5, y: 0.25 })).toEqual({ x: 0.5, y: 0.25 });
   });
 
   it("clamps out-of-range values into 0–1", () => {
-    expect(normalizeHotspot({ x: 999, y: -5 }, 128, 128)).toEqual({ x: 1, y: 0 });
-  });
-
-  it("falls back to 48px when the image size is unknown or zero", () => {
-    expect(normalizeHotspot({ x: 24, y: 24 }, undefined, 0)).toEqual({ x: 0.5, y: 0.5 });
+    expect(normalizeHotspot({ x: 999, y: -5 })).toEqual({ x: 1, y: 0 });
   });
 
   it("treats missing or non-numeric input as the top-left corner", () => {
-    expect(normalizeHotspot(undefined, 128, 128)).toEqual({ x: 0, y: 0 });
-    expect(normalizeHotspot({ x: "12", y: Number.NaN }, 128, 128)).toEqual({ x: 0, y: 0 });
+    expect(normalizeHotspot(undefined)).toEqual({ x: 0, y: 0 });
+    expect(normalizeHotspot({ x: "12", y: Number.NaN })).toEqual({ x: 0, y: 0 });
   });
 });
 

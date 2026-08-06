@@ -277,8 +277,14 @@ function validateCursorSkinState(value: unknown, path: string, issues: MutableIs
     addIssue(issues, `${path}.hotspot`, "must be an object");
   } else {
     rejectUnknownKeys(value.hotspot, new Set(["x", "y"]), `${path}.hotspot`, issues);
-    requireFiniteNumber(value.hotspot.x, `${path}.hotspot.x`, issues);
-    requireFiniteNumber(value.hotspot.y, `${path}.hotspot.y`, issues);
+    if (requireFiniteNumber(value.hotspot.x, `${path}.hotspot.x`, issues)
+      && (value.hotspot.x < 0 || value.hotspot.x > 1)) {
+      addIssue(issues, `${path}.hotspot.x`, "must be a normalized value from 0 to 1");
+    }
+    if (requireFiniteNumber(value.hotspot.y, `${path}.hotspot.y`, issues)
+      && (value.hotspot.y < 0 || value.hotspot.y > 1)) {
+      addIssue(issues, `${path}.hotspot.y`, "must be a normalized value from 0 to 1");
+    }
   }
   if (!isPlainRecord(value.size)) {
     addIssue(issues, `${path}.size`, "must be an object");

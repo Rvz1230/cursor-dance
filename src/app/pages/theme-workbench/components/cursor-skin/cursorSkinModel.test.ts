@@ -16,7 +16,7 @@ describe("cursor skin model", () => {
     expect(matchStateId("resize-horizontal.svg")).toBe("");
   });
 
-  // LegacyCursorAsset 的 hotspotX/Y 是原图像素；cursorSkin.hotspot 是 0–1 分数。
+  // 最近素材缓存的 hotspotX/Y 是原图像素；cursorSkin.hotspot 是 0–1 分数。
   // 这个边界负责折算，所以 4/40 与 6/42。
   it("converts recent assets into cursor skin states with a normalized hotspot", () => {
     expect(buildSkinStateFromAsset({
@@ -46,8 +46,23 @@ describe("cursor skin model", () => {
   });
 
   it("falls back to the default skin for inherited states", () => {
-    const defaultState = { image: { kind: "dataUrl", dataUrl: "default" } };
-    expect(getResolvedSkinState({ states: { default: defaultState } }, "pointer")).toEqual({
+    const defaultState = {
+      image: {
+        kind: "dataUrl" as const,
+        mimeType: "image/png" as const,
+        dataUrl: "default",
+        width: 48,
+        height: 48,
+      },
+      hotspot: { x: 0, y: 0 },
+      size: { mode: "fixedBox" as const, boxSize: 48 },
+    };
+    expect(getResolvedSkinState({
+      version: 1,
+      enabled: true,
+      transitionMs: 80,
+      states: { default: defaultState },
+    }, "pointer")).toEqual({
       state: defaultState,
       inherited: true,
     });
