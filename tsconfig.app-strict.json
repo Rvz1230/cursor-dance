@@ -2,6 +2,8 @@
   "extends": "./tsconfig.strict.json",
   "include": [
     "src/vite-env.d.ts",
+    "src/app/pages/theme-workbench/hooks/persistence/workbenchEditorHydration.ts",
+    "src/app/pages/theme-workbench/hooks/persistence/workbenchPersistenceTypes.ts",
     "src/app/pages/theme-workbench/hooks/state/workbenchEditorReducer.ts",
     "src/app/pages/theme-workbench/hooks/state/workbenchLifecycleReducer.ts",
     "src/app/pages/theme-workbench/hooks/state/workbenchRulesReducer.ts",
