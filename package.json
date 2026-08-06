@@ -33,6 +33,7 @@
     "build:extension-runtime": "vite build --config vite.extension.config.js",
     "verify:extension-build": "node scripts/verify-extension-build.mjs",
     "check:dead-code": "knip",
+    "check:conventions": "node scripts/check-code-conventions.mjs",
     "check:design-tokens": "node scripts/check-design-tokens.mjs",
     "check:ui-spec": "node scripts/check-ui-spec.mjs",
     "check:desktop-bundle": "node scripts/check-desktop-bundle-budget.mjs",

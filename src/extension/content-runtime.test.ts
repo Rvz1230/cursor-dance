@@ -89,7 +89,7 @@ function createFixture() {
     setConfig: vi.fn(() => config),
     getConfig: vi.fn(() => config),
     isLocalPreviewHost: vi.fn(() => false),
-    getActiveScheme: vi.fn(() => config.themes[0]),
+    getActiveTheme: vi.fn(() => config.themes[0]),
     getAtmosphereConfig: vi.fn(() => ({ mode: "none" })),
     setOnSyncComplete: vi.fn((callback) => { onSyncComplete = callback; }),
     syncConfigFromStorage: vi.fn(async ({ clearStateCursorOverlay: clear }) => { clear(); }),
@@ -170,8 +170,8 @@ describe("extension content runtime assembly", () => {
 
     const respond = vi.fn();
     fixture.getMessageListener()?.({
-      type: "CURSORDANCE_PREVIEW_SCHEME",
-      schemeId: "mono-geo",
+      type: "CURSORDANCE_PREVIEW_THEME",
+      themeId: "mono-geo",
       actionId: "leftClick",
     }, {}, respond);
     expect(fixture.previewAtViewportCenter).toHaveBeenCalledWith("mono-geo", undefined, "leftClick");

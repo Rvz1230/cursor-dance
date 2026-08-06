@@ -40,7 +40,7 @@ describe("shared gesture state", () => {
     });
 
     tracker.arm({ x: 10, y: 20, target: "target" }, {
-      scheme: "scheme",
+      theme: "theme",
       releaseMode: false,
       thresholdMs: 420,
     });
@@ -49,7 +49,7 @@ describe("shared gesture state", () => {
 
     expect(resetDoubleClick).toHaveBeenCalledOnce();
     expect(fireAction).toHaveBeenCalledOnce();
-    expect(fireAction).toHaveBeenCalledWith(10, 20, "target", null, "scheme", 420, "longpress-timeout");
+    expect(fireAction).toHaveBeenCalledWith(10, 20, "target", null, "theme", 420, "longpress-timeout");
     expect(tracker.isFiredOrTriggered()).toBe(true);
   });
 
@@ -65,11 +65,11 @@ describe("shared gesture state", () => {
       resetDoubleClick: vi.fn(),
     });
 
-    tracker.arm({ x: 10, y: 20 }, { scheme: "scheme", releaseMode: true, thresholdMs: 300 });
+    tracker.arm({ x: 10, y: 20 }, { theme: "theme", releaseMode: true, thresholdMs: 300 });
     now = 1_320;
     tracker.finish({ x: 30, y: 40, target: "release-target", rawEvent: "raw" });
 
-    expect(fireAction).toHaveBeenCalledWith(30, 40, "release-target", "raw", "scheme", 300, "longpress-release");
+    expect(fireAction).toHaveBeenCalledWith(30, 40, "release-target", "raw", "theme", 300, "longpress-release");
     expect(state.longPressState).toBeNull();
   });
 
@@ -91,8 +91,8 @@ describe("shared gesture state", () => {
       resetDoubleClick: vi.fn(),
     });
 
-    tracker.arm({ x: 1, y: 2 }, { scheme: null, releaseMode: false, thresholdMs: 300 });
-    tracker.arm({ x: 3, y: 4 }, { scheme: null, releaseMode: false, thresholdMs: 300 });
+    tracker.arm({ x: 1, y: 2 }, { theme: null, releaseMode: false, thresholdMs: 300 });
+    tracker.arm({ x: 3, y: 4 }, { theme: null, releaseMode: false, thresholdMs: 300 });
 
     expect(clearTimeout).toHaveBeenCalledWith(1);
     timeoutCallbacks[0]?.();

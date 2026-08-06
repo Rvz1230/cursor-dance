@@ -36,6 +36,7 @@ jobs:
       - run: npm run release:verify-tag -- "$RELEASE_TAG"
       - run: npm run typecheck
       - run: npm run lint
+      - run: npm run check:conventions
       - run: npm run check:dead-code
       - run: npm run test
 

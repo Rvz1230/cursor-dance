@@ -2,7 +2,8 @@ import { formatActionLabel } from "./model/workbenchSchema";
 import { lazy, Suspense, useState } from "react";
 import { useThemeWorkbenchState } from "./hooks/useThemeWorkbenchState";
 import { WorkbenchHeader } from "./components/WorkbenchHeader";
-import { ActionTab, ColumnResizeHandle } from "./components/WorkbenchControls";
+import { ColumnResizeHandle } from "@/components/ui/column-resize-handle";
+import { WorkbenchActionTab } from "./components/WorkbenchActionTab";
 import { WorkbenchPanel } from "./components/WorkbenchPanel";
 import { WorkbenchPreviewRail } from "./components/WorkbenchPreviewRail";
 import { getRuntimeConfig } from "./lib/runtimeConfig";
@@ -27,8 +28,8 @@ import {
   type WorkbenchHeaderRenderer,
 } from "./components/WorkbenchChrome";
 
-const AiSchemePanel = lazy(() => import("./components/AiSchemePanel").then((module) => ({
-  default: module.AiSchemePanel,
+const AiAssistantPanel = lazy(() => import("./components/AiAssistantPanel").then((module) => ({
+  default: module.AiAssistantPanel,
 })));
 const AiSettingsDialog = lazy(() => import("./components/AiSettingsDialog").then((module) => ({
   default: module.AiSettingsDialog,
@@ -286,7 +287,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                       <div className="shrink-0 rounded-xl border border-slate-200 bg-white px-2.5 py-2.5 shadow-sm">
                         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
                           {actionItems.map((action) => (
-                            <ActionTab key={action.id} item={action} active={action.id === selected.actionId} onClick={() => setActionId(action.id)} />
+                            <WorkbenchActionTab key={action.id} item={action} active={action.id === selected.actionId} onClick={() => setActionId(action.id)} />
                           ))}
                         </div>
 
@@ -337,7 +338,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
 
                       <div className="relative flex min-w-0 h-full min-h-0">
                         <Suspense fallback={<DeferredPanelFallback label="正在加载 AI 助手…" />}>
-                          <AiSchemePanel
+                          <AiAssistantPanel
                             actionId={selected.actionId}
                             actionLabel={formatActionLabel(selected.actionId)}
                             currentConfig={currentActionConfig}

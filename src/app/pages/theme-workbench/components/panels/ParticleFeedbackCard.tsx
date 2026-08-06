@@ -15,9 +15,7 @@ import {
   PARTICLE_PHYSICS_PRESET_VALUES,
   PARTICLE_STYLE_OPTIONS,
 } from "../../model/workbenchSchema";
-import {
-  SettingSection,
-} from "../WorkbenchControls";
+import { WorkbenchSettingSection } from "../WorkbenchSettingSection";
 import { ResetCardButton } from "./ResetCardButton";
 
 function PaletteSwatches({ presets, value, onChange }: { presets: Record<string, string[]>; value: string[]; onChange: (colors: string[]) => void }) {
@@ -76,7 +74,7 @@ export function ParticleFeedbackCard({ config, updateActionConfig, panelId, rese
       }
     >
       <div className="space-y-4">
-        <SettingSection disabled={!config.particle}>
+        <WorkbenchSettingSection disabled={!config.particle}>
           <SectionTitle>发射</SectionTitle>
           <FieldRow
             label="运动模式"
@@ -138,9 +136,9 @@ export function ParticleFeedbackCard({ config, updateActionConfig, panelId, rese
               />
             </>
           )}
-        </SettingSection>
+        </WorkbenchSettingSection>
 
-        <SettingSection disabled={!config.particle}>
+        <WorkbenchSettingSection disabled={!config.particle}>
           <SectionTitle>样式</SectionTitle>
           <FieldRow
             label="粒子尺寸"
@@ -172,10 +170,10 @@ export function ParticleFeedbackCard({ config, updateActionConfig, panelId, rese
               />
             }
           />
-        </SettingSection>
+        </WorkbenchSettingSection>
 
         {!isOrbital && (
-          <SettingSection disabled={!config.particle}>
+          <WorkbenchSettingSection disabled={!config.particle}>
             <SectionTitle>物理</SectionTitle>
             <FieldRow
               label="物理预设"
@@ -198,7 +196,7 @@ export function ParticleFeedbackCard({ config, updateActionConfig, panelId, rese
               label="拖尾效果"
               control={<Switch checked={config.particleTrail || false} disabled={!config.particle} onCheckedChange={(next) => updateActionConfig({ particleTrail: next })} aria-label="拖尾开关" />}
             />
-          </SettingSection>
+          </WorkbenchSettingSection>
         )}
       </div>
     </Panel>

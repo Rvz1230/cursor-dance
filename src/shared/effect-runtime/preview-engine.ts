@@ -101,17 +101,17 @@ export function createPreviewEffectEngine(deps: PreviewEffectEngineDeps): Previe
   });
   const effectSurface = createDomEffectSurface(visualEffects);
   const audioOutput = createWebAudioOutput(audioRuntime);
-  const previewScheme = { id: "preview" };
+  const previewTheme = { id: "preview" };
   const { triggerAction } = createActionTriggerPipeline({
     state: deps.state,
     configStore: {
       isCurrentContextEnabled: () => true,
-      getActiveScheme: () => previewScheme,
-      getActionConfig: (_scheme, actionId) => deps.getActionConfig(actionId),
+      getActiveTheme: () => previewTheme,
+      getActionConfig: (_theme, actionId) => deps.getActionConfig(actionId),
       getActionTriggerConfig,
       matchesTriggerZone: () => true,
       resolveCursorStateId: () => "",
-      getCursorStateBinding: (_scheme, _stateId, actionId) => ({
+      getCursorStateBinding: (_theme, _stateId, actionId) => ({
         actionId,
         cursorStateId: "",
       }),
@@ -127,7 +127,7 @@ export function createPreviewEffectEngine(deps: PreviewEffectEngineDeps): Previe
     triggerAction(
       actionId,
       { x, y, target: deps.document.body, event: null },
-      previewScheme,
+      previewTheme,
       {
         force: true,
         resolvedActionId: actionId,

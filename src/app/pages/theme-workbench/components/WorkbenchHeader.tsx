@@ -2,7 +2,7 @@ import { Bot, Loader2, Redo2, RotateCcw, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandMark } from "@/components/ui/brand-mark";
 import { Switch } from "@/components/ui/switch";
-import { WorkspaceItem } from "./WorkbenchControls";
+import { WorkspaceNavigationItem } from "./WorkspaceNavigationItem";
 
 export function WorkbenchHeader({
   workspaceItems,
@@ -33,7 +33,7 @@ export function WorkbenchHeader({
 
         <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto py-1">
           {workspaceItems.map((item) => (
-            <WorkspaceItem key={item.id} item={item} active={workspaceId === item.id} onClick={() => setWorkspaceId(item.id)} compact />
+            <WorkspaceNavigationItem key={item.id} item={item} active={workspaceId === item.id} onClick={() => setWorkspaceId(item.id)} compact />
           ))}
         </div>
 

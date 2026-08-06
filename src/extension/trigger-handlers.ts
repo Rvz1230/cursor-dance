@@ -18,9 +18,9 @@ export interface ContentTriggerState extends ActionTriggerState, GestureRuntimeS
 
 interface ContentConfigStore {
   isCurrentSiteEnabled(): boolean;
-  getActiveScheme(): unknown;
+  getActiveTheme(): unknown;
   getConfig(): { themes: readonly unknown[]; activeThemeId?: string };
-  getActionConfig(scheme: unknown, actionId: string): Record<string, unknown> | null | undefined;
+  getActionConfig(theme: unknown, actionId: string): Record<string, unknown> | null | undefined;
   getActionTriggerConfig(config: unknown): Record<string, unknown>;
   matchesTriggerZone(
     target: unknown,
@@ -30,7 +30,7 @@ interface ContentConfigStore {
   ): boolean;
   resolveCursorStateId(target: unknown): string;
   getCursorStateBinding(
-    scheme: unknown,
+    theme: unknown,
     cursorStateId: string,
     actionId: string,
   ): { actionId: string; cursorStateId: string; inheritedFromDefault?: boolean };
@@ -68,7 +68,7 @@ export interface ContentTriggerHandlers {
   handleWheel(event: WheelEvent): void;
   handlePointerOver(event: PointerEvent): void;
   handlePointerOut(event: PointerEvent): void;
-  previewAtViewportCenter(schemeId?: string, previewScheme?: unknown, actionId?: string): void;
+  previewAtViewportCenter(themeId?: string, previewTheme?: unknown, actionId?: string): void;
 }
 
 function makeCoordsFromEvent(event: MouseEvent) {
@@ -102,15 +102,15 @@ export function createContentTriggerHandlers(runtime: ContentTriggerRuntime): Co
     diagnostics,
     configStore: {
       isCurrentContextEnabled: () => configStore.isCurrentSiteEnabled(),
-      getActiveScheme: () => configStore.getActiveScheme(),
-      getActionConfig: (scheme, actionId) => configStore.getActionConfig(scheme, actionId) ?? undefined,
+      getActiveTheme: () => configStore.getActiveTheme(),
+      getActionConfig: (theme, actionId) => configStore.getActionConfig(theme, actionId) ?? undefined,
       getActionTriggerConfig: (config) => configStore.getActionTriggerConfig(config),
       matchesTriggerZone: (target, triggerZone, event, options) => (
         configStore.matchesTriggerZone(target, triggerZone, event, options)
       ),
       resolveCursorStateId: (target) => configStore.resolveCursorStateId(target),
-      getCursorStateBinding: (scheme, cursorStateId, actionId) => (
-        configStore.getCursorStateBinding(scheme, cursorStateId, actionId)
+      getCursorStateBinding: (theme, cursorStateId, actionId) => (
+        configStore.getCursorStateBinding(theme, cursorStateId, actionId)
       ),
     },
     setTimeout: (callback, delayMs) => window.setTimeout(callback, delayMs),
@@ -163,18 +163,18 @@ export function createContentTriggerHandlers(runtime: ContentTriggerRuntime): Co
       clearTimeout: (timeoutId) => window.clearTimeout(timeoutId as number),
     },
     log: (scope, payload) => diagnostics?.log(scope, payload),
-    fireAction(x, y, target, event, scheme, throttleMs, triggerSource) {
-      triggerAction("longPress", { x, y, target, event }, scheme, { throttleMs, triggerSource });
+    fireAction(x, y, target, event, theme, throttleMs, triggerSource) {
+      triggerAction("longPress", { x, y, target, event }, theme, { throttleMs, triggerSource });
     },
     resetDoubleClick: () => doubleClickDetector.reset(),
   });
 
   function handleLeftPointerDown(event: PointerEvent): void {
     if (event.button !== 0) return;
-    const scheme = configStore.getActiveScheme();
-    const leftClickConfig = configStore.getActionConfig(scheme, "leftClick");
+    const theme = configStore.getActiveTheme();
+    const leftClickConfig = configStore.getActionConfig(theme, "leftClick");
     const leftClickTriggerConfig = configStore.getActionTriggerConfig(leftClickConfig);
-    const longPressConfig = configStore.getActionConfig(scheme, "longPress");
+    const longPressConfig = configStore.getActionConfig(theme, "longPress");
     const longPressTriggerConfig = configStore.getActionTriggerConfig(longPressConfig);
     const longPressArmed = Boolean(longPressConfig && configStore.matchesTriggerZone(
       event.target,
@@ -187,18 +187,18 @@ export function createContentTriggerHandlers(runtime: ContentTriggerRuntime): Co
       scheduleActionTrigger(
         "leftClick",
         makeCoordsFromEvent(event),
-        scheme,
+        theme,
         getActionTimingMs("leftClick", leftClickConfig),
         { triggerSource: "left-pointer-down" },
       );
     }
 
-    const doubleClickConfig = configStore.getActionConfig(scheme, "doubleClick");
+    const doubleClickConfig = configStore.getActionConfig(theme, "doubleClick");
     const doubleClickTriggerConfig = configStore.getActionTriggerConfig(doubleClickConfig);
     const doubleClickInterval = getActionTimingMs("doubleClick", doubleClickConfig);
     if (doubleClickTriggerConfig.triggerTiming === "第二次按下时") {
       if (doubleClickDetector.checkDown(doubleClickInterval).isDouble) {
-        triggerAction("doubleClick", makeCoordsFromEvent(event), scheme, {
+        triggerAction("doubleClick", makeCoordsFromEvent(event), theme, {
           throttleMs: doubleClickInterval,
           triggerSource: "double-click-down",
         });
@@ -208,7 +208,7 @@ export function createContentTriggerHandlers(runtime: ContentTriggerRuntime): Co
 
     if (!longPressArmed) return;
     longPressTracker.arm(makeGestureEvent(event), {
-      scheme,
+      theme,
       releaseMode: longPressTriggerConfig.triggerTiming === "松开后触发",
       thresholdMs: getActionTimingMs("longPress", longPressConfig),
     });
@@ -219,31 +219,31 @@ export function createContentTriggerHandlers(runtime: ContentTriggerRuntime): Co
       if (longPressTracker.isArmed) longPressTracker.cancel();
       return;
     }
-    const scheme = configStore.getActiveScheme();
+    const theme = configStore.getActiveTheme();
     const longPressWasArmed = longPressTracker.isArmed;
     const longPressFired = longPressTracker.isFiredOrTriggered();
     longPressTracker.finish(makeGestureEvent(event));
 
     if (!longPressFired) {
-      const leftClickConfig = configStore.getActionConfig(scheme, "leftClick");
+      const leftClickConfig = configStore.getActionConfig(theme, "leftClick");
       const leftClickTriggerConfig = configStore.getActionTriggerConfig(leftClickConfig);
       if (leftClickTriggerConfig.triggerTiming !== "按下时" || longPressWasArmed) {
         scheduleActionTrigger(
           "leftClick",
           makeCoordsFromEvent(event),
-          scheme,
+          theme,
           getActionTimingMs("leftClick", leftClickConfig),
           { triggerSource: "left-pointer-up" },
         );
       }
     }
 
-    const doubleClickConfig = configStore.getActionConfig(scheme, "doubleClick");
+    const doubleClickConfig = configStore.getActionConfig(theme, "doubleClick");
     const doubleClickTriggerConfig = configStore.getActionTriggerConfig(doubleClickConfig);
     const doubleClickInterval = getActionTimingMs("doubleClick", doubleClickConfig);
     if (doubleClickTriggerConfig.triggerTiming !== "第二次按下时") {
       if (doubleClickDetector.checkUp(doubleClickInterval).isDouble) {
-        triggerAction("doubleClick", makeCoordsFromEvent(event), scheme, {
+        triggerAction("doubleClick", makeCoordsFromEvent(event), theme, {
           throttleMs: doubleClickInterval,
           triggerSource: "double-click-up",
         });
@@ -258,14 +258,14 @@ export function createContentTriggerHandlers(runtime: ContentTriggerRuntime): Co
 
   function handleRightPointerDown(event: PointerEvent): void {
     if (event.button !== 2) return;
-    const scheme = configStore.getActiveScheme();
-    const actionConfig = configStore.getActionConfig(scheme, "rightClick");
+    const theme = configStore.getActiveTheme();
+    const actionConfig = configStore.getActionConfig(theme, "rightClick");
     const triggerConfig = configStore.getActionTriggerConfig(actionConfig);
     if (triggerConfig.triggerTiming === "按下时") {
       scheduleActionTrigger(
         "rightClick",
         makeCoordsFromEvent(event),
-        scheme,
+        theme,
         getActionTimingMs("rightClick", actionConfig),
         { triggerSource: "right-pointer-down" },
       );
@@ -273,14 +273,14 @@ export function createContentTriggerHandlers(runtime: ContentTriggerRuntime): Co
   }
 
   function handleContextMenu(event: MouseEvent): void {
-    const scheme = configStore.getActiveScheme();
-    const actionConfig = configStore.getActionConfig(scheme, "rightClick");
+    const theme = configStore.getActiveTheme();
+    const actionConfig = configStore.getActionConfig(theme, "rightClick");
     const triggerConfig = configStore.getActionTriggerConfig(actionConfig);
     if (triggerConfig.triggerTiming !== "按下时") {
       scheduleActionTrigger(
         "rightClick",
         makeCoordsFromEvent(event),
-        scheme,
+        theme,
         getActionTimingMs("rightClick", actionConfig),
         { triggerSource: "context-menu" },
       );
@@ -288,8 +288,8 @@ export function createContentTriggerHandlers(runtime: ContentTriggerRuntime): Co
   }
 
   function handleWheel(event: WheelEvent): void {
-    const scheme = configStore.getActiveScheme();
-    const actionConfig = configStore.getActionConfig(scheme, "wheel");
+    const theme = configStore.getActiveTheme();
+    const actionConfig = configStore.getActionConfig(theme, "wheel");
     const triggerConfig = configStore.getActionTriggerConfig(actionConfig);
     if (!configStore.matchesTriggerZone(event.target, triggerConfig.triggerZone, event, {
       actionId: "wheel",
@@ -308,7 +308,7 @@ export function createContentTriggerHandlers(runtime: ContentTriggerRuntime): Co
       });
       return;
     }
-    triggerAction("wheel", makeCoordsFromEvent(event), scheme, {
+    triggerAction("wheel", makeCoordsFromEvent(event), theme, {
       throttleMs: triggerConfig.triggerTiming === "连续滚动中" ? timingMs : 0,
       triggerSource: "wheel",
     });
@@ -316,8 +316,8 @@ export function createContentTriggerHandlers(runtime: ContentTriggerRuntime): Co
 
   function handlePointerOver(event: PointerEvent): void {
     cursorOverlay.syncStateCursorOverlay(event);
-    const scheme = configStore.getActiveScheme();
-    const actionConfig = configStore.getActionConfig(scheme, "hover");
+    const theme = configStore.getActiveTheme();
+    const actionConfig = configStore.getActionConfig(theme, "hover");
     const triggerConfig = configStore.getActionTriggerConfig(actionConfig);
     if (!actionConfig || !configStore.matchesTriggerZone(event.target, triggerConfig.triggerZone, event, {
       actionId: "hover",
@@ -327,7 +327,7 @@ export function createContentTriggerHandlers(runtime: ContentTriggerRuntime): Co
     if (state.hoverTimeoutId !== null) window.clearTimeout(state.hoverTimeoutId);
     state.hoverTarget = event.target;
     if (triggerConfig.triggerTiming === "进入时") {
-      triggerAction("hover", makeCoordsFromEvent(event), scheme, {
+      triggerAction("hover", makeCoordsFromEvent(event), theme, {
         throttleMs: 120,
         triggerSource: "hover-enter",
       });
@@ -336,7 +336,7 @@ export function createContentTriggerHandlers(runtime: ContentTriggerRuntime): Co
     const hoverDelay = getActionTimingMs("hover", actionConfig);
     state.hoverTimeoutId = window.setTimeout(() => {
       if (state.hoverTarget !== event.target) return;
-      triggerAction("hover", makeCoordsFromEvent(event), scheme, {
+      triggerAction("hover", makeCoordsFromEvent(event), theme, {
         throttleMs: hoverDelay,
         triggerSource: "hover-delay",
       });
@@ -362,28 +362,28 @@ export function createContentTriggerHandlers(runtime: ContentTriggerRuntime): Co
   }
 
   function previewAtViewportCenter(
-    schemeId?: string,
-    previewScheme?: unknown,
+    themeId?: string,
+    previewTheme?: unknown,
     actionId?: string,
   ): void {
     if (!configStore.isCurrentSiteEnabled()) return;
     const config = configStore.getConfig();
-    const selectedThemeId = schemeId || config.activeThemeId;
+    const selectedThemeId = themeId || config.activeThemeId;
     const resolvedActionId = actionId || "leftClick";
-    const resolvedScheme = previewScheme
+    const resolvedTheme = previewTheme
       || config.themes.find((theme) => (
         typeof theme === "object"
         && theme !== null
         && "id" in theme
         && theme.id === selectedThemeId
       ))
-      || configStore.getActiveScheme();
+      || configStore.getActiveTheme();
     triggerAction(resolvedActionId, {
       x: Math.round(window.innerWidth / 2),
       y: Math.round(window.innerHeight / 2),
       target: document.body,
       event: undefined,
-    }, resolvedScheme, {
+    }, resolvedTheme, {
       force: true,
       resolvedActionId,
       throttleMs: 0,

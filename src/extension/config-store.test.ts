@@ -52,7 +52,7 @@ function createFixture(configOverrides: Record<string, unknown> = {}) {
 describe("extension config store", () => {
   it("uses the shared theme defaults without leaking left-click fields", () => {
     const { store } = createFixture();
-    const theme = store.getActiveScheme();
+    const theme = store.getActiveTheme();
 
     expect(store.getActionConfig(theme, "leftClick")).toMatchObject({
       textContent: "custom-left",

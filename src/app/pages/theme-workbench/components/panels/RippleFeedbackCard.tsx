@@ -10,9 +10,7 @@ import {
   RIPPLE_EASING_OPTIONS,
   RIPPLE_STYLE_OPTIONS,
 } from "../../model/workbenchSchema";
-import {
-  SettingSection,
-} from "../WorkbenchControls";
+import { WorkbenchSettingSection } from "../WorkbenchSettingSection";
 import { ResetCardButton } from "./ResetCardButton";
 
 export function RippleFeedbackCard({ config, updateActionConfig, panelId, reset }) {
@@ -33,7 +31,7 @@ export function RippleFeedbackCard({ config, updateActionConfig, panelId, reset 
       }
     >
       <div className="space-y-4">
-        <SettingSection disabled={!config.ripple}>
+        <WorkbenchSettingSection disabled={!config.ripple}>
           <SectionTitle>形态</SectionTitle>
           <FieldRow
             label="波纹样式"
@@ -51,9 +49,9 @@ export function RippleFeedbackCard({ config, updateActionConfig, panelId, reset 
             label="线条粗细"
             control={<ControlSlider disabled={!config.ripple} value={config.rippleLineWidth} min={1} max={6} onValueChange={(value) => updateActionConfig({ rippleLineWidth: value[0] })} suffix="px" label="线条粗细" />}
           />
-        </SettingSection>
+        </WorkbenchSettingSection>
 
-        <SettingSection disabled={!config.ripple}>
+        <WorkbenchSettingSection disabled={!config.ripple}>
           <SectionTitle>消退</SectionTitle>
           <FieldRow
             label="波纹时长"
@@ -67,7 +65,7 @@ export function RippleFeedbackCard({ config, updateActionConfig, panelId, reset 
             label="透明度"
             control={<ControlSlider disabled={!config.ripple} value={config.rippleOpacity} min={20} max={100} onValueChange={(value) => updateActionConfig({ rippleOpacity: value[0] })} suffix="%" label="透明度" />}
           />
-        </SettingSection>
+        </WorkbenchSettingSection>
       </div>
     </Panel>
   );

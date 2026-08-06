@@ -30,5 +30,5 @@ export {
   createWorkbenchThemeState,
   draftFromThemePack,
   hydrateWorkbenchState,
-  themePackToThemeLibraryItem,
+  themePackToWorkbenchThemeMeta,
 } from "./themeDraftAdapter";

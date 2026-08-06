@@ -41,24 +41,24 @@ function SanitizeHint({ meta }) {
   );
 }
 
-function SchemeOverview({ scheme }) {
-  if (!scheme) return null;
+function ProposalOverview({ proposal }) {
+  if (!proposal) return null;
   return (
     <div className="mb-2 rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
       <div className="flex min-w-0 items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="truncate text-sm text-slate-700">{scheme.name}</div>
-          <div className="mt-1 text-xs leading-5 text-slate-600 text-pretty">{scheme.summary}</div>
+          <div className="truncate text-sm text-slate-700">{proposal.name}</div>
+          <div className="mt-1 text-xs leading-5 text-slate-600 text-pretty">{proposal.summary}</div>
         </div>
       </div>
-      {scheme.styleTags?.length ? (
+      {proposal.styleTags?.length ? (
         <div className="mt-2 flex flex-wrap gap-1.5">
-          {scheme.styleTags.map((tag) => (
+          {proposal.styleTags.map((tag) => (
             <span key={tag} className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-600">{tag}</span>
           ))}
         </div>
       ) : null}
-      {scheme.rationale ? <div className="mt-2 text-xs leading-5 text-slate-500 text-pretty">{scheme.rationale}</div> : null}
+      {proposal.rationale ? <div className="mt-2 text-xs leading-5 text-slate-500 text-pretty">{proposal.rationale}</div> : null}
     </div>
   );
 }
@@ -135,7 +135,7 @@ function ProposalCardContent({ result, previewActive }) {
         </div>
       </div>
 
-      <SchemeOverview scheme={result.scheme} />
+      <ProposalOverview proposal={result.scheme} />
 
       {/* AI 回复 — collapsible */}
       {result.reply ? (
@@ -217,4 +217,3 @@ export function AiProposalPresentation({ result, previewActive }) {
     </>
   );
 }
-

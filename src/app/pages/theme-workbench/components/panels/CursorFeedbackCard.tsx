@@ -9,7 +9,7 @@ import {
   CURSOR_OVERRIDE_OPTIONS,
   PANEL_META,
 } from "../../model/workbenchSchema";
-import { SettingSection } from "../WorkbenchControls";
+import { WorkbenchSettingSection } from "../WorkbenchSettingSection";
 import { ResetCardButton } from "./ResetCardButton";
 
 export function CursorFeedbackCard({ config, updateActionConfig, panelId, reset }) {
@@ -27,7 +27,7 @@ export function CursorFeedbackCard({ config, updateActionConfig, panelId, reset 
       action={reset ? <ResetCardButton dirty={reset.dirty} onReset={reset.onReset} /> : undefined}
     >
       <div className="space-y-4">
-        <SettingSection>
+        <WorkbenchSettingSection>
           <SectionTitle>命中反馈</SectionTitle>
           <FieldRow
             label="敲击抖动"
@@ -41,9 +41,9 @@ export function CursorFeedbackCard({ config, updateActionConfig, panelId, reset 
             label="光标尺寸"
             control={<ControlSlider value={config.cursorSize} min={32} max={72} onValueChange={(value) => updateActionConfig({ cursorSize: value[0] })} suffix="px" label="光标尺寸" />}
           />
-        </SettingSection>
+        </WorkbenchSettingSection>
 
-        <SettingSection>
+        <WorkbenchSettingSection>
           <SectionTitle>光标轨迹</SectionTitle>
           <FieldRow
             label="启用轨迹"
@@ -67,7 +67,7 @@ export function CursorFeedbackCard({ config, updateActionConfig, panelId, reset 
             tooltip="光标光晕色，留空则无光晕。"
             control={<ColorOptions disabled={false} value={config.cursorGlowColor || ""} onChange={(color) => updateActionConfig({ cursorGlowColor: color })} />}
           />
-        </SettingSection>
+        </WorkbenchSettingSection>
       </div>
     </Panel>
   );

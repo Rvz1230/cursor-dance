@@ -243,8 +243,8 @@ export function startContentRuntime(options: ContentRuntimeOptions = {}): Conten
   function syncAtmosphere(): void {
     if (destroyed) return;
     try {
-      const scheme = configStore.getActiveScheme();
-      atmosphere.syncConfig(configStore.getAtmosphereConfig(scheme));
+      const theme = configStore.getActiveTheme();
+      atmosphere.syncConfig(configStore.getAtmosphereConfig(theme));
     } catch (error) {
       reportRuntimeError("atmosphere-sync", error);
     }
@@ -331,10 +331,10 @@ export function startContentRuntime(options: ContentRuntimeOptions = {}): Conten
 
   const handleRuntimeMessage: RuntimeMessageListener = (message, _sender, sendResponse) => {
     const value = message as Record<string, unknown> | null;
-    if (value?.type === "CURSORDANCE_PREVIEW_SCHEME") {
+    if (value?.type === "CURSORDANCE_PREVIEW_THEME") {
       triggerHandlers.previewAtViewportCenter(
-        value.schemeId as string | undefined,
-        value.scheme,
+        value.themeId as string | undefined,
+        value.themePack,
         value.actionId as string | undefined,
       );
       sendResponse({ ok: true });

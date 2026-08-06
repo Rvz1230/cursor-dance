@@ -1,5 +1,5 @@
 import { createThemeDraft } from "../model/workbenchSchema";
-import { draftFromThemePack, themePackToThemeLibraryItem } from "./workbenchConfig";
+import { draftFromThemePack, themePackToWorkbenchThemeMeta } from "./workbenchConfig";
 import { validateCursorDanceConfigV4 } from "@/shared/config-schema-v4";
 
 function cloneValue(value) {
@@ -162,7 +162,7 @@ export function buildImportedThemePayload(themes, parsedValue, fileName = "") {
 
   return {
     theme: {
-      meta: themePackToThemeLibraryItem(nextThemePack, themes.length),
+      meta: themePackToWorkbenchThemeMeta(nextThemePack, themes.length),
       draft: draftFromThemePack(nextThemePack),
     },
   };

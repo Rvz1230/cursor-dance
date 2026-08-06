@@ -10,9 +10,7 @@ import {
   ANIMATION_STYLE_OPTIONS,
   PANEL_META,
 } from "../../model/workbenchSchema";
-import {
-  SettingSection,
-} from "../WorkbenchControls";
+import { WorkbenchSettingSection } from "../WorkbenchSettingSection";
 import { ResetCardButton } from "./ResetCardButton";
 
 export function AnimationFeedbackCard({ config, updateActionConfig, panelId, reset }) {
@@ -33,7 +31,7 @@ export function AnimationFeedbackCard({ config, updateActionConfig, panelId, res
       }
     >
       <div className="space-y-4">
-        <SettingSection disabled={!config.animationEnabled}>
+        <WorkbenchSettingSection disabled={!config.animationEnabled}>
           <SectionTitle>形态</SectionTitle>
           <FieldRow
             label="动画样式"
@@ -56,9 +54,9 @@ export function AnimationFeedbackCard({ config, updateActionConfig, panelId, res
             tooltip="动画的加减速节奏。"
             control={<SmallSelect value={config.animationEasing} options={ANIMATION_EASING_OPTIONS} onChange={config.animationEnabled ? (value) => updateActionConfig({ animationEasing: value, animationEnabled: true }) : undefined} />}
           />
-        </SettingSection>
+        </WorkbenchSettingSection>
 
-        <SettingSection disabled={!config.animationEnabled}>
+        <WorkbenchSettingSection disabled={!config.animationEnabled}>
           <SectionTitle>位置</SectionTitle>
           <FieldRow
             label="水平偏移"
@@ -68,9 +66,9 @@ export function AnimationFeedbackCard({ config, updateActionConfig, panelId, res
             label="垂直偏移"
             control={<ControlSlider disabled={!config.animationEnabled} value={config.animationOffsetY} min={-48} max={24} onValueChange={(value) => updateActionConfig({ animationOffsetY: value[0] })} suffix="px" label="垂直偏移" />}
           />
-        </SettingSection>
+        </WorkbenchSettingSection>
 
-        <SettingSection disabled={!config.animationEnabled}>
+        <WorkbenchSettingSection disabled={!config.animationEnabled}>
           <SectionTitle>强度</SectionTitle>
           <FieldRow
             label="缩放强度"
@@ -80,7 +78,7 @@ export function AnimationFeedbackCard({ config, updateActionConfig, panelId, res
             label="透明度"
             control={<ControlSlider disabled={!config.animationEnabled} value={config.animationOpacity} min={20} max={100} onValueChange={(value) => updateActionConfig({ animationOpacity: value[0] })} suffix="%" label="透明度" />}
           />
-        </SettingSection>
+        </WorkbenchSettingSection>
       </div>
     </Panel>
   );

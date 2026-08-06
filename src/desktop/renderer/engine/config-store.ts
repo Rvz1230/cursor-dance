@@ -7,7 +7,7 @@
 //   - **chrome.storage 替换为 storeAdapter**：调用方注入异步 read/write，桌面端
 //     桥接 IPC + electron-store，扩展端可仍由 chrome.storage 包装。
 //   - **resolveSiteRule → resolveAppRule**：站点规则换成应用规则；isCurrentSiteEnabled
-//     和 getActiveScheme 现在向 deps.activeAppInfo 索要 processName/title。
+//     和 getActiveTheme 现在向 deps.activeAppInfo 索要 processName/title。
 //   - 配置选择、动作合并、光标状态和触发区域判断与扩展复用 shared runtime core。
 //   - debouncedSyncConfigFromStorage 保留为 thin wrapper；live-preview / chrome
 //     session 通道在桌面端不存在，由 storeAdapter 实现自行决定如何映射。
@@ -74,16 +74,16 @@ export interface ConfigStoreApi extends ConfigStore {
   getConfig(): CursorDanceConfig;
   normalizeConfig(value: unknown): CursorDanceConfig;
   isLocalPreviewHost(): boolean;
-  getActiveScheme(): ThemePack;
+  getActiveTheme(): ThemePack;
   getResolvedAppRule(): ContextRuleAction | null;
   isCurrentSiteEnabled(): boolean;
-  getActionConfig(scheme: ThemePack | null | undefined, actionId: string): Record<string, unknown> | null;
-  getCursorStateBinding(scheme: ThemePack | null | undefined, stateId: string, sourceActionId: string): {
+  getActionConfig(theme: ThemePack | null | undefined, actionId: string): Record<string, unknown> | null;
+  getCursorStateBinding(theme: ThemePack | null | undefined, stateId: string, sourceActionId: string): {
     cursorStateId: string;
     actionId: string;
     inheritedFromDefault: boolean;
   };
-  getEffectiveCursorStateConfig(scheme: ThemePack | null | undefined, stateId: string): unknown;
+  getEffectiveCursorStateConfig(theme: ThemePack | null | undefined, stateId: string): unknown;
   resolveCursorStateId(target: unknown): string;
   matchesTriggerZone(
     target: unknown,
@@ -143,7 +143,7 @@ export function createConfigStore(deps: ConfigStoreDeps): ConfigStoreApi {
     diagnostics,
   });
   const {
-    getActiveTheme: getActiveScheme,
+    getActiveTheme,
     isCurrentContextEnabled: isCurrentSiteEnabled,
     getMaxActiveEffects,
     getActionConfig,
@@ -154,8 +154,8 @@ export function createConfigStore(deps: ConfigStoreDeps): ConfigStoreApi {
   } = runtimeConfigCore;
 
   function getKeyFeedbackConfig(): KeyFeedbackConfig {
-    const activeScheme = getActiveScheme();
-    return normalizeKeyFeedbackConfig(activeScheme.keyFeedbackConfig);
+    const activeTheme = getActiveTheme();
+    return normalizeKeyFeedbackConfig(activeTheme.keyFeedbackConfig);
   }
 
   let onSyncComplete: (() => void) | null = null;
@@ -231,7 +231,7 @@ export function createConfigStore(deps: ConfigStoreDeps): ConfigStoreApi {
     getActionAnimationConfig,
     getActionImageConfig,
     getActionCursorFeedbackConfig,
-    getActiveScheme,
+    getActiveTheme,
     getResolvedAppRule,
     isCurrentSiteEnabled,
     getActionConfig,

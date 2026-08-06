@@ -13,7 +13,7 @@ describe("extension cursor overlay adapter", () => {
       visualEffects: { ensureRoot: vi.fn() },
       configStore: {
         isCurrentSiteEnabled: () => false,
-        getActiveScheme: vi.fn(),
+        getActiveTheme: vi.fn(),
         resolveCursorStateId: vi.fn(),
         getEffectiveCursorStateConfig: vi.fn(),
       },

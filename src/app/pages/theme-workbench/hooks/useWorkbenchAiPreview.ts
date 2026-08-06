@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { AiProposal } from "../components/ai-scheme/useAiConversation";
+import type { AiProposal } from "../components/ai-assistant/useAiConversation";
 import { mergeActionConfig } from "../lib/aiSchemeAssistant";
 
 type ActionConfig = Record<string, unknown>;

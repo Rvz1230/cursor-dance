@@ -52,9 +52,9 @@ describe("config-store schema v4", () => {
     }));
     const store = createStore({ ...defaultConfig, activeThemeId: "drift", themes });
 
-    expect(store.getActiveScheme().id).toBe("drift");
-    expect(store.getActionConfig(store.getActiveScheme(), "leftClick")?.textContent).toBe("v4-only");
-    expect(store.getCursorStateBinding(store.getActiveScheme(), "pointer", "leftClick")).toMatchObject({
+    expect(store.getActiveTheme().id).toBe("drift");
+    expect(store.getActionConfig(store.getActiveTheme(), "leftClick")?.textContent).toBe("v4-only");
+    expect(store.getCursorStateBinding(store.getActiveTheme(), "pointer", "leftClick")).toMatchObject({
       actionId: "rightClick",
       inheritedFromDefault: false,
     });
@@ -75,7 +75,7 @@ describe("config-store schema v4", () => {
     }, { getActiveAppInfo: () => activeApp });
 
     expect(store.isCurrentSiteEnabled()).toBe(true);
-    expect(store.getActiveScheme().id).toBe("drift");
+    expect(store.getActiveTheme().id).toBe("drift");
   });
 
   it("disables effects for a matching desktop context rule", () => {

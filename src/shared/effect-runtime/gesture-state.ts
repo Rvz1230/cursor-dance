@@ -12,7 +12,7 @@ interface LongPressState {
   x: number;
   y: number;
   target: unknown;
-  scheme: unknown;
+  theme: unknown;
   triggered: boolean;
   fired: boolean;
   releaseMode: boolean;
@@ -65,7 +65,7 @@ export function createDoubleClickDetector(deps: {
 
 export interface LongPressTracker {
   arm(event: GesturePointerEvent, options: {
-    scheme: unknown;
+    theme: unknown;
     target?: unknown;
     releaseMode: boolean;
     thresholdMs: number;
@@ -90,7 +90,7 @@ export function createLongPressTracker(deps: {
     y: number,
     target: unknown,
     rawEvent: unknown,
-    scheme: unknown,
+    theme: unknown,
     throttleMs: number,
     triggerSource: string,
   ) => void;
@@ -103,7 +103,7 @@ export function createLongPressTracker(deps: {
   }
 
   function arm(event: GesturePointerEvent, options: {
-    scheme: unknown;
+    theme: unknown;
     target?: unknown;
     releaseMode: boolean;
     thresholdMs: number;
@@ -116,7 +116,7 @@ export function createLongPressTracker(deps: {
       x: event.x,
       y: event.y,
       target: options.target ?? event.target,
-      scheme: options.scheme,
+      theme: options.theme,
       triggered: false,
       fired: false,
       releaseMode: options.releaseMode,
@@ -141,7 +141,7 @@ export function createLongPressTracker(deps: {
         current.y,
         current.target,
         null,
-        current.scheme,
+        current.theme,
         current.thresholdMs,
         "longpress-timeout",
       );
@@ -162,7 +162,7 @@ export function createLongPressTracker(deps: {
         event?.y ?? current.y,
         event?.target ?? current.target,
         event?.rawEvent ?? null,
-        current.scheme,
+        current.theme,
         current.thresholdMs,
         "longpress-release",
       );

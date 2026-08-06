@@ -10,9 +10,7 @@ import {
   PANEL_META,
   SOUND_FILE_OPTIONS,
 } from "../../model/workbenchSchema";
-import {
-  SettingSection,
-} from "../WorkbenchControls";
+import { WorkbenchSettingSection } from "../WorkbenchSettingSection";
 import { ResetCardButton } from "./ResetCardButton";
 
 export function AudioFeedbackCard({ config, updateActionConfig, panelId, reset }) {
@@ -33,7 +31,7 @@ export function AudioFeedbackCard({ config, updateActionConfig, panelId, reset }
       }
     >
       <div className="space-y-4">
-        <SettingSection disabled={!config.sound}>
+        <WorkbenchSettingSection disabled={!config.sound}>
           <SectionTitle>素材</SectionTitle>
           <FieldRow
             label="音效素材"
@@ -47,9 +45,9 @@ export function AudioFeedbackCard({ config, updateActionConfig, panelId, reset }
             label="混音方式"
             control={<SmallSelect value={config.soundBlendMode} options={AUDIO_BLEND_OPTIONS} onChange={config.sound ? (value) => updateActionConfig({ soundBlendMode: value, sound: true }) : undefined} />}
           />
-        </SettingSection>
+        </WorkbenchSettingSection>
 
-        <SettingSection disabled={!config.sound}>
+        <WorkbenchSettingSection disabled={!config.sound}>
           <SectionTitle>节奏</SectionTitle>
           <FieldRow
             label="音量"
@@ -67,7 +65,7 @@ export function AudioFeedbackCard({ config, updateActionConfig, panelId, reset }
             label="淡出时长"
             control={<ControlSlider disabled={!config.sound} value={config.soundFadeOut} min={0} max={240} onValueChange={(value) => updateActionConfig({ soundFadeOut: value[0] })} suffix="ms" label="淡出时长" />}
           />
-        </SettingSection>
+        </WorkbenchSettingSection>
       </div>
     </Panel>
   );

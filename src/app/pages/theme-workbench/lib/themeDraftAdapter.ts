@@ -2,7 +2,7 @@ export {
   createWorkbenchThemeState,
   draftFromThemePack,
   hydrateWorkbenchState,
-  themePackToThemeLibraryItem,
+  themePackToWorkbenchThemeMeta,
 } from "./theme-draft/themeDraftReader";
 
 export {

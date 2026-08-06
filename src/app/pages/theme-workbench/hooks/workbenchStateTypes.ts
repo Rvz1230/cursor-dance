@@ -26,7 +26,7 @@ export type CursorCommandDraft = Pick<
 >;
 
 /** Workbench-only presentation metadata; never serialized as the runtime theme model. */
-export interface ThemeLibraryItem {
+export interface WorkbenchThemeMeta {
   id: string;
   name: string;
   kind: string;
@@ -38,7 +38,7 @@ export interface ThemeLibraryItem {
 
 /** A theme is edited and stored as one aggregate so metadata and draft cannot drift apart. */
 export interface WorkbenchTheme {
-  meta: ThemeLibraryItem;
+  meta: WorkbenchThemeMeta;
   draft: WorkbenchThemeDraft;
 }
 

@@ -11,9 +11,7 @@ import {
   PANEL_META,
 } from "../../model/workbenchSchema";
 import { getImageEffectPresetCards, validateImageEffectFile } from "../../lib/imageEffectAssets";
-import {
-  SettingSection,
-} from "../WorkbenchControls";
+import { WorkbenchSettingSection } from "../WorkbenchSettingSection";
 import { ResetCardButton } from "./ResetCardButton";
 
 const MAX_IMAGE_EFFECT_UPLOAD_BYTES = 300 * 1024;
@@ -86,7 +84,7 @@ export function ImageFeedbackCard({ config, updateActionConfig, panelId, reset }
           }}
         />
 
-        <SettingSection disabled={!config.imageEnabled}>
+        <WorkbenchSettingSection disabled={!config.imageEnabled}>
           <SectionTitle>素材</SectionTitle>
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_172px]">
             <div className="space-y-3">
@@ -176,9 +174,9 @@ export function ImageFeedbackCard({ config, updateActionConfig, panelId, reset }
               </div>
             </div>
           </div>
-        </SettingSection>
+        </WorkbenchSettingSection>
 
-        <SettingSection disabled={!config.imageEnabled}>
+        <WorkbenchSettingSection disabled={!config.imageEnabled}>
           <SectionTitle>动画</SectionTitle>
           <FieldRow
             label="持续时间"
@@ -192,9 +190,9 @@ export function ImageFeedbackCard({ config, updateActionConfig, panelId, reset }
             label="垂直偏移"
             control={<ControlSlider disabled={!config.imageEnabled} value={config.imageOffsetY} min={-48} max={24} onValueChange={(value) => updateActionConfig({ imageOffsetY: value[0] })} suffix="px" label="垂直偏移" />}
           />
-        </SettingSection>
+        </WorkbenchSettingSection>
 
-        <SettingSection disabled={!config.imageEnabled}>
+        <WorkbenchSettingSection disabled={!config.imageEnabled}>
           <SectionTitle>样式</SectionTitle>
           <FieldRow
             label="贴纸尺寸"
@@ -204,7 +202,7 @@ export function ImageFeedbackCard({ config, updateActionConfig, panelId, reset }
             label="透明度"
             control={<ControlSlider disabled={!config.imageEnabled} value={config.imageOpacity} min={20} max={100} onValueChange={(value) => updateActionConfig({ imageOpacity: value[0] })} suffix="%" label="透明度" />}
           />
-        </SettingSection>
+        </WorkbenchSettingSection>
       </div>
     </Panel>
   );

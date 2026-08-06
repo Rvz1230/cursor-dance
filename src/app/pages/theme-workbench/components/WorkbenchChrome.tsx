@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Bot, ChevronLeft, ChevronRight, Loader2, Redo2, RotateCcw, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { WorkspaceItem } from "./WorkbenchControls";
+import { WorkspaceNavigationItem } from "./WorkspaceNavigationItem";
 import { useThemeWorkbenchState } from "../hooks/useThemeWorkbenchState";
 
 export interface WorkbenchHeaderProps {
@@ -82,7 +82,7 @@ function WorkspaceTabsScroller({
         className="flex min-w-0 items-center gap-1.5 overflow-x-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {workspaceItems.map((item) => (
-          <WorkspaceItem
+          <WorkspaceNavigationItem
             key={item.id}
             item={item}
             active={workspaceId === item.id}

@@ -20,13 +20,13 @@ function createFixture() {
     },
     configStore: {
       isCurrentSiteEnabled: () => true,
-      getActiveScheme: () => ({}),
+      getActiveTheme: () => ({}),
       getConfig: () => ({ themes: [] }),
-      getActionConfig: (_scheme: unknown, actionId: string) => configs[actionId],
+      getActionConfig: (_theme: unknown, actionId: string) => configs[actionId],
       getActionTriggerConfig: (config: unknown) => (config || {}) as Record<string, unknown>,
       matchesTriggerZone: () => true,
       resolveCursorStateId: () => "default",
-      getCursorStateBinding: (_scheme: unknown, cursorStateId: string, actionId: string) => ({
+      getCursorStateBinding: (_theme: unknown, cursorStateId: string, actionId: string) => ({
         actionId,
         cursorStateId,
       }),

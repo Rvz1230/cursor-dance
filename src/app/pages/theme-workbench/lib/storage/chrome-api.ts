@@ -1,5 +1,5 @@
 const CONFIG_STORAGE_KEY = "cursordance.config";
-const PREVIEW_MESSAGE_TYPE = "CURSORDANCE_PREVIEW_SCHEME";
+const PREVIEW_MESSAGE_TYPE = "CURSORDANCE_PREVIEW_THEME";
 const LOCAL_PREVIEW_CHANNEL_NAME = "cursordance.local-preview";
 const DIAGNOSTIC_EVENT_MESSAGE_TYPE = "diagnostic-event";
 const LIVE_PREVIEW_CONFIG_STORAGE_KEY = "cursordance.livePreviewConfig";

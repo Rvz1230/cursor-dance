@@ -138,8 +138,8 @@ function resolveCachedCursorState(): typeof cachedCursorState {
   cursorStateCacheDirty = false;
   cachedCursorState = undefined;
   if (configStore.isCurrentSiteEnabled?.() !== false) {
-    const scheme = configStore.getActiveScheme?.();
-    const cursorSkin = scheme?.cursorSkin;
+    const theme = configStore.getActiveTheme?.();
+    const cursorSkin = theme?.cursorSkin;
     cachedCursorState = cursorSkinStateToOverlayState(
       resolveCursorSkinState(cursorSkin, activeCursorSkinStateId),
       resolveDesktopImageSource,
@@ -206,12 +206,12 @@ function applyOverlayConfig(next: unknown, source: "stored" | "live-preview" | "
   configStore.setConfig(next || defaultConfig);
   invalidateCursorStateCache();
   syncRuntimeAvailability();
-  const scheme = configStore.getActiveScheme?.();
-  const cursorSkin = scheme?.cursorSkin;
+  const theme = configStore.getActiveTheme?.();
+  const cursorSkin = theme?.cursorSkin;
   const resolvedCursorState = resolveCachedCursorState();
   console.info("[cursordance] overlay cursorSkin config applied", {
     source,
-    schemeId: scheme?.id,
+    themeId: theme?.id,
     stateCount: cursorSkin?.states ? Object.keys(cursorSkin.states).length : 0,
     hasDefault: Boolean(resolveDesktopImageSource(cursorSkin?.states.default?.image)),
     activeCursorSkinStateId,

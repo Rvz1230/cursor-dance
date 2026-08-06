@@ -196,7 +196,7 @@ function getThemeTone(themeId, fallbackIndex = 0) {
   return THEME_TONE_BY_ID[themeId] || THEME_TONES[fallbackIndex % THEME_TONES.length];
 }
 
-export function buildThemeLibraryItem(themePack, fallbackIndex = 0) {
+export function buildWorkbenchThemeMeta(themePack, fallbackIndex = 0) {
   const description = themePack?.description || "未填写说明";
   return {
     id: themePack?.id || `theme-${fallbackIndex + 1}`,
@@ -211,7 +211,7 @@ export function buildThemeLibraryItem(themePack, fallbackIndex = 0) {
 
 function buildThemeLibrarySeed(themes = getDefaultThemePacks()) {
   if (!themes.length) return FALLBACK_THEMES;
-  return themes.map((theme, index) => buildThemeLibraryItem(theme, index));
+  return themes.map((theme, index) => buildWorkbenchThemeMeta(theme, index));
 }
 
 export const THEMES = buildThemeLibrarySeed();

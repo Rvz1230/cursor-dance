@@ -64,21 +64,21 @@ export interface ContentConfigStore {
   getActionAnimationConfig(config: ActionConfig | undefined): ActionConfig;
   getActionImageConfig(config: ActionConfig | undefined): ActionConfig;
   getActionCursorFeedbackConfig(config: ActionConfig | undefined): ActionConfig;
-  getActiveScheme(): ContentTheme;
-  getActionConfig(scheme: ContentTheme | null | undefined, actionId: string): ActionConfig | null;
-  getCursorStateBinding(scheme: ContentTheme | null | undefined, stateId: string, actionId: string): {
+  getActiveTheme(): ContentTheme;
+  getActionConfig(theme: ContentTheme | null | undefined, actionId: string): ActionConfig | null;
+  getCursorStateBinding(theme: ContentTheme | null | undefined, stateId: string, actionId: string): {
     cursorStateId: string;
     actionId: string;
     inheritedFromDefault: boolean;
   };
-  getEffectiveCursorStateConfig(scheme: ContentTheme | null | undefined, stateId: string): CursorSkinState | null;
+  getEffectiveCursorStateConfig(theme: ContentTheme | null | undefined, stateId: string): CursorSkinState | null;
   resolveCursorStateId(target: unknown): string;
   matchesTriggerZone(target: unknown, triggerZone: unknown, event: unknown, meta?: Record<string, unknown>): boolean;
   isCurrentSiteEnabled(): boolean;
   getMaxActiveEffects(): number;
   syncConfigFromStorage(options: { clearStateCursorOverlay(): void }): Promise<void>;
   debouncedSyncConfigFromStorage(options: { clearStateCursorOverlay(): void }): void;
-  getAtmosphereConfig(scheme: ContentTheme | null | undefined): { mode: string };
+  getAtmosphereConfig(theme: ContentTheme | null | undefined): { mode: string };
   setOnSyncComplete(callback: (() => void) | null): void;
   destroy(): void;
 }
@@ -154,7 +154,7 @@ export function createContentConfigStore(runtime: ContentConfigStoreRuntime): Co
     diagnostics,
   });
   const {
-    getActiveTheme: getActiveScheme,
+    getActiveTheme,
     isCurrentContextEnabled: isCurrentSiteEnabled,
     getMaxActiveEffects,
     getActionConfig,
@@ -193,8 +193,8 @@ export function createContentConfigStore(runtime: ContentConfigStoreRuntime): Co
     onSyncComplete = callback;
   }
 
-  function getAtmosphereConfig(scheme: ContentTheme | null | undefined): { mode: string } {
-    const mode = scheme?.atmosphere?.mode;
+  function getAtmosphereConfig(theme: ContentTheme | null | undefined): { mode: string } {
+    const mode = theme?.atmosphere?.mode;
     return { mode: typeof mode === "string" ? mode : "none" };
   }
 
@@ -272,7 +272,7 @@ export function createContentConfigStore(runtime: ContentConfigStoreRuntime): Co
     getActionAnimationConfig,
     getActionImageConfig,
     getActionCursorFeedbackConfig,
-    getActiveScheme,
+    getActiveTheme,
     getActionConfig,
     getCursorStateBinding,
     getEffectiveCursorStateConfig,

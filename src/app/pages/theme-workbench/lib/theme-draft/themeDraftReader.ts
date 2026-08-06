@@ -6,7 +6,7 @@ import {
   toDesktopAssetUrl,
 } from "@/shared/asset-reference";
 import type {
-  ThemeLibraryItem,
+  WorkbenchThemeMeta,
   WorkbenchState,
   WorkbenchTheme,
   WorkbenchThemeDraft,
@@ -15,7 +15,7 @@ import {
   PLATFORM_ACTIONS,
   CURSOR_STATES,
   THEMES,
-  buildThemeLibraryItem,
+  buildWorkbenchThemeMeta,
   createThemeDraft,
   mergeActionConfig,
 } from "../../model/workbenchSchema";
@@ -98,8 +98,8 @@ function buildDraftFromTheme(theme: ThemeInput): WorkbenchThemeDraft {
   };
 }
 
-export function themePackToThemeLibraryItem(theme: unknown, fallbackIndex = 0): ThemeLibraryItem {
-  return buildThemeLibraryItem(theme, fallbackIndex) as ThemeLibraryItem;
+export function themePackToWorkbenchThemeMeta(theme: unknown, fallbackIndex = 0): WorkbenchThemeMeta {
+  return buildWorkbenchThemeMeta(theme, fallbackIndex) as WorkbenchThemeMeta;
 }
 
 export function draftFromThemePack(theme: unknown): WorkbenchThemeDraft {
@@ -108,7 +108,7 @@ export function draftFromThemePack(theme: unknown): WorkbenchThemeDraft {
 
 function themePackToWorkbenchTheme(theme: unknown, fallbackIndex = 0): WorkbenchTheme {
   return {
-    meta: themePackToThemeLibraryItem(theme, fallbackIndex),
+    meta: themePackToWorkbenchThemeMeta(theme, fallbackIndex),
     draft: draftFromThemePack(theme),
   };
 }
@@ -122,12 +122,12 @@ function resolveSelectedThemeId(
 }
 
 export function createWorkbenchThemeState(
-  themeMetadata: ThemeLibraryItem[] = THEMES as ThemeLibraryItem[],
+  themeMetadata: WorkbenchThemeMeta[] = THEMES as WorkbenchThemeMeta[],
 ): {
   themes: WorkbenchTheme[];
   selectedThemeId: string;
 } {
-  const nextThemeMetadata = themeMetadata.length ? themeMetadata : THEMES as ThemeLibraryItem[];
+  const nextThemeMetadata = themeMetadata.length ? themeMetadata : THEMES as WorkbenchThemeMeta[];
   const themes = nextThemeMetadata.map((meta) => ({
     meta,
     draft: createThemeDraft(meta.id) as WorkbenchThemeDraft,

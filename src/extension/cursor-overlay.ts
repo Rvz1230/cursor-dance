@@ -8,9 +8,9 @@ import type { CursorSkinState } from "@/shared/domain/cursor-dance";
 
 interface ExtensionCursorConfigStore {
   isCurrentSiteEnabled(): boolean;
-  getActiveScheme(): unknown;
+  getActiveTheme(): unknown;
   resolveCursorStateId(target: unknown): string;
-  getEffectiveCursorStateConfig(scheme: unknown, stateId: string): CursorSkinState | null;
+  getEffectiveCursorStateConfig(theme: unknown, stateId: string): CursorSkinState | null;
 }
 
 interface ContentCursorOverlayRuntime {
@@ -36,9 +36,9 @@ export function createContentCursorOverlay(runtime: ContentCursorOverlayRuntime)
     }
     const ElementCtor = runtime.document.defaultView?.Element;
     const target = ElementCtor && event.target instanceof ElementCtor ? event.target : runtime.document.body;
-    const scheme = runtime.configStore.getActiveScheme();
+    const theme = runtime.configStore.getActiveTheme();
     const stateId = runtime.configStore.resolveCursorStateId(target);
-    const state = runtime.configStore.getEffectiveCursorStateConfig(scheme, stateId);
+    const state = runtime.configStore.getEffectiveCursorStateConfig(theme, stateId);
     renderer.syncStateCursorOverlay(
       event.clientX,
       event.clientY,

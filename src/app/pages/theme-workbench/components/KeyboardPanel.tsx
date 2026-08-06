@@ -8,9 +8,7 @@ import { SectionTitle } from "@/components/ui/section-title";
 import { SmallSelect } from "@/components/ui/small-select";
 import { PANEL_META } from "../model/workbenchSchema";
 import { defaultKeyFeedbackConfig, type KeyFeedbackConfig } from "@/shared/config/key-feedback";
-import {
-  SettingSection,
-} from "./WorkbenchControls";
+import { WorkbenchSettingSection } from "./WorkbenchSettingSection";
 
 const ANIMATION_STYLES = [
   { value: "bounce", label: "弹跳", description: "Q弹弹簧物理曲线" },
@@ -94,7 +92,7 @@ export function KeyboardPanel({ config, themeName, onUpdate }: KeyboardPanelProp
           enabled={enabled}
         >
           <div className="space-y-4">
-            <SettingSection disabled={!enabled}>
+            <WorkbenchSettingSection disabled={!enabled}>
               <div className="flex gap-2">
                 {ANIMATION_STYLES.map((style) => (
                   <button
@@ -112,7 +110,7 @@ export function KeyboardPanel({ config, themeName, onUpdate }: KeyboardPanelProp
                   </button>
                 ))}
               </div>
-            </SettingSection>
+            </WorkbenchSettingSection>
           </div>
         </Panel>
 
@@ -126,7 +124,7 @@ export function KeyboardPanel({ config, themeName, onUpdate }: KeyboardPanelProp
           enabled={enabled}
         >
           <div className="space-y-4">
-            <SettingSection disabled={!enabled}>
+            <WorkbenchSettingSection disabled={!enabled}>
               <SectionTitle>基础</SectionTitle>
               <FieldRow
                 label="持续时长"
@@ -153,21 +151,21 @@ export function KeyboardPanel({ config, themeName, onUpdate }: KeyboardPanelProp
                 tooltip="字符峰值不透明度，淡入淡出按此比例进行"
                 control={<ControlSlider disabled={!enabled} value={config.opacity} min={10} max={100} onValueChange={(v) => onUpdate({ opacity: v[0] })} suffix="%" label="不透明度" />}
               />
-            </SettingSection>
+            </WorkbenchSettingSection>
 
             {config.animationStyle === "bounce" && (
-              <SettingSection disabled={!enabled}>
+              <WorkbenchSettingSection disabled={!enabled}>
                 <SectionTitle>弹跳参数</SectionTitle>
                 <FieldRow
                   label="弹跳高度"
                   tooltip="字符从入场边飞入后停留位置距入场边的距离"
                   control={<ControlSlider disabled={!enabled} value={config.bounceHeight} min={40} max={400} onValueChange={(v) => onUpdate({ bounceHeight: v[0] })} suffix="px" label="弹跳高度" />}
                 />
-              </SettingSection>
+              </WorkbenchSettingSection>
             )}
 
             {config.animationStyle === "raindrop" && (
-              <SettingSection disabled={!enabled}>
+              <WorkbenchSettingSection disabled={!enabled}>
                 <SectionTitle>雨滴参数</SectionTitle>
                 <FieldRow
                   label="重力强度"
@@ -179,7 +177,7 @@ export function KeyboardPanel({ config, themeName, onUpdate }: KeyboardPanelProp
                   tooltip="下落时叠加的横向偏移，5 为无风，左右两端为最大风力"
                   control={<ControlSlider disabled={!enabled} value={(config.wind + 1) * 5} min={0} max={10} onValueChange={(v) => onUpdate({ wind: v[0] / 5 - 1 })} label="水平风力" />}
                 />
-              </SettingSection>
+              </WorkbenchSettingSection>
             )}
           </div>
         </Panel>
@@ -193,7 +191,7 @@ export function KeyboardPanel({ config, themeName, onUpdate }: KeyboardPanelProp
           enabled={enabled}
         >
           <div className="space-y-4">
-            <SettingSection disabled={!enabled}>
+            <WorkbenchSettingSection disabled={!enabled}>
               <FieldRow
                 label="起始边缘"
                 tooltip="字符从哪个边缘飞入屏幕"
@@ -218,7 +216,7 @@ export function KeyboardPanel({ config, themeName, onUpdate }: KeyboardPanelProp
                   control={<ControlSlider disabled={!enabled} value={config.globalOffsetY * 100} min={5} max={100} onValueChange={(v) => onUpdate({ globalOffsetY: v[0] / 100 })} suffix="%" label="垂直偏移" />}
                 />
               )}
-            </SettingSection>
+            </WorkbenchSettingSection>
           </div>
         </Panel>
 
@@ -231,7 +229,7 @@ export function KeyboardPanel({ config, themeName, onUpdate }: KeyboardPanelProp
           enabled={enabled}
         >
           <div className="space-y-4">
-            <SettingSection disabled={!enabled}>
+            <WorkbenchSettingSection disabled={!enabled}>
               <FieldRow
                 label="颜色"
                 tooltip="字符主体颜色"
@@ -280,7 +278,7 @@ export function KeyboardPanel({ config, themeName, onUpdate }: KeyboardPanelProp
                 tooltip="开启后所有字符显示为大写形式"
                 control={<Switch checked={config.uppercase} disabled={!enabled} onCheckedChange={(v) => onUpdate({ uppercase: v })} aria-label="强制大写" />}
               />
-            </SettingSection>
+            </WorkbenchSettingSection>
           </div>
         </Panel>
 
@@ -293,7 +291,7 @@ export function KeyboardPanel({ config, themeName, onUpdate }: KeyboardPanelProp
           enabled={enabled}
         >
           <div className="space-y-4">
-            <SettingSection disabled={!enabled}>
+            <WorkbenchSettingSection disabled={!enabled}>
               <FieldRow
                 label="发光"
                 tooltip="为字符添加柔和发光，提高在浅色桌面上的辨识度"
@@ -313,7 +311,7 @@ export function KeyboardPanel({ config, themeName, onUpdate }: KeyboardPanelProp
                   />
                 </>
               )}
-            </SettingSection>
+            </WorkbenchSettingSection>
           </div>
         </Panel>
 
@@ -326,7 +324,7 @@ export function KeyboardPanel({ config, themeName, onUpdate }: KeyboardPanelProp
           enabled={enabled}
         >
           <div className="space-y-4">
-            <SettingSection disabled={!enabled}>
+            <WorkbenchSettingSection disabled={!enabled}>
               <FieldRow
                 label="冷却时间"
                 tooltip="同一按键两次触发的最小间隔，过低会让按住时刷屏，过高会丢失自动重复"
@@ -337,7 +335,7 @@ export function KeyboardPanel({ config, themeName, onUpdate }: KeyboardPanelProp
                 tooltip="屏幕上同时存在的字符上限，达到上限后新按键会被丢弃"
                 control={<ControlSlider disabled={!enabled} value={config.maxSimultaneous} min={1} max={50} onValueChange={(v) => onUpdate({ maxSimultaneous: v[0] })} label="最大同显" />}
               />
-            </SettingSection>
+            </WorkbenchSettingSection>
           </div>
         </Panel>
       </div>

@@ -1,4 +1,5 @@
 import { Input } from "@/components/ui/input";
+import { TextTagEditor } from "@/components/ui/text-tag-editor";
 import { Switch } from "@/components/ui/switch";
 import { ColorOptions } from "@/components/ui/color-options";
 import { ControlSlider } from "@/components/ui/control-slider";
@@ -17,10 +18,7 @@ import {
   TEXT_TAG_PLAY_OPTIONS,
   TEXT_WEIGHT_OPTIONS,
 } from "../../model/workbenchSchema";
-import {
-  SettingSection,
-  TextTagEditor,
-} from "../WorkbenchControls";
+import { WorkbenchSettingSection } from "../WorkbenchSettingSection";
 import { ResetCardButton } from "./ResetCardButton";
 
 function getFontPresetValue(value) {
@@ -47,7 +45,7 @@ export function TextFeedbackCard({ config, updateActionConfig, panelId, reset })
       }
     >
       <div className="space-y-4">
-        <SettingSection disabled={!config.textEnabled}>
+        <WorkbenchSettingSection disabled={!config.textEnabled}>
           <SectionTitle>内容</SectionTitle>
           <FieldRow
             label="飘字类型"
@@ -109,9 +107,9 @@ export function TextFeedbackCard({ config, updateActionConfig, panelId, reset })
               />
             </>
           )}
-        </SettingSection>
+        </WorkbenchSettingSection>
 
-        <SettingSection disabled={!config.textEnabled}>
+        <WorkbenchSettingSection disabled={!config.textEnabled}>
           <SectionTitle>动画</SectionTitle>
           <FieldRow
             label="持续时间"
@@ -129,9 +127,9 @@ export function TextFeedbackCard({ config, updateActionConfig, panelId, reset })
             label="垂直偏移"
             control={<ControlSlider disabled={!config.textEnabled} value={config.textOffsetY} min={-48} max={12} onValueChange={(value) => updateActionConfig({ textOffsetY: value[0] })} suffix="px" label="垂直偏移" />}
           />
-        </SettingSection>
+        </WorkbenchSettingSection>
 
-        <SettingSection disabled={!config.textEnabled}>
+        <WorkbenchSettingSection disabled={!config.textEnabled}>
           <SectionTitle>样式</SectionTitle>
           <FieldRow
             label="飘字大小"
@@ -174,7 +172,7 @@ export function TextFeedbackCard({ config, updateActionConfig, panelId, reset })
             label="阴影效果"
             control={<SmallSelect value={config.textShadow} options={TEXT_SHADOW_OPTIONS} onChange={config.textEnabled ? (value) => updateActionConfig({ textShadow: value }) : undefined} />}
           />
-        </SettingSection>
+        </WorkbenchSettingSection>
       </div>
     </Panel>
   );

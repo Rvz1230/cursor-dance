@@ -4,7 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/components/ui/utils";
 
-export function TextTagEditor({ tags, onChange, disabled = false }: { tags: string[]; onChange: (tags: string[]) => void; disabled?: boolean }) {
+interface TextTagEditorProps {
+  tags: string[];
+  onChange: (tags: string[]) => void;
+  disabled?: boolean;
+}
+
+export function TextTagEditor({ tags, onChange, disabled = false }: TextTagEditorProps) {
   const [draft, setDraft] = useState("");
   const [draggedTag, setDraggedTag] = useState("");
 
@@ -60,7 +66,7 @@ export function TextTagEditor({ tags, onChange, disabled = false }: { tags: stri
             onDragEnd={() => setDraggedTag("")}
             className={cn(
               "inline-flex cursor-grab items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-700 transition active:cursor-grabbing",
-              draggedTag === tag && "border-slate-300 bg-slate-50 opacity-60"
+              draggedTag === tag && "border-slate-300 bg-slate-50 opacity-60",
             )}
           >
             <GripVertical className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />
@@ -105,67 +111,5 @@ export function TextTagEditor({ tags, onChange, disabled = false }: { tags: stri
         </Button>
       </div>
     </div>
-  );
-}
-
-export function SettingSection({ disabled = false, children }: { disabled?: boolean; children: React.ReactNode }) {
-  return (
-    <div className={cn("border-t border-slate-100 pt-4 first:border-t-0 first:pt-0", disabled && "opacity-50")}>
-      {children}
-    </div>
-  );
-}
-
-export function WorkspaceItem({ item, active, onClick, compact = false }: { item: { icon: React.ComponentType<{ className?: string }>; label: string }; active?: boolean; onClick?: () => void; compact?: boolean }) {
-  const Icon = item.icon;
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        compact
-          ? "inline-flex h-7 whitespace-nowrap items-center gap-1.5 rounded-xl border px-2.5 text-xs font-medium transition-[transform,color,background-color,border-color,box-shadow] active:scale-[0.97]"
-          : "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors",
-        compact
-          ? active
-            ? "border-slate-950 bg-slate-950 text-white shadow-sm"
-            : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-          : active
-            ? "bg-slate-100 text-slate-900"
-            : "text-slate-600 hover:bg-white hover:text-slate-900"
-      )}
-    >
-      <Icon className={cn(compact ? "h-3.5 w-3.5" : "h-4 w-4")} />
-      <span className={cn(compact ? "" : "font-medium")}>{item.label}</span>
-    </button>
-  );
-}
-
-export function ActionTab({ item, active, onClick }: { item: { id: string; label: string; hint?: string }; active?: boolean; onClick?: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "min-w-fit rounded-xl border px-3 py-1.5 text-xs font-medium transition-[transform,color,background-color,border-color,box-shadow] active:scale-[0.97]",
-        active ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-      )}
-    >
-      {item.label}
-    </button>
-  );
-}
-
-export function ColumnResizeHandle({ label, onResize }: { label: string; onResize: (event: React.PointerEvent) => void }) {
-  return (
-    <button
-      type="button"
-      className="group relative my-3 w-1 justify-self-center cursor-col-resize rounded-full bg-slate-300 transition-colors hover:bg-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2"
-      aria-label={label}
-      onPointerDown={onResize}
-    >
-      <span className="absolute -left-1 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-full bg-slate-300 transition-colors group-hover:bg-slate-500" />
-      <span className="absolute -right-1 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-full bg-slate-300 transition-colors group-hover:bg-slate-500" />
-    </button>
   );
 }

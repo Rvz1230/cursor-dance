@@ -24,8 +24,8 @@ interface ActionTriggerOptions {
 
 interface ActionTriggerConfigStore {
   isCurrentContextEnabled(): boolean;
-  getActiveScheme(): unknown;
-  getActionConfig(scheme: unknown, actionId: string): Record<string, unknown> | null | undefined;
+  getActiveTheme(): unknown;
+  getActionConfig(theme: unknown, actionId: string): Record<string, unknown> | null | undefined;
   getActionTriggerConfig(actionConfig: Record<string, unknown> | null | undefined): Record<string, unknown>;
   matchesTriggerZone(
     target: unknown,
@@ -35,7 +35,7 @@ interface ActionTriggerConfigStore {
   ): boolean;
   resolveCursorStateId(target: unknown): string;
   getCursorStateBinding(
-    scheme: unknown,
+    theme: unknown,
     cursorStateId: string,
     sourceActionId: string,
   ): { actionId: string; cursorStateId: string; inheritedFromDefault?: boolean };
@@ -63,13 +63,13 @@ export interface ActionTriggerPipeline {
   triggerAction(
     sourceActionId: string,
     coords: ActionTriggerCoords,
-    scheme?: unknown,
+    theme?: unknown,
     options?: ActionTriggerOptions,
   ): void;
   scheduleActionTrigger(
     actionId: string,
     coords: ActionTriggerCoords,
-    scheme: unknown,
+    theme: unknown,
     delayMs: number,
     options?: ActionTriggerOptions,
   ): void;
@@ -83,7 +83,7 @@ export function createActionTriggerPipeline(deps: ActionTriggerPipelineDeps): Ac
   function triggerAction(
     sourceActionId: string,
     coords: ActionTriggerCoords,
-    scheme?: unknown,
+    theme?: unknown,
     options: ActionTriggerOptions = {},
   ): void {
     const triggerSource = options.triggerSource || "unknown";
@@ -104,8 +104,8 @@ export function createActionTriggerPipeline(deps: ActionTriggerPipelineDeps): Ac
       return;
     }
 
-    const targetScheme = scheme || deps.configStore.getActiveScheme();
-    const sourceActionConfig = deps.configStore.getActionConfig(targetScheme, sourceActionId);
+    const targetTheme = theme || deps.configStore.getActiveTheme();
+    const sourceActionConfig = deps.configStore.getActionConfig(targetTheme, sourceActionId);
     if (!sourceActionConfig) {
       deps.diagnostics?.log("action.skip", {
         reason: "missing-source-action-config",
@@ -132,7 +132,7 @@ export function createActionTriggerPipeline(deps: ActionTriggerPipelineDeps): Ac
     }
 
     const binding = deps.configStore.getCursorStateBinding(
-      targetScheme,
+      targetTheme,
       deps.configStore.resolveCursorStateId(coords.target),
       sourceActionId,
     );
@@ -146,7 +146,7 @@ export function createActionTriggerPipeline(deps: ActionTriggerPipelineDeps): Ac
       target: deps.diagnostics?.describeTarget?.(coords.target),
     });
 
-    const actionConfig = deps.configStore.getActionConfig(targetScheme, resolvedActionId);
+    const actionConfig = deps.configStore.getActionConfig(targetTheme, resolvedActionId);
     if (!actionConfig) {
       deps.diagnostics?.log("action.skip", {
         reason: "missing-resolved-action-config",
@@ -199,11 +199,11 @@ export function createActionTriggerPipeline(deps: ActionTriggerPipelineDeps): Ac
   function scheduleActionTrigger(
     actionId: string,
     coords: ActionTriggerCoords,
-    scheme: unknown,
+    theme: unknown,
     delayMs: number,
     options: ActionTriggerOptions = {},
   ): void {
-    const run = (): void => triggerAction(actionId, coords, scheme, options);
+    const run = (): void => triggerAction(actionId, coords, theme, options);
     if (!delayMs) {
       run();
       return;

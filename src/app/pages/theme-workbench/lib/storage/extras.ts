@@ -133,8 +133,8 @@ export async function previewThemePack(themeId, themePack, actionId = "leftClick
   try {
     await chromeApi.tabs.sendMessage(site.tabId, {
       type: PREVIEW_MESSAGE_TYPE,
-      schemeId: themeId,
-      scheme: themePack,
+      themeId,
+      themePack,
       actionId,
     });
     return true;

@@ -81,22 +81,22 @@ export interface ConfigStore {
   getActionTriggerConfig(actionConfig: Record<string, unknown> | null | undefined): Record<string, unknown>;
   getMaxActiveEffects(): number;
   getKeyFeedbackConfig(): KeyFeedbackConfig;
-  /** trigger-handlers：当前 scheme（用户选中的方案） */
-  getActiveScheme?(): unknown;
+  /** trigger-handlers：当前 theme（用户选中的方案） */
+  getActiveTheme?(): unknown;
   /** trigger-handlers：站点/应用是否启用。桌面端由共享 app-rules 匹配器实现 */
   isCurrentSiteEnabled?(): boolean;
-  /** trigger-handlers：根据 scheme + actionId 取动作配置。两端实现在无 scheme 时返回 null。 */
-  getActionConfig?(scheme: unknown, actionId: string): Record<string, unknown> | null | undefined;
+  /** trigger-handlers：根据 theme + actionId 取动作配置。两端实现在无 theme 时返回 null。 */
+  getActionConfig?(theme: unknown, actionId: string): Record<string, unknown> | null | undefined;
   /** trigger-handlers：解析 cursor state 绑定到某个 actionId */
   getCursorStateBinding?(
-    scheme: unknown,
+    theme: unknown,
     cursorStateId: string,
     sourceActionId: string,
   ): { actionId: string; cursorStateId: string; inheritedFromDefault?: boolean };
   /** trigger-handlers：从目标元素解析 cursor state id（桌面端通常返回默认） */
   resolveCursorStateId?(target: unknown): string;
   /** cursor-overlay：获取指定 cursor state 的生效配置（含 imageDataUrl/size/hotspot） */
-  getEffectiveCursorStateConfig?(scheme: unknown, stateId: string): unknown;
+  getEffectiveCursorStateConfig?(theme: unknown, stateId: string): unknown;
   /** trigger-handlers：触发区域匹配。桌面端无 DOM target/event 时返回 true */
   matchesTriggerZone?(
     target: unknown,

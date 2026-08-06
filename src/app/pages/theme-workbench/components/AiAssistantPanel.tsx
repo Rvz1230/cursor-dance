@@ -10,12 +10,12 @@ import { Panel } from "@/components/ui/panel";
 import {
   AiConversationMessage,
   AiStreamingMessage,
-} from "./ai-scheme/AiConversationMessage";
-import { AiAgentTimeline, AiModeSwitcher } from "./ai-scheme/AiAgentActivity";
-import { AiProposalPresentation } from "./ai-scheme/AiProposalPresentation";
-import { useAiConversation } from "./ai-scheme/useAiConversation";
-import { useAiProposalReview } from "./ai-scheme/useAiProposalReview";
-import { useAiProposalRun } from "./ai-scheme/useAiProposalRun";
+} from "./ai-assistant/AiConversationMessage";
+import { AiAgentTimeline, AiModeSwitcher } from "./ai-assistant/AiAgentActivity";
+import { AiProposalPresentation } from "./ai-assistant/AiProposalPresentation";
+import { useAiConversation } from "./ai-assistant/useAiConversation";
+import { useAiProposalReview } from "./ai-assistant/useAiProposalReview";
+import { useAiProposalRun } from "./ai-assistant/useAiProposalRun";
 
 function buildPromptExamples(currentConfig) {
   const examples = [];
@@ -56,7 +56,7 @@ function buildPromptExamples(currentConfig) {
   return [...examples.slice(0, 3), ...fallbacks].slice(0, 4);
 }
 
-export function AiSchemePanel({
+export function AiAssistantPanel({
   actionId,
   actionLabel,
   currentConfig,
@@ -391,7 +391,7 @@ export function AiSchemePanel({
         ) : null}
 
         <form className="border-t border-slate-100 p-3" onSubmit={handleSubmit}>
-          <label className="sr-only" htmlFor="ai-scheme-prompt">描述想要的鼠标效果</label>
+          <label className="sr-only" htmlFor="ai-assistant-prompt">描述想要的鼠标效果</label>
           <div className={cn(
             "relative rounded-2xl border bg-slate-50 p-2 pr-12 shadow-inner shadow-slate-200/50 transition-[border-color,box-shadow]",
             isGenerating
@@ -400,7 +400,7 @@ export function AiSchemePanel({
           )}>
             <textarea
               ref={textareaRef}
-              id="ai-scheme-prompt"
+              id="ai-assistant-prompt"
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}
               onKeyDown={handleKeyDown}
