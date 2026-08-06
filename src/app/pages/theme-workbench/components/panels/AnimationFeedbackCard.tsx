@@ -2,7 +2,6 @@ import { Switch } from "@/components/ui/switch";
 import { ColorField } from "@/components/ui/color-field";
 import { Slider } from "@/components/ui/slider";
 import { FieldRow } from "@/components/ui/field-row";
-import { Panel } from "@/components/ui/panel";
 import { SectionTitle } from "@/components/ui/section-title";
 import { Select } from "@/components/ui/select";
 import {
@@ -11,43 +10,35 @@ import {
   PANEL_META,
 } from "../../model/workbenchSchema";
 import { WorkbenchSettingSection } from "../WorkbenchSettingSection";
-import { ResetCardButton } from "./ResetCardButton";
+import { WorkbenchEffectCard } from "../effect-cards/WorkbenchEffectCard";
 
 export function AnimationFeedbackCard({ config, updateActionConfig, panelId, reset }) {
   return (
-    <Panel
+    <WorkbenchEffectCard
       id={panelId}
+      cardKey="animation"
       title="基础动画反馈"
       icon={PANEL_META.animation.icon}
-      collapsible
-      defaultOpen={config.animationEnabled}
       enabled={config.animationEnabled}
-      summary={config.animationEnabled ? `${config.animationStyle} · ${config.animationDuration}ms · ${config.animationEasing}` : "关闭基础动画"}
-      action={
-        <div className="flex items-center gap-2">
-          {reset ? <ResetCardButton dirty={reset.dirty} onReset={reset.onReset} /> : null}
-          <Switch checked={config.animationEnabled} onCheckedChange={(next) => updateActionConfig({ animationEnabled: next })} aria-label="动画反馈开关" />
-        </div>
-      }
+      config={config}
+      baseline={reset?.baseline}
+      onChange={(patch) => updateActionConfig({ ...patch, animationEnabled: true })}
+      onToggle={(next) => updateActionConfig({ animationEnabled: next })}
+      onReset={reset?.onReset}
+      primary={(
+        <>
+          <FieldRow label="动画样式" control={<Select value={config.animationStyle} options={ANIMATION_STYLE_OPTIONS} onChange={(value) => updateActionConfig({ animationStyle: value, animationEnabled: true })} />} />
+          <FieldRow label="动画颜色" control={<ColorField label="动画颜色" value={config.animationColor || "#34D399"} onChange={(color) => updateActionConfig({ animationColor: color })} />} />
+          <FieldRow label="动画时长" control={<Slider value={config.animationDuration} min={240} max={1400} onChange={(value) => updateActionConfig({ animationDuration: value })} suffix="ms" label="动画时长" />} />
+        </>
+      )}
     >
       <div className="space-y-4">
         <WorkbenchSettingSection disabled={!config.animationEnabled}>
           <SectionTitle>形态</SectionTitle>
           <FieldRow
-            label="动画样式"
-            control={<Select value={config.animationStyle} options={ANIMATION_STYLE_OPTIONS} onChange={config.animationEnabled ? (value) => updateActionConfig({ animationStyle: value, animationEnabled: true }) : undefined} />}
-          />
-          <FieldRow
-            label="动画颜色"
-            control={<ColorField label="动画颜色" disabled={!config.animationEnabled} value={config.animationColor || "#34D399"} onChange={(color) => updateActionConfig({ animationColor: color })} />}
-          />
-          <FieldRow
             label="光晕效果"
             control={<Switch checked={config.animationGlow || false} disabled={!config.animationEnabled} onCheckedChange={(next) => updateActionConfig({ animationGlow: next })} aria-label="光晕开关" />}
-          />
-          <FieldRow
-            label="动画时长"
-            control={<Slider disabled={!config.animationEnabled} value={config.animationDuration} min={240} max={1400} onChange={(value) => updateActionConfig({ animationDuration: value })} suffix="ms" label="动画时长" />}
           />
           <FieldRow
             label="缓动曲线"
@@ -80,6 +71,6 @@ export function AnimationFeedbackCard({ config, updateActionConfig, panelId, res
           />
         </WorkbenchSettingSection>
       </div>
-    </Panel>
+    </WorkbenchEffectCard>
   );
 }

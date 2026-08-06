@@ -1,19 +1,22 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Volume2 } from "lucide-react";
+import { cn } from "@/components/ui/utils";
 import {
   getPreviewSoundFile,
   getPreviewTriggerSummary,
 } from "../../lib/preview";
-import { buildTimelineModel } from "../../lib/timelineModel";
 import { getActionAudioConfig } from "../../model/workbenchSchema";
 import { AtmosphereStagePreview } from "../AtmosphereStagePreview";
-import { PreviewTimeline } from "./PreviewTimeline";
 import { usePreviewEngineHost } from "./usePreviewEngineHost";
 import { usePreviewPointer } from "./usePreviewPointer";
 
-export function PreviewStage({ config, disabled, runId, comboIndex, actionId, actionConfigsMap, outputs, triggerInterval, previewMode, updateActionConfig, atmosphere }) {
+export function PreviewStage({ config, comparisonConfig, compareMode, disabled, runId, comboIndex, actionId, actionConfigsMap, triggerInterval, atmosphere, background, showTrail, onReplay }) {
   const audioConfig = useMemo(() => getActionAudioConfig(config), [config]);
-  const timeline = useMemo(() => buildTimelineModel(config), [config]);
+  const [trailPoints, setTrailPoints] = useState<Array<{ x: number; y: number }>>([]);
+
+  useEffect(() => {
+    if (!showTrail) setTrailPoints([]);
+  }, [showTrail]);
 
   const soundDelay = typeof audioConfig.soundDelay === "number" ? audioConfig.soundDelay : 0;
 
@@ -37,66 +40,53 @@ export function PreviewStage({ config, disabled, runId, comboIndex, actionId, ac
     runId,
     triggerInterval,
   });
+  const comparisonConfigsMap = useMemo(() => ({
+    ...(actionConfigsMap || {}),
+    [actionId]: comparisonConfig || config,
+  }), [actionConfigsMap, actionId, comparisonConfig, config]);
+  const { effectsHostRef: comparisonHostRef } = usePreviewEngineHost({
+    actionId,
+    actionConfigsMap: comparisonConfigsMap,
+    comboIndex,
+    config: comparisonConfig || config,
+    disabled: disabled || !compareMode,
+    runId,
+    triggerInterval,
+  });
+
+  const backgrounds = {
+    light: { backgroundColor: "#ffffff", backgroundImage: "linear-gradient(180deg,#fff,#f8fafc)" },
+    dark: { backgroundColor: "#0f172a", backgroundImage: "linear-gradient(135deg,#1e293b,#020617)" },
+    checker: { backgroundColor: "#fff", backgroundImage: "linear-gradient(45deg,#eef2f6 25%,transparent 25%,transparent 75%,#eef2f6 75%),linear-gradient(45deg,#eef2f6 25%,transparent 25%,transparent 75%,#eef2f6 75%)", backgroundSize: "16px 16px", backgroundPosition: "0 0,8px 8px" },
+    finder: { backgroundColor: "#f6f7f9", backgroundImage: "linear-gradient(180deg,#fff 0 26px,transparent 26px),repeating-linear-gradient(180deg,transparent 0 34px,#e8ebef 34px 35px),linear-gradient(90deg,#eceff3 0 128px,transparent 128px)" },
+    browser: { backgroundColor: "#fff", backgroundImage: "linear-gradient(180deg,#f1f3f6 0 30px,transparent 30px),repeating-linear-gradient(180deg,transparent 0 12px,#e6e9ee 12px 14px)", backgroundSize: "100% 100%,62% 100%", backgroundPosition: "0 0,19% 44px", backgroundRepeat: "no-repeat" },
+    deck: { backgroundColor: "#0f172a", backgroundImage: "linear-gradient(120deg,#1e293b 0%,#0f172a 60%),linear-gradient(90deg,#334155 0 46%,transparent 46%)", backgroundSize: "100% 100%,60% 10px", backgroundPosition: "0 0,20% 34%", backgroundRepeat: "no-repeat" },
+  } as const;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+    <div className="flex min-h-0 flex-1 flex-col px-4 pt-3">
       <div
         ref={stageRef}
-        className="relative min-h-[300px] flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white"
+        className="relative min-h-[220px] flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white"
         style={{
-          minHeight: 320,
-          backgroundColor: "#fbfcfe",
-          backgroundImage: `
-            radial-gradient(circle at 1px 1px, rgba(100, 116, 139, 0.18) 1px, transparent 0),
-            linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,250,252,0.96) 100%)
-          `,
-          backgroundSize: "20px 20px, 100% 100%",
-          backgroundPosition: "0 0, 0 0",
+          ...backgrounds[background],
           cursor: cursorEnabled && pointer.inside ? "none" : undefined,
         }}
-        onPointerMove={onPointerMove}
+        onPointerDown={onReplay}
+        onPointerMove={(event) => {
+          onPointerMove(event);
+          if (showTrail) {
+            const rect = event.currentTarget.getBoundingClientRect();
+            setTrailPoints((points) => [...points, { x: event.clientX - rect.left, y: event.clientY - rect.top }].slice(-8));
+          }
+        }}
         onPointerLeave={onPointerLeave}
       >
-        <div
-          className="pointer-events-none absolute inset-x-8 bottom-8 top-20 rounded-xl border border-slate-200/80"
-          style={{
-            background:
-              "linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.24) 100%)",
-          }}
-          aria-hidden="true"
-        />
-        <div className="absolute inset-x-5 top-5 flex items-start justify-between gap-3 text-xs text-slate-500">
-          <div className="min-w-0">
-            <div className="text-sm font-medium text-slate-900 text-balance">效果舞台</div>
-            <div className="mt-1 text-xs text-slate-500 text-pretty">{getPreviewTriggerSummary(config)}</div>
+        <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center text-center" aria-hidden="true">
+          <div>
+            <div className={cn("text-xs font-medium", background === "dark" || background === "deck" ? "text-slate-300" : "text-slate-500")}>在这里{getPreviewTriggerSummary(config).includes("滚") ? "滚动" : "单击"}试试</div>
+            <div className={cn("mt-1 text-2xs", background === "dark" || background === "deck" ? "text-slate-400" : "text-slate-500")}>拖动下方时间轴可调整节奏</div>
           </div>
-          <div className="flex max-w-[55%] flex-wrap justify-end gap-1.5">
-            {outputs.length ? outputs.map((tag) => {
-              const Icon = tag.icon;
-              return (
-                <button
-                  key={tag.id}
-                  type="button"
-                  onClick={() => {
-                    document.getElementById(tag.id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-slate-400 hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
-                >
-                  {Icon ? <Icon className="size-3 text-slate-500" aria-hidden="true" /> : null}
-                  <span>{tag.label}</span>
-                </button>
-              );
-            }) : (
-              <span className="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700">暂无输出</span>
-            )}
-          </div>
-        </div>
-
-        <div className="absolute inset-x-10 bottom-12 h-4 rounded-full bg-slate-200/45" />
-        <div className="absolute inset-x-8 bottom-9 h-px bg-slate-300/80" />
-        <div className="pointer-events-none absolute inset-x-8 bottom-9 top-20 z-10 flex items-center justify-center" aria-hidden="true">
-          <span className="absolute size-12 rounded-full border border-slate-300/70 opacity-60 motion-safe:animate-[cursorDancePreviewPulse_1200ms_ease-out_infinite]" />
-          <span className="size-2.5 rounded-full border border-white bg-slate-900 shadow-sm" />
         </div>
 
         {/* 引擎效果挂载点。translateZ(0) 创造 transform 上下文，
@@ -104,10 +94,15 @@ export function PreviewStage({ config, disabled, runId, comboIndex, actionId, ac
             坐标系直接落到 host 局部，不会污染 Workbench 其他区域。 */}
         <div
           ref={effectsHostRef}
-          className="pointer-events-none absolute inset-x-8 bottom-9 top-20 overflow-hidden"
+          className="pointer-events-none absolute inset-0 overflow-hidden"
           style={{ transform: "translateZ(0)" }}
           aria-hidden="true"
         />
+        <div ref={comparisonHostRef} className="pointer-events-none absolute inset-0 overflow-hidden opacity-35 grayscale" style={{ transform: "translateZ(0)" }} aria-hidden="true" />
+        {compareMode ? <div className="pointer-events-none absolute right-3 top-3 z-20 rounded-lg bg-slate-900 px-2 py-1 text-xs font-medium text-white">灰色叠层 = 当前主题初始值</div> : null}
+        {showTrail ? trailPoints.map((point, index) => (
+          <span key={`${point.x}-${point.y}-${index}`} className="pointer-events-none absolute size-2 rounded-full bg-slate-900" style={{ left: point.x, top: point.y, opacity: (index + 1) / trailPoints.length * 0.35 }} />
+        )) : null}
 
         {/* 模拟指示器 */}
         {simulationState.type === "longPress-holding" && (
@@ -155,7 +150,6 @@ export function PreviewStage({ config, disabled, runId, comboIndex, actionId, ac
           </div>
         ) : null}
       </div>
-      <PreviewTimeline tracks={timeline.tracks} totalMs={timeline.totalMs} disabled={disabled} canEditEmptyState={!previewMode && !disabled} updateActionConfig={updateActionConfig} runId={runId} />
     </div>
   );
 }

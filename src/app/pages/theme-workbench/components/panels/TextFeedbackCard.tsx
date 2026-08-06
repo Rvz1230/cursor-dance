@@ -4,7 +4,6 @@ import { Switch } from "@/components/ui/switch";
 import { ColorField } from "@/components/ui/color-field";
 import { Slider } from "@/components/ui/slider";
 import { FieldRow } from "@/components/ui/field-row";
-import { Panel } from "@/components/ui/panel";
 import { SectionTitle } from "@/components/ui/section-title";
 import { Select } from "@/components/ui/select";
 import {
@@ -19,7 +18,7 @@ import {
   TEXT_WEIGHT_OPTIONS,
 } from "../../model/workbenchSchema";
 import { WorkbenchSettingSection } from "../WorkbenchSettingSection";
-import { ResetCardButton } from "./ResetCardButton";
+import { WorkbenchEffectCard } from "../effect-cards/WorkbenchEffectCard";
 
 function getFontPresetValue(value) {
   return TEXT_FONT_PRESETS.includes(value) ? value : "自定义";
@@ -29,29 +28,37 @@ export function TextFeedbackCard({ config, updateActionConfig, panelId, reset })
   const fontPresetValue = getFontPresetValue(config.textFontFamily || "系统默认");
 
   return (
-    <Panel
+    <WorkbenchEffectCard
       id={panelId}
+      cardKey="text"
       title="飘字反馈"
       icon={PANEL_META.text.icon}
-      collapsible
-      defaultOpen={config.textEnabled}
       enabled={config.textEnabled}
-      summary={config.textEnabled ? `${config.textKind} · ${config.fontSize}px · ${config.textColor}` : "关闭飘字反馈"}
-      action={
-        <div className="flex items-center gap-2">
-          {reset ? <ResetCardButton dirty={reset.dirty} onReset={reset.onReset} /> : null}
-          <Switch checked={config.textEnabled} onCheckedChange={(next) => updateActionConfig({ textEnabled: next })} aria-label="飘字开关" />
-        </div>
-      }
+      config={config}
+      baseline={reset?.baseline}
+      onChange={(patch) => updateActionConfig({ ...patch, textEnabled: true })}
+      onToggle={(next) => updateActionConfig({ textEnabled: next })}
+      onReset={reset?.onReset}
+      primaryCount={4}
+      primary={(
+        <>
+          <FieldRow label="飘字类型" control={<Select value={config.textKind} options={TEXT_KIND_OPTIONS} onChange={(value) => updateActionConfig({ textKind: value, textEnabled: true })} />} />
+          <FieldRow label="飘字大小" control={<Slider value={config.fontSize} min={14} max={30} onChange={(value) => updateActionConfig({ fontSize: value })} suffix="px" label="飘字大小" />} />
+          <FieldRow label="飘字颜色" control={<ColorField label="飘字颜色" value={config.textColor} onChange={(color) => updateActionConfig({ textColor: color })} />} />
+          {config.textKind === "文本飘字" ? (
+            <FieldRow
+              label="标签内容"
+              control={<TextTagEditor tags={config.textTags} onChange={(next) => updateActionConfig({ textTags: next, textContent: next[0] ?? "", textEnabled: true })} />}
+            />
+          ) : (
+            <FieldRow label="飘字文案" control={<Input value={config.textContent || "+1"} onChange={(event) => updateActionConfig({ textContent: event.target.value, textEnabled: true })} />} />
+          )}
+        </>
+      )}
     >
       <div className="space-y-4">
         <WorkbenchSettingSection disabled={!config.textEnabled}>
           <SectionTitle>内容</SectionTitle>
-          <FieldRow
-            label="飘字类型"
-            tooltip="数字或文案。"
-            control={<Select value={config.textKind} options={TEXT_KIND_OPTIONS} onChange={config.textEnabled ? (value) => updateActionConfig({ textKind: value, textEnabled: true }) : undefined} />}
-          />
           {config.textKind === "数字飘字" ? (
             <>
               <FieldRow
@@ -88,23 +95,6 @@ export function TextFeedbackCard({ config, updateActionConfig, panelId, reset })
                 label="显示模式"
                 control={<Select value={config.textTagPlayMode} options={TEXT_TAG_PLAY_OPTIONS} onChange={config.textEnabled ? (value) => updateActionConfig({ textTagPlayMode: value, textEnabled: true }) : undefined} />}
               />
-              <FieldRow
-                label="标签内容"
-                tooltip="多条轮播。"
-                control={
-                  <TextTagEditor
-                    tags={config.textTags}
-                    disabled={!config.textEnabled}
-                    onChange={(next) =>
-                      updateActionConfig({
-                        textTags: next,
-                        textContent: next[0] ?? "",
-                        textEnabled: true,
-                      })
-                    }
-                  />
-                }
-              />
             </>
           )}
         </WorkbenchSettingSection>
@@ -132,10 +122,6 @@ export function TextFeedbackCard({ config, updateActionConfig, panelId, reset })
         <WorkbenchSettingSection disabled={!config.textEnabled}>
           <SectionTitle>样式</SectionTitle>
           <FieldRow
-            label="飘字大小"
-            control={<Slider disabled={!config.textEnabled} value={config.fontSize} min={14} max={30} onChange={(value) => updateActionConfig({ fontSize: value })} suffix="px" label="飘字大小" />}
-          />
-          <FieldRow
             label="飘字字体"
             control={<Select value={fontPresetValue} options={TEXT_FONT_PRESETS} onChange={config.textEnabled ? (value) => updateActionConfig({ textFontFamily: value }) : undefined} label="飘字字体" />}
           />
@@ -155,7 +141,6 @@ export function TextFeedbackCard({ config, updateActionConfig, panelId, reset })
               }
             />
           ) : null}
-          <FieldRow label="飘字颜色" control={<ColorField label="飘字颜色" disabled={!config.textEnabled} value={config.textColor} onChange={(color) => updateActionConfig({ textColor: color })} />} />
           <FieldRow
             label="透明度"
             control={<Slider disabled={!config.textEnabled} value={config.textOpacity} min={20} max={100} onChange={(value) => updateActionConfig({ textOpacity: value })} suffix="%" label="透明度" />}
@@ -174,6 +159,6 @@ export function TextFeedbackCard({ config, updateActionConfig, panelId, reset })
           />
         </WorkbenchSettingSection>
       </div>
-    </Panel>
+    </WorkbenchEffectCard>
   );
 }

@@ -1,23 +1,29 @@
 import { getTimingFieldMeta, TRIGGER_OPTIONS, PANEL_META } from "../../model/workbenchSchema";
 import { Slider } from "@/components/ui/slider";
 import { FieldRow } from "@/components/ui/field-row";
-import { Panel } from "@/components/ui/panel";
 import { Select } from "@/components/ui/select";
-import { ResetCardButton } from "./ResetCardButton";
+import { WorkbenchEffectCard } from "../effect-cards/WorkbenchEffectCard";
 
 export function TriggerBehaviorCard({ actionId, config, updateActionConfig, panelId, reset }) {
   const triggerMeta = TRIGGER_OPTIONS[actionId];
   const timingMeta = getTimingFieldMeta(actionId);
 
   return (
-    <Panel
+    <WorkbenchEffectCard
       id={panelId}
+      cardKey="trigger"
       title="触发行为"
       icon={PANEL_META.trigger.icon}
-      collapsible
-      defaultOpen
-      summary={`${config.triggerTiming} · ${config.triggerZone}`}
-      action={reset ? <ResetCardButton dirty={reset.dirty} onReset={reset.onReset} /> : undefined}
+      always
+      config={config}
+      baseline={reset?.baseline}
+      presets={[
+        { name: "按下", patch: { triggerTiming: triggerMeta.timing[0], holdMs: 0 } },
+        { name: "抬起", patch: { triggerTiming: triggerMeta.timing[1] || triggerMeta.timing[0], holdMs: 0 } },
+        { name: "蓄力", patch: { triggerTiming: triggerMeta.timing.at(-1), holdMs: Math.max(320, timingMeta.min) } },
+      ]}
+      onChange={updateActionConfig}
+      onReset={reset?.onReset}
     >
       <FieldRow
         label="触发时机"
@@ -32,6 +38,6 @@ export function TriggerBehaviorCard({ actionId, config, updateActionConfig, pane
         tooltip={timingMeta.hint}
         control={<Slider value={config.holdMs} min={timingMeta.min} max={timingMeta.max} onChange={(value) => updateActionConfig({ holdMs: value })} suffix="ms" label={timingMeta.label} />}
       />
-    </Panel>
+    </WorkbenchEffectCard>
   );
 }

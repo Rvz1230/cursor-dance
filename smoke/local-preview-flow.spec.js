@@ -76,12 +76,18 @@ async function waitForStoredAudioBlendMode(page, expectedMode) {
 }
 
 async function selectRadixOption(page, scope, index, optionName) {
+  await revealPanelSettings(scope);
   await scope.getByRole("combobox").nth(index).click();
   await page.getByRole("option", { name: optionName }).click();
 }
 
+async function revealPanelSettings(panel) {
+  const button = panel.getByRole("button", { name: /^(全部|其余) \d+ 项设置/ });
+  if (await button.isVisible() && await button.getAttribute("aria-expanded") !== "true") await button.click();
+}
+
 function panelByName(page, name) {
-  return page.getByRole("button", { name }).locator("xpath=ancestor::*[@data-state][1]");
+  return page.getByRole("region", { name });
 }
 
 test("popup theme selection, live preview override, and fallback to saved config stay in sync", async ({ context, page }) => {
@@ -104,6 +110,7 @@ test("popup theme selection, live preview override, and fallback to saved config
 
   const textPanel = panelByName(workbenchPage, /飘字反馈/);
   await selectRadixOption(workbenchPage, textPanel, 0, "文本飘字");
+  await revealPanelSettings(textPanel);
   const deleteTagButtons = textPanel.getByRole("button", { name: /^删除标签 / });
   while (await deleteTagButtons.count()) await deleteTagButtons.first().click();
   await textPanel.getByPlaceholder("输入一个文本标签，例如：已命中").fill("临时预览");
@@ -140,7 +147,8 @@ test("image effect can preview live, save into config, and render in content run
 
   const imagePanel = panelByName(workbenchPage, /图片贴纸反馈/);
 
-  await imagePanel.getByRole("switch", { name: "图片反馈开关" }).click();
+  await imagePanel.getByRole("switch", { name: "图片贴纸反馈开关" }).click();
+  await revealPanelSettings(imagePanel);
   await imagePanel.getByRole("button", { name: /落章印记/ }).click();
 
   await page.waitForFunction((previewKey) => {
@@ -225,8 +233,8 @@ test("audio blend modes stay distinguishable on bilibili-like media reassertion"
 
   const audioPanel = panelByName(workbenchPage, /音频反馈/);
 
-  await audioPanel.getByRole("switch", { name: "音效播放开关" }).click();
-  await selectRadixOption(workbenchPage, audioPanel, 2, "保持原音量");
+  await audioPanel.getByRole("switch", { name: "音频反馈开关" }).click();
+  await selectRadixOption(workbenchPage, audioPanel, 1, "保持原音量");
   await workbenchPage.getByRole("button", { name: "应用到桌面" }).click();
   await waitForStoredAudioBlendMode(workbenchPage, "保持原音量");
 
@@ -237,7 +245,7 @@ test("audio blend modes stay distinguishable on bilibili-like media reassertion"
     volume: 0.72,
   });
 
-  await selectRadixOption(workbenchPage, audioPanel, 2, "压低页面音频");
+  await selectRadixOption(workbenchPage, audioPanel, 1, "压低页面音频");
   await workbenchPage.getByRole("button", { name: "应用到桌面" }).click();
   await waitForStoredAudioBlendMode(workbenchPage, "压低页面音频");
 
@@ -251,7 +259,7 @@ test("audio blend modes stay distinguishable on bilibili-like media reassertion"
     volume: 0.035,
   });
 
-  await selectRadixOption(workbenchPage, audioPanel, 2, "仅插件音效");
+  await selectRadixOption(workbenchPage, audioPanel, 1, "仅插件音效");
   await workbenchPage.getByRole("button", { name: "应用到桌面" }).click();
   await waitForStoredAudioBlendMode(workbenchPage, "仅插件音效");
 
@@ -339,6 +347,7 @@ test("workbench dialogs, save toast, color picker, and slider controls are usabl
 
   await workbenchPage.getByRole("button", { name: /飘字反馈/ }).click();
   await workbenchPage.getByRole("button", { name: /飘字反馈/ }).click();
+  await revealPanelSettings(textPanel);
   await textPanel.getByRole("button", { name: /^飘字颜色：#[0-9A-F]{6}$/i }).click();
   const colorHexInput = workbenchPage.getByLabel("输入飘字颜色十六进制值");
   await colorHexInput.fill("#0284C7");

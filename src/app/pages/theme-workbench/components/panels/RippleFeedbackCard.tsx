@@ -1,8 +1,6 @@
-import { Switch } from "@/components/ui/switch";
 import { ColorField } from "@/components/ui/color-field";
 import { Slider } from "@/components/ui/slider";
 import { FieldRow } from "@/components/ui/field-row";
-import { Panel } from "@/components/ui/panel";
 import { SectionTitle } from "@/components/ui/section-title";
 import { Select } from "@/components/ui/select";
 import {
@@ -11,40 +9,32 @@ import {
   RIPPLE_STYLE_OPTIONS,
 } from "../../model/workbenchSchema";
 import { WorkbenchSettingSection } from "../WorkbenchSettingSection";
-import { ResetCardButton } from "./ResetCardButton";
+import { WorkbenchEffectCard } from "../effect-cards/WorkbenchEffectCard";
 
 export function RippleFeedbackCard({ config, updateActionConfig, panelId, reset }) {
   return (
-    <Panel
+    <WorkbenchEffectCard
       id={panelId}
+      cardKey="ripple"
       title="波纹反馈"
       icon={PANEL_META.ripple.icon}
-      collapsible
-      defaultOpen={config.ripple}
       enabled={config.ripple}
-      summary={config.ripple ? `${config.rippleStyle} · ${config.rippleSize}px · ${config.rippleDuration}ms` : "关闭波纹反馈"}
-      action={
-        <div className="flex items-center gap-2">
-          {reset ? <ResetCardButton dirty={reset.dirty} onReset={reset.onReset} /> : null}
-          <Switch checked={config.ripple} onCheckedChange={(next) => updateActionConfig({ ripple: next })} aria-label="波纹开关" />
-        </div>
-      }
+      config={config}
+      baseline={reset?.baseline}
+      onChange={(patch) => updateActionConfig({ ...patch, ripple: true })}
+      onToggle={(next) => updateActionConfig({ ripple: next })}
+      onReset={reset?.onReset}
+      primary={(
+        <>
+          <FieldRow label="波纹样式" control={<Select value={config.rippleStyle} options={RIPPLE_STYLE_OPTIONS} onChange={(value) => updateActionConfig({ rippleStyle: value, ripple: true })} />} />
+          <FieldRow label="波纹颜色" control={<ColorField label="波纹颜色" value={config.rippleColor || "#34D399"} onChange={(color) => updateActionConfig({ rippleColor: color })} />} />
+          <FieldRow label="波纹尺寸" control={<Slider value={config.rippleSize} min={20} max={110} onChange={(value) => updateActionConfig({ rippleSize: value })} suffix="px" label="波纹尺寸" />} />
+        </>
+      )}
     >
       <div className="space-y-4">
         <WorkbenchSettingSection disabled={!config.ripple}>
           <SectionTitle>形态</SectionTitle>
-          <FieldRow
-            label="波纹样式"
-            control={<Select value={config.rippleStyle} options={RIPPLE_STYLE_OPTIONS} onChange={config.ripple ? (value) => updateActionConfig({ rippleStyle: value, ripple: true }) : undefined} />}
-          />
-          <FieldRow
-            label="波纹颜色"
-            control={<ColorField label="波纹颜色" disabled={!config.ripple} value={config.rippleColor || "#34D399"} onChange={(color) => updateActionConfig({ rippleColor: color })} />}
-          />
-          <FieldRow
-            label="波纹尺寸"
-            control={<Slider disabled={!config.ripple} value={config.rippleSize} min={20} max={110} onChange={(value) => updateActionConfig({ rippleSize: value })} suffix="px" label="波纹尺寸" />}
-          />
           <FieldRow
             label="线条粗细"
             control={<Slider disabled={!config.ripple} value={config.rippleLineWidth} min={1} max={6} onChange={(value) => updateActionConfig({ rippleLineWidth: value })} suffix="px" label="线条粗细" />}
@@ -67,6 +57,6 @@ export function RippleFeedbackCard({ config, updateActionConfig, panelId, reset 
           />
         </WorkbenchSettingSection>
       </div>
-    </Panel>
+    </WorkbenchEffectCard>
   );
 }

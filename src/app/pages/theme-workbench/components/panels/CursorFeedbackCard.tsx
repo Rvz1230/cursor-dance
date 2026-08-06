@@ -2,7 +2,6 @@ import { Switch } from "@/components/ui/switch";
 import { ColorField } from "@/components/ui/color-field";
 import { Slider } from "@/components/ui/slider";
 import { FieldRow } from "@/components/ui/field-row";
-import { Panel } from "@/components/ui/panel";
 import { SectionTitle } from "@/components/ui/section-title";
 import { Select } from "@/components/ui/select";
 import {
@@ -10,39 +9,32 @@ import {
   PANEL_META,
 } from "../../model/workbenchSchema";
 import { WorkbenchSettingSection } from "../WorkbenchSettingSection";
-import { ResetCardButton } from "./ResetCardButton";
+import { WorkbenchEffectCard } from "../effect-cards/WorkbenchEffectCard";
 
 export function CursorFeedbackCard({ config, updateActionConfig, panelId, reset }) {
   // 这张卡没有单一开关：改过光标或有抖动就算在起作用。
   const active = config.cursorOverride !== "跟随当前状态" || config.shake > 0;
   return (
-    <Panel
+    <WorkbenchEffectCard
       id={panelId}
+      cardKey="cursor"
       title="光标与命中反馈"
       icon={PANEL_META.cursor.icon}
-      collapsible
       enabled={active}
-      defaultOpen={active}
-      summary={`${config.cursorOverride} · ${config.cursorSize}px · 抖动 ${config.shake}%`}
-      action={reset ? <ResetCardButton dirty={reset.dirty} onReset={reset.onReset} /> : undefined}
+      config={config}
+      baseline={reset?.baseline}
+      onChange={updateActionConfig}
+      onToggle={(next) => updateActionConfig(next ? { shake: Math.max(20, config.shake || 0) } : { shake: 0, cursorOverride: "跟随当前状态" })}
+      onReset={reset?.onReset}
+      primary={(
+        <>
+          <FieldRow label="敲击抖动" control={<Slider value={config.shake} min={0} max={80} onChange={(value) => updateActionConfig({ shake: value })} suffix="%" label="抖动强度" />} />
+          <FieldRow label="动作光标" control={<Select value={config.cursorOverride} options={CURSOR_OVERRIDE_OPTIONS} onChange={(value) => updateActionConfig({ cursorOverride: value })} />} />
+          <FieldRow label="光标尺寸" control={<Slider value={config.cursorSize} min={32} max={72} onChange={(value) => updateActionConfig({ cursorSize: value })} suffix="px" label="光标尺寸" />} />
+        </>
+      )}
     >
       <div className="space-y-4">
-        <WorkbenchSettingSection>
-          <SectionTitle>命中反馈</SectionTitle>
-          <FieldRow
-            label="敲击抖动"
-            control={<Slider value={config.shake} min={0} max={80} onChange={(value) => updateActionConfig({ shake: value })} suffix="%" label="抖动强度" />}
-          />
-          <FieldRow
-            label="动作光标"
-            control={<Select value={config.cursorOverride} options={CURSOR_OVERRIDE_OPTIONS} onChange={(value) => updateActionConfig({ cursorOverride: value })} />}
-          />
-          <FieldRow
-            label="光标尺寸"
-            control={<Slider value={config.cursorSize} min={32} max={72} onChange={(value) => updateActionConfig({ cursorSize: value })} suffix="px" label="光标尺寸" />}
-          />
-        </WorkbenchSettingSection>
-
         <WorkbenchSettingSection>
           <SectionTitle>光标轨迹</SectionTitle>
           <FieldRow
@@ -69,6 +61,6 @@ export function CursorFeedbackCard({ config, updateActionConfig, panelId, reset 
           />
         </WorkbenchSettingSection>
       </div>
-    </Panel>
+    </WorkbenchEffectCard>
   );
 }

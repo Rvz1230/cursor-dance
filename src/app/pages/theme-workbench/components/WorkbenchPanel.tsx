@@ -23,6 +23,7 @@ export function WorkbenchPanel({ actionId, config, resetConfig, updateActionConf
     const patch = buildCardResetPatch(cardKey, config, defaultConfig);
     return {
       dirty: patch !== null,
+      baseline: defaultConfig,
       onReset: () => {
         if (patch) updateActionConfig(patch);
       },

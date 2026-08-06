@@ -6,6 +6,8 @@ import { ColumnResizeHandle } from "@/components/ui/column-resize-handle";
 import { WorkbenchActionTab } from "./components/WorkbenchActionTab";
 import { WorkbenchPanel } from "./components/WorkbenchPanel";
 import { WorkbenchPreviewRail } from "./components/WorkbenchPreviewRail";
+import { PreviewTimeline } from "./components/preview-rail/PreviewTimeline";
+import { usePreviewPlayback } from "./components/preview-rail/usePreviewPlayback";
 import { getRuntimeConfig } from "./lib/runtimeConfig";
 import { WORKSPACE_SHORTCUT_ORDER } from "./lib/shortcuts";
 import { ThemeLibrarySidebar } from "./components/ThemeLibrarySidebar";
@@ -20,6 +22,9 @@ import {
   resolveAppRule,
 } from "@/shared/app-rules";
 import { useWorkbenchAiPreview } from "./hooks/useWorkbenchAiPreview";
+import { getEnabledEffectCount } from "./lib/effectCardModel";
+import { buildTimelineModel } from "./lib/timelineModel";
+import { getActionTextConfig } from "./model/workbenchSchema";
 import { useWorkbenchColumnLayout } from "./hooks/useWorkbenchColumnLayout";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
 import { useDesktopWorkbenchRuntime } from "./hooks/useDesktopWorkbenchRuntime";
@@ -170,13 +175,23 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
     updateActionConfigs,
     notify: toast,
   });
-  const previewActionConfig = previewActionConfigsMap?.[selected.actionId] || currentActionConfig;
-  const isPreviewingAiProposal = isPreviewingAction(selected.actionId);
   const activeAppInfo = activeAppInfoFromSnapshot(activeWindowSnapshot);
-  const workbenchAtmosphere = isExtension() ? draft?.atmosphere : undefined;
   const contextAction = isDesktop()
     ? (activeAppInfo ? resolveAppRule(state.domain.appRules, activeAppInfo) : null)
     : getRuntimeConfig().resolveSiteRule(state.domain.siteRules, state.runtime.site.host);
+  const previewActionConfig = previewActionConfigsMap?.[selected.actionId] || currentActionConfig;
+  const previewTimeline = buildTimelineModel(previewActionConfig);
+  const previewTextConfig = getActionTextConfig(previewActionConfig);
+  const previewPlayback = usePreviewPlayback({
+    actionId: selected.actionId,
+    config: previewActionConfig,
+    comboEnabled: previewTextConfig.comboEnabled === true,
+    comboWindowMs: typeof previewTextConfig.comboWindowMs === "number" ? previewTextConfig.comboWindowMs : 900,
+    disabled: contextAction === "disable",
+    totalMs: previewTimeline.totalMs,
+  });
+  const isPreviewingAiProposal = isPreviewingAction(selected.actionId);
+  const workbenchAtmosphere = isExtension() ? draft?.atmosphere : undefined;
   const activeWorkspace = workspaceItems.find((item) => item.id === state.editor.workspaceId);
   const themeScoped = activeWorkspace?.group === "personalization";
 
@@ -364,7 +379,13 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                   <div className="shrink-0 rounded-xl border border-slate-200 bg-white px-2.5 py-2.5 shadow-sm">
                     <div role="tablist" aria-label="动作" className="-mx-1 flex gap-2 overflow-x-auto px-1">
                       {actionItems.map((action) => (
-                        <WorkbenchActionTab key={action.id} item={action} active={action.id === selected.actionId} onClick={() => setActionId(action.id)} />
+                        <WorkbenchActionTab
+                          key={action.id}
+                          item={action}
+                          active={action.id === selected.actionId}
+                          effectCount={getEnabledEffectCount(draft?.actionConfigs?.[action.id])}
+                          onClick={() => setActionId(action.id)}
+                        />
                       ))}
                     </div>
 
@@ -405,11 +426,13 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                       <WorkbenchPreviewRail
                         actionId={selected.actionId}
                         config={previewActionConfig}
+                        comparisonConfig={draft?.resetActionConfigs?.[selected.actionId]}
                         actionConfigsMap={previewActionConfigsMap}
                         disabled={contextAction === "disable"}
                         previewMode={isPreviewingAiProposal}
-                        updateActionConfig={updateActionConfig}
                         atmosphere={workbenchAtmosphere}
+                        playback={previewPlayback}
+                        totalMs={previewTimeline.totalMs}
                       />
                     </div>
 
@@ -444,6 +467,15 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                       </>
                     ) : null}
                   </div>
+                  <PreviewTimeline
+                    tracks={previewTimeline.tracks}
+                    totalMs={previewTimeline.totalMs}
+                    disabled={contextAction === "disable"}
+                    canEditEmptyState={!isPreviewingAiProposal && contextAction !== "disable"}
+                    updateActionConfig={handleUpdateActionConfig}
+                    currentTimeMs={previewPlayback.currentTimeMs}
+                    onSeek={previewPlayback.seek}
+                  />
                 </div>
               ) : null}
 

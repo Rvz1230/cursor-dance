@@ -2,17 +2,15 @@ import { useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { ImagePlus, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { FieldRow } from "@/components/ui/field-row";
-import { Panel } from "@/components/ui/panel";
 import { SectionTitle } from "@/components/ui/section-title";
 import {
   PANEL_META,
 } from "../../model/workbenchSchema";
 import { getImageEffectPresetCards, validateImageEffectFile } from "../../lib/imageEffectAssets";
 import { WorkbenchSettingSection } from "../WorkbenchSettingSection";
-import { ResetCardButton } from "./ResetCardButton";
+import { WorkbenchEffectCard } from "../effect-cards/WorkbenchEffectCard";
 
 const MAX_IMAGE_EFFECT_UPLOAD_BYTES = 300 * 1024;
 
@@ -57,20 +55,17 @@ export function ImageFeedbackCard({ config, updateActionConfig, panelId, reset }
   }
 
   return (
-    <Panel
+    <WorkbenchEffectCard
       id={panelId}
+      cardKey="image"
       title="图片贴纸反馈"
       icon={PANEL_META.image.icon}
-      collapsible
-      defaultOpen={config.imageEnabled}
       enabled={config.imageEnabled}
-      summary={config.imageEnabled ? `${config.imageSize}px · ${config.imageOpacity}%` : "关闭图片贴纸"}
-      action={
-        <div className="flex items-center gap-2">
-          {reset ? <ResetCardButton dirty={reset.dirty} onReset={reset.onReset} /> : null}
-          <Switch checked={config.imageEnabled} onCheckedChange={(next) => updateActionConfig({ imageEnabled: next })} aria-label="图片反馈开关" />
-        </div>
-      }
+      config={config}
+      baseline={reset?.baseline}
+      onChange={(patch) => updateActionConfig({ ...patch, imageEnabled: true })}
+      onToggle={(next) => updateActionConfig({ imageEnabled: next })}
+      onReset={reset?.onReset}
     >
       <div className="space-y-4">
         <input
@@ -204,6 +199,6 @@ export function ImageFeedbackCard({ config, updateActionConfig, panelId, reset }
           />
         </WorkbenchSettingSection>
       </div>
-    </Panel>
+    </WorkbenchEffectCard>
   );
 }

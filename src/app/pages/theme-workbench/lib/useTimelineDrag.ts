@@ -37,7 +37,10 @@ export function useTimelineDrag({
   const stateRef = useRef<TimelineDragState | null>(null);
 
   const snap = useCallback(
-    (value: number) => Math.min(maxMs, Math.max(minMs, Math.round(value / snapMs) * snapMs)),
+    (value: number) => {
+      const snapped = snapMs > 0 ? Math.round(value / snapMs) * snapMs : Math.round(value);
+      return Math.min(maxMs, Math.max(minMs, snapped));
+    },
     [maxMs, minMs, snapMs]
   );
 

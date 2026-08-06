@@ -273,7 +273,7 @@ npx tailwindcss -c docs/ui-spec/tailwind.config.cjs -i docs/ui-spec/_src.css -o 
 13. **稿子必须对照真实代码盘一遍「有没有丢功能」。** 走查只能发现「稿子里画错的」，
    发现不了「稿子里没画的」。这轮丢掉的四个功能（列宽拖拽、卡片重置、卡片折叠、自动循环）
    全都在真实代码里工作着，但稿子里一个都没有——**光看稿子永远看不出来**。
-   办法是拿真实组件的 prop / 导出名去 grep 稿子：`ResetCardButton` 16 处 → 稿子 0 处。
+   办法是拿真实组件的 prop / 导出名去 grep 稿子：效果卡的 `onReset` 消费路径 → 稿子卡头的条件重置按钮。
 14. **同一个 `<script>` 块里没有下一块才定义的助手。** 我加分隔条时在第一个内联块里写了
    `$('colSplit')`，而 `$` 是在第二个块才 `const` 定义的 → `$ is not defined`，
    那一行之后的绑定全没执行，但布局预设按钮（绑定在它前面）照旧能用，
@@ -471,7 +471,7 @@ npx tailwindcss -c docs/ui-spec/tailwind.config.cjs -i docs/ui-spec/_src.css -o 
 | 功能 | 真实代码 | 稿子原状 | 现已补回 |
 | --- | --- | --- | --- |
 | 配置列 / 预览列自由拖宽 | `useWorkbenchColumnLayout.ts` 的 `startResizeColumns`（且已做持久化） | `#cols` 里**没有分隔条**，只有三个布局预设按钮 | 4px 分隔条，权重模型与夹取区间照 `COLUMN_BOUNDS`；拖过之后不再高亮任何预设（当前比例已不是那三档，继续亮着是谎报状态）；方向键 ±0.04、⇧ ±0.12 |
-| 效果卡独立重置 | `ResetCardButton` 用在 **16 处** | **0 处** | 卡头「重置」，**只在真有改动时出现**（没改动时它是空操作）；带撤销 toast |
+| 效果卡独立重置 | `WorkbenchEffectCard` 按真实 changed count 条件渲染 `onReset` | `data-cardreset` | 卡头「重置」，**只在真有改动时出现**（没改动时它是空操作）；重置仍走真实 action config 与撤销栈 |
 | 效果卡手动折叠 | `collapsible` 传入 **17 处** | 0 处（只有时间轴抽屉能折叠） | 卡头折叠箭头。**折叠 ≠ 关闭**：折叠只影响视觉密度、配置仍生效，所以是两个独立控件；折叠后摘要留在标题行 |
 | 预览自动循环 | `PreviewPlaybackControls` 的 `autoPlay` + `INTERVAL_PRESETS`（2400/1200/600） | 只有 播放/暂停、重播、循环区间 | 「自动重播」+ 间隔三档。**与「循环区间」是两回事**：循环区间反复播选中那一段、段间无空隙；自动重播是整条播完后隔一段再来一次（调手感需要的是后者，效果之间要有间隔才看得出单次的样子） |
 

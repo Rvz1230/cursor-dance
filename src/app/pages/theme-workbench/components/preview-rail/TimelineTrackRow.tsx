@@ -29,6 +29,7 @@ interface TrackHandleProps {
   editableDuration: number;
   updateActionConfig: UpdateActionConfig;
   onGhostChange(deltaMs: number | null): void;
+  snapMs: number;
 }
 
 interface TimelineTrackRowProps {
@@ -38,6 +39,7 @@ interface TimelineTrackRowProps {
   updateActionConfig: UpdateActionConfig;
   isEven: boolean;
   disabled: boolean;
+  snapMs: number;
 }
 
 function getTimelineTone(tone: TimelineTrack["tone"]) {
@@ -57,6 +59,7 @@ function TrackHandle({
   editableDuration,
   updateActionConfig,
   onGhostChange,
+  snapMs,
 }: TrackHandleProps) {
   const isLeft = side === "left";
   const delayField = DELAY_FIELD_BY_TRACK[track.id];
@@ -88,7 +91,7 @@ function TrackHandle({
 
   const { isDragging, tooltipMs, handlers } = useTimelineDrag({
     pxPerMs,
-    snapMs: 20,
+    snapMs,
     minMs: isLeft ? -track.start : -(editableDuration - minEditableDuration),
     maxMs: isLeft ? editableDuration - minEditableDuration : Infinity,
     onChange: (deltaMs) => onGhostChangeRef.current(deltaMs),
@@ -139,6 +142,7 @@ export function TimelineTrackRow({
   updateActionConfig,
   isEven,
   disabled,
+  snapMs,
 }: TimelineTrackRowProps) {
   const [ghost, setGhost] = useState<TimelineGhost | null>(null);
   const visualDuration = track.end - track.start;
@@ -174,7 +178,7 @@ export function TimelineTrackRow({
 
   const { isDragging: isMoving, tooltipMs, handlers: moveHandlers } = useTimelineDrag({
     pxPerMs: disabled ? 0 : pxPerMs,
-    snapMs: 20,
+    snapMs,
     minMs: -track.start,
     onChange: (deltaMs) => setGhost(deltaMs === null ? null : { mode: "move", deltaMs }),
     onCommit: (deltaMs) => commitRef.current?.(deltaMs),
@@ -201,9 +205,9 @@ export function TimelineTrackRow({
 
   return (
     <div className={cn(
-      "group relative -mx-1 grid grid-cols-[42px_minmax(0,1fr)] items-center gap-2.5 rounded-lg px-1 py-1 transition-colors duration-150",
+      "group relative -mx-1 grid scroll-mt-24 grid-cols-[132px_minmax(320px,1fr)] items-center gap-2.5 rounded-lg px-1 py-1 transition-colors duration-150",
       isMoving ? "bg-slate-100" : isEven ? "bg-slate-50/60 hover:bg-slate-100/80" : "bg-white hover:bg-slate-50",
-    )}>
+    )} id={`timeline-track-${track.id}`}>
       <div className="flex items-center gap-1.5">
         <span className={cn("size-1.5 shrink-0 rounded-full", tone.dot)} />
         <span className={cn("truncate text-2xs font-semibold select-none", tone.text)}>{track.label}</span>
@@ -241,6 +245,7 @@ export function TimelineTrackRow({
             editableDuration={editableDuration}
             updateActionConfig={updateActionConfig}
             onGhostChange={(deltaMs) => setGhost(deltaMs === null ? null : { mode: "resize-left", deltaMs })}
+            snapMs={snapMs}
           />
         ) : null}
         {DURATION_FIELD_BY_TRACK[track.id] ? (
@@ -252,6 +257,7 @@ export function TimelineTrackRow({
             editableDuration={editableDuration}
             updateActionConfig={updateActionConfig}
             onGhostChange={(deltaMs) => setGhost(deltaMs === null ? null : { mode: "resize-right", deltaMs })}
+            snapMs={snapMs}
           />
         ) : null}
 

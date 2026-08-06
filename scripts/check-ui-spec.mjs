@@ -807,7 +807,7 @@ const CARD_DATA = await readBaseCards();
 // 这条清单该被**有意识地**删掉而不是默默失配；spec 侧锚点消失 → 稿子把它丢了。
 const PARITY = [
   { cap: "列宽自由拖拽", code: ["src/app/pages/theme-workbench/hooks/useWorkbenchColumnLayout.ts", /startResizeColumns/], spec: [/colSplit/] },
-  { cap: "效果卡独立重置", code: ["src/app/pages/theme-workbench/components/panels/ResetCardButton.tsx", /export function ResetCardButton/], spec: [/data-cardreset/] },
+  { cap: "效果卡独立重置", code: ["src/app/pages/theme-workbench/components/effect-cards/WorkbenchEffectCard.tsx", /changedCount && onReset/], spec: [/data-cardreset/] },
   { cap: "效果卡手动折叠", code: ["src/components/ui/panel.tsx", /collapsible/], spec: [/data-cardfold/] },
   { cap: "预览自动循环", code: ["src/app/pages/theme-workbench/components/preview-rail/PreviewPlaybackControls.tsx", /autoPlay/], spec: [/自动重播/] },
   { cap: "主题：复制", code: ["src/app/pages/theme-workbench/hooks/workbenchThemeCommands.ts", /duplicateTheme/], spec: [/id: 'duplicate'/] },

@@ -2,7 +2,6 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/components/ui/utils";
 import { Slider } from "@/components/ui/slider";
 import { FieldRow } from "@/components/ui/field-row";
-import { Panel } from "@/components/ui/panel";
 import { SectionTitle } from "@/components/ui/section-title";
 import { Select } from "@/components/ui/select";
 import {
@@ -16,7 +15,7 @@ import {
   PARTICLE_STYLE_OPTIONS,
 } from "../../model/workbenchSchema";
 import { WorkbenchSettingSection } from "../WorkbenchSettingSection";
-import { ResetCardButton } from "./ResetCardButton";
+import { WorkbenchEffectCard } from "../effect-cards/WorkbenchEffectCard";
 
 function PaletteSwatches({ presets, value, onChange }: { presets: Record<string, string[]>; value: string[]; onChange: (colors: string[]) => void }) {
   const currentKey = Object.entries(presets).find(
@@ -58,46 +57,35 @@ export function ParticleFeedbackCard({ config, updateActionConfig, panelId, rese
   const isOrbital = config.particleMotionMode === "orbital";
 
   return (
-    <Panel
+    <WorkbenchEffectCard
       id={panelId}
+      cardKey="particle"
       title="粒子反馈"
       icon={PANEL_META.particles.icon}
-      collapsible
-      defaultOpen={config.particle}
       enabled={config.particle}
-      summary={config.particle ? (isOrbital ? `轨道呼吸 · ${config.orbitalCount || 6} 点` : `${config.particleStyle} · ${config.particleCount} 个 · ${config.particleDirection}`) : "关闭粒子反馈"}
-      action={
-        <div className="flex items-center gap-2">
-          {reset ? <ResetCardButton dirty={reset.dirty} onReset={reset.onReset} /> : null}
-          <Switch checked={config.particle} onCheckedChange={(next) => updateActionConfig({ particle: next })} aria-label="粒子开关" />
-        </div>
-      }
+      config={config}
+      baseline={reset?.baseline}
+      onChange={(patch) => updateActionConfig({ ...patch, particle: true })}
+      onToggle={(next) => updateActionConfig({ particle: next })}
+      onReset={reset?.onReset}
+      primary={(
+        <>
+          <FieldRow label="运动模式" control={<Select value={config.particleMotionMode || "burst"} options={PARTICLE_MOTION_MODE_OPTIONS} onChange={(value) => updateActionConfig({ particleMotionMode: value, particle: true })} />} />
+          <FieldRow label="粒子形态" control={<Select value={config.particleStyle} options={PARTICLE_STYLE_OPTIONS} onChange={(value) => updateActionConfig({ particleStyle: value, particle: true })} />} />
+          <FieldRow
+            label={isOrbital ? "轨道点数" : "粒子数量"}
+            control={isOrbital
+              ? <Slider value={config.orbitalCount ?? 6} min={3} max={16} step={1} onChange={(value) => updateActionConfig({ orbitalCount: value })} suffix="个" label="轨道点数" />
+              : <Slider value={config.particleCount} min={0} max={40} onChange={(value) => updateActionConfig({ particleCount: value, particle: value > 0 })} label="粒子数量" />}
+          />
+        </>
+      )}
     >
       <div className="space-y-4">
         <WorkbenchSettingSection disabled={!config.particle}>
           <SectionTitle>发射</SectionTitle>
-          <FieldRow
-            label="运动模式"
-            tooltip="喷射扩散 = 一次性 burst；轨道呼吸 = 持续环绕呼吸。"
-            control={
-              <Select
-                value={config.particleMotionMode || "burst"}
-                options={PARTICLE_MOTION_MODE_OPTIONS}
-                onChange={config.particle ? (value) => updateActionConfig({ particleMotionMode: value, particle: true }) : undefined}
-              />
-            }
-          />
-          <FieldRow
-            label="粒子形态"
-            control={<Select value={config.particleStyle} options={PARTICLE_STYLE_OPTIONS} onChange={config.particle ? (value) => updateActionConfig({ particleStyle: value, particle: true }) : undefined} />}
-          />
-
           {!isOrbital && (
             <>
-              <FieldRow
-                label="粒子数量"
-                control={<Slider disabled={!config.particle} value={config.particleCount} min={0} max={40} onChange={(value) => updateActionConfig({ particleCount: value, particle: value > 0 })} label="粒子数量" />}
-              />
               <FieldRow
                 label="扩散范围"
                 control={<Slider disabled={!config.particle} value={config.particleSpread} min={0} max={90} onChange={(value) => updateActionConfig({ particleSpread: value })} label="扩散范围" />}
@@ -116,10 +104,6 @@ export function ParticleFeedbackCard({ config, updateActionConfig, panelId, rese
 
           {isOrbital && (
             <>
-              <FieldRow
-                label="轨道点数"
-                control={<Slider disabled={!config.particle} value={config.orbitalCount ?? 6} min={3} max={16} step={1} onChange={(value) => updateActionConfig({ orbitalCount: value })} suffix="个" label="轨道点数" />}
-              />
               <FieldRow
                 label="轨道半径"
                 control={<Slider disabled={!config.particle} value={config.orbitalRadius ?? 32} min={16} max={80} step={2} onChange={(value) => updateActionConfig({ orbitalRadius: value })} suffix="px" label="轨道半径" />}
@@ -199,6 +183,6 @@ export function ParticleFeedbackCard({ config, updateActionConfig, panelId, rese
           </WorkbenchSettingSection>
         )}
       </div>
-    </Panel>
+    </WorkbenchEffectCard>
   );
 }
