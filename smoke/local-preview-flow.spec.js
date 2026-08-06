@@ -100,7 +100,7 @@ test("popup theme selection, live preview override, and fallback to saved config
 
   const workbenchPage = await context.newPage();
   await workbenchPage.goto("/index.html");
-  await expect(workbenchPage.getByRole("button", { name: "保存" })).toBeVisible();
+  await expect(workbenchPage.getByRole("button", { name: "主题与效果", exact: true })).toBeVisible();
 
   const textPanel = panelByName(workbenchPage, /飘字反馈/);
   await selectRadixOption(workbenchPage, textPanel, 0, "文本飘字");
@@ -136,7 +136,7 @@ test("image effect can preview live, save into config, and render in content run
 
   const workbenchPage = await context.newPage();
   await workbenchPage.goto("/index.html");
-  await expect(workbenchPage.getByRole("button", { name: "保存" })).toBeVisible();
+  await expect(workbenchPage.getByRole("button", { name: "主题与效果", exact: true })).toBeVisible();
 
   const imagePanel = panelByName(workbenchPage, /图片贴纸反馈/);
 
@@ -156,7 +156,7 @@ test("image effect can preview live, save into config, and render in content run
   await page.reload();
   await clickAndExpectImageEffect(page);
 
-  await workbenchPage.getByRole("button", { name: "保存" }).click();
+  await workbenchPage.getByRole("button", { name: "应用到桌面" }).click();
   await page.waitForFunction((configKey) => {
     const raw = window.localStorage.getItem(configKey);
     if (!raw) return false;
@@ -176,7 +176,7 @@ test("animation effect can preview live, save into config, and render in content
 
   const workbenchPage = await context.newPage();
   await workbenchPage.goto("/index.html");
-  await expect(workbenchPage.getByRole("button", { name: "保存" })).toBeVisible();
+  await expect(workbenchPage.getByRole("button", { name: "主题与效果", exact: true })).toBeVisible();
 
   const animationPanel = panelByName(workbenchPage, /基础动画反馈/);
 
@@ -196,7 +196,7 @@ test("animation effect can preview live, save into config, and render in content
   await page.reload();
   await clickAndExpectAnimationEffect(page);
 
-  await workbenchPage.getByRole("button", { name: "保存" }).click();
+  await workbenchPage.getByRole("button", { name: "应用到桌面" }).click();
   await page.waitForFunction((configKey) => {
     const raw = window.localStorage.getItem(configKey);
     if (!raw) return false;
@@ -221,13 +221,13 @@ test("audio blend modes stay distinguishable on bilibili-like media reassertion"
 
   const workbenchPage = await context.newPage();
   await workbenchPage.goto("/index.html");
-  await expect(workbenchPage.getByRole("button", { name: "保存" })).toBeVisible();
+  await expect(workbenchPage.getByRole("button", { name: "主题与效果", exact: true })).toBeVisible();
 
   const audioPanel = panelByName(workbenchPage, /音频反馈/);
 
   await audioPanel.getByRole("switch", { name: "音效播放开关" }).click();
   await selectRadixOption(workbenchPage, audioPanel, 2, "保持原音量");
-  await workbenchPage.getByRole("button", { name: "保存" }).click();
+  await workbenchPage.getByRole("button", { name: "应用到桌面" }).click();
   await waitForStoredAudioBlendMode(workbenchPage, "保持原音量");
 
   await page.evaluate(() => window.__cursorDanceSmokeMedia?.reset());
@@ -238,7 +238,7 @@ test("audio blend modes stay distinguishable on bilibili-like media reassertion"
   });
 
   await selectRadixOption(workbenchPage, audioPanel, 2, "压低页面音频");
-  await workbenchPage.getByRole("button", { name: "保存" }).click();
+  await workbenchPage.getByRole("button", { name: "应用到桌面" }).click();
   await waitForStoredAudioBlendMode(workbenchPage, "压低页面音频");
 
   await page.evaluate(() => {
@@ -252,7 +252,7 @@ test("audio blend modes stay distinguishable on bilibili-like media reassertion"
   });
 
   await selectRadixOption(workbenchPage, audioPanel, 2, "仅插件音效");
-  await workbenchPage.getByRole("button", { name: "保存" }).click();
+  await workbenchPage.getByRole("button", { name: "应用到桌面" }).click();
   await waitForStoredAudioBlendMode(workbenchPage, "仅插件音效");
 
   await page.evaluate(() => {
@@ -280,20 +280,21 @@ test("workbench dialogs, save toast, color picker, and slider controls are usabl
 
   const workbenchPage = await context.newPage();
   await workbenchPage.goto("/index.html");
-  await expect(workbenchPage.getByRole("button", { name: "保存" })).toBeVisible();
+  await expect(workbenchPage.getByRole("button", { name: "主题与效果", exact: true })).toBeVisible();
 
-  await workbenchPage.getByRole("button", { name: "新建" }).click();
+  await workbenchPage.getByRole("button", { name: "新建主题" }).click();
   await expect(workbenchPage.getByRole("dialog", { name: "新建主题" })).toBeVisible();
   await workbenchPage.keyboard.press("Escape");
   await expect(workbenchPage.getByRole("dialog", { name: "新建主题" })).toBeHidden();
 
-  await workbenchPage.getByRole("button", { name: "新建" }).click();
+  await workbenchPage.getByRole("button", { name: "新建主题" }).click();
   await workbenchPage.getByLabel("主题名称").fill("Smoke UX Theme");
   await workbenchPage.getByRole("button", { name: "创建主题" }).click();
   await expect(workbenchPage.getByText("已创建主题", { exact: true })).toBeVisible();
 
-  // The latest Workbench keeps the high-frequency theme library expanded by default.
-  await expect(workbenchPage.getByRole("button", { name: "收起主题库" })).toBeVisible();
+  // The 960px baseline keeps the theme library compact until the user expands it.
+  await expect(workbenchPage.getByRole("button", { name: "展开主题库" })).toBeVisible();
+  await workbenchPage.getByRole("button", { name: "展开主题库" }).click();
   await workbenchPage.getByRole("button", { name: "Smoke UX Theme 更多操作" }).click();
   await workbenchPage.getByRole("button", { name: "复制" }).click();
   await expect(workbenchPage.getByText("已复制主题", { exact: true })).toBeVisible();
@@ -324,8 +325,8 @@ test("workbench dialogs, save toast, color picker, and slider controls are usabl
   await fontSizeInput.fill("26");
   await fontSizeInput.blur();
 
-  await workbenchPage.getByRole("button", { name: "保存" }).click();
-  await expect(workbenchPage.getByText("已保存到扩展配置", { exact: true })).toBeVisible();
+  await workbenchPage.getByRole("button", { name: "应用到桌面" }).click();
+  await expect(workbenchPage.getByLabel("Notifications (F8)").getByText("已应用到桌面", { exact: true })).toBeVisible();
 
   await workbenchPage.waitForFunction((configKey) => {
     const raw = window.localStorage.getItem(configKey);

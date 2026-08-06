@@ -8,11 +8,18 @@ export interface WorkbenchColumnWeights {
 }
 
 export type WorkbenchResizeColumn = "config" | "ai";
+export type WorkbenchLayoutPreset = "config" | "split" | "preview" | "custom";
 
 export const DEFAULT_WORKBENCH_COLUMN_WEIGHTS: WorkbenchColumnWeights = {
   config: 1.05,
   preview: 1.25,
   ai: 1,
+};
+
+export const WORKBENCH_LAYOUT_PRESETS: Readonly<Record<Exclude<WorkbenchLayoutPreset, "custom">, WorkbenchColumnWeights>> = {
+  config: { config: 1.55, preview: 0.85, ai: 1 },
+  split: DEFAULT_WORKBENCH_COLUMN_WEIGHTS,
+  preview: { config: 0.8, preview: 1.8, ai: 1 },
 };
 
 /** 各列权重的夹取区间。这里是布局区间的唯一真值源，存储层不复制这些常量。 */
@@ -71,8 +78,18 @@ export function getWorkbenchGridTemplate(
     : `minmax(0,${weights.config}fr) 4px minmax(0,${weights.preview}fr)`;
 }
 
+export function getWorkbenchLayoutPreset(weights: WorkbenchColumnWeights): WorkbenchLayoutPreset {
+  const match = Object.entries(WORKBENCH_LAYOUT_PRESETS).find(([, preset]) =>
+    (Object.keys(preset) as Array<keyof WorkbenchColumnWeights>).every(
+      (key) => Math.abs(weights[key] - preset[key]) < 0.001,
+    ),
+  );
+  return (match?.[0] as WorkbenchLayoutPreset | undefined) ?? "custom";
+}
+
 export function useWorkbenchColumnLayout(aiPanelOpen: boolean) {
   const [columnWeights, setColumnWeights] = useState(DEFAULT_WORKBENCH_COLUMN_WEIGHTS);
+  const [isResizing, setIsResizing] = useState(false);
   const stopResizeRef = useRef<(() => void) | null>(null);
 
   // 水合已保存的列宽。拖出来的布局不该每次打开工作台都被重置。
@@ -93,6 +110,7 @@ export function useWorkbenchColumnLayout(aiPanelOpen: boolean) {
   ): void {
     event.preventDefault();
     stopResizeRef.current?.();
+    setIsResizing(true);
     const startX = event.clientX;
     const startWeights = columnWeights;
     let latestWeights = startWeights;
@@ -102,6 +120,7 @@ export function useWorkbenchColumnLayout(aiPanelOpen: boolean) {
       window.removeEventListener("pointerup", stopResize);
       window.removeEventListener("pointercancel", stopResize);
       if (stopResizeRef.current === stopResize) stopResizeRef.current = null;
+      setIsResizing(false);
       // 只在松手时落盘，拖动过程中不写——否则一次拖拽会产生几十次写入。
       if (latestWeights !== startWeights) {
         void writeEditorState({ columnWeights: latestWeights });
@@ -118,9 +137,18 @@ export function useWorkbenchColumnLayout(aiPanelOpen: boolean) {
     window.addEventListener("pointercancel", stopResize);
   }
 
+  function setLayoutPreset(preset: Exclude<WorkbenchLayoutPreset, "custom">): void {
+    const nextWeights = WORKBENCH_LAYOUT_PRESETS[preset];
+    setColumnWeights(nextWeights);
+    void writeEditorState({ columnWeights: nextWeights });
+  }
+
   return {
     columnWeights,
+    isResizing,
+    layoutPreset: getWorkbenchLayoutPreset(columnWeights),
     gridTemplateColumns: getWorkbenchGridTemplate(columnWeights, aiPanelOpen),
     startResizeColumns,
+    setLayoutPreset,
   };
 }

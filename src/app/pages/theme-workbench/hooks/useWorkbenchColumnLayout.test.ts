@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_WORKBENCH_COLUMN_WEIGHTS,
+  WORKBENCH_LAYOUT_PRESETS,
+  getWorkbenchLayoutPreset,
   getWorkbenchGridTemplate,
   normalizeWorkbenchColumnWeights,
   resizeWorkbenchColumns,
@@ -62,5 +64,15 @@ describe("normalizeWorkbenchColumnWeights", () => {
     for (const bad of [null, undefined, "1.2", [], {}, { config: 1.2, preview: 1 }, { config: Number.NaN, preview: 1, ai: 1 }]) {
       expect(normalizeWorkbenchColumnWeights(bad)).toEqual(DEFAULT_WORKBENCH_COLUMN_WEIGHTS);
     }
+  });
+
+  it("recognizes the three named layout presets", () => {
+    expect(getWorkbenchLayoutPreset(WORKBENCH_LAYOUT_PRESETS.config)).toBe("config");
+    expect(getWorkbenchLayoutPreset(WORKBENCH_LAYOUT_PRESETS.split)).toBe("split");
+    expect(getWorkbenchLayoutPreset(WORKBENCH_LAYOUT_PRESETS.preview)).toBe("preview");
+  });
+
+  it("marks manually resized columns as a custom layout", () => {
+    expect(getWorkbenchLayoutPreset({ config: 1.2, preview: 1.1, ai: 1 })).toBe("custom");
   });
 });

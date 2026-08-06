@@ -17,7 +17,7 @@
 // 切换最大化按钮的图标（最大化 ↔ 还原）。
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, CheckCircle2, Download, Loader2, Maximize2, Minimize2, Minus, RefreshCw, X } from "lucide-react";
+import { AlertTriangle, Check, CheckCircle2, Download, Loader2, Maximize2, Minimize2, Minus, RefreshCw, X } from "lucide-react";
 import { BrandMark } from "@/components/ui/brand-mark";
 import { cn } from "@/components/ui/utils";
 import type { DesktopUpdateState } from "../../../shared/desktop-update";
@@ -26,7 +26,29 @@ import { useDesktopUpdate } from "./useDesktopUpdate";
 const NO_DRAG_STYLE: React.CSSProperties = { WebkitAppRegion: "no-drag" } as React.CSSProperties;
 const DRAG_STYLE: React.CSSProperties = { WebkitAppRegion: "drag" } as React.CSSProperties;
 
-export function TitleBar() {
+interface TitleBarProps {
+  themeName: string;
+  themeScoped: boolean;
+  enabled: boolean;
+  setEnabled: (value: boolean) => void;
+  unsaved: boolean;
+  isSaving: boolean;
+  saveError?: string | null;
+  saveChanges: () => void;
+  restoreAppliedChanges: () => void;
+}
+
+export function TitleBar({
+  themeName,
+  themeScoped,
+  enabled,
+  setEnabled,
+  unsaved,
+  isSaving,
+  saveError,
+  saveChanges,
+  restoreAppliedChanges,
+}: TitleBarProps) {
   const bridge = typeof window !== "undefined" ? window.cursorDanceWindow : undefined;
   const isMac = bridge?.platform === "darwin";
   const [isMaximized, setIsMaximized] = useState(false);
@@ -54,19 +76,76 @@ export function TitleBar() {
       <div
         className={cn(
           "flex items-stretch",
-          isMac ? "h-8 pl-[72px]" : "h-8 pl-3",
+          isMac ? "h-8 pl-20" : "h-8 pl-3",
         )}
         style={DRAG_STYLE}
       >
         <div className="flex shrink-0 items-center gap-2 pr-2">
           <BrandMark size="sm" />
-          <div className="hidden min-w-0 sm:block">
-            <div className="text-sm font-semibold leading-tight text-slate-900 text-balance">CursorDance</div>
-            <div className="text-xs leading-tight text-slate-500 text-pretty">主题工作台</div>
-          </div>
+          <div className="hidden text-xs font-semibold text-slate-900 sm:block">CursorDance</div>
         </div>
 
-        <div className="min-w-0 flex-1" />
+        <div className="flex min-w-0 flex-1 items-center gap-2 px-2 text-xs">
+          {themeScoped ? (
+            <>
+              <span className="truncate font-medium text-slate-700">正在编辑：{themeName}</span>
+              {unsaved ? (
+                <span className="shrink-0 rounded-lg bg-amber-50 px-1.5 py-0.5 font-medium text-amber-700 ring-1 ring-amber-200">未应用</span>
+              ) : (
+                <span className="inline-flex shrink-0 items-center gap-1 text-slate-500">
+                  <Check className="size-3 text-emerald-500" aria-hidden="true" />
+                  已应用到桌面
+                </span>
+              )}
+            </>
+          ) : (
+            <>
+              <span className="truncate font-medium text-slate-700">全局设置 · 不属于任何主题</span>
+              {unsaved ? (
+                <span className="shrink-0 rounded-lg bg-amber-50 px-1.5 py-0.5 font-medium text-amber-700 ring-1 ring-amber-200">待应用</span>
+              ) : null}
+            </>
+          )}
+          {saveError ? <span className="truncate text-rose-700" title={saveError}>{saveError}</span> : null}
+        </div>
+
+        {unsaved ? (
+          <div className="flex shrink-0 items-center gap-1 self-center">
+            <button
+              type="button"
+              onClick={saveChanges}
+              disabled={isSaving}
+              style={NO_DRAG_STYLE}
+              className="inline-flex h-6 items-center rounded-lg bg-slate-900 px-2 text-xs font-semibold text-white transition-colors hover:bg-slate-800 disabled:opacity-50"
+            >
+              {isSaving ? <Loader2 className="mr-1 size-3 animate-spin" aria-hidden="true" /> : null}
+              {isSaving ? "应用中" : themeScoped ? "应用到桌面" : "应用全局设置"}
+            </button>
+            <button
+              type="button"
+              onClick={restoreAppliedChanges}
+              disabled={isSaving}
+              style={NO_DRAG_STYLE}
+              className="hidden h-6 items-center rounded-lg px-2 text-xs font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 lg:inline-flex"
+            >
+              恢复已应用版本
+            </button>
+          </div>
+        ) : null}
+
+        <button
+          type="button"
+          onClick={() => setEnabled(!enabled)}
+          aria-pressed={enabled}
+          style={NO_DRAG_STYLE}
+          className={cn(
+            "mr-1 inline-flex h-6 shrink-0 items-center gap-1.5 self-center rounded-lg px-2 text-xs font-medium transition-colors hover:bg-slate-100",
+            enabled ? "text-emerald-700" : "text-slate-500",
+          )}
+        >
+          <span className={cn("size-1.5 rounded-full", enabled ? "bg-emerald-500" : "bg-slate-400")} aria-hidden="true" />
+          {enabled ? "效果开着" : "效果已暂停"}
+        </button>
 
         <UpdateControl state={update.state} onAction={update.runPrimaryAction} />
 

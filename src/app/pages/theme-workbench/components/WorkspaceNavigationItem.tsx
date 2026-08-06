@@ -22,6 +22,7 @@ export function WorkspaceNavigationItem({
     <button
       type="button"
       onClick={onClick}
+      aria-current={active ? "page" : undefined}
       className={cn(
         compact
           ? "inline-flex h-7 whitespace-nowrap items-center gap-1.5 rounded-xl border px-2.5 text-xs font-medium transition-[transform,color,background-color,border-color,box-shadow] active:scale-[0.97]"

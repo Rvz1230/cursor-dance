@@ -7,6 +7,7 @@ import { WorkbenchActionTab } from "./components/WorkbenchActionTab";
 import { WorkbenchPanel } from "./components/WorkbenchPanel";
 import { WorkbenchPreviewRail } from "./components/WorkbenchPreviewRail";
 import { getRuntimeConfig } from "./lib/runtimeConfig";
+import { WORKSPACE_SHORTCUT_ORDER } from "./lib/shortcuts";
 import { ThemeLibrarySidebar } from "./components/ThemeLibrarySidebar";
 import { WelcomeDialog } from "./components/WelcomeDialog";
 import { cn } from "@/components/ui/utils";
@@ -23,10 +24,14 @@ import { useWorkbenchColumnLayout } from "./hooks/useWorkbenchColumnLayout";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
 import { useDesktopWorkbenchRuntime } from "./hooks/useDesktopWorkbenchRuntime";
 import {
-  DesktopWorkbenchToolbar,
+  WorkbenchToolbar,
   type WorkbenchHeaderProps,
   type WorkbenchHeaderRenderer,
 } from "./components/WorkbenchChrome";
+import {
+  WorkbenchCommandPalette,
+  type WorkbenchCommand,
+} from "./components/WorkbenchCommandPalette";
 
 const AiAssistantPanel = lazy(() => import("./components/AiAssistantPanel").then((module) => ({
   default: module.AiAssistantPanel,
@@ -81,7 +86,14 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
   const toast = useToast();
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
-  const { gridTemplateColumns, startResizeColumns } = useWorkbenchColumnLayout(aiPanelOpen);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const {
+    gridTemplateColumns,
+    isResizing,
+    layoutPreset,
+    setLayoutPreset,
+    startResizeColumns,
+  } = useWorkbenchColumnLayout(aiPanelOpen);
   const {
     welcomeState,
     accessibilityAuthorized,
@@ -107,6 +119,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
     setCursorStateId,
     setEnabled,
     saveChanges,
+    restoreAppliedChanges,
     createTheme,
     duplicateTheme,
     deleteTheme,
@@ -163,6 +176,8 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
   const contextAction = isDesktop()
     ? (activeAppInfo ? resolveAppRule(state.domain.appRules, activeAppInfo) : null)
     : getRuntimeConfig().resolveSiteRule(state.domain.siteRules, state.runtime.site.host);
+  const activeWorkspace = workspaceItems.find((item) => item.id === state.editor.workspaceId);
+  const themeScoped = activeWorkspace?.group === "personalization";
 
   // 撤销 / 重做：快捷键与工具栏按钮走同一条路径，不写两遍
   function runUndo() {
@@ -185,11 +200,9 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
     onRedo: runRedo,
     onToggleAi: () => setAiPanelOpen((open) => !open),
     onWorkspace: setWorkspaceId,
-    // ⌘K（命令面板）与 ⌘N（新建主题）**刻意先不注册**：
-    // 命令面板在真实代码里还不存在；新建主题的 composer 状态目前私有在
-    // ThemeLibrarySidebar 内部，要先把它提上来才能从快捷键触发。
-    // 注册一个没实现的键位会吃掉原生行为又什么都不做，比没有更糟。
-    // 形态见 docs/ui-spec/surfaces/01-workbench.html 的 ⌘K 面板。
+    onCommandPalette: () => setCommandPaletteOpen(true),
+    // ⌘N 仍不注册：新建主题的 composer 状态还封装在 ThemeLibrarySidebar 内部。
+    // 这一批只接入已经有真实落点的命令，避免吞掉系统快捷键却没有结果。
   });
 
   if (!state.status.isHydrated) {
@@ -199,9 +212,23 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
   async function handleSaveChanges() {
     const result = await saveChanges();
     if (result.ok) {
-      toast({ tone: "success", title: "已保存到扩展配置" });
+      toast({ tone: "success", title: "已应用到桌面" });
     } else {
       toast({ tone: "error", title: "保存失败", description: result.error || "请稍后重试。" });
+    }
+  }
+
+  async function handleRestoreAppliedChanges() {
+    try {
+      await restoreAppliedChanges();
+      clearPreview();
+      toast({ tone: "info", title: "已恢复桌面正在使用的版本" });
+    } catch (error) {
+      toast({
+        tone: "error",
+        title: "恢复失败",
+        description: error instanceof Error ? error.message : "请稍后重试。",
+      });
     }
   }
 
@@ -222,6 +249,8 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
     workspaceItems,
     workspaceId: state.editor.workspaceId,
     setWorkspaceId,
+    themeName: activeTheme?.name || "当前主题",
+    themeScoped,
     enabled: state.domain.enabled,
     setEnabled,
     unsaved: state.status.unsaved,
@@ -230,6 +259,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
     isSaving: state.status.isSaving,
     saveError: state.status.saveError,
     saveChanges: () => { void handleSaveChanges(); },
+    restoreAppliedChanges: () => { void handleRestoreAppliedChanges(); },
     resetCurrentTheme: handleResetCurrentTheme,
     aiPanelOpen,
     setAiPanelOpen,
@@ -237,7 +267,65 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
       typeof window !== "undefined" && window.cursorDanceAi
         ? () => setAiSettingsOpen(true)
         : undefined,
+    layoutPreset,
+    setLayoutPreset,
+    openCommandPalette: () => setCommandPaletteOpen(true),
   };
+
+  const commandPaletteCommands: WorkbenchCommand[] = [
+    ...workspaceItems.map((item) => ({
+      id: `workspace-${item.id}`,
+      group: "工作区" as const,
+      label: `切到${item.label}`,
+      shortcut: `⌘${WORKSPACE_SHORTCUT_ORDER.indexOf(item.id as typeof WORKSPACE_SHORTCUT_ORDER[number]) + 1}`,
+      run: () => setWorkspaceId(item.id),
+    })),
+    ...(state.status.unsaved ? [{
+      id: "apply",
+      group: "编辑" as const,
+      label: themeScoped ? "应用到桌面" : "应用全局设置",
+      keywords: ["保存", "发布"],
+      run: () => { void handleSaveChanges(); },
+    }, {
+      id: "restore-applied",
+      group: "编辑" as const,
+      label: "恢复已应用版本",
+      keywords: ["撤销草稿", "回退"],
+      run: () => { void handleRestoreAppliedChanges(); },
+    }] : []),
+    ...(themeScoped ? [{
+      id: "reset-theme",
+      group: "编辑" as const,
+      label: "恢复当前主题默认",
+      run: handleResetCurrentTheme,
+    }] : []),
+    ...(undoStack.undoLabel(selected.themeId) ? [{
+      id: "undo",
+      group: "编辑" as const,
+      label: `撤销：${undoStack.undoLabel(selected.themeId)}`,
+      shortcut: "⌘Z",
+      run: runUndo,
+    }] : []),
+    ...(undoStack.redoLabel(selected.themeId) ? [{
+      id: "redo",
+      group: "编辑" as const,
+      label: `重做：${undoStack.redoLabel(selected.themeId)}`,
+      shortcut: "⌘⇧Z",
+      run: runRedo,
+    }] : []),
+    ...(isWorkbench ? [{
+      id: "toggle-ai",
+      group: "视图" as const,
+      label: aiPanelOpen ? "关闭 AI 助手" : "打开 AI 助手",
+      shortcut: "⌘J",
+      run: () => setAiPanelOpen((open) => !open),
+    }, ...(["config", "split", "preview"] as const).map((preset) => ({
+      id: `layout-${preset}`,
+      group: "视图" as const,
+      label: ({ config: "专注配置", split: "对半布局", preview: "专注预览" })[preset],
+      run: () => setLayoutPreset(preset),
+    }))] : []),
+  ];
 
   return (
     <div
@@ -246,120 +334,114 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
     >
       <div className="flex h-dvh overflow-hidden border border-slate-200 bg-white text-sm shadow-sm">
         <div className="flex min-w-0 flex-1 flex-col">
-          {renderHeader ? (
-            <>
-              {renderHeader(headerProps)}
-              <DesktopWorkbenchToolbar {...headerProps} />
-            </>
-          ) : (
-            <WorkbenchHeader {...headerProps} />
-          )}
+          {renderHeader ? renderHeader(headerProps) : <WorkbenchHeader {...headerProps} />}
+          <WorkbenchToolbar {...headerProps} />
           <div className="flex min-h-0 flex-1">
-            <ThemeLibrarySidebar
-              themes={themes}
-              themeId={selected.themeId}
-              setThemeId={setThemeId}
-              createTheme={createTheme}
-              duplicateTheme={duplicateTheme}
-              deleteTheme={deleteTheme}
-              exportTheme={exportTheme}
-              importThemeFromText={importThemeFromText}
-              renameTheme={renameTheme}
-              updateThemeIcon={updateThemeIcon}
-              notify={toast}
-              dirtyThemes={state.status.dirtyThemes}
-              saveChanges={saveChanges}
-              discardThemeChanges={discardThemeChanges}
-            />
+            {themeScoped ? (
+              <ThemeLibrarySidebar
+                themes={themes}
+                themeId={selected.themeId}
+                setThemeId={setThemeId}
+                createTheme={createTheme}
+                duplicateTheme={duplicateTheme}
+                deleteTheme={deleteTheme}
+                exportTheme={exportTheme}
+                importThemeFromText={importThemeFromText}
+                renameTheme={renameTheme}
+                updateThemeIcon={updateThemeIcon}
+                notify={toast}
+                dirtyThemes={state.status.dirtyThemes}
+                saveChanges={saveChanges}
+                discardThemeChanges={discardThemeChanges}
+              />
+            ) : null}
 
             <main className={cn("min-w-0 flex-1 overflow-hidden bg-slate-50 px-2.5 py-2.5", isWorkbench && "overflow-hidden")}>
               {isWorkbench ? (
-                <div
-                  className={cn(
-                    "grid h-full min-h-0 w-full gap-1"
-                  )}
-                  style={{
-                    gridTemplateColumns,
-                  }}
-                >
-                  <div className="min-w-0 min-h-0">
-                    <div className="flex h-full min-h-0 flex-col gap-2.5">
-                      <div className="shrink-0 rounded-xl border border-slate-200 bg-white px-2.5 py-2.5 shadow-sm">
-                        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
-                          {actionItems.map((action) => (
-                            <WorkbenchActionTab key={action.id} item={action} active={action.id === selected.actionId} onClick={() => setActionId(action.id)} />
-                          ))}
-                        </div>
-
-                        {currentConflicts.length ? (
-                          <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                            {currentConflicts[0]}
-                          </div>
-                        ) : null}
-                      </div>
-
-                      <div className="field-row-container min-h-0 overflow-y-auto pr-1">
-                        <WorkbenchPanel
-                          actionId={selected.actionId}
-                          config={currentActionConfig}
-                          resetConfig={draft?.resetActionConfigs?.[selected.actionId]}
-                          updateActionConfig={handleUpdateActionConfig}
-                          conflicts={currentConflicts}
-                          atmosphere={workbenchAtmosphere}
-                          updateAtmosphere={updateAtmosphere}
-                        />
-                      </div>
+                <div className="flex h-full min-h-0 flex-col gap-2.5">
+                  <div className="shrink-0 rounded-xl border border-slate-200 bg-white px-2.5 py-2.5 shadow-sm">
+                    <div role="tablist" aria-label="动作" className="-mx-1 flex gap-2 overflow-x-auto px-1">
+                      {actionItems.map((action) => (
+                        <WorkbenchActionTab key={action.id} item={action} active={action.id === selected.actionId} onClick={() => setActionId(action.id)} />
+                      ))}
                     </div>
-                  </div>
 
-                  <ColumnResizeHandle
-                    label="调整配置列宽度"
-                    onResize={(event) => startResizeColumns(event, "config")}
-                  />
-
-                  <div className="flex min-w-0 h-full min-h-0">
-                    <WorkbenchPreviewRail
-                      actionId={selected.actionId}
-                      config={previewActionConfig}
-                      actionConfigsMap={previewActionConfigsMap}
-                      disabled={contextAction === "disable"}
-                      previewMode={isPreviewingAiProposal}
-                      updateActionConfig={updateActionConfig}
-                      atmosphere={workbenchAtmosphere}
-                    />
-                  </div>
-
-                  {aiPanelOpen ? (
-                    <>
-                      <ColumnResizeHandle
-                        label="调整实时预览和 AI 助手宽度"
-                        onResize={(event) => startResizeColumns(event, "ai")}
-                      />
-
-                      <div className="relative flex min-w-0 h-full min-h-0">
-                        <Suspense fallback={<DeferredPanelFallback label="正在加载 AI 助手…" />}>
-                          <AiAssistantPanel
-                            actionId={selected.actionId}
-                            actionLabel={formatActionLabel(selected.actionId)}
-                            currentConfig={currentActionConfig}
-                            actionConfigs={draft.actionConfigs}
-                            applyActionConfig={handleUpdateActionConfig}
-                            applyProposal={applyProposal}
-                            previewProposal={previewProposal}
-                            onPreviewProposal={setPreviewProposal}
-                            onClearPreview={clearPreview}
-                            notify={toast}
-                            aiSnapshot={aiSnapshot}
-                            onRevertAiChanges={revertAiChanges}
-                            onClearAiSnapshot={clearAiSnapshot}
-                            onOpenAiSettings={headerProps.openAiSettings}
-                            variant="full"
-                          />
-                        </Suspense>
+                    {currentConflicts.length ? (
+                      <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                        {currentConflicts[0]}
                       </div>
-                    </>
-                  ) : null}
+                    ) : null}
+                  </div>
 
+                  <div
+                    role="tabpanel"
+                    aria-label={formatActionLabel(selected.actionId)}
+                    className={cn(
+                      "grid min-h-0 flex-1 gap-1",
+                      !isResizing && "transition-[grid-template-columns] duration-200 ease-out motion-reduce:transition-none",
+                    )}
+                    style={{ gridTemplateColumns }}
+                  >
+                    <div className="field-row-container min-h-0 min-w-0 overflow-y-auto pr-1">
+                      <WorkbenchPanel
+                        actionId={selected.actionId}
+                        config={currentActionConfig}
+                        resetConfig={draft?.resetActionConfigs?.[selected.actionId]}
+                        updateActionConfig={handleUpdateActionConfig}
+                        conflicts={currentConflicts}
+                        atmosphere={workbenchAtmosphere}
+                        updateAtmosphere={updateAtmosphere}
+                      />
+                    </div>
+
+                    <ColumnResizeHandle
+                      label="调整配置列宽度"
+                      onResize={(event) => startResizeColumns(event, "config")}
+                    />
+
+                    <div className="flex min-h-0 min-w-0">
+                      <WorkbenchPreviewRail
+                        actionId={selected.actionId}
+                        config={previewActionConfig}
+                        actionConfigsMap={previewActionConfigsMap}
+                        disabled={contextAction === "disable"}
+                        previewMode={isPreviewingAiProposal}
+                        updateActionConfig={updateActionConfig}
+                        atmosphere={workbenchAtmosphere}
+                      />
+                    </div>
+
+                    {aiPanelOpen ? (
+                      <>
+                        <ColumnResizeHandle
+                          label="调整实时预览和 AI 助手宽度"
+                          onResize={(event) => startResizeColumns(event, "ai")}
+                        />
+
+                        <div className="relative flex min-h-0 min-w-0">
+                          <Suspense fallback={<DeferredPanelFallback label="正在加载 AI 助手…" />}>
+                            <AiAssistantPanel
+                              actionId={selected.actionId}
+                              actionLabel={formatActionLabel(selected.actionId)}
+                              currentConfig={currentActionConfig}
+                              actionConfigs={draft.actionConfigs}
+                              applyActionConfig={handleUpdateActionConfig}
+                              applyProposal={applyProposal}
+                              previewProposal={previewProposal}
+                              onPreviewProposal={setPreviewProposal}
+                              onClearPreview={clearPreview}
+                              notify={toast}
+                              aiSnapshot={aiSnapshot}
+                              onRevertAiChanges={revertAiChanges}
+                              onClearAiSnapshot={clearAiSnapshot}
+                              onOpenAiSettings={headerProps.openAiSettings}
+                              variant="full"
+                            />
+                          </Suspense>
+                        </div>
+                      </>
+                    ) : null}
+                  </div>
                 </div>
               ) : null}
 
@@ -449,6 +531,11 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
           <AiSettingsDialog open onClose={() => setAiSettingsOpen(false)} />
         </Suspense>
       ) : null}
+      <WorkbenchCommandPalette
+        open={commandPaletteOpen}
+        onOpenChange={setCommandPaletteOpen}
+        commands={commandPaletteCommands}
+      />
     </div>
   );
 }

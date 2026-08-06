@@ -66,7 +66,7 @@ async function waitForWorkbenchReady(page) {
     await welcomeDialog.getByRole("button", { name: "打开工作台" }).click();
     await expect.poll(() => page.evaluate(() => window.cursorDanceApp?.getFirstRun())).toBe(false);
   }
-  await expect(page.getByRole("button", { name: "保存" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "主题与效果", exact: true })).toBeVisible();
 }
 
 async function launchSecondInstance(env, executablePath) {
@@ -116,6 +116,12 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
     let workbenchPage = await getWorkbenchPage(electronApp);
     await expect(workbenchPage).toHaveTitle("CursorDance 工作台");
     await waitForWorkbenchReady(workbenchPage);
+    await expect(workbenchPage.getByText(/正在编辑：/)).toBeVisible();
+    await workbenchPage.getByRole("button", { name: "专注配置", exact: true }).click();
+    await expect(workbenchPage.getByRole("button", { name: "专注配置", exact: true })).toHaveAttribute("aria-pressed", "true");
+    await workbenchPage.getByRole("button", { name: "命令面板", exact: true }).click();
+    await expect(workbenchPage.getByRole("dialog", { name: "命令面板" })).toBeVisible();
+    await workbenchPage.keyboard.press("Escape");
     await expect.poll(() => workbenchPage.evaluate(() =>
       document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.getAttribute("content"),
     )).toContain("default-src 'self'");
@@ -127,11 +133,13 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
     await expect(workbenchPage.getByRole("heading", { name: "光标皮肤", exact: true })).toBeVisible();
     await workbenchPage.getByRole("button", { name: "应用规则", exact: true }).click();
     await expect(workbenchPage.getByRole("main").getByText("应用规则", { exact: true })).toBeVisible();
+    await expect(workbenchPage.getByText("全局设置 · 不属于任何主题", { exact: true })).toBeVisible();
+    await expect(workbenchPage.getByRole("button", { name: /展开主题库|收起主题库/ })).toHaveCount(0);
     await workbenchPage.getByRole("button", { name: "键盘动效", exact: true }).click();
     await expect(workbenchPage.getByRole("main").getByLabel("键盘动效开关")).toBeVisible();
     await workbenchPage.getByRole("button", { name: "诊断面板", exact: true }).click();
     await expect(workbenchPage.getByRole("button", { name: /开启诊断|关闭诊断/ })).toBeVisible();
-    await workbenchPage.getByRole("button", { name: "主题工作台", exact: true }).click();
+    await workbenchPage.getByRole("button", { name: "主题与效果", exact: true }).click();
     const assetResult = await workbenchPage.evaluate(async () => {
       const bridge = window.cursorDanceStorage;
       if (!bridge) throw new Error("cursorDanceStorage bridge is unavailable");

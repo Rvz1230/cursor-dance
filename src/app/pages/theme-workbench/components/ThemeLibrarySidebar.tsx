@@ -30,8 +30,8 @@ export function ThemeLibrarySidebar({
   const [pendingDeleteTheme, setPendingDeleteTheme] = useState(null);
   const [pendingSwitchThemeId, setPendingSwitchThemeId] = useState(null);
   const [isSwitching, setIsSwitching] = useState(false);
-  // 默认展开：主题库是最高频的导航面，藏起来会让人以为主题只有当前这一套。
-  const [collapsed, setCollapsed] = useState(false);
+  // 默认收起：在 960px 基准窗口里把宽度优先留给高频的配置与预览；用户选择仍会持久化。
+  const [collapsed, setCollapsed] = useState(true);
 
   // 折叠态要持久化——每次打开都被强制展开跟每次都被强制折叠一样烦人。
   useEffect(() => {
@@ -142,7 +142,7 @@ export function ThemeLibrarySidebar({
   const currentThemeName = themes.find((t) => t.id === themeId)?.name || "当前主题";
 
   return (
-    <aside className={cn("flex shrink-0 flex-col border-r border-slate-200 bg-slate-100 transition-[width] duration-200", collapsed ? "w-[60px]" : "w-[240px]")}>
+    <aside className={cn("flex shrink-0 flex-col border-r border-slate-200 bg-slate-100 transition-[width] duration-200 ease-out motion-reduce:transition-none", collapsed ? "w-[60px]" : "w-[248px]")}>
       <div className="flex min-h-0 flex-1 flex-col">
         <div className={cn("py-2.5", collapsed ? "px-2 flex justify-center" : "px-3")}>
           {collapsed ? (
@@ -173,7 +173,7 @@ export function ThemeLibrarySidebar({
                 <Input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder="搜索主题包"
+                  placeholder="搜索主题"
                   className="h-9 w-full bg-white pl-8"
                 />
               </div>
@@ -252,7 +252,7 @@ export function ThemeLibrarySidebar({
             onClick={() => setComposerMode((current) => (current === "create" ? "" : "create"))}
           >
             <Plus className="mr-1.5 h-4 w-4" />
-            新建
+            新建主题…
           </Button>
         )}
       </div>

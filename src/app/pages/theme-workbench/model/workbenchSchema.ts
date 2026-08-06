@@ -62,13 +62,20 @@ import { isDesktop } from "@/shared/runtime";
 import { getCursorStatesForPlatform, type CursorStateId } from "@/shared/cursor-states";
 import { createCursorBindings, createCursorSkin } from "@/shared/domain/cursor-dance";
 
+export type WorkbenchWorkspaceGroup = "personalization" | "automation" | "system";
+
 export const WORKSPACES = [
-  { id: "workbench", label: "主题工作台", icon: Wand2 },
-  { id: "states", label: "光标皮肤", icon: MousePointer2 },
-  { id: "sites", label: "站点规则", icon: Link2 },
-  { id: "keyboard", label: "键盘动效", icon: Keyboard },
-  { id: "diagnostics", label: "诊断面板", icon: ActivitySquare },
-];
+  { id: "workbench", label: "主题与效果", icon: Wand2, group: "personalization" },
+  { id: "states", label: "光标皮肤", icon: MousePointer2, group: "personalization" },
+  { id: "keyboard", label: "键盘动效", icon: Keyboard, group: "personalization" },
+  { id: "sites", label: "站点规则", icon: Link2, group: "automation" },
+  { id: "diagnostics", label: "诊断面板", icon: ActivitySquare, group: "system" },
+] satisfies Array<{
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  group: WorkbenchWorkspaceGroup;
+}>;
 
 const FALLBACK_THEMES = [
   {

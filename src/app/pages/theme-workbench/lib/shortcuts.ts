@@ -22,8 +22,8 @@ export type ShortcutCommand =
 export const WORKSPACE_SHORTCUT_ORDER = [
   "workbench",
   "states",
-  "sites",
   "keyboard",
+  "sites",
   "diagnostics",
 ] as const;
 

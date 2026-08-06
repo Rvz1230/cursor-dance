@@ -14,6 +14,8 @@ export function WorkbenchActionTab({ item, active = false, onClick }: WorkbenchA
   return (
     <button
       type="button"
+      role="tab"
+      aria-selected={active}
       onClick={onClick}
       className={cn(
         "min-w-fit rounded-xl border px-3 py-1.5 text-xs font-medium transition-[transform,color,background-color,border-color,box-shadow] active:scale-[0.97]",

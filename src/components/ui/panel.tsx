@@ -79,7 +79,7 @@ export function Panel({
   return (
     <section id={id} className={cn("overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm", className)}>
       <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 px-4 py-3">
-        <div className="min-w-0 flex-1">{header}</div>
+        <div className="basis-32 shrink-0 flex-1">{header}</div>
         {action ? <div className="flex max-w-full shrink-0 items-center self-center">{action}</div> : null}
       </div>
       <div className={cn("px-4 py-3", contentClassName)}>{children}</div>

@@ -18,6 +18,7 @@ import { useWorkbenchSave } from "./useWorkbenchSave";
 import { createWorkbenchRuleCommands } from "./workbenchRuleCommands";
 import type { WorkbenchConfigRef } from "./workbenchStateTypes";
 import { findWorkbenchTheme } from "./workbenchThemeSelectors";
+import { useWorkbenchRestoreApplied } from "./useWorkbenchRestoreApplied";
 
 export function useThemeWorkbenchState() {
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -46,6 +47,7 @@ export function useThemeWorkbenchState() {
     dispatch,
   });
   const saveChanges = useWorkbenchSave({ state, dispatch, configRef });
+  const restoreAppliedChanges = useWorkbenchRestoreApplied({ state, dispatch, configRef });
   const themeCommands = createWorkbenchThemeCommands({
     state,
     selected,
@@ -78,6 +80,7 @@ export function useThemeWorkbenchState() {
     setCursorStateId: (value: string) => dispatch({ type: "cursor-state/select", payload: value }),
     setEnabled: (value: boolean) => dispatch({ type: "global-enabled/set", payload: value }),
     saveChanges,
+    restoreAppliedChanges,
     ...themeCommands,
     ...themeEditingCommands,
     ...ruleCommands,

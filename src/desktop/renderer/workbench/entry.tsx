@@ -6,6 +6,6 @@ import "../index.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <ThemeWorkbenchPage renderHeader={() => <TitleBar />} />
+    <ThemeWorkbenchPage renderHeader={(props) => <TitleBar {...props} />} />
   </React.StrictMode>,
 );
