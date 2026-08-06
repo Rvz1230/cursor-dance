@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { SectionTitle } from "@/components/ui/section-title";
-import { SmallSelect } from "@/components/ui/small-select";
+import { Select } from "@/components/ui/select";
 import type {
   ActiveWindowSnapshot,
   AppRule,
@@ -120,7 +120,7 @@ function RuleEditor({
   return (
     <RuleEditorFrame error={error} onSave={onSave} onCancel={onCancel}>
       <RuleField label="匹配维度" hint={TARGET_HINTS[target]}>
-        <SmallSelect
+        <Select
           label="匹配维度"
           value={target}
           options={[
@@ -135,7 +135,7 @@ function RuleEditor({
       </RuleField>
 
       <RuleField label="匹配方式" hint={TYPE_HINTS[patternType]}>
-        <SmallSelect
+        <Select
           label="匹配方式"
           value={patternType}
           options={[

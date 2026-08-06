@@ -1,10 +1,10 @@
 import { Switch } from "@/components/ui/switch";
-import { ColorOptions } from "@/components/ui/color-options";
-import { ControlSlider } from "@/components/ui/control-slider";
+import { ColorField } from "@/components/ui/color-field";
+import { Slider } from "@/components/ui/slider";
 import { FieldRow } from "@/components/ui/field-row";
 import { Panel } from "@/components/ui/panel";
 import { SectionTitle } from "@/components/ui/section-title";
-import { SmallSelect } from "@/components/ui/small-select";
+import { Select } from "@/components/ui/select";
 import {
   CURSOR_OVERRIDE_OPTIONS,
   PANEL_META,
@@ -31,15 +31,15 @@ export function CursorFeedbackCard({ config, updateActionConfig, panelId, reset 
           <SectionTitle>命中反馈</SectionTitle>
           <FieldRow
             label="敲击抖动"
-            control={<ControlSlider value={config.shake} min={0} max={80} onValueChange={(value) => updateActionConfig({ shake: value[0] })} suffix="%" label="抖动强度" />}
+            control={<Slider value={config.shake} min={0} max={80} onChange={(value) => updateActionConfig({ shake: value })} suffix="%" label="抖动强度" />}
           />
           <FieldRow
             label="动作光标"
-            control={<SmallSelect value={config.cursorOverride} options={CURSOR_OVERRIDE_OPTIONS} onChange={(value) => updateActionConfig({ cursorOverride: value })} />}
+            control={<Select value={config.cursorOverride} options={CURSOR_OVERRIDE_OPTIONS} onChange={(value) => updateActionConfig({ cursorOverride: value })} />}
           />
           <FieldRow
             label="光标尺寸"
-            control={<ControlSlider value={config.cursorSize} min={32} max={72} onValueChange={(value) => updateActionConfig({ cursorSize: value[0] })} suffix="px" label="光标尺寸" />}
+            control={<Slider value={config.cursorSize} min={32} max={72} onChange={(value) => updateActionConfig({ cursorSize: value })} suffix="px" label="光标尺寸" />}
           />
         </WorkbenchSettingSection>
 
@@ -54,18 +54,18 @@ export function CursorFeedbackCard({ config, updateActionConfig, panelId, reset 
             <>
               <FieldRow
                 label="轨迹点数"
-                control={<ControlSlider value={config.cursorTrailCount || 5} min={1} max={12} onValueChange={(value) => updateActionConfig({ cursorTrailCount: value[0] })} label="轨迹点数" />}
+                control={<Slider value={config.cursorTrailCount || 5} min={1} max={12} onChange={(value) => updateActionConfig({ cursorTrailCount: value })} label="轨迹点数" />}
               />
               <FieldRow
                 label="轨迹透明度"
-                control={<ControlSlider value={config.cursorTrailOpacity || 50} min={20} max={100} onValueChange={(value) => updateActionConfig({ cursorTrailOpacity: value[0] })} suffix="%" label="轨迹透明度" />}
+                control={<Slider value={config.cursorTrailOpacity || 50} min={20} max={100} onChange={(value) => updateActionConfig({ cursorTrailOpacity: value })} suffix="%" label="轨迹透明度" />}
               />
             </>
           ) : null}
           <FieldRow
             label="光晕颜色"
             tooltip="光标光晕色，留空则无光晕。"
-            control={<ColorOptions disabled={false} value={config.cursorGlowColor || ""} onChange={(color) => updateActionConfig({ cursorGlowColor: color })} />}
+            control={<ColorField label="光标光晕颜色" disabled={false} value={config.cursorGlowColor || ""} onChange={(color) => updateActionConfig({ cursorGlowColor: color })} />}
           />
         </WorkbenchSettingSection>
       </div>

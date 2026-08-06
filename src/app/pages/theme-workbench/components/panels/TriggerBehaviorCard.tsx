@@ -1,8 +1,8 @@
 import { getTimingFieldMeta, TRIGGER_OPTIONS, PANEL_META } from "../../model/workbenchSchema";
-import { ControlSlider } from "@/components/ui/control-slider";
+import { Slider } from "@/components/ui/slider";
 import { FieldRow } from "@/components/ui/field-row";
 import { Panel } from "@/components/ui/panel";
-import { SmallSelect } from "@/components/ui/small-select";
+import { Select } from "@/components/ui/select";
 import { ResetCardButton } from "./ResetCardButton";
 
 export function TriggerBehaviorCard({ actionId, config, updateActionConfig, panelId, reset }) {
@@ -21,16 +21,16 @@ export function TriggerBehaviorCard({ actionId, config, updateActionConfig, pane
     >
       <FieldRow
         label="触发时机"
-        control={<SmallSelect value={config.triggerTiming} options={triggerMeta.timing} onChange={(value) => updateActionConfig({ triggerTiming: value })} />}
+        control={<Select value={config.triggerTiming} options={triggerMeta.timing} onChange={(value) => updateActionConfig({ triggerTiming: value })} />}
       />
       <FieldRow
         label="作用范围"
-        control={<SmallSelect value={config.triggerZone} options={triggerMeta.zones} onChange={(value) => updateActionConfig({ triggerZone: value })} />}
+        control={<Select value={config.triggerZone} options={triggerMeta.zones} onChange={(value) => updateActionConfig({ triggerZone: value })} />}
       />
       <FieldRow
         label={timingMeta.label}
         tooltip={timingMeta.hint}
-        control={<ControlSlider value={config.holdMs} min={timingMeta.min} max={timingMeta.max} onValueChange={(value) => updateActionConfig({ holdMs: value[0] })} suffix="ms" label={timingMeta.label} />}
+        control={<Slider value={config.holdMs} min={timingMeta.min} max={timingMeta.max} onChange={(value) => updateActionConfig({ holdMs: value })} suffix="ms" label={timingMeta.label} />}
       />
     </Panel>
   );

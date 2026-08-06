@@ -315,7 +315,7 @@ test("workbench dialogs, save toast, color picker, and slider controls are usabl
 
   await workbenchPage.getByRole("button", { name: /飘字反馈/ }).click();
   await workbenchPage.getByRole("button", { name: /飘字反馈/ }).click();
-  await textPanel.getByRole("button", { name: /^#[0-9A-F]{6}$/i }).click();
+  await textPanel.getByRole("button", { name: /^飘字颜色：#[0-9A-F]{6}$/i }).click();
   const colorHexInput = workbenchPage.getByLabel("输入飘字颜色十六进制值");
   await colorHexInput.fill("#0284C7");
   await colorHexInput.press("Enter");

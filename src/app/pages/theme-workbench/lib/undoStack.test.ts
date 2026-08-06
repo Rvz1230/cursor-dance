@@ -77,12 +77,12 @@ describe("undo stack: 按主题分桶", () => {
   });
 });
 
-// ControlSlider 用 Radix onValueChange，拖动时每帧提交一次。
-// 不合并的话一次拖拽会塞进几十条记录，按一次 ⌘Z 只退回一帧。
+// Slider 拖动只在松手时提交，但方向键 / 标签 scrub 仍会连续改同一字段。
+// 这些紧邻更新要合并成一轮调整，避免一次微调要按多次 ⌘Z。
 describe("undo stack: 连续同目标改动合并", () => {
-  it("一次拖拽只产生一条记录，且能一步退回拖拽之前", () => {
+  it("一轮连续微调只产生一条记录，且能一步退回调整之前", () => {
     let stacks = EMPTY_UNDO_STACKS as UndoStacks<Draft>;
-    // 模拟一次拖拽：28 → 29 → 30 → 31，每帧间隔 16ms
+    // 模拟方向键或标签 scrub：28 → 29 → 30 → 31，每次间隔 16ms
     let previous = 28;
     for (let i = 0; i < 3; i += 1) {
       const next = previous + 1;

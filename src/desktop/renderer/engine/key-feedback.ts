@@ -15,7 +15,8 @@ const FONT_WEIGHT_MAP: Record<string, number> = {
   "半粗": 600, "加粗": 700, "特粗": 900,
 };
 
-const FONT_FAMILY_MAP: Record<string, string> = {
+// 兼容已有配置的展示名；其余字体名可直接作为 CSS font-family，并追加系统回退。
+const FONT_FAMILY_COMPATIBILITY: Record<string, string> = {
   "系统默认": "system-ui, -apple-system, sans-serif",
   "SF Mono": '"SF Mono", Menlo, Monaco, monospace',
   "SF Pro Rounded": '"SF Pro Rounded", system-ui, sans-serif',
@@ -228,7 +229,8 @@ export function createKeyFeedback(deps: EngineDeps): KeyFeedbackModule {
 
     // 字体样式
     const weight = FONT_WEIGHT_MAP[config.fontWeight] ?? 700;
-    const family = FONT_FAMILY_MAP[config.fontFamily] ?? "system-ui, sans-serif";
+    const safeFamilyName = config.fontFamily.replace(/[;'"\n\r]/g, "").slice(0, 80);
+    const family = FONT_FAMILY_COMPATIBILITY[config.fontFamily] ?? `${safeFamilyName || "system-ui"}, system-ui, sans-serif`;
     el.style.cssText = [
       `position:absolute`,
       `left:${startX}px`,

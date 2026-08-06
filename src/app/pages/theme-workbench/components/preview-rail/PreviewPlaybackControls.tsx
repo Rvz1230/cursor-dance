@@ -1,5 +1,6 @@
 import { Pause, Play, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 import { cn } from "@/components/ui/utils";
 
 const INTERVAL_PRESETS = [
@@ -66,16 +67,16 @@ export function PreviewPlaybackControls({
             </button>
           ))}
         </div>
-        <input
-          type="range"
+        <Slider
+          className="w-20"
+          label="调整循环间隔"
           min={200}
           max={5000}
           step={50}
           value={triggerInterval}
           disabled={disabled}
-          onChange={(event) => onTriggerIntervalChange(Number(event.target.value))}
-          className="h-1.5 w-20 accent-slate-950"
-          aria-label="调整循环间隔"
+          onChange={onTriggerIntervalChange}
+          showInput={false}
         />
         <span className="w-8 text-right text-xs font-semibold tabular-nums text-slate-900">{formatTriggerInterval(triggerInterval)}</span>
       </div>

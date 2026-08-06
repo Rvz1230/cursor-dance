@@ -1,3 +1,5 @@
+import { getCssEasing } from "./easing-data";
+
 export const ACTION_TRIGGER_FIELDS = ["triggerTiming", "triggerZone", "holdMs"] as const;
 const ACTION_TEXT_FIELDS = [
   "textKind",
@@ -184,12 +186,7 @@ export function hexToRgba(hex: string | undefined, alpha: number): string {
 }
 
 export function getAnimationEasing(label: string): string {
-  if (label === "线性") return "linear";
-  if (label === "缓入") return "cubic-bezier(0.4, 0, 1, 1)";
-  if (label === "缓入缓出") return "cubic-bezier(0.4, 0, 0.2, 1)";
-  if (label === "弹跳") return "cubic-bezier(0.34, 1.56, 0.64, 1)";
-  if (label === "弹性") return "cubic-bezier(0.22, 1, 0.36, 1.18)";
-  return "cubic-bezier(0, 0, 0.2, 1)";
+  return getCssEasing(label);
 }
 
 export function getTextWeightValue(weightLabel: string): number {

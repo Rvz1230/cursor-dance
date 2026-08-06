@@ -1,10 +1,10 @@
 import { Switch } from "@/components/ui/switch";
-import { ColorOptions } from "@/components/ui/color-options";
-import { ControlSlider } from "@/components/ui/control-slider";
+import { ColorField } from "@/components/ui/color-field";
+import { Slider } from "@/components/ui/slider";
 import { FieldRow } from "@/components/ui/field-row";
 import { Panel } from "@/components/ui/panel";
 import { SectionTitle } from "@/components/ui/section-title";
-import { SmallSelect } from "@/components/ui/small-select";
+import { Select } from "@/components/ui/select";
 import {
   PANEL_META,
   RIPPLE_EASING_OPTIONS,
@@ -35,19 +35,19 @@ export function RippleFeedbackCard({ config, updateActionConfig, panelId, reset 
           <SectionTitle>形态</SectionTitle>
           <FieldRow
             label="波纹样式"
-            control={<SmallSelect value={config.rippleStyle} options={RIPPLE_STYLE_OPTIONS} onChange={config.ripple ? (value) => updateActionConfig({ rippleStyle: value, ripple: true }) : undefined} />}
+            control={<Select value={config.rippleStyle} options={RIPPLE_STYLE_OPTIONS} onChange={config.ripple ? (value) => updateActionConfig({ rippleStyle: value, ripple: true }) : undefined} />}
           />
           <FieldRow
             label="波纹颜色"
-            control={<ColorOptions disabled={!config.ripple} value={config.rippleColor || "#34D399"} onChange={(color) => updateActionConfig({ rippleColor: color })} />}
+            control={<ColorField label="波纹颜色" disabled={!config.ripple} value={config.rippleColor || "#34D399"} onChange={(color) => updateActionConfig({ rippleColor: color })} />}
           />
           <FieldRow
             label="波纹尺寸"
-            control={<ControlSlider disabled={!config.ripple} value={config.rippleSize} min={20} max={110} onValueChange={(value) => updateActionConfig({ rippleSize: value[0] })} suffix="px" label="波纹尺寸" />}
+            control={<Slider disabled={!config.ripple} value={config.rippleSize} min={20} max={110} onChange={(value) => updateActionConfig({ rippleSize: value })} suffix="px" label="波纹尺寸" />}
           />
           <FieldRow
             label="线条粗细"
-            control={<ControlSlider disabled={!config.ripple} value={config.rippleLineWidth} min={1} max={6} onValueChange={(value) => updateActionConfig({ rippleLineWidth: value[0] })} suffix="px" label="线条粗细" />}
+            control={<Slider disabled={!config.ripple} value={config.rippleLineWidth} min={1} max={6} onChange={(value) => updateActionConfig({ rippleLineWidth: value })} suffix="px" label="线条粗细" />}
           />
         </WorkbenchSettingSection>
 
@@ -55,15 +55,15 @@ export function RippleFeedbackCard({ config, updateActionConfig, panelId, reset 
           <SectionTitle>消退</SectionTitle>
           <FieldRow
             label="波纹时长"
-            control={<ControlSlider disabled={!config.ripple} value={config.rippleDuration} min={300} max={1200} onValueChange={(value) => updateActionConfig({ rippleDuration: value[0] })} suffix="ms" label="波纹时长" />}
+            control={<Slider disabled={!config.ripple} value={config.rippleDuration} min={300} max={1200} onChange={(value) => updateActionConfig({ rippleDuration: value })} suffix="ms" label="波纹时长" />}
           />
           <FieldRow
             label="缓动效果"
-            control={<SmallSelect value={config.rippleEasing} options={RIPPLE_EASING_OPTIONS} onChange={config.ripple ? (value) => updateActionConfig({ rippleEasing: value }) : undefined} />}
+            control={<Select value={config.rippleEasing} options={RIPPLE_EASING_OPTIONS} onChange={config.ripple ? (value) => updateActionConfig({ rippleEasing: value }) : undefined} />}
           />
           <FieldRow
             label="透明度"
-            control={<ControlSlider disabled={!config.ripple} value={config.rippleOpacity} min={20} max={100} onValueChange={(value) => updateActionConfig({ rippleOpacity: value[0] })} suffix="%" label="透明度" />}
+            control={<Slider disabled={!config.ripple} value={config.rippleOpacity} min={20} max={100} onChange={(value) => updateActionConfig({ rippleOpacity: value })} suffix="%" label="透明度" />}
           />
         </WorkbenchSettingSection>
       </div>

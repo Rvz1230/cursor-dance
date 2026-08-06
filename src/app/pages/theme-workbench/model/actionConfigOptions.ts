@@ -1,4 +1,5 @@
 import { isDesktop } from "@/shared/runtime";
+import { EASING_NAMES } from "@/components/ui/control-data";
 
 export {
   getActionAnimationConfig,
@@ -78,7 +79,7 @@ export const TEXT_KIND_OPTIONS = ["数字飘字", "文本飘字"];
 export const NUMBER_STYLE_OPTIONS = ["阿拉伯数字 (1, 2, 3)", "中文数字 (一, 二, 三)", "英文单词 (one, two, three)"];
 export const TEXT_MODE_OPTIONS = ["默认模式 (+1)", "模板模式"];
 export const TEXT_TAG_PLAY_OPTIONS = ["按顺序显示", "随机显示"];
-export const TEXT_EASING_OPTIONS = ["线性", "缓入", "缓出", "缓入缓出", "弹跳", "弹性"];
+export const TEXT_EASING_OPTIONS = [...EASING_NAMES];
 export const TEXT_WEIGHT_OPTIONS = ["常规", "中等", "加粗"];
 export const TEXT_SHADOW_OPTIONS = ["无", "柔和", "清晰"];
 export const TEXT_FONT_PRESETS = ["系统默认", "苹方 / 微软雅黑", "宋体", "黑体", "楷体", "等宽字体", "自定义"];
@@ -90,11 +91,11 @@ export const PARTICLE_MOTION_MODE_OPTIONS = [
   { value: "orbital", label: "轨道呼吸" },
 ];
 export const RIPPLE_STYLE_OPTIONS = ["单环", "双环", "柔和面波", "脉冲波纹", "回声环", "能量脉冲"];
-export const RIPPLE_EASING_OPTIONS = ["线性", "缓出", "缓入缓出", "弹性"];
+export const RIPPLE_EASING_OPTIONS = EASING_NAMES.filter((value) => ["线性", "缓出", "缓入缓出", "弹性"].includes(value));
 export const AUDIO_TRIGGER_OPTIONS = ["每次触发", "连击叠加", "节流播放"];
 export const AUDIO_BLEND_OPTIONS = ["保持原音量", "压低页面音频", "仅插件音效"];
 export const ANIMATION_STYLE_OPTIONS = ["聚焦脉冲", "斜切闪片", "弹跳徽记", "漩涡旋转", "星光闪耀", "轨道环绕", "螺旋上升"];
-export const ANIMATION_EASING_OPTIONS = ["线性", "缓出", "缓入缓出", "弹性"];
+export const ANIMATION_EASING_OPTIONS = [...RIPPLE_EASING_OPTIONS];
 export const PARTICLE_PHYSICS_PRESET_OPTIONS = ["无", "重力飘落", "风场漂移", "弹跳迸发", "旋转扩散"];
 
 export const PARTICLE_PHYSICS_PRESET_VALUES = {

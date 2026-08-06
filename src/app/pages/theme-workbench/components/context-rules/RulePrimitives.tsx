@@ -5,7 +5,7 @@ import { cn } from "@/components/ui/utils";
 import { DataPill } from "@/components/ui/data-pill";
 import { FieldHint } from "@/components/ui/field-hint";
 import { SectionTitle } from "@/components/ui/section-title";
-import { SmallSelect } from "@/components/ui/small-select";
+import { Select } from "@/components/ui/select";
 
 /**
  * 规则编辑器的字段外壳。
@@ -84,7 +84,7 @@ export function RuleActionFields<T extends EditableRule>({
   return (
     <>
       <RuleField label="操作">
-        <SmallSelect
+        <Select
           label="操作"
           value={actionType}
           options={[
@@ -97,7 +97,7 @@ export function RuleActionFields<T extends EditableRule>({
 
       {actionType === "enable" ? (
         <RuleField label="主题" hint="不选则跟随全局主题。">
-          <SmallSelect
+          <Select
             label="主题"
             value={draft.action === "disable" ? "" : (draft.action.theme || "")}
             options={[

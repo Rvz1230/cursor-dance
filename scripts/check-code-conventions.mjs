@@ -63,11 +63,40 @@ await checkTextRule(runtimeFiles, {
 });
 
 const workbenchFiles = await collectSourceFiles(workbenchRoot);
+const sharedUiFiles = await collectSourceFiles(sharedUiRoot);
 await checkTextRule(workbenchFiles, {
   id: "legacy-workbench-theme-meta",
   pattern: /\b(?:ThemeLibraryItem|buildThemeLibraryItem|themePackToThemeLibraryItem)\b/g,
   message: "工作台展示元数据统一使用 WorkbenchThemeMeta 命名",
 });
+await checkTextRule([...workbenchFiles, ...sharedUiFiles], {
+  id: "legacy-shared-control-wrapper",
+  pattern: /\b(?:SmallSelect|ControlSlider|ColorOptions)\b|\/(?:small-select|control-slider|color-options)["']/g,
+  message: "共享控件统一使用 Select / Slider / ColorField，不得恢复薄包装或旧模块",
+});
+await checkTextRule([...workbenchFiles, ...sharedUiFiles], {
+  id: "native-range-control",
+  pattern: /type=["']range["']/g,
+  message: "业务 UI 不得直接使用原生 range；统一使用共享 Slider 交互契约",
+});
+
+const allSourceFiles = await collectSourceFiles(sourceRoot);
+await checkTextRule(
+  allSourceFiles.filter((filePath) => filePath !== resolve(sourceRoot, "shared/effect-core/easing-data.ts")),
+  {
+    id: "duplicate-easing-data-table",
+    pattern: /\b(?:export\s+)?const\s+EASINGS\b/g,
+    message: "缓动数据表只允许在 effect-core/easing-data.ts 定义",
+  },
+);
+await checkTextRule(
+  allSourceFiles.filter((filePath) => filePath !== resolve(sharedUiRoot, "control-data.ts")),
+  {
+    id: "duplicate-control-data-table",
+    pattern: /\b(?:export\s+)?const\s+(?:FONTS|CONTENT_PALETTE|SHAPE_PATH)\b/g,
+    message: "字体、内容色板和形状表只允许在 components/ui/control-data.ts 定义",
+  },
+);
 await checkTextRule(workbenchFiles, {
   id: "mixed-workbench-controls-entry",
   pattern: /\bWorkbenchControls\b/g,
@@ -133,5 +162,5 @@ if (violations.length > 0) {
   console.log(`\nFAIL code conventions: ${violations.length} violation(s)`);
   process.exitCode = 1;
 } else {
-  console.log(`PASS code conventions: 0 violations across ${runtimeFiles.length + workbenchFiles.length} files`);
+  console.log(`PASS code conventions: 0 violations across ${allSourceFiles.length} files`);
 }

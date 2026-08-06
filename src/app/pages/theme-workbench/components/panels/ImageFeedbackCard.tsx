@@ -3,7 +3,7 @@ import type { CSSProperties } from "react";
 import { ImagePlus, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { ControlSlider } from "@/components/ui/control-slider";
+import { Slider } from "@/components/ui/slider";
 import { FieldRow } from "@/components/ui/field-row";
 import { Panel } from "@/components/ui/panel";
 import { SectionTitle } from "@/components/ui/section-title";
@@ -180,15 +180,15 @@ export function ImageFeedbackCard({ config, updateActionConfig, panelId, reset }
           <SectionTitle>动画</SectionTitle>
           <FieldRow
             label="持续时间"
-            control={<ControlSlider disabled={!config.imageEnabled} value={config.imageDuration} min={240} max={1600} onValueChange={(value) => updateActionConfig({ imageDuration: value[0] })} suffix="ms" label="持续时间" />}
+            control={<Slider disabled={!config.imageEnabled} value={config.imageDuration} min={240} max={1600} onChange={(value) => updateActionConfig({ imageDuration: value })} suffix="ms" label="持续时间" />}
           />
           <FieldRow
             label="水平偏移"
-            control={<ControlSlider disabled={!config.imageEnabled} value={config.imageOffsetX} min={-36} max={36} onValueChange={(value) => updateActionConfig({ imageOffsetX: value[0] })} suffix="px" label="水平偏移" />}
+            control={<Slider disabled={!config.imageEnabled} value={config.imageOffsetX} min={-36} max={36} onChange={(value) => updateActionConfig({ imageOffsetX: value })} suffix="px" label="水平偏移" />}
           />
           <FieldRow
             label="垂直偏移"
-            control={<ControlSlider disabled={!config.imageEnabled} value={config.imageOffsetY} min={-48} max={24} onValueChange={(value) => updateActionConfig({ imageOffsetY: value[0] })} suffix="px" label="垂直偏移" />}
+            control={<Slider disabled={!config.imageEnabled} value={config.imageOffsetY} min={-48} max={24} onChange={(value) => updateActionConfig({ imageOffsetY: value })} suffix="px" label="垂直偏移" />}
           />
         </WorkbenchSettingSection>
 
@@ -196,11 +196,11 @@ export function ImageFeedbackCard({ config, updateActionConfig, panelId, reset }
           <SectionTitle>样式</SectionTitle>
           <FieldRow
             label="贴纸尺寸"
-            control={<ControlSlider disabled={!config.imageEnabled} value={config.imageSize} min={24} max={120} onValueChange={(value) => updateActionConfig({ imageSize: value[0] })} suffix="px" label="贴纸尺寸" />}
+            control={<Slider disabled={!config.imageEnabled} value={config.imageSize} min={24} max={120} onChange={(value) => updateActionConfig({ imageSize: value })} suffix="px" label="贴纸尺寸" />}
           />
           <FieldRow
             label="透明度"
-            control={<ControlSlider disabled={!config.imageEnabled} value={config.imageOpacity} min={20} max={100} onValueChange={(value) => updateActionConfig({ imageOpacity: value[0] })} suffix="%" label="透明度" />}
+            control={<Slider disabled={!config.imageEnabled} value={config.imageOpacity} min={20} max={100} onChange={(value) => updateActionConfig({ imageOpacity: value })} suffix="%" label="透明度" />}
           />
         </WorkbenchSettingSection>
       </div>

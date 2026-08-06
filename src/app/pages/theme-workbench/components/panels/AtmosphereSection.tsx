@@ -1,6 +1,6 @@
 import { FieldRow } from "@/components/ui/field-row";
 import { SectionTitle } from "@/components/ui/section-title";
-import { SmallSelect } from "@/components/ui/small-select";
+import { Select } from "@/components/ui/select";
 import { ATMOSPHERE_PRESET_OPTIONS } from "../../model/atmosphereDefaults";
 
 export function AtmosphereSection({ atmosphere, onChangeModule }) {
@@ -15,7 +15,7 @@ export function AtmosphereSection({ atmosphere, onChangeModule }) {
         label="效果预设"
         hint="选择鼠标交互动效风格，保存后刷新页面查看效果。"
         control={
-          <SmallSelect
+          <Select
             value={atmosphere.mode || "none"}
             options={ATMOSPHERE_PRESET_OPTIONS}
             onChange={(val) => onChangeModule("mode", val)}

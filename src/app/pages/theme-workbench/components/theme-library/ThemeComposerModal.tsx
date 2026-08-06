@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription } from "@/components/ui/dialog";
 import { DataPill } from "@/components/ui/data-pill";
-import { SmallSelect } from "@/components/ui/small-select";
+import { Select } from "@/components/ui/select";
 import { pickThemeFile } from "../../lib/workbenchConfig";
 
 export function ThemeComposerModal({
@@ -153,7 +153,7 @@ export function ThemeComposerModal({
 
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-slate-600">起始模板</label>
-                <SmallSelect value={createBaseThemeId} options={baseThemeOptions} onChange={setCreateBaseThemeId} label="选择起始模板" />
+                <Select value={createBaseThemeId} options={baseThemeOptions} onChange={setCreateBaseThemeId} label="选择起始模板" />
               </div>
 
               <div className="space-y-1.5">

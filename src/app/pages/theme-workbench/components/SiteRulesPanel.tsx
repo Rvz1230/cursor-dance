@@ -3,7 +3,7 @@ import { Check, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SectionTitle } from "@/components/ui/section-title";
-import { SmallSelect } from "@/components/ui/small-select";
+import { Select } from "@/components/ui/select";
 import { matchHostPattern } from "@/shared/web-context-rules";
 import { workbenchWebPatternToMatch } from "../lib/theme-draft/contextRuleAdapter";
 import {
@@ -112,7 +112,7 @@ function RuleEditor({
   return (
     <RuleEditorFrame error={error} onSave={onSave} onCancel={onCancel}>
       <RuleField label="匹配方式" hint={TYPE_HINTS[draft.pattern.type]}>
-        <SmallSelect
+        <Select
           label="匹配方式"
           value={draft.pattern.type}
           options={[
