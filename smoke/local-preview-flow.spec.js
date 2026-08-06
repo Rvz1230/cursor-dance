@@ -295,6 +295,22 @@ test("workbench dialogs, save toast, color picker, and slider controls are usabl
   // The 960px baseline keeps the theme library compact until the user expands it.
   await expect(workbenchPage.getByRole("button", { name: "展开主题库" })).toBeVisible();
   await workbenchPage.getByRole("button", { name: "展开主题库" }).click();
+  const themeLibrary = workbenchPage.getByRole("listbox", { name: "主题库" });
+  const themeSearch = workbenchPage.getByRole("textbox", { name: "搜索主题" });
+  await expect(themeLibrary.getByRole("option")).toHaveCount(5);
+  await expect.poll(() => themeLibrary.getByRole("option").evaluateAll((options) =>
+    options.filter((option) => option.tabIndex === 0).length,
+  )).toBe(1);
+
+  await themeSearch.fill("Smoke UX Theme");
+  await expect(themeLibrary.getByRole("option")).toHaveCount(1);
+  await expect(workbenchPage.getByText("1/5", { exact: true })).toBeVisible();
+  await workbenchPage.getByRole("button", { name: "清空搜索" }).click();
+  await themeSearch.press("ArrowDown");
+  await expect(themeLibrary.getByRole("option").first()).toBeFocused();
+  await themeLibrary.getByRole("option").first().press("End");
+  await expect(themeLibrary.getByRole("option").last()).toBeFocused();
+
   await workbenchPage.getByRole("button", { name: "Smoke UX Theme 更多操作" }).click();
   await workbenchPage.getByRole("button", { name: "复制" }).click();
   await expect(workbenchPage.getByText("已复制主题", { exact: true })).toBeVisible();
