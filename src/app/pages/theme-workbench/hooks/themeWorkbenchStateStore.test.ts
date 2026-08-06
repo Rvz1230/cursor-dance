@@ -131,6 +131,31 @@ describe("themeWorkbenchStateStore", () => {
     expect(hydratedState.domain.activeThemeId).toBe(defaultConfig.activeThemeId);
   });
 
+  it("composes editor, rules, and lifecycle reducers without changing unrelated partitions", () => {
+    const editorState = reducer(initialState, { type: "workspace/set", payload: "sites" });
+    const rulesState = reducer(editorState, {
+      type: "rules/add",
+      payload: {
+        collection: "siteRules",
+        rule: {
+          id: "docs-rule",
+          pattern: { type: "exact", value: "docs.example.com" },
+          action: "disable",
+        },
+      },
+    });
+
+    expect(rulesState.editor).toBe(editorState.editor);
+    expect(rulesState.domain.siteRules).toHaveLength(1);
+    expect(rulesState.domain.themes).toBe(editorState.domain.themes);
+    expect(rulesState.runtime).toBe(editorState.runtime);
+
+    const savingState = reducer(rulesState, { type: "save/start" });
+    expect(savingState.domain).toBe(rulesState.domain);
+    expect(savingState.editor).toBe(rulesState.editor);
+    expect(savingState.status.isSaving).toBe(true);
+  });
+
   it("returns the existing state for repeated navigation and enabled values", () => {
     expect(reducer(initialState, { type: "workspace/set", payload: initialState.editor.workspaceId })).toBe(initialState);
     expect(reducer(initialState, { type: "theme/select", payload: initialState.domain.activeThemeId })).toBe(initialState);

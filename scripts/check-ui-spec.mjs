@@ -818,7 +818,7 @@ const PARITY = [
   { cap: "内置主题不可删的约束", code: ["src/app/pages/theme-workbench/lib/themeWorkbenchThemeLifecycle.ts", /内置主题不能删除/], spec: [/内置主题不能删除/] },
   { cap: "光标：从主皮肤复制", code: ["src/app/pages/theme-workbench/hooks/workbenchCursorCommands.ts", /copyDefaultCursorSkinState/], spec: [/继承|从主皮肤/] },
   { cap: "光标：清除该状态", code: ["src/app/pages/theme-workbench/hooks/workbenchCursorCommands.ts", /clearCursorSkinState/], spec: [/清除|移除皮肤/] },
-  { cap: "规则：排序", code: ["src/app/pages/theme-workbench/hooks/themeWorkbenchStateStore.ts", /rules\/reorder/], spec: [/排序|⌥↑/] },
+  { cap: "规则：排序", code: ["src/app/pages/theme-workbench/hooks/state/workbenchRulesReducer.ts", /rules\/reorder/], spec: [/排序|⌥↑/] },
   // 第 1 批 A 的五个共享组件：稿子是它们的形态依据，两边都不能单方面消失
   { cap: "共享组件 PageHeader", code: ["src/components/ui/page-header.tsx", /export function PageHeader/], spec: [/PageHeader/] },
   { cap: "共享组件 EmptyState", code: ["src/components/ui/empty-state.tsx", /export function EmptyState/], spec: [/EmptyState/] },
