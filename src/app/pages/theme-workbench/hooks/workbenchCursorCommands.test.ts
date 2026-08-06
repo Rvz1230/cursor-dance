@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
+import { defaultKeyFeedbackConfig } from "@/shared/config/key-feedback";
 import { createWorkbenchCursorCommands } from "./workbenchCursorCommands";
-import type { CursorCommandDraft } from "./workbenchStateTypes";
+import type { WorkbenchThemeDraft } from "./workbenchStateTypes";
 
 function createHarness(cursorStateId = "pointer") {
   const defaultSkinState = { hotspot: { x: 2, y: 3 } };
   const skinStates: Record<string, typeof defaultSkinState> = { default: defaultSkinState };
-  let current: CursorCommandDraft = {
+  let current: WorkbenchThemeDraft = {
+    actionConfigs: {},
+    resetActionConfigs: {},
     cursorModes: { default: "源", pointer: "继承" },
     cursorStateActions: { default: "leftClick", pointer: "leftClick" },
     cursorStateAssets: { default: { size: 48 }, pointer: {} },
@@ -15,6 +18,9 @@ function createHarness(cursorStateId = "pointer") {
       transitionMs: 80,
       states: skinStates,
     },
+    keyFeedbackConfig: defaultKeyFeedbackConfig,
+    resetKeyFeedbackConfig: defaultKeyFeedbackConfig,
+    atmosphere: {},
   };
   const commands = createWorkbenchCursorCommands({
     selected: { cursorStateId },

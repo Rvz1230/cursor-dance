@@ -1,3 +1,5 @@
+import { isDesktop } from "@/shared/runtime";
+
 export {
   getActionAnimationConfig,
   getActionAudioConfig,
@@ -9,7 +11,7 @@ export {
   pickStoredActionConfigs as pickStoredWorkbenchActionConfigs,
 } from "@/shared/effect-core/action-config";
 
-export const TRIGGER_OPTIONS = {
+const WEB_TRIGGER_OPTIONS = {
   leftClick: {
     timing: ["按下时", "抬起时"],
     zones: ["当前页面可点击区域", "仅按钮和链接", "全部可交互元素"],
@@ -35,6 +37,32 @@ export const TRIGGER_OPTIONS = {
     zones: ["进入可交互元素", "仅按钮和链接", "全页面 hover"],
   },
 };
+
+const DESKTOP_TRIGGER_OPTIONS = {
+  leftClick: {
+    timing: ["按下时", "抬起时"],
+    zones: ["整屏", "中心区域", "屏幕边缘"],
+  },
+  rightClick: {
+    timing: ["按下时", "菜单弹出前"],
+    zones: ["整屏", "中心区域", "屏幕边缘"],
+  },
+  doubleClick: {
+    timing: ["第二次按下时", "第二次抬起后"],
+    zones: ["整屏", "中心区域", "屏幕边缘"],
+  },
+  longPress: {
+    timing: ["按住达到阈值", "松开后触发"],
+    zones: ["整屏", "中心区域", "屏幕边缘"],
+  },
+  wheel: {
+    timing: ["滚动开始时", "连续滚动中"],
+    zones: ["整屏", "仅向上滚动", "仅向下滚动"],
+  },
+};
+
+/** The editor only offers trigger zones that the active runtime can actually resolve. */
+export const TRIGGER_OPTIONS = isDesktop() ? DESKTOP_TRIGGER_OPTIONS : WEB_TRIGGER_OPTIONS;
 
 export const SOUND_FILE_OPTIONS = ["woodfish-soft.wav", "woodfish-deep.wav", "tick-light.wav", "chime-bright.wav", "pop-soft.wav", "swipe-whoosh.wav"];
 

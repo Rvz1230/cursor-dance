@@ -170,14 +170,42 @@ export function createRuntimeConfigCore(options: RuntimeConfigCoreOptions) {
   ): boolean {
     const zone = typeof triggerZone === "string" ? triggerZone : "";
     const element = asElement(target);
-    const pointerEvent = event as { pointerType?: string; deltaY?: number } | null;
+    const pointerEvent = event as {
+      pointerType?: string;
+      deltaY?: number;
+      x?: number;
+      y?: number;
+    } | null;
     const isInteractive = Boolean(element?.closest(interactiveSelector));
+    const x = Number(pointerEvent?.x);
+    const y = Number(pointerEvent?.y);
+    const viewportWidth = Number(window.innerWidth);
+    const viewportHeight = Number(window.innerHeight);
+    const hasScreenPoint = Number.isFinite(x)
+      && Number.isFinite(y)
+      && viewportWidth > 0
+      && viewportHeight > 0;
+    const edgeSize = Math.min(96, Math.max(40, Math.min(viewportWidth, viewportHeight) * 0.1));
     let matched = true;
 
-    if (zone.includes("按钮和链接")) matched = Boolean(element?.closest("a,button,[role='button']"));
-    else if (zone.includes("可交互元素")) matched = isInteractive;
-    else if (zone.includes("空白区域")) matched = !isInteractive;
-    else if (zone.includes("内容卡片")) matched = Boolean(element?.closest("article,section,li,div"));
+    if (zone.includes("中心区域")) {
+      matched = !hasScreenPoint || (
+        x >= viewportWidth * 0.25
+        && x <= viewportWidth * 0.75
+        && y >= viewportHeight * 0.25
+        && y <= viewportHeight * 0.75
+      );
+    } else if (zone.includes("屏幕边缘")) {
+      matched = !hasScreenPoint || (
+        x <= edgeSize
+        || x >= viewportWidth - edgeSize
+        || y <= edgeSize
+        || y >= viewportHeight - edgeSize
+      );
+    } else if (zone.includes("按钮和链接")) matched = element ? Boolean(element.closest("a,button,[role='button']")) : true;
+    else if (zone.includes("可交互元素")) matched = element ? isInteractive : true;
+    else if (zone.includes("空白区域")) matched = element ? !isInteractive : true;
+    else if (zone.includes("内容卡片")) matched = element ? Boolean(element.closest("article,section,li,div")) : true;
     else if (zone.includes("仅向上滚动")) matched = Number(pointerEvent?.deltaY) < 0;
     else if (zone.includes("仅向下滚动")) matched = Number(pointerEvent?.deltaY) > 0;
 
@@ -188,6 +216,8 @@ export function createRuntimeConfigCore(options: RuntimeConfigCoreOptions) {
       matched,
       pointerType: pointerEvent?.pointerType || null,
       deltaY: Number.isFinite(pointerEvent?.deltaY) ? pointerEvent?.deltaY : null,
+      x: Number.isFinite(pointerEvent?.x) ? pointerEvent?.x : null,
+      y: Number.isFinite(pointerEvent?.y) ? pointerEvent?.y : null,
       target: diagnostics.describeTarget?.(target) ?? null,
     });
     return matched;

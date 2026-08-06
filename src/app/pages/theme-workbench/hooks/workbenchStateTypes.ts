@@ -5,8 +5,32 @@ import type { RecentCursorAsset } from "../lib/storage/repository/types";
 import type { CursorDanceConfig } from "@/shared/config/default-config";
 
 export type WorkbenchActionConfig = Record<string, unknown>;
-export type CursorStateAsset = Record<string, unknown>;
-export type CursorSkinState = Record<string, unknown>;
+
+/** Legacy flat cursor asset kept at the Workbench persistence boundary. */
+export interface CursorStateAsset {
+  imageDataUrl?: string;
+  mimeType?: string;
+  hotspotX?: number;
+  hotspotY?: number;
+  size?: number;
+  sourceWidth?: number;
+  sourceHeight?: number;
+  name?: string;
+}
+
+/** Editable cursor-skin state. Fields are optional while the UI assembles a state. */
+export interface CursorSkinState {
+  image?: {
+    kind?: string;
+    mimeType?: string;
+    dataUrl?: string;
+    assetId?: string;
+    width?: number;
+    height?: number;
+  };
+  hotspot?: { x: number; y: number };
+  size?: { mode?: string; boxSize?: number };
+}
 
 interface WorkbenchCursorSkin {
   version: number;
@@ -54,6 +78,9 @@ export interface SiteRule {
   action: WorkbenchRuleAction;
   enabled?: boolean;
 }
+
+export type NewSiteRule = Omit<SiteRule, "id"> & { id?: string };
+export type NewAppRule = Omit<AppRule, "id"> & { id?: string };
 
 export interface WorkbenchSelection {
   themeId: string;
@@ -105,7 +132,10 @@ export type WorkbenchAction =
   | { type: "theme/library-remove"; payload: { themeId: string; nextSelectedThemeId?: string } }
   | { type: "theme/library-rename"; payload: { themeId: string; name: string } }
   | { type: "theme/library-update-icon"; payload: { themeId: string; icon: string } }
-  | { type: "rules/add"; payload: { collection: "siteRules" | "appRules"; rule: SiteRule | AppRule } }
+  | { type: "rules/add"; payload:
+      | { collection: "siteRules"; rule: NewSiteRule }
+      | { collection: "appRules"; rule: NewAppRule }
+    }
   | { type: "rules/update"; payload: { collection: "siteRules" | "appRules"; id: string; updates: Partial<SiteRule | AppRule> } }
   | { type: "rules/delete" | "rules/toggle"; payload: { collection: "siteRules" | "appRules"; id: string } }
   | { type: "rules/reorder"; payload: { collection: "siteRules" | "appRules"; from: number; to: number } }

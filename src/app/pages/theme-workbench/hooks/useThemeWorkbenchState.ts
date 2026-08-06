@@ -26,6 +26,8 @@ import { useWorkbenchUndo } from "./useWorkbenchUndo";
 import type { AppRule } from "@/shared/app-rules";
 import type { KeyFeedbackConfig } from "@/shared/config/key-feedback";
 import type {
+  NewAppRule,
+  NewSiteRule,
   SiteRule,
   WorkbenchActionConfig,
   WorkbenchConfigRef,
@@ -179,13 +181,13 @@ export function useThemeWorkbenchState() {
         },
       })),
     ...cursorCommands,
-    addSiteRule: (rule: SiteRule) => dispatch({ type: "rules/add", payload: { collection: "siteRules", rule } }),
+    addSiteRule: (rule: NewSiteRule) => dispatch({ type: "rules/add", payload: { collection: "siteRules", rule } }),
     updateSiteRule: (id: string, updates: Partial<SiteRule>) => dispatch({ type: "rules/update", payload: { collection: "siteRules", id, updates } }),
     deleteSiteRule: (id: string) => dispatch({ type: "rules/delete", payload: { collection: "siteRules", id } }),
     reorderSiteRules: (from: number, to: number) => dispatch({ type: "rules/reorder", payload: { collection: "siteRules", from, to } }),
     toggleSiteRule: (id: string) => dispatch({ type: "rules/toggle", payload: { collection: "siteRules", id } }),
     clearAllSiteRules: () => dispatch({ type: "rules/clear-all", payload: { collection: "siteRules" } }),
-    addAppRule: (rule: AppRule) => dispatch({ type: "rules/add", payload: { collection: "appRules", rule } }),
+    addAppRule: (rule: NewAppRule) => dispatch({ type: "rules/add", payload: { collection: "appRules", rule } }),
     updateAppRule: (id: string, updates: Partial<AppRule>) => dispatch({ type: "rules/update", payload: { collection: "appRules", id, updates } }),
     deleteAppRule: (id: string) => dispatch({ type: "rules/delete", payload: { collection: "appRules", id } }),
     reorderAppRules: (from: number, to: number) => dispatch({ type: "rules/reorder", payload: { collection: "appRules", from, to } }),

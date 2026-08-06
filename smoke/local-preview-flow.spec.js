@@ -292,7 +292,8 @@ test("workbench dialogs, save toast, color picker, and slider controls are usabl
   await workbenchPage.getByRole("button", { name: "创建主题" }).click();
   await expect(workbenchPage.getByText("已创建主题", { exact: true })).toBeVisible();
 
-  await workbenchPage.getByRole("button", { name: "展开主题库" }).click();
+  // The latest Workbench keeps the high-frequency theme library expanded by default.
+  await expect(workbenchPage.getByRole("button", { name: "收起主题库" })).toBeVisible();
   await workbenchPage.getByRole("button", { name: "Smoke UX Theme 更多操作" }).click();
   await workbenchPage.getByRole("button", { name: "复制" }).click();
   await expect(workbenchPage.getByText("已复制主题", { exact: true })).toBeVisible();

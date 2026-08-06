@@ -20,6 +20,8 @@ function createCore(action: ContextRuleActionV4 | null = null, diagnostics?: {
 }) {
   const window = {
     Element: FakeElement,
+    innerWidth: 1000,
+    innerHeight: 800,
     getComputedStyle: (target: FakeElement) => ({ cursor: target.cursor }),
   } as unknown as Window;
   return createRuntimeConfigCore({
@@ -77,5 +79,20 @@ describe("runtime config core", () => {
       matched: true,
       target: "button",
     }));
+  });
+
+  it("resolves desktop screen zones from overlay-local coordinates", () => {
+    const core = createCore();
+
+    expect(core.matchesTriggerZone(undefined, "中心区域", { x: 500, y: 400 })).toBe(true);
+    expect(core.matchesTriggerZone(undefined, "中心区域", { x: 50, y: 50 })).toBe(false);
+    expect(core.matchesTriggerZone(undefined, "屏幕边缘", { x: 50, y: 400 })).toBe(true);
+    expect(core.matchesTriggerZone(undefined, "屏幕边缘", { x: 500, y: 400 })).toBe(false);
+  });
+
+  it("treats legacy DOM-only zones as full-screen when desktop has no DOM target", () => {
+    const core = createCore();
+
+    expect(core.matchesTriggerZone(undefined, "仅按钮和链接", { x: 500, y: 400 })).toBe(true);
   });
 });

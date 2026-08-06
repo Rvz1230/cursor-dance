@@ -39,7 +39,7 @@
     "check:extension-bundle": "node scripts/check-extension-bundle-budget.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "typecheck:strict": "tsc --noEmit --project tsconfig.strict.json",
+    "typecheck:strict": "tsc --noEmit --project tsconfig.strict.json && tsc --noEmit --project tsconfig.app-strict.json",
     "extension:prepare-manifest": "node scripts/prepare-extension-manifest.mjs",
     "preview": "vite preview",
     "test": "vitest run",

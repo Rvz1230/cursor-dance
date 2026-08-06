@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.strict.json",
+  "include": [
+    "src/vite-env.d.ts",
+    "src/app/pages/theme-workbench/hooks/workbenchStateTypes.ts",
+    "src/app/pages/theme-workbench/hooks/useWorkbenchUndo.ts",
+    "src/app/pages/theme-workbench/components/cursor-skin/cursorSkinModel.ts",
+    "src/app/pages/theme-workbench/lib/cardResetFields.ts",
+    "src/app/pages/theme-workbench/lib/theme-draft/contextRuleAdapter.ts",
+    "src/app/pages/theme-workbench/lib/undoStack.ts",
+    "src/app/pages/theme-workbench/lib/storage/repository/types.ts",
+    "src/app/pages/theme-workbench/model/actionConfigOptions.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "extension"
+  ]
+}

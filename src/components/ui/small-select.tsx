@@ -12,5 +12,5 @@ export function SmallSelect<T extends string>({
   label?: string;
 }) {
   const disabled = !onChange;
-  return <Select value={value} options={options} onValueChange={onChange} disabled={disabled} aria-label={label || "选择配置项"} />;
+  return <Select value={value} options={options} onValueChange={onChange ? (nextValue) => onChange(nextValue as T) : undefined} disabled={disabled} aria-label={label || "选择配置项"} />;
 }

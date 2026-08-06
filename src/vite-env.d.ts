@@ -24,8 +24,8 @@ interface Chrome {
       setAccessLevel?: (options: { accessLevel: string }) => Promise<void>
     }
     onChanged: {
-      addListener: (callback: (changes: Record<string, { oldValue?: unknown; newValue?: unknown }>, areaName: string) => void) => void
-      removeListener: (callback: (...args: unknown[]) => void) => void
+      addListener: (callback: ChromeStorageChangedListener) => void
+      removeListener: (callback: ChromeStorageChangedListener) => void
     }
   }
   runtime: {
@@ -43,6 +43,11 @@ interface Chrome {
     sendMessage: (tabId: number, message: unknown) => Promise<unknown>
   }
 }
+
+type ChromeStorageChangedListener = (
+  changes: Record<string, { oldValue?: unknown; newValue?: unknown }>,
+  areaName: string,
+) => void
 
 interface Window {
   chrome?: Chrome

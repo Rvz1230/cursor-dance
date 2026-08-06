@@ -13,7 +13,7 @@ import type {
 interface WorkbenchCursorCommandOptions {
   selected: { cursorStateId: string };
   draft: CursorCommandDraft;
-  updateCurrentTheme: (updater: (current: CursorCommandDraft) => CursorCommandDraft) => void;
+  updateCurrentTheme: (updater: (current: WorkbenchThemeDraft) => WorkbenchThemeDraft) => void;
 }
 
 const createEmptyCursorSkin = (): WorkbenchThemeDraft["cursorSkin"] => ({

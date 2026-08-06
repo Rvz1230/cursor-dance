@@ -166,7 +166,7 @@ export function ThemeCard({
                     type="button"
                     className="shrink-0 flex size-5 items-center justify-center rounded text-slate-400 transition-colors hover:bg-slate-200 hover:text-slate-600"
                     onClick={(event) => { event.stopPropagation(); startRename(); }}
-                    aria-label="编辑主题名称"
+                    aria-label={`重命名“${theme.name}”`}
                     title="编辑名称"
                   >
                     <Pencil className="size-3" />
@@ -184,7 +184,7 @@ export function ThemeCard({
           <Button
             variant="ghost"
             size="icon"
-            className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-200 hover:text-slate-600"
+            className="absolute right-2 top-2 z-20 flex size-7 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-200 hover:text-slate-600"
             aria-label={`${theme.name} 更多操作`}
             onClick={(event) => event.stopPropagation()}
           >
