@@ -31,12 +31,12 @@ interface ThemeInput {
   atmosphere?: Record<string, unknown>;
 }
 
-type WorkbenchSiteInput = Pick<WorkbenchState["site"], "host"> & Partial<WorkbenchState["site"]>;
-type HydratedWorkbenchState = Pick<
-  WorkbenchState,
-  "workspaceId" | "selection" | "siteRules" | "appRules" | "themes" | "site"
-> & {
-  ui: Pick<WorkbenchState["ui"], "enabled" | "unsaved">;
+type WorkbenchSite = WorkbenchState["runtime"]["site"];
+type WorkbenchSiteInput = Pick<WorkbenchSite, "host"> & Partial<WorkbenchSite>;
+type HydratedWorkbenchState = {
+  domain: WorkbenchState["domain"];
+  runtime: Pick<WorkbenchState["runtime"], "site">;
+  status: Pick<WorkbenchState["status"], "unsaved">;
 };
 
 function buildDraftActionConfigs(
@@ -147,19 +147,19 @@ export function hydrateWorkbenchState(value: unknown, site: WorkbenchSiteInput):
   const rules = contextRulesToWorkbench(config.contextRules || []);
 
   return {
-    workspaceId: "workbench",
-    selection: {
-      themeId: resolveSelectedThemeId(themes, config.activeThemeId),
-      actionId: "leftClick",
-      cursorStateId: "default",
+    domain: {
+      enabled: config.enabled !== false,
+      activeThemeId: resolveSelectedThemeId(themes, config.activeThemeId),
+      themes,
+      ...rules,
     },
-    ...rules,
-    themes,
-    ui: { enabled: config.enabled !== false, unsaved: false },
-    site: {
-      host: site.host,
-      isSupportedPage: site.isSupportedPage ?? false,
-      tabId: site.tabId ?? null,
+    status: { unsaved: false },
+    runtime: {
+      site: {
+        host: site.host,
+        isSupportedPage: site.isSupportedPage ?? false,
+        tabId: site.tabId ?? null,
+      },
     },
   };
 }

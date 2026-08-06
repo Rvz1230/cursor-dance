@@ -160,8 +160,8 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
   const activeAppInfo = activeAppInfoFromSnapshot(activeWindowSnapshot);
   const workbenchAtmosphere = isExtension() ? draft?.atmosphere : undefined;
   const contextAction = isDesktop()
-    ? (activeAppInfo ? resolveAppRule(state.appRules, activeAppInfo) : null)
-    : getRuntimeConfig().resolveSiteRule(state.siteRules, state.site.host);
+    ? (activeAppInfo ? resolveAppRule(state.domain.appRules, activeAppInfo) : null)
+    : getRuntimeConfig().resolveSiteRule(state.domain.siteRules, state.runtime.site.host);
 
   // 撤销 / 重做：快捷键与工具栏按钮走同一条路径，不写两遍
   function runUndo() {
@@ -191,7 +191,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
     // 形态见 docs/ui-spec/surfaces/01-workbench.html 的 ⌘K 面板。
   });
 
-  if (!state.ui.isHydrated) {
+  if (!state.status.isHydrated) {
     return <div className="h-dvh bg-slate-100" />;
   }
 
@@ -219,15 +219,15 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
 
   const headerProps: WorkbenchHeaderProps = {
     workspaceItems,
-    workspaceId: state.workspaceId,
+    workspaceId: state.editor.workspaceId,
     setWorkspaceId,
-    enabled: state.ui.enabled,
+    enabled: state.domain.enabled,
     setEnabled,
-    unsaved: state.ui.unsaved,
+    unsaved: state.status.unsaved,
     undo: { run: runUndo, label: undoStack.undoLabel(selected.themeId) },
     redo: { run: runRedo, label: undoStack.redoLabel(selected.themeId) },
-    isSaving: state.ui.isSaving,
-    saveError: state.ui.saveError,
+    isSaving: state.status.isSaving,
+    saveError: state.status.saveError,
     saveChanges: () => { void handleSaveChanges(); },
     resetCurrentTheme: handleResetCurrentTheme,
     aiPanelOpen,
@@ -266,7 +266,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
               renameTheme={renameTheme}
               updateThemeIcon={updateThemeIcon}
               notify={toast}
-              dirtyThemes={state.ui.dirtyThemes}
+              dirtyThemes={state.status.dirtyThemes}
               saveChanges={saveChanges}
               discardThemeChanges={discardThemeChanges}
             />
@@ -362,7 +362,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                 </div>
               ) : null}
 
-              {state.workspaceId === "states" ? (
+              {state.editor.workspaceId === "states" ? (
                 <div className="h-full overflow-y-auto pr-1">
                   <Suspense fallback={<DeferredPanelFallback label="正在加载光标皮肤…" />}>
                     <StatesPanel
@@ -380,12 +380,12 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                 </div>
               ) : null}
 
-              {state.workspaceId === "sites" ? (
+              {state.editor.workspaceId === "sites" ? (
                 <div className="h-full overflow-y-auto pr-1">
                   <Suspense fallback={<DeferredPanelFallback label="正在加载应用规则…" />}>
                     {isDesktop() ? (
                       <AppRulesPanel
-                        appRules={state.appRules}
+                        appRules={state.domain.appRules}
                         themes={themes}
                         activeApp={activeWindowSnapshot}
                         openAccessibilitySettings={openAccessibilitySettings}
@@ -398,9 +398,9 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                       />
                     ) : (
                       <SiteRulesPanel
-                        siteRules={state.siteRules}
+                        siteRules={state.domain.siteRules}
                         themes={themes}
-                        activeHost={state.site.host}
+                        activeHost={state.runtime.site.host}
                         addSiteRule={addSiteRule}
                         updateSiteRule={updateSiteRule}
                         deleteSiteRule={deleteSiteRule}
@@ -413,7 +413,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                 </div>
               ) : null}
 
-              {state.workspaceId === "diagnostics" ? (
+              {state.editor.workspaceId === "diagnostics" ? (
                 <div className="h-full overflow-y-auto pr-1">
                   <Suspense fallback={<DeferredPanelFallback label="正在加载诊断面板…" />}>
                     <DiagnosticsPanel selectedThemeId={selected.themeId} />
@@ -421,7 +421,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                 </div>
               ) : null}
 
-              {state.workspaceId === "keyboard" ? (
+              {state.editor.workspaceId === "keyboard" ? (
                 <Suspense fallback={<DeferredPanelFallback label="正在加载键盘动效…" />}>
                   <KeyboardPanel
                     config={keyFeedbackConfig}

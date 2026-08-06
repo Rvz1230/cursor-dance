@@ -22,29 +22,33 @@ import { findWorkbenchTheme } from "./workbenchThemeSelectors";
 export const INITIAL_THEME_STATE = createWorkbenchThemeState(THEMES);
 
 export const initialState: WorkbenchState = {
-  workspaceId: "workbench",
-  selection: {
-    themeId: INITIAL_THEME_STATE.selectedThemeId,
+  domain: {
+    enabled: true,
+    activeThemeId: INITIAL_THEME_STATE.selectedThemeId,
+    themes: INITIAL_THEME_STATE.themes,
+    siteRules: [],
+    appRules: [],
+  },
+  editor: {
+    workspaceId: "workbench",
     actionId: "leftClick",
     cursorStateId: "default",
   },
-  siteRules: [],
-  appRules: [],
-  ui: {
-    enabled: true,
+  status: {
     unsaved: true,
     isHydrated: false,
     isSaving: false,
     saveError: "",
     dirtyThemes: {},
   },
-  site: {
-    host: "example.com",
-    isSupportedPage: false,
-    tabId: null,
+  runtime: {
+    site: {
+      host: "example.com",
+      isSupportedPage: false,
+      tabId: null,
+    },
+    recentCursorAssets: [],
   },
-  recentCursorAssets: [],
-  themes: INITIAL_THEME_STATE.themes,
 };
 
 function replaceTheme(
@@ -60,10 +64,12 @@ export function reducer(state: WorkbenchState, action: WorkbenchAction): Workben
     case "hydrate":
       return {
         ...state,
-        ...action.payload,
-        ui: {
-          ...state.ui,
-          ...action.payload.ui,
+        domain: { ...state.domain, ...action.payload.domain },
+        editor: { ...state.editor, ...action.payload.editor },
+        runtime: { ...state.runtime, ...action.payload.runtime },
+        status: {
+          ...state.status,
+          ...action.payload.status,
           isHydrated: true,
           isSaving: false,
           saveError: "",
@@ -71,78 +77,91 @@ export function reducer(state: WorkbenchState, action: WorkbenchAction): Workben
         },
       };
     case "workspace/set":
-      if (state.workspaceId === action.payload) return state;
+      if (state.editor.workspaceId === action.payload) return state;
       return {
         ...state,
-        workspaceId: action.payload,
+        editor: { ...state.editor, workspaceId: action.payload },
       };
     case "theme/select":
-      if (state.selection.themeId === action.payload) return state;
+      if (state.domain.activeThemeId === action.payload) return state;
       return {
         ...state,
-        selection: { ...state.selection, themeId: action.payload },
-        ui: { ...state.ui, unsaved: true, saveError: "" },
+        domain: { ...state.domain, activeThemeId: action.payload },
+        status: { ...state.status, unsaved: true, saveError: "" },
       };
     case "theme/add": {
       const { theme, select = true } = action.payload;
       return {
         ...state,
-        themes: [...state.themes, theme],
-        selection: select ? { ...state.selection, themeId: theme.meta.id } : state.selection,
-        ui: { ...state.ui, unsaved: true, saveError: "" },
+        domain: {
+          ...state.domain,
+          themes: [...state.domain.themes, theme],
+          activeThemeId: select ? theme.meta.id : state.domain.activeThemeId,
+        },
+        status: { ...state.status, unsaved: true, saveError: "" },
       };
     }
     case "theme/remove": {
       const { themeId, nextSelectedThemeId } = action.payload;
-      const nextDirtyThemes = { ...state.ui.dirtyThemes };
+      const nextDirtyThemes = { ...state.status.dirtyThemes };
       delete nextDirtyThemes[themeId];
       return {
         ...state,
-        themes: state.themes.filter((theme) => theme.meta.id !== themeId),
-        selection: {
-          ...state.selection,
-          themeId: nextSelectedThemeId || state.selection.themeId,
+        domain: {
+          ...state.domain,
+          themes: state.domain.themes.filter((theme) => theme.meta.id !== themeId),
+          activeThemeId: nextSelectedThemeId || state.domain.activeThemeId,
         },
-        ui: { ...state.ui, unsaved: true, saveError: "", dirtyThemes: nextDirtyThemes },
+        status: { ...state.status, unsaved: true, saveError: "", dirtyThemes: nextDirtyThemes },
       };
     }
     case "theme/rename": {
       const { themeId, name } = action.payload;
       return {
         ...state,
-        themes: replaceTheme(state.themes, themeId, (theme) => ({
-          ...theme,
-          meta: { ...theme.meta, name },
-        })),
-        ui: { ...state.ui, unsaved: true, saveError: "", dirtyThemes: { ...state.ui.dirtyThemes, [themeId]: true } },
+        domain: {
+          ...state.domain,
+          themes: replaceTheme(state.domain.themes, themeId, (theme) => ({
+            ...theme,
+            meta: { ...theme.meta, name },
+          })),
+        },
+        status: { ...state.status, unsaved: true, saveError: "", dirtyThemes: { ...state.status.dirtyThemes, [themeId]: true } },
       };
     }
     case "theme/update-icon": {
       const { themeId, icon } = action.payload;
       return {
         ...state,
-        themes: replaceTheme(state.themes, themeId, (theme) => ({
-          ...theme,
-          meta: { ...theme.meta, icon },
-        })),
-        ui: { ...state.ui, unsaved: true, saveError: "", dirtyThemes: { ...state.ui.dirtyThemes, [themeId]: true } },
+        domain: {
+          ...state.domain,
+          themes: replaceTheme(state.domain.themes, themeId, (theme) => ({
+            ...theme,
+            meta: { ...theme.meta, icon },
+          })),
+        },
+        status: { ...state.status, unsaved: true, saveError: "", dirtyThemes: { ...state.status.dirtyThemes, [themeId]: true } },
       };
     }
     case "action/select":
-      if (state.selection.actionId === action.payload) return state;
+      if (state.editor.actionId === action.payload) return state;
       return {
         ...state,
-        selection: { ...state.selection, actionId: action.payload },
+        editor: { ...state.editor, actionId: action.payload },
       };
     case "cursor-state/select":
-      if (state.selection.cursorStateId === action.payload) return state;
+      if (state.editor.cursorStateId === action.payload) return state;
       return {
         ...state,
-        selection: { ...state.selection, cursorStateId: action.payload },
+        editor: { ...state.editor, cursorStateId: action.payload },
       };
     case "global-enabled/set":
-      if (state.ui.enabled === action.payload) return state;
-      return { ...state, ui: { ...state.ui, enabled: action.payload, unsaved: true, saveError: "" } };
+      if (state.domain.enabled === action.payload) return state;
+      return {
+        ...state,
+        domain: { ...state.domain, enabled: action.payload },
+        status: { ...state.status, unsaved: true, saveError: "" },
+      };
     case "rules/add": {
       const collection = action.payload?.collection === "appRules" ? "appRules" : "siteRules";
       const rule = action.payload?.rule;
@@ -156,13 +175,13 @@ export function reducer(state: WorkbenchState, action: WorkbenchAction): Workben
       return collection === "appRules"
         ? {
             ...state,
-            appRules: [...state.appRules, newRule as AppRule],
-            ui: { ...state.ui, unsaved: true, saveError: "" },
+            domain: { ...state.domain, appRules: [...state.domain.appRules, newRule as AppRule] },
+            status: { ...state.status, unsaved: true, saveError: "" },
           }
         : {
             ...state,
-            siteRules: [...state.siteRules, newRule as SiteRule],
-            ui: { ...state.ui, unsaved: true, saveError: "" },
+            domain: { ...state.domain, siteRules: [...state.domain.siteRules, newRule as SiteRule] },
+            status: { ...state.status, unsaved: true, saveError: "" },
           };
     }
     case "rules/update": {
@@ -171,18 +190,24 @@ export function reducer(state: WorkbenchState, action: WorkbenchAction): Workben
       if (collection === "appRules") {
         return {
           ...state,
-          appRules: state.appRules.map((rule) =>
-            rule.id === id ? { ...rule, ...(updates as Partial<AppRule>) } : rule
-          ),
-          ui: { ...state.ui, unsaved: true, saveError: "" },
+          domain: {
+            ...state.domain,
+            appRules: state.domain.appRules.map((rule) =>
+              rule.id === id ? { ...rule, ...(updates as Partial<AppRule>) } : rule
+            ),
+          },
+          status: { ...state.status, unsaved: true, saveError: "" },
         };
       }
       return {
         ...state,
-        siteRules: state.siteRules.map((rule) =>
-          rule.id === id ? { ...rule, ...(updates as Partial<SiteRule>) } : rule
-        ),
-        ui: { ...state.ui, unsaved: true, saveError: "" },
+        domain: {
+          ...state.domain,
+          siteRules: state.domain.siteRules.map((rule) =>
+            rule.id === id ? { ...rule, ...(updates as Partial<SiteRule>) } : rule
+          ),
+        },
+        status: { ...state.status, unsaved: true, saveError: "" },
       };
     }
     case "rules/delete": {
@@ -190,20 +215,23 @@ export function reducer(state: WorkbenchState, action: WorkbenchAction): Workben
       const ruleId = action.payload?.id;
       return {
         ...state,
-        [collection]: state[collection].filter((rule) => rule.id !== ruleId),
-        ui: { ...state.ui, unsaved: true, saveError: "" },
+        domain: {
+          ...state.domain,
+          [collection]: state.domain[collection].filter((rule) => rule.id !== ruleId),
+        },
+        status: { ...state.status, unsaved: true, saveError: "" },
       };
     }
     case "rules/reorder": {
       const collection = action.payload?.collection === "appRules" ? "appRules" : "siteRules";
       const { from, to } = action.payload;
-      const nextRules = [...state[collection]];
+      const nextRules = [...state.domain[collection]];
       const [moved] = nextRules.splice(from, 1);
       nextRules.splice(to, 0, moved);
       return {
         ...state,
-        [collection]: nextRules,
-        ui: { ...state.ui, unsaved: true, saveError: "" },
+        domain: { ...state.domain, [collection]: nextRules },
+        status: { ...state.status, unsaved: true, saveError: "" },
       };
     }
     case "rules/toggle": {
@@ -211,98 +239,115 @@ export function reducer(state: WorkbenchState, action: WorkbenchAction): Workben
       const ruleId = action.payload?.id;
       return {
         ...state,
-        [collection]: state[collection].map((rule) =>
-          rule.id === ruleId ? { ...rule, enabled: !rule.enabled } : rule
-        ),
-        ui: { ...state.ui, unsaved: true, saveError: "" },
+        domain: {
+          ...state.domain,
+          [collection]: state.domain[collection].map((rule) =>
+            rule.id === ruleId ? { ...rule, enabled: !rule.enabled } : rule
+          ),
+        },
+        status: { ...state.status, unsaved: true, saveError: "" },
       };
     }
     case "rules/clear-all": {
       const collection = action.payload?.collection === "appRules" ? "appRules" : "siteRules";
       return {
         ...state,
-        [collection]: [],
-        ui: { ...state.ui, unsaved: true, saveError: "" },
+        domain: { ...state.domain, [collection]: [] },
+        status: { ...state.status, unsaved: true, saveError: "" },
       };
     }
     case "save/start":
-      return { ...state, ui: { ...state.ui, isSaving: true, saveError: "" } };
+      return { ...state, status: { ...state.status, isSaving: true, saveError: "" } };
     case "save/success":
       if (action.payload?.preserveUnsaved) {
         return {
           ...state,
-          ui: { ...state.ui, isSaving: false, saveError: "" },
+          status: { ...state.status, isSaving: false, saveError: "" },
         };
       }
       return {
         ...state,
-        ui: { ...state.ui, unsaved: false, isSaving: false, saveError: "", dirtyThemes: {} },
+        status: { ...state.status, unsaved: false, isSaving: false, saveError: "", dirtyThemes: {} },
       };
     case "save/error":
-      return { ...state, ui: { ...state.ui, isSaving: false, saveError: action.payload || "保存失败" } };
+      return { ...state, status: { ...state.status, isSaving: false, saveError: action.payload || "保存失败" } };
     case "recent-assets/set":
-      return { ...state, recentCursorAssets: action.payload };
+      return { ...state, runtime: { ...state.runtime, recentCursorAssets: action.payload } };
     case "theme/update-current": {
-      const themeId = state.selection.themeId;
-      const currentTheme = findWorkbenchTheme(state.themes, themeId);
+      const themeId = state.domain.activeThemeId;
+      const currentTheme = findWorkbenchTheme(state.domain.themes, themeId);
       if (!currentTheme) return state;
       return {
         ...state,
-        ui: { ...state.ui, unsaved: true, saveError: "", dirtyThemes: { ...state.ui.dirtyThemes, [themeId]: true } },
-        themes: replaceTheme(state.themes, themeId, (theme) => ({
-          ...theme,
-          draft: action.payload(theme.draft),
-        })),
+        status: { ...state.status, unsaved: true, saveError: "", dirtyThemes: { ...state.status.dirtyThemes, [themeId]: true } },
+        domain: {
+          ...state.domain,
+          themes: replaceTheme(state.domain.themes, themeId, (theme) => ({
+            ...theme,
+            draft: action.payload(theme.draft),
+          })),
+        },
       };
     }
     case "theme/reset-current": {
-      const themeId = state.selection.themeId;
+      const themeId = state.domain.activeThemeId;
       const resetDraft = createThemeDraft(themeId);
-      const currentDraft = findWorkbenchTheme(state.themes, themeId)?.draft;
+      const currentDraft = findWorkbenchTheme(state.domain.themes, themeId)?.draft;
+      if (!currentDraft) return state;
       const resetActionConfigs = currentDraft?.resetActionConfigs || resetDraft.resetActionConfigs;
       const resetKeyFeedbackConfig = normalizeKeyFeedbackConfig(currentDraft?.resetKeyFeedbackConfig || resetDraft.resetKeyFeedbackConfig);
       return {
         ...state,
-        ui: { ...state.ui, unsaved: true, saveError: "", dirtyThemes: { ...state.ui.dirtyThemes, [themeId]: true } },
-        themes: replaceTheme(state.themes, themeId, (theme) => ({
-          ...theme,
-          draft: {
-            ...resetDraft,
-            actionConfigs: resetActionConfigs,
-            resetActionConfigs,
-            keyFeedbackConfig: resetKeyFeedbackConfig,
-            resetKeyFeedbackConfig,
-          },
-        })),
+        status: { ...state.status, unsaved: true, saveError: "", dirtyThemes: { ...state.status.dirtyThemes, [themeId]: true } },
+        domain: {
+          ...state.domain,
+          themes: replaceTheme(state.domain.themes, themeId, (theme) => ({
+            ...theme,
+            draft: {
+              ...resetDraft,
+              actionConfigs: resetActionConfigs,
+              resetActionConfigs,
+              keyFeedbackConfig: resetKeyFeedbackConfig,
+              resetKeyFeedbackConfig,
+            },
+          })),
+        },
       };
     }
     case "theme/discard-changes": {
       const { themeId, draft } = action.payload;
-      const nextDirtyThemes = { ...state.ui.dirtyThemes };
+      const nextDirtyThemes = { ...state.status.dirtyThemes };
       delete nextDirtyThemes[themeId];
       const hasDirty = Object.keys(nextDirtyThemes).length > 0;
       return {
         ...state,
-        ui: { ...state.ui, unsaved: hasDirty, dirtyThemes: nextDirtyThemes },
-        themes: replaceTheme(state.themes, themeId, (theme) => ({ ...theme, draft })),
+        status: { ...state.status, unsaved: hasDirty, dirtyThemes: nextDirtyThemes },
+        domain: {
+          ...state.domain,
+          themes: replaceTheme(state.domain.themes, themeId, (theme) => ({ ...theme, draft })),
+        },
       };
     }
     case "key-feedback/update": {
-      const themeId = state.selection.themeId;
-      const currentDraft = findWorkbenchTheme(state.themes, themeId)?.draft || createThemeDraft(themeId);
+      const themeId = state.domain.activeThemeId;
+      const currentDraft = findWorkbenchTheme(state.domain.themes, themeId)?.draft;
+      if (!currentDraft) return state;
       return {
         ...state,
-        ui: { ...state.ui, unsaved: true, saveError: "", dirtyThemes: { ...state.ui.dirtyThemes, [themeId]: true } },
-        themes: replaceTheme(state.themes, themeId, (theme) => ({
-          ...theme,
-          draft: {
-            ...currentDraft,
-            keyFeedbackConfig: normalizeKeyFeedbackConfig({
-              ...(currentDraft.keyFeedbackConfig || {}),
-              ...action.payload,
-            }),
-          },
-        })),
+        status: { ...state.status, unsaved: true, saveError: "", dirtyThemes: { ...state.status.dirtyThemes, [themeId]: true } },
+        domain: {
+          ...state.domain,
+          themes: replaceTheme(state.domain.themes, themeId, (theme) => ({
+            ...theme,
+            draft: {
+              ...currentDraft,
+              keyFeedbackConfig: normalizeKeyFeedbackConfig({
+                ...(currentDraft.keyFeedbackConfig || {}),
+                ...action.payload,
+              }),
+            },
+          })),
+        },
       };
     }
     default:

@@ -58,7 +58,7 @@ export function createWorkbenchThemeCommands({ state, selected, configRef, dispa
     dispatch({
       type: "theme/add",
       payload: buildCreateThemePayload(
-        state.themes,
+        state.domain.themes,
         { name, description, basedOnThemeId },
       ),
     });
@@ -66,7 +66,7 @@ export function createWorkbenchThemeCommands({ state, selected, configRef, dispa
 
   function duplicateTheme(themeId = selected.themeId): string {
     const { duplicatedName, payload } = buildDuplicateThemePayload(
-      state.themes,
+      state.domain.themes,
       themeId,
     );
     dispatch({ type: "theme/add", payload });
@@ -74,7 +74,7 @@ export function createWorkbenchThemeCommands({ state, selected, configRef, dispa
   }
 
   function deleteTheme(themeId = selected.themeId): string {
-    const { themeName, nextSelectedThemeId } = buildDeleteThemePlan(state.themes, themeId);
+    const { themeName, nextSelectedThemeId } = buildDeleteThemePlan(state.domain.themes, themeId);
     dispatch({
       type: "theme/remove",
       payload: { themeId, nextSelectedThemeId },
@@ -83,13 +83,13 @@ export function createWorkbenchThemeCommands({ state, selected, configRef, dispa
   }
 
   async function exportTheme(themeId = selected.themeId): Promise<{ fileName: string; payload: unknown } | null> {
-    const theme = state.themes.find((item) => item.meta.id === themeId);
+    const theme = state.domain.themes.find((item) => item.meta.id === themeId);
     if (!theme) throw new Error("导出失败：没有找到要导出的主题。");
 
     const previousConfig = configRef.current ?? {
       schemaVersion: 4,
-      enabled: state.ui.enabled,
-      activeThemeId: state.selection.themeId,
+      enabled: state.domain.enabled,
+      activeThemeId: state.domain.activeThemeId,
       themes: [],
       contextRules: [],
       performance: { maxActiveEffects: 48 },
@@ -109,14 +109,14 @@ export function createWorkbenchThemeCommands({ state, selected, configRef, dispa
     }
     dispatch({
       type: "theme/add",
-      payload: buildImportedThemePayload(state.themes, parsed, fileName),
+      payload: buildImportedThemePayload(state.domain.themes, parsed, fileName),
     });
   }
 
   function renameTheme(themeId: string, name: string): boolean {
     const trimmed = name.trim();
     if (!trimmed) return false;
-    const exists = state.themes.some(
+    const exists = state.domain.themes.some(
       (theme) => theme.meta.id !== themeId && theme.meta.name.toLowerCase() === trimmed.toLowerCase(),
     );
     if (exists) return false;

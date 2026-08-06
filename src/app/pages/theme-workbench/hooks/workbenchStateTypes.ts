@@ -64,8 +64,21 @@ export interface WorkbenchSelection {
   cursorStateId: string;
 }
 
-interface WorkbenchUiState {
+interface WorkbenchDomainState {
   enabled: boolean;
+  activeThemeId: string;
+  themes: WorkbenchTheme[];
+  siteRules: SiteRule[];
+  appRules: AppRule[];
+}
+
+interface WorkbenchEditorState {
+  workspaceId: string;
+  actionId: string;
+  cursorStateId: string;
+}
+
+interface WorkbenchStatusState {
   unsaved: boolean;
   isHydrated: boolean;
   isSaving: boolean;
@@ -73,30 +86,29 @@ interface WorkbenchUiState {
   dirtyThemes: Record<string, boolean>;
 }
 
-export interface WorkbenchState {
-  workspaceId: string;
-  selection: WorkbenchSelection;
-  siteRules: SiteRule[];
-  appRules: AppRule[];
-  ui: WorkbenchUiState;
+interface WorkbenchRuntimeState {
   site: {
     host: string;
     isSupportedPage: boolean;
     tabId: number | null;
   };
   recentCursorAssets: RecentCursorAsset[];
-  themes: WorkbenchTheme[];
 }
 
-export type WorkbenchPersistableState = Pick<
-  WorkbenchState,
-  "selection" | "siteRules" | "appRules" | "themes"
-> & {
-  ui: Pick<WorkbenchUiState, "enabled">;
-};
+export interface WorkbenchState {
+  domain: WorkbenchDomainState;
+  editor: WorkbenchEditorState;
+  status: WorkbenchStatusState;
+  runtime: WorkbenchRuntimeState;
+}
 
-type HydratePayload = Partial<Omit<WorkbenchState, "ui">> & {
-  ui?: Partial<WorkbenchUiState>;
+export type WorkbenchPersistableState = Pick<WorkbenchState, "domain">;
+
+type HydratePayload = {
+  domain?: Partial<WorkbenchDomainState>;
+  editor?: Partial<WorkbenchEditorState>;
+  status?: Partial<WorkbenchStatusState>;
+  runtime?: Partial<WorkbenchRuntimeState>;
 };
 
 export type WorkbenchAction =

@@ -42,17 +42,21 @@ export function useThemeWorkbenchState() {
   stateRef.current = state;
   useThemeWorkbenchPersistence({ state, dispatch, configRef });
 
-  const selected = state.selection;
+  const selected = useMemo(() => ({
+    themeId: state.domain.activeThemeId,
+    actionId: state.editor.actionId,
+    cursorStateId: state.editor.cursorStateId,
+  }), [state.domain.activeThemeId, state.editor.actionId, state.editor.cursorStateId]);
   const selectedTheme = useMemo(
-    () => findWorkbenchTheme(state.themes, selected.themeId) ?? state.themes[0] ?? INITIAL_THEME_STATE.themes[0],
-    [selected.themeId, state.themes]
+    () => findWorkbenchTheme(state.domain.themes, selected.themeId) ?? state.domain.themes[0] ?? INITIAL_THEME_STATE.themes[0],
+    [selected.themeId, state.domain.themes]
   );
   const activeTheme = selectedTheme.meta;
   const draft = selectedTheme.draft;
-  const themeMetadata = useMemo(() => state.themes.map((theme) => theme.meta), [state.themes]);
+  const themeMetadata = useMemo(() => state.domain.themes.map((theme) => theme.meta), [state.domain.themes]);
   const currentActionConfig = draft.actionConfigs[selected.actionId];
   const currentConflicts = getConflictsForAction(selected.actionId, draft.actionConfigs);
-  const isWorkbench = state.workspaceId === "workbench";
+  const isWorkbench = state.editor.workspaceId === "workbench";
 
   /**
    * 撤销：把当前主题草稿恢复成快照。刻意**不**经过 updateCurrentTheme，
@@ -94,8 +98,8 @@ export function useThemeWorkbenchState() {
       const savedConfig = await writeExtensionConfig(nextConfig);
       configRef.current = savedConfig;
       const latestState = stateRef.current;
-      const hasStaleSelection = latestState.selection.themeId !== nextConfig.activeThemeId;
-      if (!latestState.ui.unsaved || !hasStaleSelection) {
+      const hasStaleSelection = latestState.domain.activeThemeId !== nextConfig.activeThemeId;
+      if (!latestState.status.unsaved || !hasStaleSelection) {
         await clearLivePreviewConfig();
       }
       dispatch({ type: "save/success", payload: { preserveUnsaved: hasStaleSelection } });
@@ -136,7 +140,7 @@ export function useThemeWorkbenchState() {
     ).filter((item) => item.id !== "keyboard" || isDesktop()),
     actionItems: PLATFORM_ACTIONS,
     cursorStates: CURSOR_STATES,
-    recentCursorAssets: state.recentCursorAssets,
+    recentCursorAssets: state.runtime.recentCursorAssets,
     setWorkspaceId: (value: string) => dispatch({ type: "workspace/set", payload: value }),
     setThemeId: (value: string) => dispatch({ type: "theme/select", payload: value }),
     setActionId: (value: string) => dispatch({ type: "action/select", payload: value }),

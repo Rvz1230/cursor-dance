@@ -17,8 +17,8 @@ function hydrate(config: unknown = defaultConfig) {
   return hydrateWorkbenchState(config, { host: "example.com" });
 }
 
-function getTheme(state: ReturnType<typeof hydrateWorkbenchState>, themeId = state.selection.themeId) {
-  const theme = state.themes.find((item) => item.meta.id === themeId);
+function getTheme(state: ReturnType<typeof hydrateWorkbenchState>, themeId = state.domain.activeThemeId) {
+  const theme = state.domain.themes.find((item) => item.meta.id === themeId);
   if (!theme) throw new Error(`Missing workbench theme: ${themeId}`);
   return theme;
 }
@@ -37,7 +37,7 @@ describe("themeDraftAdapter schema v4", () => {
     };
     const state = hydrate({ ...defaultConfig, themes: [theme], activeThemeId: theme.id });
 
-    expect(state.selection.themeId).toBe(theme.id);
+    expect(state.domain.activeThemeId).toBe(theme.id);
     expect(getTheme(state, theme.id).draft.actionConfigs.leftClick.textContent).toBe("已保存");
     expect(getTheme(state, theme.id).draft.keyFeedbackConfig.color).toBe("#00FFAA");
     expect(getTheme(state, theme.id).draft.cursorSkin).toEqual(theme.cursorSkin);
@@ -64,13 +64,13 @@ describe("themeDraftAdapter schema v4", () => {
       ],
     });
 
-    expect(state.siteRules).toEqual([{
+    expect(state.domain.siteRules).toEqual([{
       id: "web-docs",
       enabled: true,
       pattern: { type: "path", hostType: "glob", value: "*.example.com/docs" },
       action: { enable: true, theme: "drift" },
     }]);
-    expect(state.appRules).toEqual([{
+    expect(state.domain.appRules).toEqual([{
       id: "desktop-code",
       enabled: true,
       pattern: { type: "exact", target: "process", value: "Code" },
@@ -80,8 +80,8 @@ describe("themeDraftAdapter schema v4", () => {
 
   it("persists only canonical v4 root and theme fields", () => {
     const state = hydrate();
-    state.ui.enabled = false;
-    state.selection.themeId = "drift";
+    state.domain.enabled = false;
+    state.domain.activeThemeId = "drift";
     const stored = buildStoredConfigFromWorkbench(defaultConfig, state);
 
     expect(Object.keys(stored).sort()).toEqual([
@@ -97,13 +97,13 @@ describe("themeDraftAdapter schema v4", () => {
 
   it("round-trips web and desktop rules through contextRules", () => {
     const state = hydrate();
-    state.siteRules = [{
+    state.domain.siteRules = [{
       id: "web-rule",
       enabled: true,
       pattern: { type: "path", hostType: "glob", value: "*.example.com/docs" },
       action: { enable: true, theme: "sunset" },
     }];
-    state.appRules = [{
+    state.domain.appRules = [{
       id: "app-rule",
       enabled: true,
       pattern: { type: "exact", target: "title", value: "Focus" },
@@ -128,8 +128,8 @@ describe("themeDraftAdapter schema v4", () => {
       },
     ]);
     const rehydrated = hydrate(stored);
-    expect(rehydrated.siteRules).toEqual(state.siteRules);
-    expect(rehydrated.appRules).toEqual(state.appRules);
+    expect(rehydrated.domain.siteRules).toEqual(state.domain.siteRules);
+    expect(rehydrated.domain.appRules).toEqual(state.domain.appRules);
   });
 
   it("builds preview and stored themes without editor-only fields", () => {
@@ -171,7 +171,7 @@ describe("themeDraftAdapter schema v4", () => {
     const stored = buildStoredConfigFromWorkbench(defaultConfig, state);
     expect(stored.themes[0].cursorBindings.pointer).toEqual({ mode: "override", actionId: "rightClick" });
     const rehydrated = hydrate(stored);
-    const nextDraft = getTheme(rehydrated, state.selection.themeId).draft;
+    const nextDraft = getTheme(rehydrated, state.domain.activeThemeId).draft;
     expect(nextDraft.cursorBindings.pointer).toEqual({ mode: "override", actionId: "rightClick" });
     expect(nextDraft.cursorSkin.states.pointer.image).toMatchObject({
       kind: "dataUrl",

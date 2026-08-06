@@ -39,6 +39,7 @@ export function useThemeWorkbenchPersistence({ state, dispatch, configRef }) {
       configRef.current = config;
 
       const hydratedState = hydrateWorkbenchState(config, site);
+      const editor = { ...stateRef.current.editor };
 
       // Apply editor state from separate storage on top of config defaults,
       // so navigation context (workspace, theme, action, cursor) survives refresh
@@ -46,29 +47,36 @@ export function useThemeWorkbenchPersistence({ state, dispatch, configRef }) {
       if (editorState) {
         const ws = editorState.workspaceId;
         if (ws === "workbench" || ws === "states" || ws === "sites" || ws === "diagnostics" || ws === "keyboard") {
-          hydratedState.workspaceId = ws;
+          editor.workspaceId = ws;
         }
         const tid = editorState.themeId;
-        if (tid && hasWorkbenchTheme(hydratedState.themes, tid)) {
-          hydratedState.selection.themeId = tid;
+        if (tid && hasWorkbenchTheme(hydratedState.domain.themes, tid)) {
+          hydratedState.domain.activeThemeId = tid;
           if (tid !== config.activeThemeId) {
-            hydratedState.ui.unsaved = true;
+            hydratedState.status.unsaved = true;
           }
         }
         const aid = editorState.actionId;
         if (aid && ["leftClick", "rightClick", "doubleClick", "longPress", "wheel", "hover"].includes(aid)) {
-          hydratedState.selection.actionId = aid;
+          editor.actionId = aid;
         }
         // 只恢复当前平台真正可达的状态；存量的已移除槽位（grab / crosshair /
         // resize* 等）会落回默认选中项。旧的 wait→busy 别名补丁已不需要——
         // 运行时现在直接产出 busy。
         const csid = editorState.cursorStateId;
         if (csid && CURSOR_STATES.some((state) => state.id === csid)) {
-          hydratedState.selection.cursorStateId = csid;
+          editor.cursorStateId = csid;
         }
       }
 
-      dispatch({ type: "hydrate", payload: { ...hydratedState, recentCursorAssets } });
+      dispatch({
+        type: "hydrate",
+        payload: {
+          ...hydratedState,
+          editor,
+          runtime: { ...hydratedState.runtime, recentCursorAssets },
+        },
+      });
     }
 
     void hydrate();
@@ -77,7 +85,7 @@ export function useThemeWorkbenchPersistence({ state, dispatch, configRef }) {
     const unsubscribe = subscribeExtensionConfig(async (nextConfig) => {
       const site = await readActiveSiteContext();
       configRef.current = nextConfig;
-      if (cancelled || stateRef.current.ui.unsaved) return;
+      if (cancelled || stateRef.current.status.unsaved) return;
       dispatch({ type: "hydrate", payload: hydrateWorkbenchState(nextConfig, site) });
     });
 
@@ -90,9 +98,9 @@ export function useThemeWorkbenchPersistence({ state, dispatch, configRef }) {
   }, [configRef, dispatch]);
 
   useEffect(() => {
-    if (!state.ui.isHydrated) return;
+    if (!state.status.isHydrated) return;
 
-    if (!state.ui.unsaved) {
+    if (!state.status.unsaved) {
       void clearLivePreviewConfig();
       return;
     }
@@ -103,7 +111,7 @@ export function useThemeWorkbenchPersistence({ state, dispatch, configRef }) {
     debounceRef.current = setTimeout(() => {
       const latestState = stateRef.current;
       const baseConfig = configRef.current;
-      if (!baseConfig || !latestState.ui.unsaved) return;
+      if (!baseConfig || !latestState.status.unsaved) return;
       void writeLivePreviewConfig(buildStoredConfigFromWorkbench(baseConfig, latestState));
     }, 180);
 
@@ -112,21 +120,21 @@ export function useThemeWorkbenchPersistence({ state, dispatch, configRef }) {
     };
   }, [
     configRef,
-    state.ui.isHydrated,
-    state.ui.unsaved,
-    state.ui.enabled,
-    state.selection.themeId,
-    state.siteRules,
-    state.appRules,
-    state.themes,
+    state.status.isHydrated,
+    state.status.unsaved,
+    state.domain.enabled,
+    state.domain.activeThemeId,
+    state.domain.siteRules,
+    state.domain.appRules,
+    state.domain.themes,
   ]);
 
   // Auto-save new themes so they survive page refresh without manual save
   const prevThemeCountRef = useRef(0);
 
   useEffect(() => {
-    if (!state.ui.isHydrated) return;
-    const currentLen = state.themes.length;
+    if (!state.status.isHydrated) return;
+    const currentLen = state.domain.themes.length;
     if (prevThemeCountRef.current === 0) {
       prevThemeCountRef.current = currentLen;
       return;
@@ -141,26 +149,26 @@ export function useThemeWorkbenchPersistence({ state, dispatch, configRef }) {
       }).catch(() => {});
     }
     prevThemeCountRef.current = currentLen;
-  }, [state.themes, state.ui.isHydrated, configRef]);
+  }, [state.domain.themes, state.status.isHydrated, configRef]);
 
   // Auto-save editor navigation state on every navigation change,
   // so workspace/theme/action/cursor selection survives page refresh.
   const prevEditorStateKey = useRef("");
 
   useEffect(() => {
-    if (!state.ui.isHydrated) return;
+    if (!state.status.isHydrated) return;
 
-    const key = `${state.workspaceId}::${state.selection.themeId}::${state.selection.actionId}::${state.selection.cursorStateId}`;
+    const key = `${state.editor.workspaceId}::${state.domain.activeThemeId}::${state.editor.actionId}::${state.editor.cursorStateId}`;
     if (key === prevEditorStateKey.current) return;
     prevEditorStateKey.current = key;
 
     if (editorStateDebounceRef.current) clearTimeout(editorStateDebounceRef.current);
     editorStateDebounceRef.current = setTimeout(() => {
       void writeEditorState({
-        workspaceId: stateRef.current.workspaceId,
-        themeId: stateRef.current.selection.themeId,
-        actionId: stateRef.current.selection.actionId,
-        cursorStateId: stateRef.current.selection.cursorStateId,
+        workspaceId: stateRef.current.editor.workspaceId,
+        themeId: stateRef.current.domain.activeThemeId,
+        actionId: stateRef.current.editor.actionId,
+        cursorStateId: stateRef.current.editor.cursorStateId,
       });
     }, 300);
 
@@ -168,25 +176,25 @@ export function useThemeWorkbenchPersistence({ state, dispatch, configRef }) {
       if (editorStateDebounceRef.current) clearTimeout(editorStateDebounceRef.current);
     };
   }, [
-    state.ui.isHydrated,
-    state.workspaceId,
-    state.selection.themeId,
-    state.selection.actionId,
-    state.selection.cursorStateId,
+    state.status.isHydrated,
+    state.editor.workspaceId,
+    state.domain.activeThemeId,
+    state.editor.actionId,
+    state.editor.cursorStateId,
   ]);
 
   // enabled 开关变更 → 立即持久化（不等"保存"按钮），
   // 否则 overlay 重启后从 electron-store 读到旧值，动效不触发。
-  const prevEnabledRef = useRef(state.ui.enabled);
+  const prevEnabledRef = useRef(state.domain.enabled);
   useEffect(() => {
-    if (!state.ui.isHydrated) return;
-    if (state.ui.enabled === prevEnabledRef.current) return;
-    prevEnabledRef.current = state.ui.enabled;
+    if (!state.status.isHydrated) return;
+    if (state.domain.enabled === prevEnabledRef.current) return;
+    prevEnabledRef.current = state.domain.enabled;
     const baseConfig = configRef.current;
     if (!baseConfig) return;
     const nextConfig = buildStoredConfigFromWorkbench(baseConfig, stateRef.current);
     writeExtensionConfig(nextConfig).then((savedConfig) => {
       configRef.current = savedConfig;
     }).catch(() => {});
-  }, [state.ui.isHydrated, state.ui.enabled, configRef]);
+  }, [state.status.isHydrated, state.domain.enabled, configRef]);
 }

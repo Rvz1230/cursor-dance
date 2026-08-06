@@ -85,7 +85,7 @@ function buildStoredThemeFromState(
   themeId: string,
   options: BuildStoredThemeOptions = {},
 ) {
-  const theme = findWorkbenchTheme(state.themes, themeId);
+  const theme = findWorkbenchTheme(state.domain.themes, themeId);
   if (!theme) {
     throw new Error(`Theme not found: ${themeId}`);
   }
@@ -99,13 +99,13 @@ function buildStoredThemeFromState(
 }
 
 export function buildPreviewThemePackFromWorkbench(previousConfig: unknown, state: WorkbenchPersistableState) {
-  return buildStoredThemePackFromWorkbench(previousConfig, state, state.selection.themeId);
+  return buildStoredThemePackFromWorkbench(previousConfig, state, state.domain.activeThemeId);
 }
 
 export function buildStoredThemePackFromWorkbench(
   previousConfig: unknown,
   state: WorkbenchPersistableState,
-  themeId = state.selection.themeId,
+  themeId = state.domain.activeThemeId,
   options: BuildStoredThemeOptions = {},
 ) {
   return buildStoredThemeFromState(
@@ -121,15 +121,15 @@ export function buildStoredConfigFromWorkbench(
   state: WorkbenchPersistableState,
 ): CursorDanceConfig {
   const normalizedPrevious = normalizeStoredConfig(previousConfig);
-  const themes = state.themes.map((theme) =>
+  const themes = state.domain.themes.map((theme) =>
     buildStoredThemeFromState(normalizedPrevious, state, theme.meta.id),
   );
   return normalizeStoredConfig({
     schemaVersion: 4,
-    enabled: state.ui.enabled,
-    activeThemeId: state.selection.themeId,
+    enabled: state.domain.enabled,
+    activeThemeId: state.domain.activeThemeId,
     themes,
-    contextRules: workbenchRulesToContext(state.siteRules, state.appRules),
+    contextRules: workbenchRulesToContext(state.domain.siteRules, state.domain.appRules),
     performance: normalizedPrevious.performance || { maxActiveEffects: 48 },
   });
 }

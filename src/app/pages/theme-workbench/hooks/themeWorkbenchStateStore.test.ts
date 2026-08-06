@@ -15,7 +15,7 @@ describe("themeWorkbenchStateStore", () => {
     installWindowStub();
   });
   it("resets current theme key feedback config with the theme draft defaults", () => {
-    const themeId = initialState.selection.themeId;
+    const themeId = initialState.domain.activeThemeId;
     const draft = {
       ...createThemeDraft(themeId),
       keyFeedbackConfig: { ...createThemeDraft(themeId).keyFeedbackConfig, color: "#00FFAA", fontSize: 72 },
@@ -24,9 +24,12 @@ describe("themeWorkbenchStateStore", () => {
     const editedState = reducer(
       {
         ...initialState,
-        themes: initialState.themes.map((theme) =>
-          theme.meta.id === themeId ? { ...theme, draft } : theme
-        ),
+        domain: {
+          ...initialState.domain,
+          themes: initialState.domain.themes.map((theme) =>
+            theme.meta.id === themeId ? { ...theme, draft } : theme
+          ),
+        },
       },
       {
         type: "key-feedback/update",
@@ -34,30 +37,30 @@ describe("themeWorkbenchStateStore", () => {
       }
     );
 
-    expect(findWorkbenchTheme(editedState.themes, themeId)?.draft.keyFeedbackConfig.color).toBe("#FF00AA");
+    expect(findWorkbenchTheme(editedState.domain.themes, themeId)?.draft.keyFeedbackConfig.color).toBe("#FF00AA");
 
     const resetState = reducer(editedState, { type: "theme/reset-current" });
 
-    expect(findWorkbenchTheme(resetState.themes, themeId)?.draft.keyFeedbackConfig.color).toBe("#22CCDD");
-    expect(findWorkbenchTheme(resetState.themes, themeId)?.draft.keyFeedbackConfig.fontSize).toBe(66);
+    expect(findWorkbenchTheme(resetState.domain.themes, themeId)?.draft.keyFeedbackConfig.color).toBe("#22CCDD");
+    expect(findWorkbenchTheme(resetState.domain.themes, themeId)?.draft.keyFeedbackConfig.fontSize).toBe(66);
   });
 
   it("marks theme selection changes as unsaved so live preview switches active theme", () => {
-    const themeA = initialState.selection.themeId;
-    const themeB = initialState.themes.find((theme) => theme.meta.id !== themeA)?.meta.id;
+    const themeA = initialState.domain.activeThemeId;
+    const themeB = initialState.domain.themes.find((theme) => theme.meta.id !== themeA)?.meta.id;
     const selectedState = reducer(
       {
         ...initialState,
-        ui: {
-          ...initialState.ui,
+        status: {
+          ...initialState.status,
           unsaved: false,
         },
       },
       { type: "theme/select", payload: themeB }
     );
 
-    expect(selectedState.selection.themeId).toBe(themeB);
-    expect(selectedState.ui.unsaved).toBe(true);
+    expect(selectedState.domain.activeThemeId).toBe(themeB);
+    expect(selectedState.status.unsaved).toBe(true);
   });
 
   it("adds, edits, and removes metadata with its draft as one theme aggregate", () => {
@@ -82,22 +85,22 @@ describe("themeWorkbenchStateStore", () => {
       type: "theme/rename",
       payload: { themeId, name: "聚合主题 2" },
     });
-    const aggregate = findWorkbenchTheme(renamedState.themes, themeId);
+    const aggregate = findWorkbenchTheme(renamedState.domain.themes, themeId);
     expect(aggregate?.meta.name).toBe("聚合主题 2");
     expect(aggregate?.draft.actionConfigs.leftClick).toBeDefined();
 
     const removedState = reducer(renamedState, {
       type: "theme/remove",
-      payload: { themeId, nextSelectedThemeId: initialState.selection.themeId },
+      payload: { themeId, nextSelectedThemeId: initialState.domain.activeThemeId },
     });
-    expect(findWorkbenchTheme(removedState.themes, themeId)).toBeUndefined();
+    expect(findWorkbenchTheme(removedState.domain.themes, themeId)).toBeUndefined();
   });
 
   it("keeps editor-only navigation out of the persisted config dirty state", () => {
     const cleanState = {
       ...initialState,
-      ui: {
-        ...initialState.ui,
+      status: {
+        ...initialState.status,
         unsaved: false,
         saveError: "previous save error",
       },
@@ -107,23 +110,38 @@ describe("themeWorkbenchStateStore", () => {
     const actionState = reducer(workspaceState, { type: "action/select", payload: "wheel" });
     const cursorState = reducer(actionState, { type: "cursor-state/select", payload: "pointer" });
 
-    expect(cursorState.workspaceId).toBe("states");
-    expect(cursorState.selection).toMatchObject({ actionId: "wheel", cursorStateId: "pointer" });
-    expect(cursorState.ui.unsaved).toBe(false);
-    expect(cursorState.ui.saveError).toBe("previous save error");
+    expect(cursorState.editor).toMatchObject({ workspaceId: "states", actionId: "wheel", cursorStateId: "pointer" });
+    expect(cursorState.status.unsaved).toBe(false);
+    expect(cursorState.status.saveError).toBe("previous save error");
+    expect(cursorState.domain).toBe(cleanState.domain);
+    expect(cursorState.status).toBe(cleanState.status);
+  });
+
+  it("preserves editor navigation when an external config hydration arrives", () => {
+    const navigatedState = {
+      ...initialState,
+      editor: { workspaceId: "states", actionId: "wheel", cursorStateId: "pointer" },
+    };
+    const hydratedState = reducer(navigatedState, {
+      type: "hydrate",
+      payload: hydrateWorkbenchState(defaultConfig, { host: "example.com" }),
+    });
+
+    expect(hydratedState.editor).toEqual(navigatedState.editor);
+    expect(hydratedState.domain.activeThemeId).toBe(defaultConfig.activeThemeId);
   });
 
   it("returns the existing state for repeated navigation and enabled values", () => {
-    expect(reducer(initialState, { type: "workspace/set", payload: initialState.workspaceId })).toBe(initialState);
-    expect(reducer(initialState, { type: "theme/select", payload: initialState.selection.themeId })).toBe(initialState);
-    expect(reducer(initialState, { type: "action/select", payload: initialState.selection.actionId })).toBe(initialState);
-    expect(reducer(initialState, { type: "cursor-state/select", payload: initialState.selection.cursorStateId })).toBe(initialState);
-    expect(reducer(initialState, { type: "global-enabled/set", payload: initialState.ui.enabled })).toBe(initialState);
+    expect(reducer(initialState, { type: "workspace/set", payload: initialState.editor.workspaceId })).toBe(initialState);
+    expect(reducer(initialState, { type: "theme/select", payload: initialState.domain.activeThemeId })).toBe(initialState);
+    expect(reducer(initialState, { type: "action/select", payload: initialState.editor.actionId })).toBe(initialState);
+    expect(reducer(initialState, { type: "cursor-state/select", payload: initialState.editor.cursorStateId })).toBe(initialState);
+    expect(reducer(initialState, { type: "global-enabled/set", payload: initialState.domain.enabled })).toBe(initialState);
   });
 
   it("keeps key feedback configs isolated after save and theme switch", () => {
-    const themeA = initialState.selection.themeId;
-    const themeB = initialState.themes.find((theme) => theme.meta.id !== themeA)?.meta.id;
+    const themeA = initialState.domain.activeThemeId;
+    const themeB = initialState.domain.themes.find((theme) => theme.meta.id !== themeA)?.meta.id;
     const editedState = reducer(initialState, {
       type: "key-feedback/update",
       payload: { color: "#00FFAA", fontSize: 72 },
@@ -139,8 +157,8 @@ describe("themeWorkbenchStateStore", () => {
     });
     const switchedState = reducer(hydratedState, { type: "theme/select", payload: themeB });
 
-    expect(findWorkbenchTheme(switchedState.themes, themeA)?.draft.keyFeedbackConfig.color).toBe("#00FFAA");
-    expect(findWorkbenchTheme(switchedState.themes, themeB)?.draft.keyFeedbackConfig.color).not.toBe("#00FFAA");
-    expect(findWorkbenchTheme(switchedState.themes, themeB)?.draft.keyFeedbackConfig.fontSize).not.toBe(72);
+    expect(findWorkbenchTheme(switchedState.domain.themes, themeA)?.draft.keyFeedbackConfig.color).toBe("#00FFAA");
+    expect(findWorkbenchTheme(switchedState.domain.themes, themeB)?.draft.keyFeedbackConfig.color).not.toBe("#00FFAA");
+    expect(findWorkbenchTheme(switchedState.domain.themes, themeB)?.draft.keyFeedbackConfig.fontSize).not.toBe(72);
   });
 });

@@ -43,10 +43,10 @@ const EMPTY_SITE: PopupSiteContext = {
 const EMPTY_THEME_STATE = createWorkbenchThemeState([]);
 
 const EMPTY_STATE = {
-  selection: {
-    themeId: EMPTY_THEME_STATE.selectedThemeId,
+  domain: {
+    activeThemeId: EMPTY_THEME_STATE.selectedThemeId,
+    themes: EMPTY_THEME_STATE.themes,
   },
-  themes: EMPTY_THEME_STATE.themes,
 };
 
 export function usePopupState() {
@@ -116,7 +116,7 @@ export function usePopupState() {
     return hydrateWorkbenchState(effectiveConfig, site);
   }, [effectiveConfig, site]);
 
-  const activeThemeId = hydrated.selection.themeId;
+  const activeThemeId = hydrated.domain.activeThemeId;
   const siteAction = getSiteAction(effectiveConfig, site.host, "/");
   const effectiveActiveThemeId = getEffectiveActiveThemeId(siteAction, activeThemeId);
   const previewActionId = getPreviewActionId(editorState);
@@ -124,7 +124,7 @@ export function usePopupState() {
 
   const themeChoices = useMemo(
     () =>
-      hydrated.themes.map((theme) => {
+      hydrated.domain.themes.map((theme) => {
         const themePack = effectiveConfig?.themes?.find((item) => item.id === theme.meta.id) ?? null;
         return {
           theme: theme.meta,
@@ -132,7 +132,7 @@ export function usePopupState() {
           actionConfig: getActionConfig(theme, previewActionId),
         };
       }),
-    [effectiveConfig?.themes, hydrated.themes, previewActionId]
+    [effectiveConfig?.themes, hydrated.domain.themes, previewActionId]
   );
 
   const activeThemeChoice = themeChoices.find((item) => item.theme.id === effectiveActiveThemeId) ?? themeChoices[0] ?? null;
