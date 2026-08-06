@@ -252,10 +252,6 @@ export function createThemeDraft(themeId) {
   };
 }
 
-export function buildThemeDrafts(themes = THEMES) {
-  return Object.fromEntries((themes || []).map((theme) => [theme.id, createThemeDraft(theme.id)]));
-}
-
 export {
   AUDIO_BLEND_OPTIONS,
   AUDIO_TRIGGER_OPTIONS,

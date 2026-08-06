@@ -46,8 +46,7 @@ const EMPTY_STATE = {
   selection: {
     themeId: EMPTY_THEME_STATE.selectedThemeId,
   },
-  themeLibrary: EMPTY_THEME_STATE.themeLibrary,
-  draftsByTheme: EMPTY_THEME_STATE.draftsByTheme,
+  themes: EMPTY_THEME_STATE.themes,
 };
 
 export function usePopupState() {
@@ -125,15 +124,15 @@ export function usePopupState() {
 
   const themeChoices = useMemo(
     () =>
-      hydrated.themeLibrary.map((theme) => {
-        const themePack = effectiveConfig?.themes?.find((item) => item.id === theme.id) ?? null;
+      hydrated.themes.map((theme) => {
+        const themePack = effectiveConfig?.themes?.find((item) => item.id === theme.meta.id) ?? null;
         return {
-          theme,
+          theme: theme.meta,
           themePack,
-          actionConfig: getActionConfig(hydrated.draftsByTheme, theme.id, previewActionId),
+          actionConfig: getActionConfig(theme, previewActionId),
         };
       }),
-    [effectiveConfig?.themes, hydrated.draftsByTheme, hydrated.themeLibrary, previewActionId]
+    [effectiveConfig?.themes, hydrated.themes, previewActionId]
   );
 
   const activeThemeChoice = themeChoices.find((item) => item.theme.id === effectiveActiveThemeId) ?? themeChoices[0] ?? null;

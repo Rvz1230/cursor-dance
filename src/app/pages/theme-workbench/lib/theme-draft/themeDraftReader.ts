@@ -8,13 +8,13 @@ import {
 import type {
   ThemeLibraryItem,
   WorkbenchState,
+  WorkbenchTheme,
   WorkbenchThemeDraft,
 } from "../../hooks/workbenchStateTypes";
 import {
   PLATFORM_ACTIONS,
   CURSOR_STATES,
   THEMES,
-  buildThemeDrafts,
   buildThemeLibraryItem,
   createThemeDraft,
   mergeActionConfig,
@@ -34,7 +34,7 @@ interface ThemeInput {
 type WorkbenchSiteInput = Pick<WorkbenchState["site"], "host"> & Partial<WorkbenchState["site"]>;
 type HydratedWorkbenchState = Pick<
   WorkbenchState,
-  "workspaceId" | "selection" | "siteRules" | "appRules" | "themeLibrary" | "site" | "draftsByTheme"
+  "workspaceId" | "selection" | "siteRules" | "appRules" | "themes" | "site"
 > & {
   ui: Pick<WorkbenchState["ui"], "enabled" | "unsaved">;
 };
@@ -106,55 +106,60 @@ export function draftFromThemePack(theme: unknown): WorkbenchThemeDraft {
   return buildDraftFromTheme((theme || {}) as ThemeInput);
 }
 
+function themePackToWorkbenchTheme(theme: unknown, fallbackIndex = 0): WorkbenchTheme {
+  return {
+    meta: themePackToThemeLibraryItem(theme, fallbackIndex),
+    draft: draftFromThemePack(theme),
+  };
+}
+
 function resolveSelectedThemeId(
-  themeLibrary: ThemeLibraryItem[],
-  draftsByTheme: Record<string, WorkbenchThemeDraft>,
+  themes: WorkbenchTheme[],
   activeThemeId?: string,
 ): string {
-  if (activeThemeId && draftsByTheme[activeThemeId]) return activeThemeId;
-  return themeLibrary[0]?.id || THEMES[0]?.id || "";
+  if (activeThemeId && themes.some((theme) => theme.meta.id === activeThemeId)) return activeThemeId;
+  return themes[0]?.meta.id || THEMES[0]?.id || "";
 }
 
 export function createWorkbenchThemeState(
-  themeLibrary: ThemeLibraryItem[] = THEMES as ThemeLibraryItem[],
+  themeMetadata: ThemeLibraryItem[] = THEMES as ThemeLibraryItem[],
 ): {
-  themeLibrary: ThemeLibraryItem[];
-  draftsByTheme: Record<string, WorkbenchThemeDraft>;
+  themes: WorkbenchTheme[];
   selectedThemeId: string;
 } {
-  const nextThemeLibrary = themeLibrary.length ? themeLibrary : THEMES as ThemeLibraryItem[];
-  const nextDraftsByTheme = buildThemeDrafts(nextThemeLibrary) as Record<string, WorkbenchThemeDraft>;
+  const nextThemeMetadata = themeMetadata.length ? themeMetadata : THEMES as ThemeLibraryItem[];
+  const themes = nextThemeMetadata.map((meta) => ({
+    meta,
+    draft: createThemeDraft(meta.id) as WorkbenchThemeDraft,
+  }));
   return {
-    themeLibrary: nextThemeLibrary,
-    draftsByTheme: nextDraftsByTheme,
-    selectedThemeId: resolveSelectedThemeId(nextThemeLibrary, nextDraftsByTheme),
+    themes,
+    selectedThemeId: resolveSelectedThemeId(themes),
   };
 }
 
 export function hydrateWorkbenchState(value: unknown, site: WorkbenchSiteInput): HydratedWorkbenchState {
   const config = normalizeStoredConfig(value);
-  const themes = config.themes || [];
-  const themeLibrary = themes.map((theme, index) => themePackToThemeLibraryItem(theme, index));
-  const baseThemeState = createWorkbenchThemeState(themeLibrary);
-  const draftsByTheme = { ...baseThemeState.draftsByTheme };
-  themes.forEach((theme) => { draftsByTheme[theme.id] = buildDraftFromTheme(theme as ThemeInput); });
+  const storedThemes = config.themes || [];
+  const themes = storedThemes.length
+    ? storedThemes.map((theme, index) => themePackToWorkbenchTheme(theme, index))
+    : createWorkbenchThemeState().themes;
   const rules = contextRulesToWorkbench(config.contextRules || []);
 
   return {
     workspaceId: "workbench",
     selection: {
-      themeId: resolveSelectedThemeId(themeLibrary, draftsByTheme, config.activeThemeId),
+      themeId: resolveSelectedThemeId(themes, config.activeThemeId),
       actionId: "leftClick",
       cursorStateId: "default",
     },
     ...rules,
-    themeLibrary,
+    themes,
     ui: { enabled: config.enabled !== false, unsaved: false },
     site: {
       host: site.host,
       isSupportedPage: site.isSupportedPage ?? false,
       tabId: site.tabId ?? null,
     },
-    draftsByTheme,
   };
 }

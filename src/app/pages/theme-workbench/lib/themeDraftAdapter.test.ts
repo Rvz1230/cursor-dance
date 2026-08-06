@@ -17,6 +17,12 @@ function hydrate(config: unknown = defaultConfig) {
   return hydrateWorkbenchState(config, { host: "example.com" });
 }
 
+function getTheme(state: ReturnType<typeof hydrateWorkbenchState>, themeId = state.selection.themeId) {
+  const theme = state.themes.find((item) => item.meta.id === themeId);
+  if (!theme) throw new Error(`Missing workbench theme: ${themeId}`);
+  return theme;
+}
+
 describe("themeDraftAdapter schema v4", () => {
   beforeEach(installRuntime);
 
@@ -32,9 +38,9 @@ describe("themeDraftAdapter schema v4", () => {
     const state = hydrate({ ...defaultConfig, themes: [theme], activeThemeId: theme.id });
 
     expect(state.selection.themeId).toBe(theme.id);
-    expect(state.draftsByTheme[theme.id].actionConfigs.leftClick.textContent).toBe("已保存");
-    expect(state.draftsByTheme[theme.id].keyFeedbackConfig.color).toBe("#00FFAA");
-    expect(state.draftsByTheme[theme.id].cursorSkin).toEqual(theme.cursorSkin);
+    expect(getTheme(state, theme.id).draft.actionConfigs.leftClick.textContent).toBe("已保存");
+    expect(getTheme(state, theme.id).draft.keyFeedbackConfig.color).toBe("#00FFAA");
+    expect(getTheme(state, theme.id).draft.cursorSkin).toEqual(theme.cursorSkin);
   });
 
   it("converts v4 context rules to the existing rule editor model", () => {
@@ -128,7 +134,7 @@ describe("themeDraftAdapter schema v4", () => {
 
   it("builds preview and stored themes without editor-only fields", () => {
     const state = hydrate();
-    state.draftsByTheme[state.selection.themeId].actionConfigs.leftClick.textContent = "预览";
+    getTheme(state).draft.actionConfigs.leftClick.textContent = "预览";
     const storedTheme = buildStoredThemePackFromWorkbench(defaultConfig, state);
     const previewTheme = buildPreviewThemePackFromWorkbench(defaultConfig, state);
 
@@ -141,7 +147,7 @@ describe("themeDraftAdapter schema v4", () => {
 
   it("keeps cursor bindings and inline skin images through a round trip", () => {
     const state = hydrate();
-    const draft = state.draftsByTheme[state.selection.themeId];
+    const draft = getTheme(state).draft;
     draft.cursorBindings.pointer = { mode: "override", actionId: "rightClick" };
     draft.cursorSkin = {
       version: 1,
@@ -165,7 +171,7 @@ describe("themeDraftAdapter schema v4", () => {
     const stored = buildStoredConfigFromWorkbench(defaultConfig, state);
     expect(stored.themes[0].cursorBindings.pointer).toEqual({ mode: "override", actionId: "rightClick" });
     const rehydrated = hydrate(stored);
-    const nextDraft = rehydrated.draftsByTheme[state.selection.themeId];
+    const nextDraft = getTheme(rehydrated, state.selection.themeId).draft;
     expect(nextDraft.cursorBindings.pointer).toEqual({ mode: "override", actionId: "rightClick" });
     expect(nextDraft.cursorSkin.states.pointer.image).toMatchObject({
       kind: "dataUrl",

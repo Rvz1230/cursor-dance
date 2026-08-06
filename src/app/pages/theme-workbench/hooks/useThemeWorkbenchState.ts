@@ -33,6 +33,7 @@ import type {
   WorkbenchConfigRef,
   WorkbenchThemeDraft,
 } from "./workbenchStateTypes";
+import { findWorkbenchTheme } from "./workbenchThemeSelectors";
 
 export function useThemeWorkbenchState() {
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -42,11 +43,13 @@ export function useThemeWorkbenchState() {
   useThemeWorkbenchPersistence({ state, dispatch, configRef });
 
   const selected = state.selection;
-  const activeTheme = useMemo(
-    () => state.themeLibrary.find((item) => item.id === selected.themeId) ?? state.themeLibrary[0] ?? INITIAL_THEME_STATE.themeLibrary[0],
-    [selected.themeId, state.themeLibrary]
+  const selectedTheme = useMemo(
+    () => findWorkbenchTheme(state.themes, selected.themeId) ?? state.themes[0] ?? INITIAL_THEME_STATE.themes[0],
+    [selected.themeId, state.themes]
   );
-  const draft = state.draftsByTheme[selected.themeId];
+  const activeTheme = selectedTheme.meta;
+  const draft = selectedTheme.draft;
+  const themeMetadata = useMemo(() => state.themes.map((theme) => theme.meta), [state.themes]);
   const currentActionConfig = draft.actionConfigs[selected.actionId];
   const currentConflicts = getConflictsForAction(selected.actionId, draft.actionConfigs);
   const isWorkbench = state.workspaceId === "workbench";
@@ -120,7 +123,7 @@ export function useThemeWorkbenchState() {
     state,
     selected,
     undoStack,
-    themes: state.themeLibrary,
+    themes: themeMetadata,
     activeTheme,
     draft,
     currentActionConfig,

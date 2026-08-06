@@ -56,9 +56,9 @@ export function createWorkbenchThemeCommands({ state, selected, configRef, dispa
 
   function createTheme({ name, description = "", basedOnThemeId = "blank" }: CreateThemeInput): void {
     dispatch({
-      type: "theme/library-add",
+      type: "theme/add",
       payload: buildCreateThemePayload(
-        { themeLibrary: state.themeLibrary, draftsByTheme: state.draftsByTheme },
+        state.themes,
         { name, description, basedOnThemeId },
       ),
     });
@@ -66,24 +66,24 @@ export function createWorkbenchThemeCommands({ state, selected, configRef, dispa
 
   function duplicateTheme(themeId = selected.themeId): string {
     const { duplicatedName, payload } = buildDuplicateThemePayload(
-      { themeLibrary: state.themeLibrary, draftsByTheme: state.draftsByTheme },
+      state.themes,
       themeId,
     );
-    dispatch({ type: "theme/library-add", payload });
+    dispatch({ type: "theme/add", payload });
     return duplicatedName;
   }
 
   function deleteTheme(themeId = selected.themeId): string {
-    const { themeName, nextSelectedThemeId } = buildDeleteThemePlan(state.themeLibrary, themeId);
+    const { themeName, nextSelectedThemeId } = buildDeleteThemePlan(state.themes, themeId);
     dispatch({
-      type: "theme/library-remove",
+      type: "theme/remove",
       payload: { themeId, nextSelectedThemeId },
     });
     return themeName;
   }
 
   async function exportTheme(themeId = selected.themeId): Promise<{ fileName: string; payload: unknown } | null> {
-    const theme = state.themeLibrary.find((item) => item.id === themeId);
+    const theme = state.themes.find((item) => item.meta.id === themeId);
     if (!theme) throw new Error("导出失败：没有找到要导出的主题。");
 
     const previousConfig = configRef.current ?? {
@@ -108,24 +108,24 @@ export function createWorkbenchThemeCommands({ state, selected, configRef, dispa
       throw new Error("导入失败：文件不是合法的 JSON。");
     }
     dispatch({
-      type: "theme/library-add",
-      payload: buildImportedThemePayload(state.themeLibrary, parsed, fileName),
+      type: "theme/add",
+      payload: buildImportedThemePayload(state.themes, parsed, fileName),
     });
   }
 
   function renameTheme(themeId: string, name: string): boolean {
     const trimmed = name.trim();
     if (!trimmed) return false;
-    const exists = state.themeLibrary.some(
-      (theme) => theme.id !== themeId && theme.name.toLowerCase() === trimmed.toLowerCase(),
+    const exists = state.themes.some(
+      (theme) => theme.meta.id !== themeId && theme.meta.name.toLowerCase() === trimmed.toLowerCase(),
     );
     if (exists) return false;
-    dispatch({ type: "theme/library-rename", payload: { themeId, name: trimmed } });
+    dispatch({ type: "theme/rename", payload: { themeId, name: trimmed } });
     return true;
   }
 
   function updateThemeIcon(themeId: string, icon: string): void {
-    dispatch({ type: "theme/library-update-icon", payload: { themeId, icon } });
+    dispatch({ type: "theme/update-icon", payload: { themeId, icon } });
   }
 
   return {

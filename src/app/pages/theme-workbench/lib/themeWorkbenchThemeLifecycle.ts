@@ -68,87 +68,90 @@ function withActionResetBaseline(draft) {
   };
 }
 
-export function buildCreateThemePayload({ themeLibrary, draftsByTheme }, { name, description = "", basedOnThemeId = "blank" }) {
+export function buildCreateThemePayload(themes, { name, description = "", basedOnThemeId = "blank" }) {
   const trimmedName = name.trim();
   if (!trimmedName) {
     throw new Error("请先填写主题名称。");
   }
 
-  const existingIds = new Set(themeLibrary.map((item) => item.id));
+  const existingIds = new Set(themes.map((item) => item.meta.id));
   const themeId = buildUniqueThemeId(trimmedName, existingIds);
   const baseDraft =
     basedOnThemeId === "blank"
       ? createThemeDraft(themeId)
-      : withActionResetBaseline(cloneValue(draftsByTheme[basedOnThemeId] || createThemeDraft(themeId)));
-  const basedOnTheme = themeLibrary.find((item) => item.id === basedOnThemeId);
+      : withActionResetBaseline(cloneValue(themes.find((item) => item.meta.id === basedOnThemeId)?.draft || createThemeDraft(themeId)));
+  const basedOnTheme = themes.find((item) => item.meta.id === basedOnThemeId)?.meta;
 
   return {
     theme: {
-      id: themeId,
-      name: trimmedName,
-      kind: "自定义",
-      summary: description.trim() || (basedOnThemeId === "blank" ? "从空白模板开始。" : `基于 ${basedOnTheme?.name || "当前主题"} 创建。`),
-      description: description.trim(),
-      tone: basedOnTheme?.tone || "amber",
+      meta: {
+        id: themeId,
+        name: trimmedName,
+        kind: "自定义",
+        summary: description.trim() || (basedOnThemeId === "blank" ? "从空白模板开始。" : `基于 ${basedOnTheme?.name || "当前主题"} 创建。`),
+        description: description.trim(),
+        tone: basedOnTheme?.tone || "amber",
+      },
+      draft: baseDraft,
     },
-    draft: baseDraft,
   };
 }
 
-export function buildDuplicateThemePayload({ themeLibrary, draftsByTheme }, themeId) {
-  const sourceTheme = themeLibrary.find((item) => item.id === themeId);
-  const sourceDraft = draftsByTheme[themeId];
-  if (!sourceTheme || !sourceDraft) {
+export function buildDuplicateThemePayload(themes, themeId) {
+  const sourceTheme = themes.find((item) => item.meta.id === themeId);
+  if (!sourceTheme) {
     throw new Error("复制失败：没有找到要复制的主题。");
   }
 
-  const existingIds = new Set(themeLibrary.map((item) => item.id));
-  const existingNames = new Set(themeLibrary.map((item) => item.name));
-  const nextName = buildUniqueThemeName(`${sourceTheme.name} 副本`, existingNames);
+  const existingIds = new Set(themes.map((item) => item.meta.id));
+  const existingNames = new Set(themes.map((item) => item.meta.name));
+  const nextName = buildUniqueThemeName(`${sourceTheme.meta.name} 副本`, existingNames);
   const nextId = buildUniqueThemeId(nextName, existingIds);
 
   return {
     duplicatedName: nextName,
     payload: {
       theme: {
-        ...sourceTheme,
-        id: nextId,
-        name: nextName,
-        kind: "自定义",
-        summary: sourceTheme.description?.trim() ? sourceTheme.description.trim() : `复制自 ${sourceTheme.name}`,
-        description: sourceTheme.description || "",
+        meta: {
+          ...sourceTheme.meta,
+          id: nextId,
+          name: nextName,
+          kind: "自定义",
+          summary: sourceTheme.meta.description?.trim() ? sourceTheme.meta.description.trim() : `复制自 ${sourceTheme.meta.name}`,
+          description: sourceTheme.meta.description || "",
+        },
+        draft: withActionResetBaseline(cloneValue(sourceTheme.draft)),
       },
-      draft: withActionResetBaseline(cloneValue(sourceDraft)),
     },
   };
 }
 
-export function buildDeleteThemePlan(themeLibrary, themeId) {
-  const themeIndex = themeLibrary.findIndex((item) => item.id === themeId);
+export function buildDeleteThemePlan(themes, themeId) {
+  const themeIndex = themes.findIndex((item) => item.meta.id === themeId);
   if (themeIndex < 0) {
     throw new Error("删除失败：没有找到对应主题。");
   }
 
-  const theme = themeLibrary[themeIndex];
-  if (theme.kind === "内置") {
+  const theme = themes[themeIndex];
+  if (theme.meta.kind === "内置") {
     throw new Error("内置主题不能删除，请先复制成自定义主题再编辑。");
   }
-  if (themeLibrary.length <= 1) {
+  if (themes.length <= 1) {
     throw new Error("至少保留一个主题后才能删除当前主题。");
   }
 
-  const fallbackTheme = themeLibrary[themeIndex + 1] || themeLibrary[themeIndex - 1] || themeLibrary[0];
+  const fallbackTheme = themes[themeIndex + 1] || themes[themeIndex - 1] || themes[0];
   return {
-    themeName: theme.name,
-    nextSelectedThemeId: fallbackTheme?.id || "",
+    themeName: theme.meta.name,
+    nextSelectedThemeId: fallbackTheme?.meta.id || "",
   };
 }
 
-export function buildImportedThemePayload(themeLibrary, parsedValue, fileName = "") {
+export function buildImportedThemePayload(themes, parsedValue, fileName = "") {
   const importedThemePack = resolveImportedThemePack(parsedValue);
   const fallbackName = fileName.replace(/\.[^.]+$/, "").trim();
   const resolvedName = importedThemePack.name || fallbackName || "导入主题";
-  const existingIds = new Set(themeLibrary.map((item) => item.id));
+  const existingIds = new Set(themes.map((item) => item.meta.id));
   const nextId = buildUniqueThemeId(importedThemePack.id || resolvedName, existingIds);
   const nextThemePack = {
     ...cloneValue(importedThemePack),
@@ -158,7 +161,9 @@ export function buildImportedThemePayload(themeLibrary, parsedValue, fileName = 
   };
 
   return {
-    theme: themePackToThemeLibraryItem(nextThemePack, themeLibrary.length),
-    draft: draftFromThemePack(nextThemePack),
+    theme: {
+      meta: themePackToThemeLibraryItem(nextThemePack, themes.length),
+      draft: draftFromThemePack(nextThemePack),
+    },
   };
 }

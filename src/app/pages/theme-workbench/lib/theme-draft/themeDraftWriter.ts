@@ -3,10 +3,11 @@ import type { CursorDanceConfig } from "@/shared/domain/cursor-dance";
 import { isDesktop } from "@/shared/runtime";
 import { pickKnownCursorStates } from "@/shared/cursor-states";
 import type {
-  ThemeLibraryItem,
   WorkbenchPersistableState,
+  WorkbenchTheme,
   WorkbenchThemeDraft,
 } from "../../hooks/workbenchStateTypes";
+import { findWorkbenchTheme } from "../../hooks/workbenchThemeSelectors";
 import {
   CURSOR_STATES,
   pickStoredWorkbenchActionConfigs,
@@ -59,7 +60,7 @@ function buildStoredTheme(
   themeId: string,
   draft: WorkbenchThemeDraft,
   previousConfig: CursorDanceConfig,
-  themeRecord: ThemeLibraryItem | undefined,
+  themeRecord: WorkbenchTheme["meta"] | undefined,
   options: BuildStoredThemeOptions = {},
 ) {
   const previousTheme = getStoredTheme(previousConfig, themeId);
@@ -84,11 +85,15 @@ function buildStoredThemeFromState(
   themeId: string,
   options: BuildStoredThemeOptions = {},
 ) {
+  const theme = findWorkbenchTheme(state.themes, themeId);
+  if (!theme) {
+    throw new Error(`Theme not found: ${themeId}`);
+  }
   return buildStoredTheme(
     themeId,
-    state.draftsByTheme[themeId],
+    theme.draft,
     previousConfig,
-    state.themeLibrary.find((theme) => theme.id === themeId),
+    theme.meta,
     options,
   );
 }
@@ -116,8 +121,8 @@ export function buildStoredConfigFromWorkbench(
   state: WorkbenchPersistableState,
 ): CursorDanceConfig {
   const normalizedPrevious = normalizeStoredConfig(previousConfig);
-  const themes = state.themeLibrary.map((theme) =>
-    buildStoredThemeFromState(normalizedPrevious, state, theme.id),
+  const themes = state.themes.map((theme) =>
+    buildStoredThemeFromState(normalizedPrevious, state, theme.meta.id),
   );
   return normalizeStoredConfig({
     schemaVersion: 4,

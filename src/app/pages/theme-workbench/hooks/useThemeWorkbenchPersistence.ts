@@ -13,6 +13,7 @@ import {
   writeLivePreviewConfig,
 } from "../lib/workbenchConfig";
 import { CURSOR_STATES } from "../model/workbenchSchema";
+import { hasWorkbenchTheme } from "./workbenchThemeSelectors";
 
 export function useThemeWorkbenchPersistence({ state, dispatch, configRef }) {
   const debounceRef = useRef(null);
@@ -48,7 +49,7 @@ export function useThemeWorkbenchPersistence({ state, dispatch, configRef }) {
           hydratedState.workspaceId = ws;
         }
         const tid = editorState.themeId;
-        if (tid && hydratedState.themeLibrary.some((t) => t.id === tid)) {
+        if (tid && hasWorkbenchTheme(hydratedState.themes, tid)) {
           hydratedState.selection.themeId = tid;
           if (tid !== config.activeThemeId) {
             hydratedState.ui.unsaved = true;
@@ -117,21 +118,20 @@ export function useThemeWorkbenchPersistence({ state, dispatch, configRef }) {
     state.selection.themeId,
     state.siteRules,
     state.appRules,
-    state.themeLibrary,
-    state.draftsByTheme,
+    state.themes,
   ]);
 
   // Auto-save new themes so they survive page refresh without manual save
-  const prevThemeLibraryLengthRef = useRef(0);
+  const prevThemeCountRef = useRef(0);
 
   useEffect(() => {
     if (!state.ui.isHydrated) return;
-    const currentLen = state.themeLibrary.length;
-    if (prevThemeLibraryLengthRef.current === 0) {
-      prevThemeLibraryLengthRef.current = currentLen;
+    const currentLen = state.themes.length;
+    if (prevThemeCountRef.current === 0) {
+      prevThemeCountRef.current = currentLen;
       return;
     }
-    if (currentLen > prevThemeLibraryLengthRef.current) {
+    if (currentLen > prevThemeCountRef.current) {
       const baseConfig = configRef.current;
       if (!baseConfig) return;
       const latestState = stateRef.current;
@@ -140,8 +140,8 @@ export function useThemeWorkbenchPersistence({ state, dispatch, configRef }) {
         configRef.current = savedConfig;
       }).catch(() => {});
     }
-    prevThemeLibraryLengthRef.current = currentLen;
-  }, [state.themeLibrary, state.ui.isHydrated, configRef]);
+    prevThemeCountRef.current = currentLen;
+  }, [state.themes, state.ui.isHydrated, configRef]);
 
   // Auto-save editor navigation state on every navigation change,
   // so workspace/theme/action/cursor selection survives page refresh.

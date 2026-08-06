@@ -15,7 +15,9 @@ import type {
   SiteRule,
   WorkbenchAction,
   WorkbenchState,
+  WorkbenchTheme,
 } from "./workbenchStateTypes";
+import { findWorkbenchTheme } from "./workbenchThemeSelectors";
 
 export const INITIAL_THEME_STATE = createWorkbenchThemeState(THEMES);
 
@@ -42,9 +44,16 @@ export const initialState: WorkbenchState = {
     tabId: null,
   },
   recentCursorAssets: [],
-  themeLibrary: INITIAL_THEME_STATE.themeLibrary,
-  draftsByTheme: INITIAL_THEME_STATE.draftsByTheme,
+  themes: INITIAL_THEME_STATE.themes,
 };
+
+function replaceTheme(
+  themes: WorkbenchTheme[],
+  themeId: string,
+  updater: (theme: WorkbenchTheme) => WorkbenchTheme,
+): WorkbenchTheme[] {
+  return themes.map((theme) => theme.meta.id === themeId ? updater(theme) : theme);
+}
 
 export function reducer(state: WorkbenchState, action: WorkbenchAction): WorkbenchState {
   switch (action.type) {
@@ -74,29 +83,22 @@ export function reducer(state: WorkbenchState, action: WorkbenchAction): Workben
         selection: { ...state.selection, themeId: action.payload },
         ui: { ...state.ui, unsaved: true, saveError: "" },
       };
-    case "theme/library-add": {
-      const { theme, draft, select = true } = action.payload;
+    case "theme/add": {
+      const { theme, select = true } = action.payload;
       return {
         ...state,
-        themeLibrary: [...state.themeLibrary, theme],
-        draftsByTheme: {
-          ...state.draftsByTheme,
-          [theme.id]: draft,
-        },
-        selection: select ? { ...state.selection, themeId: theme.id } : state.selection,
+        themes: [...state.themes, theme],
+        selection: select ? { ...state.selection, themeId: theme.meta.id } : state.selection,
         ui: { ...state.ui, unsaved: true, saveError: "" },
       };
     }
-    case "theme/library-remove": {
+    case "theme/remove": {
       const { themeId, nextSelectedThemeId } = action.payload;
-      const nextDraftsByTheme = { ...state.draftsByTheme };
-      delete nextDraftsByTheme[themeId];
       const nextDirtyThemes = { ...state.ui.dirtyThemes };
       delete nextDirtyThemes[themeId];
       return {
         ...state,
-        themeLibrary: state.themeLibrary.filter((theme) => theme.id !== themeId),
-        draftsByTheme: nextDraftsByTheme,
+        themes: state.themes.filter((theme) => theme.meta.id !== themeId),
         selection: {
           ...state.selection,
           themeId: nextSelectedThemeId || state.selection.themeId,
@@ -104,23 +106,25 @@ export function reducer(state: WorkbenchState, action: WorkbenchAction): Workben
         ui: { ...state.ui, unsaved: true, saveError: "", dirtyThemes: nextDirtyThemes },
       };
     }
-    case "theme/library-rename": {
+    case "theme/rename": {
       const { themeId, name } = action.payload;
       return {
         ...state,
-        themeLibrary: state.themeLibrary.map((theme) =>
-          theme.id === themeId ? { ...theme, name } : theme
-        ),
+        themes: replaceTheme(state.themes, themeId, (theme) => ({
+          ...theme,
+          meta: { ...theme.meta, name },
+        })),
         ui: { ...state.ui, unsaved: true, saveError: "", dirtyThemes: { ...state.ui.dirtyThemes, [themeId]: true } },
       };
     }
-    case "theme/library-update-icon": {
+    case "theme/update-icon": {
       const { themeId, icon } = action.payload;
       return {
         ...state,
-        themeLibrary: state.themeLibrary.map((theme) =>
-          theme.id === themeId ? { ...theme, icon } : theme
-        ),
+        themes: replaceTheme(state.themes, themeId, (theme) => ({
+          ...theme,
+          meta: { ...theme.meta, icon },
+        })),
         ui: { ...state.ui, unsaved: true, saveError: "", dirtyThemes: { ...state.ui.dirtyThemes, [themeId]: true } },
       };
     }
@@ -240,34 +244,36 @@ export function reducer(state: WorkbenchState, action: WorkbenchAction): Workben
       return { ...state, recentCursorAssets: action.payload };
     case "theme/update-current": {
       const themeId = state.selection.themeId;
+      const currentTheme = findWorkbenchTheme(state.themes, themeId);
+      if (!currentTheme) return state;
       return {
         ...state,
         ui: { ...state.ui, unsaved: true, saveError: "", dirtyThemes: { ...state.ui.dirtyThemes, [themeId]: true } },
-        draftsByTheme: {
-          ...state.draftsByTheme,
-          [themeId]: action.payload(state.draftsByTheme[themeId]),
-        },
+        themes: replaceTheme(state.themes, themeId, (theme) => ({
+          ...theme,
+          draft: action.payload(theme.draft),
+        })),
       };
     }
     case "theme/reset-current": {
       const themeId = state.selection.themeId;
       const resetDraft = createThemeDraft(themeId);
-      const currentDraft = state.draftsByTheme[themeId];
+      const currentDraft = findWorkbenchTheme(state.themes, themeId)?.draft;
       const resetActionConfigs = currentDraft?.resetActionConfigs || resetDraft.resetActionConfigs;
       const resetKeyFeedbackConfig = normalizeKeyFeedbackConfig(currentDraft?.resetKeyFeedbackConfig || resetDraft.resetKeyFeedbackConfig);
       return {
         ...state,
         ui: { ...state.ui, unsaved: true, saveError: "", dirtyThemes: { ...state.ui.dirtyThemes, [themeId]: true } },
-        draftsByTheme: {
-          ...state.draftsByTheme,
-          [themeId]: {
+        themes: replaceTheme(state.themes, themeId, (theme) => ({
+          ...theme,
+          draft: {
             ...resetDraft,
             actionConfigs: resetActionConfigs,
             resetActionConfigs,
             keyFeedbackConfig: resetKeyFeedbackConfig,
             resetKeyFeedbackConfig,
           },
-        },
+        })),
       };
     }
     case "theme/discard-changes": {
@@ -278,28 +284,25 @@ export function reducer(state: WorkbenchState, action: WorkbenchAction): Workben
       return {
         ...state,
         ui: { ...state.ui, unsaved: hasDirty, dirtyThemes: nextDirtyThemes },
-        draftsByTheme: {
-          ...state.draftsByTheme,
-          [themeId]: draft,
-        },
+        themes: replaceTheme(state.themes, themeId, (theme) => ({ ...theme, draft })),
       };
     }
     case "key-feedback/update": {
       const themeId = state.selection.themeId;
-      const currentDraft = state.draftsByTheme[themeId] || createThemeDraft(themeId);
+      const currentDraft = findWorkbenchTheme(state.themes, themeId)?.draft || createThemeDraft(themeId);
       return {
         ...state,
         ui: { ...state.ui, unsaved: true, saveError: "", dirtyThemes: { ...state.ui.dirtyThemes, [themeId]: true } },
-        draftsByTheme: {
-          ...state.draftsByTheme,
-          [themeId]: {
+        themes: replaceTheme(state.themes, themeId, (theme) => ({
+          ...theme,
+          draft: {
             ...currentDraft,
             keyFeedbackConfig: normalizeKeyFeedbackConfig({
               ...(currentDraft.keyFeedbackConfig || {}),
               ...action.payload,
             }),
           },
-        },
+        })),
       };
     }
     default:

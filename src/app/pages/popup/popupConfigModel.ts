@@ -1,7 +1,7 @@
 import type { ContextRuleAction } from "@/shared/domain/cursor-dance";
 import { findWebContextRule, resolveWebContextRule } from "@/shared/web-context-rules";
 import type { WorkbenchEditorState } from "../theme-workbench/lib/storage/repository/types";
-import type { WorkbenchThemeDraft } from "../theme-workbench/hooks/workbenchStateTypes";
+import type { WorkbenchTheme } from "../theme-workbench/hooks/workbenchStateTypes";
 import { ACTIONS } from "../theme-workbench/model/workbenchSchema";
 import type { CursorDanceConfig } from "@/shared/domain/cursor-dance";
 
@@ -24,12 +24,11 @@ export function getPreviewActionId(editorState: WorkbenchEditorState | null): st
 }
 
 export function getActionConfig(
-  draftsByTheme: Record<string, WorkbenchThemeDraft>,
-  themeId: string,
+  theme: WorkbenchTheme,
   actionId: string,
 ): Record<string, unknown> | null {
-  return draftsByTheme[themeId]?.actionConfigs?.[actionId]
-    ?? draftsByTheme[themeId]?.actionConfigs?.leftClick
+  return theme.draft.actionConfigs?.[actionId]
+    ?? theme.draft.actionConfigs?.leftClick
     ?? null;
 }
 

@@ -36,6 +36,12 @@ export interface ThemeLibraryItem {
   icon?: string;
 }
 
+/** A theme is edited and stored as one aggregate so metadata and draft cannot drift apart. */
+export interface WorkbenchTheme {
+  meta: ThemeLibraryItem;
+  draft: WorkbenchThemeDraft;
+}
+
 export type WorkbenchRuleAction = "disable" | { enable: boolean; theme?: string };
 
 export interface SiteRule {
@@ -79,13 +85,12 @@ export interface WorkbenchState {
     tabId: number | null;
   };
   recentCursorAssets: RecentCursorAsset[];
-  themeLibrary: ThemeLibraryItem[];
-  draftsByTheme: Record<string, WorkbenchThemeDraft>;
+  themes: WorkbenchTheme[];
 }
 
 export type WorkbenchPersistableState = Pick<
   WorkbenchState,
-  "selection" | "siteRules" | "appRules" | "themeLibrary" | "draftsByTheme"
+  "selection" | "siteRules" | "appRules" | "themes"
 > & {
   ui: Pick<WorkbenchUiState, "enabled">;
 };
@@ -98,10 +103,10 @@ export type WorkbenchAction =
   | { type: "hydrate"; payload: HydratePayload }
   | { type: "workspace/set" | "theme/select" | "action/select" | "cursor-state/select"; payload: string }
   | { type: "global-enabled/set"; payload: boolean }
-  | { type: "theme/library-add"; payload: { theme: ThemeLibraryItem; draft: WorkbenchThemeDraft; select?: boolean } }
-  | { type: "theme/library-remove"; payload: { themeId: string; nextSelectedThemeId?: string } }
-  | { type: "theme/library-rename"; payload: { themeId: string; name: string } }
-  | { type: "theme/library-update-icon"; payload: { themeId: string; icon: string } }
+  | { type: "theme/add"; payload: { theme: WorkbenchTheme; select?: boolean } }
+  | { type: "theme/remove"; payload: { themeId: string; nextSelectedThemeId?: string } }
+  | { type: "theme/rename"; payload: { themeId: string; name: string } }
+  | { type: "theme/update-icon"; payload: { themeId: string; icon: string } }
   | { type: "rules/add"; payload:
       | { collection: "siteRules"; rule: NewSiteRule }
       | { collection: "appRules"; rule: NewAppRule }

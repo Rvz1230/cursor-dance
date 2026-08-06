@@ -4,6 +4,7 @@ import { createThemeDraft } from "../model/workbenchSchema";
 import { buildStoredConfigFromWorkbench, hydrateWorkbenchState } from "../lib/themeDraftAdapter";
 import { initialState, reducer } from "./themeWorkbenchStateStore";
 import { defaultConfig } from "@/shared/config/default-config";
+import { findWorkbenchTheme } from "./workbenchThemeSelectors";
 
 function installWindowStub() {
   globalThis.window = {} as Window & typeof globalThis;
@@ -23,10 +24,9 @@ describe("themeWorkbenchStateStore", () => {
     const editedState = reducer(
       {
         ...initialState,
-        draftsByTheme: {
-          ...initialState.draftsByTheme,
-          [themeId]: draft,
-        },
+        themes: initialState.themes.map((theme) =>
+          theme.meta.id === themeId ? { ...theme, draft } : theme
+        ),
       },
       {
         type: "key-feedback/update",
@@ -34,17 +34,17 @@ describe("themeWorkbenchStateStore", () => {
       }
     );
 
-    expect(editedState.draftsByTheme[themeId].keyFeedbackConfig.color).toBe("#FF00AA");
+    expect(findWorkbenchTheme(editedState.themes, themeId)?.draft.keyFeedbackConfig.color).toBe("#FF00AA");
 
     const resetState = reducer(editedState, { type: "theme/reset-current" });
 
-    expect(resetState.draftsByTheme[themeId].keyFeedbackConfig.color).toBe("#22CCDD");
-    expect(resetState.draftsByTheme[themeId].keyFeedbackConfig.fontSize).toBe(66);
+    expect(findWorkbenchTheme(resetState.themes, themeId)?.draft.keyFeedbackConfig.color).toBe("#22CCDD");
+    expect(findWorkbenchTheme(resetState.themes, themeId)?.draft.keyFeedbackConfig.fontSize).toBe(66);
   });
 
   it("marks theme selection changes as unsaved so live preview switches active theme", () => {
     const themeA = initialState.selection.themeId;
-    const themeB = initialState.themeLibrary.find((theme) => theme.id !== themeA)?.id;
+    const themeB = initialState.themes.find((theme) => theme.meta.id !== themeA)?.meta.id;
     const selectedState = reducer(
       {
         ...initialState,
@@ -58,6 +58,39 @@ describe("themeWorkbenchStateStore", () => {
 
     expect(selectedState.selection.themeId).toBe(themeB);
     expect(selectedState.ui.unsaved).toBe(true);
+  });
+
+  it("adds, edits, and removes metadata with its draft as one theme aggregate", () => {
+    const themeId = "aggregate-theme";
+    const addedState = reducer(initialState, {
+      type: "theme/add",
+      payload: {
+        theme: {
+          meta: {
+            id: themeId,
+            name: "聚合主题",
+            kind: "自定义",
+            summary: "聚合状态回归",
+            tone: "amber",
+          },
+          draft: createThemeDraft(themeId),
+        },
+      },
+    });
+
+    const renamedState = reducer(addedState, {
+      type: "theme/rename",
+      payload: { themeId, name: "聚合主题 2" },
+    });
+    const aggregate = findWorkbenchTheme(renamedState.themes, themeId);
+    expect(aggregate?.meta.name).toBe("聚合主题 2");
+    expect(aggregate?.draft.actionConfigs.leftClick).toBeDefined();
+
+    const removedState = reducer(renamedState, {
+      type: "theme/remove",
+      payload: { themeId, nextSelectedThemeId: initialState.selection.themeId },
+    });
+    expect(findWorkbenchTheme(removedState.themes, themeId)).toBeUndefined();
   });
 
   it("keeps editor-only navigation out of the persisted config dirty state", () => {
@@ -90,7 +123,7 @@ describe("themeWorkbenchStateStore", () => {
 
   it("keeps key feedback configs isolated after save and theme switch", () => {
     const themeA = initialState.selection.themeId;
-    const themeB = initialState.themeLibrary.find((theme) => theme.id !== themeA)?.id;
+    const themeB = initialState.themes.find((theme) => theme.meta.id !== themeA)?.meta.id;
     const editedState = reducer(initialState, {
       type: "key-feedback/update",
       payload: { color: "#00FFAA", fontSize: 72 },
@@ -106,8 +139,8 @@ describe("themeWorkbenchStateStore", () => {
     });
     const switchedState = reducer(hydratedState, { type: "theme/select", payload: themeB });
 
-    expect(switchedState.draftsByTheme[themeA].keyFeedbackConfig.color).toBe("#00FFAA");
-    expect(switchedState.draftsByTheme[themeB].keyFeedbackConfig.color).not.toBe("#00FFAA");
-    expect(switchedState.draftsByTheme[themeB].keyFeedbackConfig.fontSize).not.toBe(72);
+    expect(findWorkbenchTheme(switchedState.themes, themeA)?.draft.keyFeedbackConfig.color).toBe("#00FFAA");
+    expect(findWorkbenchTheme(switchedState.themes, themeB)?.draft.keyFeedbackConfig.color).not.toBe("#00FFAA");
+    expect(findWorkbenchTheme(switchedState.themes, themeB)?.draft.keyFeedbackConfig.fontSize).not.toBe(72);
   });
 });
