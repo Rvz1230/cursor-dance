@@ -18,7 +18,7 @@ export function CursorFeedbackCard({ config, updateActionConfig, panelId, reset 
     <WorkbenchEffectCard
       id={panelId}
       cardKey="cursor"
-      title="光标与命中反馈"
+      title="光标反馈"
       icon={PANEL_META.cursor.icon}
       enabled={active}
       config={config}
@@ -26,6 +26,7 @@ export function CursorFeedbackCard({ config, updateActionConfig, panelId, reset 
       onChange={updateActionConfig}
       onToggle={(next) => updateActionConfig(next ? { shake: Math.max(20, config.shake || 0) } : { shake: 0, cursorOverride: "跟随当前状态" })}
       onReset={reset?.onReset}
+      settingCount={7}
       primary={(
         <>
           <FieldRow label="敲击抖动" control={<Slider value={config.shake} min={0} max={80} onChange={(value) => updateActionConfig({ shake: value })} suffix="%" label="抖动强度" />} />

@@ -41,6 +41,7 @@ export interface SliderProps {
   label: string;
   className?: string;
   showInput?: boolean;
+  compact?: boolean;
 }
 
 export function Slider({
@@ -59,6 +60,7 @@ export function Slider({
   label,
   className,
   showInput = true,
+  compact = false,
 }: SliderProps) {
   const [draftValue, setDraftValue] = useState(() => clampSliderValue(value, min, max));
   const [isInteracting, setIsInteracting] = useState(false);
@@ -136,7 +138,7 @@ export function Slider({
   return (
     <div className={cn("flex min-w-0 items-center gap-2", disabled && "opacity-60", className)}>
       <div
-        className="relative min-w-0 flex-1 py-3"
+        className={cn("relative min-w-0 flex-1", compact ? "py-0" : "py-3")}
         onPointerDownCapture={(event: ReactPointerEvent<HTMLDivElement>) => {
           if (!enabled) return;
           altPressedRef.current = event.altKey;
@@ -207,6 +209,7 @@ export function Slider({
           disabled={!enabled}
           ariaLabel={label}
           onChange={commit}
+          compact={compact}
         />
       ) : null}
     </div>

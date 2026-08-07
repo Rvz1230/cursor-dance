@@ -82,7 +82,7 @@ async function selectRadixOption(page, scope, index, optionName) {
 }
 
 async function revealPanelSettings(panel) {
-  const button = panel.getByRole("button", { name: /^(全部|其余) \d+ 项设置/ });
+  const button = panel.getByRole("button", { name: /^(全部|其余) \d+ 项(?:设置)?/ });
   if (await button.isVisible() && await button.getAttribute("aria-expanded") !== "true") await button.click();
 }
 
@@ -108,7 +108,7 @@ test("popup theme selection, live preview override, and fallback to saved config
   await workbenchPage.goto("/index.html");
   await expect(workbenchPage.getByRole("button", { name: "主题与效果", exact: true })).toBeVisible();
 
-  const textPanel = panelByName(workbenchPage, /飘字反馈/);
+  const textPanel = panelByName(workbenchPage, /^飘字$/);
   await selectRadixOption(workbenchPage, textPanel, 0, "文本飘字");
   await revealPanelSettings(textPanel);
   const deleteTagButtons = textPanel.getByRole("button", { name: /^删除标签 / });
@@ -145,9 +145,9 @@ test("image effect can preview live, save into config, and render in content run
   await workbenchPage.goto("/index.html");
   await expect(workbenchPage.getByRole("button", { name: "主题与效果", exact: true })).toBeVisible();
 
-  const imagePanel = panelByName(workbenchPage, /图片贴纸反馈/);
+  const imagePanel = panelByName(workbenchPage, /^贴纸$/);
 
-  await imagePanel.getByRole("switch", { name: "图片贴纸反馈开关" }).click();
+  await imagePanel.getByRole("switch", { name: "贴纸开关" }).click();
   await revealPanelSettings(imagePanel);
   await imagePanel.getByRole("button", { name: /落章印记/ }).click();
 
@@ -186,9 +186,9 @@ test("animation effect can preview live, save into config, and render in content
   await workbenchPage.goto("/index.html");
   await expect(workbenchPage.getByRole("button", { name: "主题与效果", exact: true })).toBeVisible();
 
-  const animationPanel = panelByName(workbenchPage, /基础动画反馈/);
+  const animationPanel = panelByName(workbenchPage, /^动画$/);
 
-  await animationPanel.getByRole("switch", { name: "动画反馈开关" }).click();
+  await animationPanel.getByRole("switch", { name: "动画开关" }).click();
   await selectRadixOption(workbenchPage, animationPanel, 0, "弹跳徽记");
 
   await page.waitForFunction((previewKey) => {
@@ -231,9 +231,9 @@ test("audio blend modes stay distinguishable on bilibili-like media reassertion"
   await workbenchPage.goto("/index.html");
   await expect(workbenchPage.getByRole("button", { name: "主题与效果", exact: true })).toBeVisible();
 
-  const audioPanel = panelByName(workbenchPage, /音频反馈/);
+  const audioPanel = panelByName(workbenchPage, /^音效$/);
 
-  await audioPanel.getByRole("switch", { name: "音频反馈开关" }).click();
+  await audioPanel.getByRole("switch", { name: "音效开关" }).click();
   await selectRadixOption(workbenchPage, audioPanel, 1, "保持原音量");
   await workbenchPage.getByRole("button", { name: "应用到桌面" }).click();
   await waitForStoredAudioBlendMode(workbenchPage, "保持原音量");
@@ -343,18 +343,18 @@ test("workbench dialogs, save toast, color picker, and slider controls are usabl
   await workbenchPage.getByRole("button", { name: "删除主题" }).click();
   await expect(workbenchPage.getByText("已移除主题", { exact: true })).toBeVisible();
 
-  const textPanel = panelByName(workbenchPage, /飘字反馈/);
+  const textPanel = panelByName(workbenchPage, /^飘字$/);
 
-  await workbenchPage.getByRole("button", { name: /飘字反馈/ }).click();
-  await workbenchPage.getByRole("button", { name: /飘字反馈/ }).click();
+  await workbenchPage.getByRole("button", { name: /折叠飘字|展开飘字/ }).click();
+  await workbenchPage.getByRole("button", { name: /折叠飘字|展开飘字/ }).click();
   await revealPanelSettings(textPanel);
-  await textPanel.getByRole("button", { name: /^飘字颜色：#[0-9A-F]{6}$/i }).click();
-  const colorHexInput = workbenchPage.getByLabel("输入飘字颜色十六进制值");
+  await textPanel.getByRole("button", { name: /^颜色：#[0-9A-F]{6}$/i }).click();
+  const colorHexInput = workbenchPage.getByLabel("输入颜色十六进制值");
   await colorHexInput.fill("#0284C7");
   await colorHexInput.press("Enter");
   await expect(workbenchPage.getByText("已更新飘字颜色", { exact: true })).toBeVisible();
 
-  const fontSizeInput = textPanel.getByRole("spinbutton", { name: "飘字大小" });
+  const fontSizeInput = textPanel.getByRole("spinbutton", { name: "字号" });
   await fontSizeInput.fill("26");
   await fontSizeInput.blur();
 

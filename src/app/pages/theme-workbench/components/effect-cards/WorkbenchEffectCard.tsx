@@ -1,5 +1,5 @@
 import { useState, type ComponentType, type ReactNode } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Clock3 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/components/ui/utils";
 import {
@@ -27,6 +27,7 @@ interface WorkbenchEffectCardProps {
   children: ReactNode;
   primary?: ReactNode;
   primaryCount?: number;
+  settingCount?: number;
 }
 
 export function WorkbenchEffectCard({
@@ -45,12 +46,13 @@ export function WorkbenchEffectCard({
   children,
   primary,
   primaryCount = 3,
+  settingCount,
 }: WorkbenchEffectCardProps) {
   const [folded, setFolded] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const changedCount = getCardChangedCount(cardKey, config, baseline);
   const activePreset = findMatchingPreset(presets, config);
-  const totalSettings = getCardSettingCount(cardKey);
+  const totalSettings = settingCount ?? getCardSettingCount(cardKey);
   const timeLabel = getCardTimeLabel(cardKey, config);
   const on = always || enabled;
 
@@ -86,11 +88,12 @@ export function WorkbenchEffectCard({
         {timeLabel ? (
           <button
             type="button"
-            className="min-w-0 max-w-24 truncate rounded-lg bg-slate-50 px-2 py-1 text-2xs font-medium tabular-nums text-slate-500 ring-1 ring-slate-200 transition-colors hover:bg-slate-100"
+            className="inline-flex min-w-0 shrink items-center gap-1 rounded-lg bg-slate-50 px-1.5 py-0.5 text-xs font-medium tabular-nums text-slate-500 ring-1 ring-slate-200 transition-colors hover:bg-slate-100 hover:text-slate-900"
             title={`在时间轴中查看 ${title}：${timeLabel}`}
-            onClick={() => document.getElementById(`timeline-track-${cardKey}`)?.scrollIntoView({ behavior: "smooth", block: "center" })}
+            onClick={() => (document.getElementById(`timeline-track-${cardKey}`) || document.getElementById("preview-timeline"))?.scrollIntoView({ behavior: "smooth", block: "center" })}
           >
-            {timeLabel}
+            <Clock3 className="size-2.5 shrink-0" aria-hidden="true" />
+            <span className="truncate">{timeLabel}</span>
           </button>
         ) : null}
         {changedCount && onReset ? (
@@ -111,7 +114,7 @@ export function WorkbenchEffectCard({
       </div>
 
       {!folded ? (
-        <div className="space-y-3 px-3 py-3">
+        <div className={cn("space-y-3 px-3 pt-3", always ? "pb-3.5" : "pb-4")}>
           {presets.length ? (
             <div>
               <div className="mb-2 flex items-center gap-1.5">
@@ -156,7 +159,9 @@ export function WorkbenchEffectCard({
             >
               <ChevronRight className={cn("size-3 transition-transform", showAll && "rotate-90")} />
               {primary ? `其余 ${Math.max(0, totalSettings - primaryCount)} 项` : `全部 ${totalSettings} 项设置`}
-              <span className="ml-auto text-2xs font-normal text-slate-400">展开后精细调整</span>
+              <span className="ml-auto inline-flex items-center gap-1 text-2xs font-normal text-slate-500">
+                按 <kbd className="rounded bg-slate-100 px-1 py-0.5 font-sans text-2xs">⌘K</kbd> 可直接搜字段
+              </span>
             </button>
             {showAll ? <div className="mt-3 space-y-4 rounded-lg bg-slate-50/70 px-2.5 py-2.5 ring-1 ring-slate-200/70">{children}</div> : null}
           </div> : null}

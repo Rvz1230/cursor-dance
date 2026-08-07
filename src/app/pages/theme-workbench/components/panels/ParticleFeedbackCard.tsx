@@ -1,4 +1,5 @@
 import { Switch } from "@/components/ui/switch";
+import { ColorField } from "@/components/ui/color-field";
 import { cn } from "@/components/ui/utils";
 import { Slider } from "@/components/ui/slider";
 import { FieldRow } from "@/components/ui/field-row";
@@ -60,7 +61,7 @@ export function ParticleFeedbackCard({ config, updateActionConfig, panelId, rese
     <WorkbenchEffectCard
       id={panelId}
       cardKey="particle"
-      title="粒子反馈"
+      title="粒子"
       icon={PANEL_META.particles.icon}
       enabled={config.particle}
       config={config}
@@ -68,22 +69,27 @@ export function ParticleFeedbackCard({ config, updateActionConfig, panelId, rese
       onChange={(patch) => updateActionConfig({ ...patch, particle: true })}
       onToggle={(next) => updateActionConfig({ particle: next })}
       onReset={reset?.onReset}
+      settingCount={17}
+      primaryCount={5}
       primary={(
         <>
-          <FieldRow label="运动模式" control={<Select value={config.particleMotionMode || "burst"} options={PARTICLE_MOTION_MODE_OPTIONS} onChange={(value) => updateActionConfig({ particleMotionMode: value, particle: true })} />} />
-          <FieldRow label="粒子形态" control={<Select value={config.particleStyle} options={PARTICLE_STYLE_OPTIONS} onChange={(value) => updateActionConfig({ particleStyle: value, particle: true })} />} />
           <FieldRow
-            label={isOrbital ? "轨道点数" : "粒子数量"}
+            label="数量"
             control={isOrbital
-              ? <Slider value={config.orbitalCount ?? 6} min={3} max={16} step={1} onChange={(value) => updateActionConfig({ orbitalCount: value })} suffix="个" label="轨道点数" />
-              : <Slider value={config.particleCount} min={0} max={40} onChange={(value) => updateActionConfig({ particleCount: value, particle: value > 0 })} label="粒子数量" />}
+              ? <Slider compact value={config.orbitalCount ?? 6} min={3} max={16} step={1} onChange={(value) => updateActionConfig({ orbitalCount: value })} suffix="个" label="轨道点数" />
+              : <Slider compact value={config.particleCount} min={1} max={60} onChange={(value) => updateActionConfig({ particleCount: value, particle: true })} suffix="个" label="数量" />}
           />
+          <FieldRow label="形状" control={<Select className="h-8 px-2 text-xs" value={config.particleStyle} options={PARTICLE_STYLE_OPTIONS} onChange={(value) => updateActionConfig({ particleStyle: value, particle: true })} />} />
+          <FieldRow label="颜色" control={<ColorField compact label="颜色" value={config.particlePalette?.[0] || "#0EA5E9"} onChange={(color) => updateActionConfig({ particlePalette: [color], particleColorMode: "跟随主题", particle: true })} />} />
+          <FieldRow label="扩散半径" control={<Slider compact value={config.particleSpread} min={20} max={320} onChange={(value) => updateActionConfig({ particleSpread: value, particle: true })} suffix="px" label="扩散半径" />} />
+          <FieldRow label="重力" control={<Slider compact value={config.particleGravity || 0} min={0} max={10} onChange={(value) => updateActionConfig({ particleGravity: value, particle: true })} label="重力" />} />
         </>
       )}
     >
       <div className="space-y-4">
         <WorkbenchSettingSection disabled={!config.particle}>
           <SectionTitle>发射</SectionTitle>
+          <FieldRow label="运动模式" control={<Select value={config.particleMotionMode || "burst"} options={PARTICLE_MOTION_MODE_OPTIONS} onChange={(value) => updateActionConfig({ particleMotionMode: value, particle: true })} />} />
           {!isOrbital && (
             <>
               <FieldRow

@@ -590,22 +590,6 @@ export function getDefaultActionConfigs(themeId: string | null | undefined): Act
   );
 }
 
-export function getTimingFieldMeta(actionId: string) {
-  if (actionId === "longPress") {
-    return { label: "长按阈值", hint: "按住多久以后才算长按。", min: 200, max: 900 };
-  }
-  if (actionId === "doubleClick") {
-    return { label: "双击间隔", hint: "两次点击之间允许的最大间隔。", min: 180, max: 520 };
-  }
-  if (actionId === "hover") {
-    return { label: "停留阈值", hint: "鼠标停多久之后再触发 hover 效果。", min: 80, max: 700 };
-  }
-  if (actionId === "wheel") {
-    return { label: "合并间隔", hint: "连续滚动时，多久合并为一次反馈。", min: 80, max: 520 };
-  }
-  return { label: "触发延迟", hint: "动作识别后，延迟多久开始反馈。", min: 0, max: 320 };
-}
-
 export function getConflictsForAction(actionId: string, actionConfigs: ActionConfigMap) {
   const current = actionConfigs[actionId];
   const conflicts: string[] = [];

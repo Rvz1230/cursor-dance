@@ -34,7 +34,6 @@ export {
 
 export {
   getConflictsForAction,
-  getTimingFieldMeta,
 } from "@/shared/effect-core/default-action-configs";
 
 export function mergeActionConfig(

@@ -41,6 +41,7 @@ interface NumberFieldProps {
   disabled?: boolean;
   className?: string;
   ariaLabel?: string;
+  compact?: boolean;
 }
 
 /**
@@ -62,6 +63,7 @@ export function NumberField({
   disabled,
   className,
   ariaLabel,
+  compact = false,
 }: NumberFieldProps) {
   const [draft, setDraft] = useState<string | null>(null);
 
@@ -85,7 +87,11 @@ export function NumberField({
         disabled={disabled}
         aria-label={ariaLabel ?? label}
         value={draft ?? String(value)}
-        className={cn("h-8 tabular-nums", label ? "text-center" : "w-20 px-2 text-right")}
+        className={cn(
+          "tabular-nums",
+          compact ? "h-5 w-14 rounded-md px-1 text-right text-xs" : "h-8",
+          !compact && (label ? "text-center" : "w-20 px-2 text-right"),
+        )}
         onChange={(event) => setDraft(event.target.value)}
         onBlur={(event) => commit(event.target.value)}
         onKeyDown={(event) => {

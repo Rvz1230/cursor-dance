@@ -58,19 +58,19 @@ export function WorkbenchPreviewRail({ actionId = "leftClick", config, compariso
     <section className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
       <style>{PREVIEW_KEYFRAMES}</style>
       <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-2">
-        <div className="flex shrink-0 items-baseline gap-2">
+        <div className="flex min-w-0 items-baseline gap-2">
           <h3 className="shrink-0 text-sm font-medium text-slate-900">实时预览</h3>
           {previewMode ? <span className="truncate text-2xs text-sky-600">AI 建议</span> : null}
         </div>
-        <div className="flex min-w-0 items-center gap-1.5 overflow-x-auto">
-          <div className="hidden items-center rounded-xl bg-slate-100 p-0.5 min-[900px]:flex" role="radiogroup" aria-label="预览背景">
+        <div className="flex shrink-0 items-center gap-1.5">
+          <div className="flex items-center gap-0.5 rounded-xl border border-slate-200 bg-slate-50 p-0.5" role="radiogroup" aria-label="预览背景">
             {BACKGROUNDS.map((item) => (
-              <button key={item.id} type="button" role="radio" aria-checked={background === item.id} onClick={() => setBackground(item.id)} className={cn("h-6 rounded-lg px-1.5 text-2xs font-medium transition-colors", background === item.id ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-900")}>{item.label}</button>
+              <button key={item.id} type="button" role="radio" aria-checked={background === item.id} onClick={() => setBackground(item.id)} className={cn("h-6 rounded-lg px-2 text-xs font-medium transition-colors", background === item.id ? "bg-slate-950 text-white shadow-sm" : "text-slate-500 hover:text-slate-900")}>{item.label}</button>
             ))}
           </div>
-          <button type="button" onClick={burst} disabled={disabled} className="h-7 rounded-lg border border-slate-200 px-2.5 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-40">连打</button>
-          <button type="button" aria-pressed={showTrail} onClick={() => setShowTrail((value) => !value)} className={cn("h-7 rounded-lg border px-2.5 text-xs font-medium transition-colors", showTrail ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50")}>轨迹</button>
-          <button type="button" aria-pressed={compareMode} onClick={() => setCompareMode((value) => !value)} className={cn("h-7 rounded-lg border px-2.5 text-xs font-medium transition-colors", compareMode ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50")}>A/B</button>
+          <button type="button" onClick={burst} disabled={disabled} className="h-7 rounded-lg border border-slate-200 px-2.5 text-xs font-medium text-slate-600 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:opacity-40">连打</button>
+          <button type="button" aria-pressed={showTrail} onClick={() => setShowTrail((value) => !value)} className={cn("h-7 rounded-lg border px-2.5 text-xs font-medium shadow-sm transition-colors", showTrail ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50")}>轨迹</button>
+          <button type="button" aria-pressed={compareMode} onClick={() => setCompareMode((value) => !value)} className={cn("h-7 rounded-lg border px-2.5 text-xs font-medium shadow-sm transition-colors", compareMode ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50")}>A/B</button>
         </div>
       </div>
 
@@ -115,8 +115,8 @@ export function WorkbenchPreviewRail({ actionId = "leftClick", config, compariso
           {outputs.length ? outputs.map((tag) => {
             const Icon = tag.icon;
             return (
-              <button key={tag.id} type="button" onClick={() => document.getElementById(tag.id)?.scrollIntoView({ behavior: "smooth", block: "start" })} className="inline-flex h-6 items-center gap-1.5 rounded-lg bg-slate-50 px-2 text-2xs font-medium text-slate-600 ring-1 ring-slate-200 transition-colors hover:bg-slate-100">
-                <Icon className="size-3" aria-hidden="true" />{tag.label}
+              <button key={tag.id} type="button" onClick={() => document.getElementById(tag.id)?.scrollIntoView({ behavior: "smooth", block: "start" })} className="inline-flex h-5 shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-slate-100 px-2 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-200">
+                <Icon className="size-2.5" aria-hidden="true" />{tag.label}
               </button>
             );
           }) : <span className="text-xs text-slate-400">暂无输出</span>}

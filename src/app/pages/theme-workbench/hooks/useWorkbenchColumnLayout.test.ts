@@ -11,8 +11,8 @@ import {
 describe("Workbench column layout", () => {
   it("balances config and preview widths from the drag origin", () => {
     expect(resizeWorkbenchColumns(DEFAULT_WORKBENCH_COLUMN_WEIGHTS, "config", 36)).toEqual({
-      config: 1.25,
-      preview: 1.05,
+      config: 1.2,
+      preview: 0.8,
       ai: 1,
     });
     expect(resizeWorkbenchColumns(DEFAULT_WORKBENCH_COLUMN_WEIGHTS, "config", 360)).toEqual({
@@ -24,12 +24,12 @@ describe("Workbench column layout", () => {
 
   it("balances preview and AI widths within their limits", () => {
     expect(resizeWorkbenchColumns(DEFAULT_WORKBENCH_COLUMN_WEIGHTS, "ai", 36)).toEqual({
-      config: 1.05,
-      preview: 1.45,
+      config: 1,
+      preview: 1.2,
       ai: 0.8,
     });
     expect(resizeWorkbenchColumns(DEFAULT_WORKBENCH_COLUMN_WEIGHTS, "ai", -360)).toEqual({
-      config: 1.05,
+      config: 1,
       preview: 0.78,
       ai: 1.9,
     });
@@ -37,10 +37,10 @@ describe("Workbench column layout", () => {
 
   it("builds templates with and without the AI column", () => {
     expect(getWorkbenchGridTemplate(DEFAULT_WORKBENCH_COLUMN_WEIGHTS, false)).toBe(
-      "minmax(0,1.05fr) 4px minmax(0,1.25fr)",
+      "minmax(0,1fr) 4px minmax(0,1fr)",
     );
     expect(getWorkbenchGridTemplate(DEFAULT_WORKBENCH_COLUMN_WEIGHTS, true)).toBe(
-      "minmax(0,1.05fr) 4px minmax(0,1.25fr) 4px minmax(0,1fr)",
+      "minmax(0,1fr) 4px minmax(0,1fr) 4px minmax(0,1fr)",
     );
   });
 });
@@ -50,6 +50,12 @@ describe("normalizeWorkbenchColumnWeights", () => {
   it("keeps a valid persisted layout", () => {
     const stored = { config: 1.4, preview: 0.9, ai: 1.1 };
     expect(normalizeWorkbenchColumnWeights(stored)).toEqual(stored);
+  });
+
+  it("migrates the former split preset to the prototype 1:1 default", () => {
+    expect(normalizeWorkbenchColumnWeights({ config: 1.05, preview: 1.25, ai: 1 })).toEqual(
+      DEFAULT_WORKBENCH_COLUMN_WEIGHTS,
+    );
   });
 
   it("clamps values that fall outside the layout bounds", () => {

@@ -24,4 +24,19 @@
       min-width: 0;
     }
   }
+
+  /* “主题与效果”严格采用 01-workbench 原型的紧凑字段栅格。 */
+  .theme-effect-cards .field-row {
+    grid-template-columns: 104px minmax(0, 1fr);
+    align-items: center;
+    gap: 0.625rem;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .preview-timeline-controls {
+    width: 100%;
+  }
 }

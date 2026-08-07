@@ -67,7 +67,7 @@ export function PreviewStage({ config, comparisonConfig, compareMode, disabled, 
     <div className="flex min-h-0 flex-1 flex-col px-4 pt-3">
       <div
         ref={stageRef}
-        className="relative min-h-[220px] flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white"
+        className="relative min-h-[240px] flex-1 overflow-hidden rounded-xl border border-slate-200 bg-white"
         style={{
           ...backgrounds[background],
           cursor: cursorEnabled && pointer.inside ? "none" : undefined,
@@ -85,7 +85,7 @@ export function PreviewStage({ config, comparisonConfig, compareMode, disabled, 
         <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center text-center" aria-hidden="true">
           <div>
             <div className={cn("text-xs font-medium", background === "dark" || background === "deck" ? "text-slate-300" : "text-slate-500")}>在这里{getPreviewTriggerSummary(config).includes("滚") ? "滚动" : "单击"}试试</div>
-            <div className={cn("mt-1 text-2xs", background === "dark" || background === "deck" ? "text-slate-400" : "text-slate-500")}>拖动下方时间轴可调整节奏</div>
+            <div className={cn("mt-1 text-2xs", background === "dark" || background === "deck" ? "text-slate-400" : "text-slate-500")}>或拖下面的播放头逐帧检视</div>
           </div>
         </div>
 

@@ -57,7 +57,7 @@ export function PreviewPlaybackControls(props: PreviewPlaybackControlsProps) {
         value={props.playbackSpeed}
         onChange={(event) => props.onPlaybackSpeedChange(Number(event.target.value))}
         aria-label="播放倍速"
-        className="h-7 w-[60px] rounded-lg border border-slate-200 bg-white px-1.5 text-xs font-medium text-slate-600 outline-none xl:hidden"
+        className="h-7 w-[72px] rounded-lg border border-slate-200 bg-white px-1.5 text-xs font-medium text-slate-600 outline-none xl:hidden"
       >
         <option value={1}>1×</option>
         <option value={0.5}>0.5×</option>

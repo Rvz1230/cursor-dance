@@ -1,13 +1,10 @@
-import { getTimingFieldMeta, TRIGGER_OPTIONS, PANEL_META } from "../../model/workbenchSchema";
-import { Slider } from "@/components/ui/slider";
+import { TRIGGER_OPTIONS, PANEL_META } from "../../model/workbenchSchema";
 import { FieldRow } from "@/components/ui/field-row";
 import { Select } from "@/components/ui/select";
 import { WorkbenchEffectCard } from "../effect-cards/WorkbenchEffectCard";
 
 export function TriggerBehaviorCard({ actionId, config, updateActionConfig, panelId, reset }) {
   const triggerMeta = TRIGGER_OPTIONS[actionId];
-  const timingMeta = getTimingFieldMeta(actionId);
-
   return (
     <WorkbenchEffectCard
       id={panelId}
@@ -17,26 +14,18 @@ export function TriggerBehaviorCard({ actionId, config, updateActionConfig, pane
       always
       config={config}
       baseline={reset?.baseline}
+      settingCount={1}
       presets={[
-        { name: "按下", patch: { triggerTiming: triggerMeta.timing[0], holdMs: 0 } },
-        { name: "抬起", patch: { triggerTiming: triggerMeta.timing[1] || triggerMeta.timing[0], holdMs: 0 } },
-        { name: "蓄力", patch: { triggerTiming: triggerMeta.timing.at(-1), holdMs: Math.max(320, timingMeta.min) } },
+        { name: "即时", patch: { triggerTiming: triggerMeta.timing[0], holdMs: 0 } },
+        { name: "蓄力", patch: { triggerTiming: triggerMeta.timing.at(-1), holdMs: actionId === "longPress" ? 420 : 320 } },
+        { name: "节流", patch: { triggerTiming: triggerMeta.timing[0], holdMs: actionId === "wheel" ? 80 : 60 } },
       ]}
       onChange={updateActionConfig}
       onReset={reset?.onReset}
     >
       <FieldRow
-        label="触发时机"
-        control={<Select value={config.triggerTiming} options={triggerMeta.timing} onChange={(value) => updateActionConfig({ triggerTiming: value })} />}
-      />
-      <FieldRow
-        label="作用范围"
-        control={<Select value={config.triggerZone} options={triggerMeta.zones} onChange={(value) => updateActionConfig({ triggerZone: value })} />}
-      />
-      <FieldRow
-        label={timingMeta.label}
-        tooltip={timingMeta.hint}
-        control={<Slider value={config.holdMs} min={timingMeta.min} max={timingMeta.max} onChange={(value) => updateActionConfig({ holdMs: value })} suffix="ms" label={timingMeta.label} />}
+        label="触发区域"
+        control={<Select className="h-8 px-2 text-xs" value={config.triggerZone} options={triggerMeta.zones} onChange={(value) => updateActionConfig({ triggerZone: value })} />}
       />
     </WorkbenchEffectCard>
   );

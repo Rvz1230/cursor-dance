@@ -373,39 +373,41 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
               />
             ) : null}
 
-            <main className={cn("min-w-0 flex-1 overflow-hidden bg-slate-50 px-2.5 py-2.5", isWorkbench && "overflow-hidden")}>
+            <main className={cn("min-w-0 flex-1 overflow-hidden bg-slate-50", isWorkbench && "overflow-hidden")}>
               {isWorkbench ? (
-                <div className="flex h-full min-h-0 flex-col gap-2.5">
-                  <div className="shrink-0 rounded-xl border border-slate-200 bg-white px-2.5 py-2.5 shadow-sm">
-                    <div role="tablist" aria-label="动作" className="-mx-1 flex gap-2 overflow-x-auto px-1">
-                      {actionItems.map((action) => (
-                        <WorkbenchActionTab
-                          key={action.id}
-                          item={action}
-                          active={action.id === selected.actionId}
-                          effectCount={getEnabledEffectCount(draft?.actionConfigs?.[action.id])}
-                          onClick={() => setActionId(action.id)}
-                        />
-                      ))}
-                    </div>
-
-                    {currentConflicts.length ? (
-                      <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                        {currentConflicts[0]}
+                <div className="flex h-full min-h-0 flex-col">
+                  <div className="shrink-0 px-3 pt-3">
+                    <div className="rounded-xl border border-slate-200 bg-white px-2.5 py-2.5 shadow-sm">
+                      <div role="tablist" aria-label="动作" className="-mx-1 flex gap-2 overflow-x-auto px-1">
+                        {actionItems.map((action) => (
+                          <WorkbenchActionTab
+                            key={action.id}
+                            item={action}
+                            active={action.id === selected.actionId}
+                            effectCount={getEnabledEffectCount(draft?.actionConfigs?.[action.id])}
+                            onClick={() => setActionId(action.id)}
+                          />
+                        ))}
                       </div>
-                    ) : null}
+
+                      {currentConflicts.length ? (
+                        <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                          {currentConflicts[0]}
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
 
                   <div
                     role="tabpanel"
                     aria-label={formatActionLabel(selected.actionId)}
                     className={cn(
-                      "grid min-h-0 flex-1 gap-1",
+                      "theme-workbench-columns grid min-h-0 flex-1 gap-1.5 px-3 pt-2.5",
                       !isResizing && "transition-[grid-template-columns] duration-200 ease-out motion-reduce:transition-none",
                     )}
                     style={{ gridTemplateColumns }}
                   >
-                    <div className="field-row-container min-h-0 min-w-0 overflow-y-auto pr-1">
+                    <div className="theme-effect-cards field-row-container min-h-0 min-w-0 overflow-y-auto pr-1">
                       <WorkbenchPanel
                         actionId={selected.actionId}
                         config={currentActionConfig}
@@ -417,10 +419,12 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                       />
                     </div>
 
-                    <ColumnResizeHandle
-                      label="调整配置列宽度"
-                      onResize={(event) => startResizeColumns(event, "config")}
-                    />
+                    <div className="theme-workbench-column-separator">
+                      <ColumnResizeHandle
+                        label="调整配置列宽度"
+                        onResize={(event) => startResizeColumns(event, "config")}
+                      />
+                    </div>
 
                     <div className="flex min-h-0 min-w-0">
                       <WorkbenchPreviewRail

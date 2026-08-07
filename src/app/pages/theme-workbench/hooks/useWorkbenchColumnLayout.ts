@@ -11,15 +11,15 @@ export type WorkbenchResizeColumn = "config" | "ai";
 export type WorkbenchLayoutPreset = "config" | "split" | "preview" | "custom";
 
 export const DEFAULT_WORKBENCH_COLUMN_WEIGHTS: WorkbenchColumnWeights = {
-  config: 1.05,
-  preview: 1.25,
+  config: 1,
+  preview: 1,
   ai: 1,
 };
 
 export const WORKBENCH_LAYOUT_PRESETS: Readonly<Record<Exclude<WorkbenchLayoutPreset, "custom">, WorkbenchColumnWeights>> = {
-  config: { config: 1.55, preview: 0.85, ai: 1 },
+  config: { config: 1.6, preview: 1, ai: 1 },
   split: DEFAULT_WORKBENCH_COLUMN_WEIGHTS,
-  preview: { config: 0.8, preview: 1.8, ai: 1 },
+  preview: { config: 0.8, preview: 1.7, ai: 1 },
 };
 
 /** 各列权重的夹取区间。这里是布局区间的唯一真值源，存储层不复制这些常量。 */
@@ -49,6 +49,11 @@ export function normalizeWorkbenchColumnWeights(value: unknown): WorkbenchColumn
   const ai = read("ai");
   // 部分有效就整体回落：三列权重是一套布局，混搭默认值会得到用户没见过的比例。
   if (config === null || preview === null || ai === null) return DEFAULT_WORKBENCH_COLUMN_WEIGHTS;
+  // 第 7 批以前的“对半布局”实际是 1.05 : 1.25。原型已经把默认值裁定为
+  // 真正的 1 : 1；只迁移这组旧默认值，用户手动拖出的自定义比例仍然保留。
+  if (Math.abs(config - 1.05) < 0.001 && Math.abs(preview - 1.25) < 0.001) {
+    return DEFAULT_WORKBENCH_COLUMN_WEIGHTS;
+  }
   return { config, preview, ai };
 }
 

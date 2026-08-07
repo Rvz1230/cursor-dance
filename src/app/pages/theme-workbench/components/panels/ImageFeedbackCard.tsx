@@ -58,7 +58,7 @@ export function ImageFeedbackCard({ config, updateActionConfig, panelId, reset }
     <WorkbenchEffectCard
       id={panelId}
       cardKey="image"
-      title="图片贴纸反馈"
+      title="贴纸"
       icon={PANEL_META.image.icon}
       enabled={config.imageEnabled}
       config={config}
@@ -66,6 +66,7 @@ export function ImageFeedbackCard({ config, updateActionConfig, panelId, reset }
       onChange={(patch) => updateActionConfig({ ...patch, imageEnabled: true })}
       onToggle={(next) => updateActionConfig({ imageEnabled: next })}
       onReset={reset?.onReset}
+      settingCount={5}
     >
       <div className="space-y-4">
         <input

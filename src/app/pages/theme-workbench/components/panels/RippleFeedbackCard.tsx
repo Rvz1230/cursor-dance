@@ -16,7 +16,7 @@ export function RippleFeedbackCard({ config, updateActionConfig, panelId, reset 
     <WorkbenchEffectCard
       id={panelId}
       cardKey="ripple"
-      title="波纹反馈"
+      title="波纹"
       icon={PANEL_META.ripple.icon}
       enabled={config.ripple}
       config={config}
@@ -24,17 +24,19 @@ export function RippleFeedbackCard({ config, updateActionConfig, panelId, reset 
       onChange={(patch) => updateActionConfig({ ...patch, ripple: true })}
       onToggle={(next) => updateActionConfig({ ripple: next })}
       onReset={reset?.onReset}
+      settingCount={5}
       primary={(
         <>
-          <FieldRow label="波纹样式" control={<Select value={config.rippleStyle} options={RIPPLE_STYLE_OPTIONS} onChange={(value) => updateActionConfig({ rippleStyle: value, ripple: true })} />} />
-          <FieldRow label="波纹颜色" control={<ColorField label="波纹颜色" value={config.rippleColor || "#34D399"} onChange={(color) => updateActionConfig({ rippleColor: color })} />} />
-          <FieldRow label="波纹尺寸" control={<Slider value={config.rippleSize} min={20} max={110} onChange={(value) => updateActionConfig({ rippleSize: value })} suffix="px" label="波纹尺寸" />} />
+          <FieldRow label="颜色" control={<ColorField compact label="颜色" value={config.rippleColor || "#0D9488"} onChange={(color) => updateActionConfig({ rippleColor: color })} />} />
+          <FieldRow label="最大半径" control={<Slider compact value={config.rippleSize} min={20} max={400} onChange={(value) => updateActionConfig({ rippleSize: value })} suffix="px" label="最大半径" />} />
+          <FieldRow label="线宽" control={<Slider compact value={config.rippleLineWidth} min={1} max={8} onChange={(value) => updateActionConfig({ rippleLineWidth: value })} suffix="px" label="线宽" />} />
         </>
       )}
     >
       <div className="space-y-4">
         <WorkbenchSettingSection disabled={!config.ripple}>
           <SectionTitle>形态</SectionTitle>
+          <FieldRow label="风格" control={<Select value={config.rippleStyle} options={RIPPLE_STYLE_OPTIONS} onChange={(value) => updateActionConfig({ rippleStyle: value, ripple: true })} />} />
           <FieldRow
             label="线条粗细"
             control={<Slider disabled={!config.ripple} value={config.rippleLineWidth} min={1} max={6} onChange={(value) => updateActionConfig({ rippleLineWidth: value })} suffix="px" label="线条粗细" />}

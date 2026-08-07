@@ -14,6 +14,7 @@ export interface ColorFieldProps {
   palette?: readonly string[];
   opacity?: number;
   onOpacityChange?: (opacity: number) => void;
+  compact?: boolean;
 }
 
 export function ColorField({
@@ -24,6 +25,7 @@ export function ColorField({
   palette = CONTENT_PALETTE,
   opacity,
   onOpacityChange,
+  compact = false,
 }: ColorFieldProps) {
   const normalizedValue = normalizeHexColor(value) ?? CONTENT_PALETTE[0];
   const [draft, setDraft] = useState(normalizedValue);
@@ -50,11 +52,26 @@ export function ColorField({
           type="button"
           disabled={disabled || !onChange}
           aria-label={`${label}：${normalizedValue}`}
-          className="grid h-9 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-left text-sm text-slate-700 shadow-sm transition-colors hover:border-slate-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className={cn(
+            "items-center text-left text-slate-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+            compact
+              ? "flex h-6 w-auto gap-1.5 rounded-lg"
+              : "grid h-9 w-full grid-cols-[auto_minmax(0,1fr)_auto] gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm hover:border-slate-300",
+          )}
         >
-          <span className="size-5 rounded-md border border-slate-200" style={{ backgroundColor: normalizedValue }} />
-          <span className="truncate font-mono text-sm">{normalizedValue}</span>
-          <ChevronDown className="size-4 text-slate-400" aria-hidden="true" />
+          {compact ? palette.slice(0, 7).map((color) => (
+            <span
+              key={color}
+              className={cn("size-6 rounded-lg border", normalizeHexColor(color) === normalizedValue ? "border-slate-950 ring-1 ring-slate-300" : "border-slate-200")}
+              style={{ backgroundColor: color }}
+            />
+          )) : (
+            <>
+              <span className="size-5 rounded-md border border-slate-200" style={{ backgroundColor: normalizedValue }} />
+              <span className="truncate font-mono text-sm">{normalizedValue}</span>
+              <ChevronDown className="size-4 text-slate-400" aria-hidden="true" />
+            </>
+          )}
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-72 rounded-2xl shadow-lg">

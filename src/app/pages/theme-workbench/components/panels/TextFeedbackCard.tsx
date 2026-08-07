@@ -31,7 +31,7 @@ export function TextFeedbackCard({ config, updateActionConfig, panelId, reset })
     <WorkbenchEffectCard
       id={panelId}
       cardKey="text"
-      title="飘字反馈"
+      title="飘字"
       icon={PANEL_META.text.icon}
       enabled={config.textEnabled}
       config={config}
@@ -39,26 +39,27 @@ export function TextFeedbackCard({ config, updateActionConfig, panelId, reset })
       onChange={(patch) => updateActionConfig({ ...patch, textEnabled: true })}
       onToggle={(next) => updateActionConfig({ textEnabled: next })}
       onReset={reset?.onReset}
+      settingCount={19}
       primaryCount={4}
       primary={(
         <>
-          <FieldRow label="飘字类型" control={<Select value={config.textKind} options={TEXT_KIND_OPTIONS} onChange={(value) => updateActionConfig({ textKind: value, textEnabled: true })} />} />
-          <FieldRow label="飘字大小" control={<Slider value={config.fontSize} min={14} max={30} onChange={(value) => updateActionConfig({ fontSize: value })} suffix="px" label="飘字大小" />} />
-          <FieldRow label="飘字颜色" control={<ColorField label="飘字颜色" value={config.textColor} onChange={(color) => updateActionConfig({ textColor: color })} />} />
-          {config.textKind === "文本飘字" ? (
-            <FieldRow
-              label="标签内容"
-              control={<TextTagEditor tags={config.textTags} onChange={(next) => updateActionConfig({ textTags: next, textContent: next[0] ?? "", textEnabled: true })} />}
-            />
-          ) : (
-            <FieldRow label="飘字文案" control={<Input value={config.textContent || "+1"} onChange={(event) => updateActionConfig({ textContent: event.target.value, textEnabled: true })} />} />
-          )}
+          <FieldRow label="文案" control={<Input className="h-8 px-2 text-xs" value={config.textContent || "Nice!"} onChange={(event) => updateActionConfig({ textContent: event.target.value, textEnabled: true })} />} />
+          <FieldRow label="字号" control={<Slider compact value={config.fontSize} min={12} max={96} onChange={(value) => updateActionConfig({ fontSize: value })} suffix="px" label="字号" />} />
+          <FieldRow label="颜色" control={<ColorField compact label="颜色" value={config.textColor} onChange={(color) => updateActionConfig({ textColor: color })} />} />
+          <FieldRow label="上浮距离" control={<Slider compact value={Math.abs(config.textOffsetY || 0)} min={10} max={240} onChange={(value) => updateActionConfig({ textOffsetY: -value })} suffix="px" label="上浮距离" />} />
         </>
       )}
     >
       <div className="space-y-4">
         <WorkbenchSettingSection disabled={!config.textEnabled}>
           <SectionTitle>内容</SectionTitle>
+          <FieldRow label="文本种类" control={<Select value={config.textKind} options={TEXT_KIND_OPTIONS} onChange={(value) => updateActionConfig({ textKind: value, textEnabled: true })} />} />
+          {config.textKind === "文本飘字" ? (
+            <FieldRow
+              label="词库"
+              control={<TextTagEditor tags={config.textTags} onChange={(next) => updateActionConfig({ textTags: next, textContent: next[0] ?? "", textEnabled: true })} />}
+            />
+          ) : null}
           {config.textKind === "数字飘字" ? (
             <>
               <FieldRow

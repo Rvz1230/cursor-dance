@@ -16,7 +16,7 @@ export function AudioFeedbackCard({ config, updateActionConfig, panelId, reset }
     <WorkbenchEffectCard
       id={panelId}
       cardKey="audio"
-      title="音频反馈"
+      title="音效"
       icon={PANEL_META.audio.icon}
       enabled={config.sound}
       config={config}
@@ -24,6 +24,7 @@ export function AudioFeedbackCard({ config, updateActionConfig, panelId, reset }
       onChange={(patch) => updateActionConfig({ ...patch, sound: true })}
       onToggle={(next) => updateActionConfig({ sound: next })}
       onReset={reset?.onReset}
+      settingCount={5}
       primary={(
         <>
           <FieldRow label="音效素材" control={<Select value={config.soundFile} options={SOUND_FILE_OPTIONS} onChange={(value) => updateActionConfig({ soundFile: value, sound: true })} />} />

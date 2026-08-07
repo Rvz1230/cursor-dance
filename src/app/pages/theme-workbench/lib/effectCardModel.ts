@@ -23,15 +23,15 @@ export const EFFECT_PRESETS: Record<string, EffectPreset[]> = {
     { name: "弹入", patch: { imageSize: 64, imageDuration: 720, imageOpacity: 100 } },
   ],
   particle: [
-    { name: "礼花", patch: { particleStyle: "点状粒子", particleCount: 14, particleSpread: 90, particleSize: 8, particleGravity: 3 } },
-    { name: "火花", patch: { particleStyle: "火花", particleCount: 28, particleSpread: 90, particleSize: 6, particleGravity: 1 } },
+    { name: "礼花", patch: { particleStyle: "点状粒子", particleCount: 14, particleSpread: 96, particleSize: 6, particleGravity: 3 } },
+    { name: "火花", patch: { particleStyle: "火花", particleCount: 28, particleSpread: 132, particleSize: 4, particleGravity: 1 } },
     { name: "尘埃", patch: { particleStyle: "碎屑粒子", particleCount: 18, particleSpread: 72, particleSize: 6, particleGravity: 6 } },
-    { name: "气泡", patch: { particleStyle: "点状粒子", particleCount: 22, particleSpread: 80, particleSize: 12, particleGravity: 0 } },
+    { name: "气泡", patch: { particleStyle: "点状粒子", particleCount: 22, particleSpread: 120, particleSize: 9, particleGravity: 0 } },
   ],
   ripple: [
-    { name: "涟漪", patch: { rippleStyle: "单环", rippleSize: 96, rippleLineWidth: 2, rippleOpacity: 100 } },
-    { name: "脉冲", patch: { rippleStyle: "脉冲波纹", rippleSize: 84, rippleLineWidth: 3, rippleOpacity: 100 } },
-    { name: "回声", patch: { rippleStyle: "回声环", rippleSize: 110, rippleLineWidth: 1, rippleOpacity: 70 } },
+    { name: "涟漪", patch: { rippleStyle: "单环", rippleSize: 120, rippleLineWidth: 2, rippleOpacity: 100 } },
+    { name: "脉冲", patch: { rippleStyle: "脉冲波纹", rippleSize: 96, rippleLineWidth: 3, rippleOpacity: 100 } },
+    { name: "回声", patch: { rippleStyle: "回声环", rippleSize: 200, rippleLineWidth: 1, rippleOpacity: 70 } },
   ],
   audio: [
     { name: "清脆", patch: { soundFile: "chime-bright.wav", volume: 70, playbackRate: 108 } },
@@ -81,6 +81,11 @@ export function findMatchingPreset(
 }
 
 export function getCardTimeLabel(cardKey: string, config: Record<string, unknown>): string | null {
+  if (cardKey === "trigger") {
+    const throttleMs = Math.max(40, Number(config.holdMs) || 60);
+    const comboWindowMs = Math.max(120, Number(config.comboWindowMs) || 900);
+    return `节流 ${throttleMs}ms · 连击窗 ${comboWindowMs}ms`;
+  }
   const timing: Record<string, [string, string?]> = {
     text: ["textDelay", "textDuration"],
     animation: ["animationDelay", "animationDuration"],

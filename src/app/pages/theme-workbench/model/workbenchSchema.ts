@@ -52,7 +52,6 @@ import {
   getActionRippleConfig,
   getActionTextConfig,
   getActionTriggerConfig,
-  getTimingFieldMeta,
   mergeActionConfig,
   pickStoredWorkbenchActionConfigs,
 } from "./actionConfigSchema";
@@ -292,7 +291,6 @@ export {
   getActionTextConfig,
   getActionTriggerConfig,
   getConflictsForAction,
-  getTimingFieldMeta,
   mergeActionConfig,
   pickStoredWorkbenchActionConfigs,
 };

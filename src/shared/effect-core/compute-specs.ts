@@ -171,7 +171,7 @@ export function computeParticleSpecs(config: Record<string, unknown>, runIndex: 
   const particleConfig = getActionParticleConfig(config);
   const baseDelay = (particleConfig.particleDelay as number) || 0;
   const visibleCount = Math.min(particleConfig.particleCount as number, 40);
-  const spread = Math.max(0, Math.min((particleConfig.particleSpread as number) || 52, 90));
+  const spread = Math.max(0, Math.min((particleConfig.particleSpread as number) || 52, 320));
 
   const direction = particleConfig.particleDirection || "四周扩散";
 

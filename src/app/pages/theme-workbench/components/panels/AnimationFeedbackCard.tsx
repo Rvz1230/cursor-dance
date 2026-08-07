@@ -17,7 +17,7 @@ export function AnimationFeedbackCard({ config, updateActionConfig, panelId, res
     <WorkbenchEffectCard
       id={panelId}
       cardKey="animation"
-      title="基础动画反馈"
+      title="动画"
       icon={PANEL_META.animation.icon}
       enabled={config.animationEnabled}
       config={config}
@@ -25,6 +25,7 @@ export function AnimationFeedbackCard({ config, updateActionConfig, panelId, res
       onChange={(patch) => updateActionConfig({ ...patch, animationEnabled: true })}
       onToggle={(next) => updateActionConfig({ animationEnabled: next })}
       onReset={reset?.onReset}
+      settingCount={7}
       primary={(
         <>
           <FieldRow label="动画样式" control={<Select value={config.animationStyle} options={ANIMATION_STYLE_OPTIONS} onChange={(value) => updateActionConfig({ animationStyle: value, animationEnabled: true })} />} />
