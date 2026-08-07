@@ -3,6 +3,7 @@ export {
   buildThemeExportPayload,
   clearLivePreviewConfig,
   clearRuntimeErrors,
+  clearRuntimeDiagnostics,
   downloadThemePackExport,
   pickThemeFile,
   previewThemePack,

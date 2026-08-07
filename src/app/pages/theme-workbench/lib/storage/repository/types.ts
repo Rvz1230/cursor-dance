@@ -60,6 +60,7 @@ export interface WorkbenchRepository {
   readDiagnosticDebugFlag(): Promise<boolean>;
   writeDiagnosticDebugFlag(enabled: boolean): Promise<void>;
   readRuntimeDiagnostics(): Promise<RuntimeDiagnosticEntry[]>;
+  clearRuntimeDiagnostics(): Promise<void>;
   subscribeRuntimeDiagnostics(onChange: RepositoryListener<RuntimeDiagnosticEntry>): RepositoryUnsubscribe;
 }
 

@@ -183,6 +183,18 @@ describe("WorkbenchRepository adapters", () => {
     expect(await repository.readDiagnosticDebugFlag()).toBe(true);
   });
 
+  it("clears persisted Chrome diagnostic events", async () => {
+    const { chromeApi, localValues } = createChromeApi();
+    localValues["cursordance.diagnosticEvents"] = [{ scope: "action.fire" }];
+    const repository = createChromeWorkbenchRepository(chromeApi, codec);
+
+    expect(await repository.readRuntimeDiagnostics()).toHaveLength(1);
+    await repository.clearRuntimeDiagnostics();
+
+    expect(await repository.readRuntimeDiagnostics()).toEqual([]);
+    expect(chromeApi.storage.local.remove).toHaveBeenCalledWith(["cursordance.diagnosticEvents"]);
+  });
+
   it("contains async Chrome config subscription failures", async () => {
     const { chromeApi, listeners } = createChromeApi();
     const repository = createChromeWorkbenchRepository(chromeApi, codec);

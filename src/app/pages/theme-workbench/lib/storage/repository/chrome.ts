@@ -279,6 +279,9 @@ export function createChromeWorkbenchRepository(
         return [];
       }
     },
+    async clearRuntimeDiagnostics() {
+      await chromeApi.storage.local.remove([DIAGNOSTIC_EVENTS_STORAGE_KEY]);
+    },
     subscribeRuntimeDiagnostics(onChange) {
       const seenKeys = new Set<string>();
       const handleChanges = (changes: Record<string, { newValue?: unknown }>, areaName: string) => {

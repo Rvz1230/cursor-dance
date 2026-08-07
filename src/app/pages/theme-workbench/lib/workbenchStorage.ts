@@ -24,6 +24,7 @@ export {
   previewThemePack,
   readRuntimeErrors,
   clearRuntimeErrors,
+  clearRuntimeDiagnostics,
   readDiagnosticDebugFlag,
   writeDiagnosticDebugFlag,
   readRuntimeDiagnostics,

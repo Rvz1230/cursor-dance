@@ -24,6 +24,7 @@ type RepositorySupport = Pick<WorkbenchRepository,
   | "readDiagnosticDebugFlag"
   | "writeDiagnosticDebugFlag"
   | "readRuntimeDiagnostics"
+  | "clearRuntimeDiagnostics"
   | "subscribeRuntimeDiagnostics"
 >;
 
@@ -137,6 +138,7 @@ export function createBrowserFallbackSupport(
     async readRuntimeDiagnostics() {
       return [];
     },
+    async clearRuntimeDiagnostics() {},
     subscribeRuntimeDiagnostics: subscribeBroadcastDiagnostics,
   };
 }

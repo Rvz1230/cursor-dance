@@ -159,6 +159,10 @@ export async function readRuntimeDiagnostics() {
   return getWorkbenchRepository().readRuntimeDiagnostics();
 }
 
+export async function clearRuntimeDiagnostics() {
+  return getWorkbenchRepository().clearRuntimeDiagnostics();
+}
+
 export async function writeDiagnosticDebugFlag(enabled) {
   return getWorkbenchRepository().writeDiagnosticDebugFlag(enabled);
 }
