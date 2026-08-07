@@ -106,6 +106,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
     activeWindowSnapshot,
     closeWelcome,
     openAccessibilitySettings,
+    refreshActiveWindow,
   } = useDesktopWorkbenchRuntime();
   const {
     state,
@@ -147,7 +148,6 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
     deleteAppRule,
     reorderAppRules,
     toggleAppRule,
-    clearAllAppRules,
     updateActionConfig,
     updateActionConfigs,
     updateAtmosphere,
@@ -512,20 +512,25 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
               ) : null}
 
               {state.editor.workspaceId === "sites" ? (
-                <div className="h-full overflow-y-auto pr-1">
+                <div className={isDesktop() ? "h-full" : "h-full overflow-y-auto pr-1"}>
                   <Suspense fallback={<DeferredPanelFallback label="正在加载应用规则…" />}>
                     {isDesktop() ? (
                       <AppRulesPanel
                         appRules={state.domain.appRules}
                         themes={themes}
+                        activeThemeId={state.domain.activeThemeId}
+                        globalEnabled={state.domain.enabled}
                         activeApp={activeWindowSnapshot}
                         openAccessibilitySettings={openAccessibilitySettings}
+                        refreshActiveApp={refreshActiveWindow}
+                        openDiagnostics={() => setWorkspaceId("diagnostics")}
+                        notify={toast}
+                        setGlobalEnabled={setEnabled}
                         addAppRule={addAppRule}
                         updateAppRule={updateAppRule}
                         deleteAppRule={deleteAppRule}
                         reorderAppRules={reorderAppRules}
                         toggleAppRule={toggleAppRule}
-                        clearAllAppRules={clearAllAppRules}
                       />
                     ) : (
                       <SiteRulesPanel

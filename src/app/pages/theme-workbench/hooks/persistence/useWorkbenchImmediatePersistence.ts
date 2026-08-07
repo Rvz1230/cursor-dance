@@ -4,6 +4,7 @@ import {
   writeExtensionConfig,
 } from "../../lib/workbenchConfig";
 import type { WorkbenchPersistenceContext } from "./workbenchPersistenceTypes";
+import type { CursorDanceConfig } from "@/shared/domain/cursor-dance";
 
 function persistLatestConfig({
   stateRef,
@@ -15,6 +16,13 @@ function persistLatestConfig({
   writeExtensionConfig(nextConfig).then((savedConfig) => {
     configRef.current = savedConfig;
   }).catch(() => {});
+}
+
+export function buildImmediateEnabledConfig(
+  baseConfig: CursorDanceConfig | null,
+  enabled: boolean,
+): CursorDanceConfig | null {
+  return baseConfig ? { ...baseConfig, enabled } : null;
 }
 
 export function useWorkbenchImmediatePersistence(
@@ -43,6 +51,10 @@ export function useWorkbenchImmediatePersistence(
     if (!state.status.isHydrated) return;
     if (state.domain.enabled === prevEnabledRef.current) return;
     prevEnabledRef.current = state.domain.enabled;
-    persistLatestConfig({ stateRef, configRef });
+    const nextConfig = buildImmediateEnabledConfig(configRef.current, state.domain.enabled);
+    if (!nextConfig) return;
+    writeExtensionConfig(nextConfig).then((savedConfig) => {
+      configRef.current = savedConfig;
+    }).catch(() => {});
   }, [configRef, stateRef, state.domain.enabled, state.status.isHydrated]);
 }
