@@ -12,7 +12,7 @@ import {
 } from "./overlay-window";
 import { createWorkbenchWindow } from "./workbench-window";
 import { createWorkbenchWindowController } from "./workbench-window-controller";
-import { getAllDisplays, nativePointToDip, onDisplayChanges } from "./screen-utils";
+import { getAllDisplays, getKeyboardTargetDisplayId, nativePointToDip, onDisplayChanges } from "./screen-utils";
 import { createCursorEventRouter, type CursorEventRouter, type RoutedCursorEvent } from "./cursor-event-router";
 import { registerStoreIpc, unregisterStoreIpc } from "./ipc-handlers";
 import { registerDialogIpc, unregisterDialogIpc } from "./dialog-handlers";
@@ -78,7 +78,7 @@ function sendCursorEventToDisplay(displayId: number, event: RoutedCursorEvent): 
 }
 
 function routeKeyboardEvent(event: NativeKeyboardEvent): void {
-  const displayId = cursorEventRouter?.getActiveDisplayId();
+  const displayId = getKeyboardTargetDisplayId() ?? cursorEventRouter?.getActiveDisplayId();
   if (displayId === null || displayId === undefined) return;
   const target = getOverlayWindows().get(displayId);
   if (target?.isVisible()) sendToWindow(target, KEYBOARD_EVENT, event);
@@ -192,6 +192,7 @@ void app.whenReady().then(async () => {
     const testingGlobal = globalThis as typeof globalThis & {
       __cursorDanceMainTesting?: {
         routeCursorEvent: (event: RoutedCursorEvent) => void;
+        routeKeyboardEvent: (event: NativeKeyboardEvent) => void;
         flushPendingMove: () => void;
         getActiveDisplayId: () => number | null;
         resetCursorIpcCount: () => void;
@@ -203,6 +204,7 @@ void app.whenReady().then(async () => {
       routeCursorEvent: (event) => {
         if (event.type !== "leave") cursorEventRouter?.route(event);
       },
+      routeKeyboardEvent,
       flushPendingMove: () => cursorEventRouter?.flushPendingMove(),
       getActiveDisplayId: () => cursorEventRouter?.getActiveDisplayId() ?? null,
       resetCursorIpcCount: () => { cursorIpcMessageCount = 0; },

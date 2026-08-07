@@ -39,6 +39,8 @@ export interface KeyboardInputEvent {
   ctrlKey: boolean;
   metaKey: boolean;
   shiftKey: boolean;
+  /** Native source marks keydown events repeated before a matching keyup. */
+  repeat?: boolean;
   timestamp: number;
 }
 

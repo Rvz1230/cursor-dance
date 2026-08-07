@@ -55,6 +55,24 @@ const WHEEL_THRESHOLD = 1;
 // uiohook rotation 单位：每「咔哒」±1。乘 100 与 DOM WheelEvent.deltaY 风格的「100 像素一档」对齐。
 const WHEEL_DELTA_MULTIPLIER = 100;
 
+class KeyRepeatTracker {
+  private readonly pressed = new Set<number>();
+
+  keydown(keycode: number): boolean {
+    const repeat = this.pressed.has(keycode);
+    this.pressed.add(keycode);
+    return repeat;
+  }
+
+  keyup(keycode: number): void {
+    this.pressed.delete(keycode);
+  }
+
+  reset(): void {
+    this.pressed.clear();
+  }
+}
+
 class WheelAccumulator {
   private accum = 0;
   feed(rotation: number): number | null {
@@ -79,6 +97,7 @@ class UiohookInputSource implements IInputSource {
   private keyboardCallback: ((event: NativeKeyboardEvent) => void) | null = null;
   private buttonsState = 0;
   private wheel = new WheelAccumulator();
+  private keyRepeat = new KeyRepeatTracker();
   private started = false;
 
   start(callback: (event: NativeCursorEvent) => void, onKeyboard?: (event: NativeKeyboardEvent) => void): void {
@@ -91,6 +110,7 @@ class UiohookInputSource implements IInputSource {
     uIOhook.on("mouseup", this.onMouseUp);
     uIOhook.on("wheel", this.onWheel);
     uIOhook.on("keydown", this.onKeyDown);
+    uIOhook.on("keyup", this.onKeyUp);
 
     uIOhook.start();
     this.started = true;
@@ -115,6 +135,7 @@ class UiohookInputSource implements IInputSource {
     uIOhook.off("mouseup", this.onMouseUp);
     uIOhook.off("wheel", this.onWheel);
     uIOhook.off("keydown", this.onKeyDown);
+    uIOhook.off("keyup", this.onKeyUp);
 
     try {
       uIOhook.stop();
@@ -125,6 +146,7 @@ class UiohookInputSource implements IInputSource {
     this.callback = null;
     this.keyboardCallback = null;
     this.buttonsState = 0;
+    this.keyRepeat.reset();
     this.started = false;
   }
 
@@ -184,6 +206,7 @@ class UiohookInputSource implements IInputSource {
       console.debug(`[uiohook] function keydown keycode=${e.keycode}`);
     }
 
+    const repeat = this.keyRepeat.keydown(e.keycode);
     this.keyboardCallback?.({
       type: "keydown",
       keycode: e.keycode,
@@ -191,6 +214,21 @@ class UiohookInputSource implements IInputSource {
       ctrlKey: e.ctrlKey,
       metaKey: e.metaKey,
       shiftKey: e.shiftKey,
+      repeat,
+      timestamp: e.time,
+    });
+  };
+
+  private onKeyUp = (e: UiohookKeyboardEvent): void => {
+    this.keyRepeat.keyup(e.keycode);
+    this.keyboardCallback?.({
+      type: "keyup",
+      keycode: e.keycode,
+      altKey: e.altKey,
+      ctrlKey: e.ctrlKey,
+      metaKey: e.metaKey,
+      shiftKey: e.shiftKey,
+      repeat: false,
       timestamp: e.time,
     });
   };
@@ -232,5 +270,6 @@ export function startGlobalMouseCapture(
 // 仅给测试用：暴露内部辅助函数。
 export const __testing__ = {
   uiohookButtonToBitmask,
+  KeyRepeatTracker,
   WheelAccumulator,
 };

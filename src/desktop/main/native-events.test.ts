@@ -6,7 +6,7 @@ import {
   type NativeCursorEvent,
 } from "./native-events";
 
-const { uiohookButtonToBitmask, WheelAccumulator } = __testing__;
+const { uiohookButtonToBitmask, KeyRepeatTracker, WheelAccumulator } = __testing__;
 
 describe("uiohookButtonToBitmask", () => {
   it("maps button 1 → left bit (1)", () => expect(uiohookButtonToBitmask(1)).toBe(1));
@@ -38,6 +38,23 @@ describe("WheelAccumulator", () => {
     const acc = new WheelAccumulator();
     acc.feed(2);
     expect(acc.feed(0.5)).toBeNull(); // 上次已 reset，从 0 起累加
+  });
+});
+
+describe("KeyRepeatTracker", () => {
+  it("marks repeated keydown until the matching keyup", () => {
+    const tracker = new KeyRepeatTracker();
+    expect(tracker.keydown(30)).toBe(false);
+    expect(tracker.keydown(30)).toBe(true);
+    tracker.keyup(30);
+    expect(tracker.keydown(30)).toBe(false);
+  });
+
+  it("tracks held keys independently", () => {
+    const tracker = new KeyRepeatTracker();
+    tracker.keydown(30);
+    expect(tracker.keydown(37)).toBe(false);
+    expect(tracker.keydown(30)).toBe(true);
   });
 });
 

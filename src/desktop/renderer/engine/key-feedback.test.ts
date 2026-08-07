@@ -214,6 +214,26 @@ describe("key-feedback: cooldown", () => {
   });
 });
 
+describe("key-feedback: native auto repeat", () => {
+  it("renders held keys without advancing the typing combo", () => {
+    const { deps, root } = makeFakeDeps({ cooldownMs: 0, typingCombo: true, comboScale: true });
+    const mod = createKeyFeedback(deps);
+    nowSpy = 1000;
+    mod.handleKeyboardEvent(makeKeyEvent(KEY_A));
+    mod.handleKeyboardEvent({ ...makeKeyEvent(KEY_A), type: "keyup" });
+    nowSpy = 1080;
+    mod.handleKeyboardEvent(makeKeyEvent(KEY_K));
+    mod.handleKeyboardEvent({ ...makeKeyEvent(KEY_K), type: "keyup" });
+    nowSpy = 1160;
+    mod.handleKeyboardEvent(makeKeyEvent(KEY_A));
+    nowSpy = 1200;
+    mod.handleKeyboardEvent({ ...makeKeyEvent(KEY_A), repeat: true });
+
+    const fontSize = (index: number) => /font-size:([\d.]+)px/.exec(root.appended[index].style.cssText)?.[1];
+    expect(fontSize(3)).toBe(fontSize(2));
+  });
+});
+
 describe("key-feedback: maxSimultaneous", () => {
   it("rejects new effect when activeKeyEffects >= maxSimultaneous", () => {
     const { deps, state, root } = makeFakeDeps({ maxSimultaneous: 2, cooldownMs: 0 });
@@ -581,8 +601,10 @@ describe("key-feedback: anchors and advanced presentation", () => {
     const mod = createKeyFeedback(deps);
     nowSpy = 1000;
     mod.handleKeyboardEvent(makeKeyEvent(KEY_A));
+    mod.handleKeyboardEvent({ ...makeKeyEvent(KEY_A), type: "keyup" });
     nowSpy = 1100;
     mod.handleKeyboardEvent(makeKeyEvent(KEY_K));
+    mod.handleKeyboardEvent({ ...makeKeyEvent(KEY_K), type: "keyup" });
     nowSpy = 2401;
     mod.handleKeyboardEvent(makeKeyEvent(KEY_A));
     const left = (index: number) => Number(/left:([\d.]+)px/.exec(root.appended[index].style.cssText)?.[1]);

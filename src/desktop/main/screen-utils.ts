@@ -5,6 +5,7 @@
 // main/index.ts 直接耦合 screen API（也方便未来在 Wayland / X11 平台调整实现）。
 
 import { screen, type Display } from "electron";
+import { resolveDisplayIdAtPoint } from "./display-routing";
 
 interface DisplayDelta {
   added: Display[];
@@ -18,6 +19,13 @@ export type DisplayChangeListener = (delta: DisplayDelta) => void;
 /** 列出当前所有显示器。 */
 export function getAllDisplays(): Display[] {
   return screen.getAllDisplays();
+}
+
+/** Keyboard input has no coordinates, so route it by Electron's live cursor point. */
+export function getKeyboardTargetDisplayId(): number | null {
+  const displays = screen.getAllDisplays();
+  const primaryId = screen.getPrimaryDisplay()?.id ?? null;
+  return resolveDisplayIdAtPoint(displays, screen.getCursorScreenPoint(), primaryId);
 }
 
 /**

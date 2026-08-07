@@ -14,6 +14,10 @@ import {
   resolveKeyFeedbackColor,
   type KeySemanticKind,
 } from "@/shared/effect-core/key-feedback-style";
+import {
+  buildKeyFeedbackKeyframes,
+  resolveKeyFeedbackMotion,
+} from "@/shared/effect-core/key-feedback-motion";
 
 const FONT_WEIGHT_MAP: Record<string, number> = {
   "特细": 100, "细体": 200, "标准": 400, "中等": 500,
@@ -65,7 +69,14 @@ export function createKeyFeedback(deps: EngineDeps): KeyFeedbackModule {
   }
 
   function handleKeyboardEvent(event: NativeKeyboardEvent): void {
-    if (event.type !== "keydown") return;
+    if (!state.pressedKeycodes) state.pressedKeycodes = new Set();
+    if (event.type === "keyup") {
+      state.pressedKeycodes.delete(event.keycode);
+      return;
+    }
+
+    const isAutoRepeat = event.repeat ?? state.pressedKeycodes.has(event.keycode);
+    state.pressedKeycodes.add(event.keycode);
 
     const config = getConfig();
     if (!config.enabled) return;
@@ -93,8 +104,12 @@ export function createKeyFeedback(deps: EngineDeps): KeyFeedbackModule {
     if (state.activeEffects >= configStore.getMaxActiveEffects()) return;
 
     const kind = getSemanticKind(event);
-    const comboLevel = config.typingCombo && kind === "character" ? getComboLevel(state, now) : 0;
-    if (kind !== "character") resetCombo(state);
+    const comboLevel = config.typingCombo && kind === "character"
+      ? isAutoRepeat
+        ? Math.max(0, (state.keyFeedbackCombo?.count ?? 1) - 1)
+        : getComboLevel(state, now)
+      : 0;
+    if (kind !== "character" && !isAutoRepeat) resetCombo(state);
     const context = { kind, comboLevel };
     renderKeyFeedback(displayChar, event.keycode, deriveKeyFeedbackConfig(config, context), context);
   }
@@ -127,11 +142,6 @@ export function createKeyFeedback(deps: EngineDeps): KeyFeedbackModule {
     //   raindrop 也尊重 originEdge / originMapping：它表示重力贯穿轨迹，
     //     不等同于固定从顶部居中下落。
     // ────────────────────────────────────────────────────────────
-    const style = config.animationStyle;
-    const edge = config.originEdge;
-    const mapping = config.originMapping;
-    const offsetX = config.globalOffsetX;
-    const isVertical = edge === "bottom" || edge === "top";
     const layoutNormX = keyLayoutNormalizedX(keycode);
     const screenAnchor = { x: 0, y: 0, width: screenW, height: screenH };
     const activeBounds = config.anchor === "window" ? deps.getActiveWindowBounds?.() : null;
@@ -149,68 +159,26 @@ export function createKeyFeedback(deps: EngineDeps): KeyFeedbackModule {
       });
     }
 
-    const halfFont = fontSize / 2;
-    let mappedX = anchor.x + anchor.width * (mapping === "center" ? offsetX : layoutNormX);
-    if (mapping === "typewriter" && isVertical) {
+    let typewriterOffset = 0;
+    if (config.originMapping === "typewriter") {
       const now = Date.now();
       const advance = fontSize * 0.62;
       if (now - typewriterRun.lastAt > 1200 || typewriterRun.x + advance > anchor.width * 0.88) {
         typewriterRun = { x: 0, lastAt: now };
       }
-      mappedX = anchor.x + anchor.width * 0.06 + typewriterRun.x + halfFont;
+      typewriterOffset = typewriterRun.x;
       typewriterRun = { x: typewriterRun.x + advance, lastAt: now };
     }
-
-    // 起点（DOM left/top 锚点，屏幕外刚好藏住字符）
-    let startX: number;
-    let startY: number;
-
-    // 位移向量（keyframes translateX/Y 的目标值，代表"飞向哪里多远"）
-    let dx: number;
-    let dy: number;
-
-    // 元素中心锚 = top/left。line-height:1 时元素高度 ≈ fontSize；
-    // 要让整字"刚好藏在屏外"——最近边贴屏边——center 须再外推 fontSize/2。
-    // bounce 终点 = 距入场边 (bounceHeight + screenDim * globalOffset⊥)；
-    // dy/dx 必须把 fontSize/2 也补偿掉，否则低 bounceHeight 时字根本进不来。
-    if (edge === "bottom") {
-      startX = mappedX;
-      startY = anchor.y + anchor.height + halfFont;
-      dx = 0;
-      dy = style === "bounce"
-        ? -(config.bounceHeight + anchor.height * config.globalOffsetY + halfFont)
-        : -(anchor.height + fontSize * 2);
-    } else if (edge === "top") {
-      startX = mappedX;
-      startY = anchor.y - halfFont;
-      dx = 0;
-      dy = style === "bounce"
-        ? (config.bounceHeight + anchor.height * config.globalOffsetY + halfFont)
-        : (anchor.height + fontSize * 2);
-    } else if (edge === "left") {
-      startX = anchor.x - halfFont;
-      // keyLayoutNormalizedX 是 QWERTY 的**横向**位置映射，对纵轴没有语义。
-      // 横向入场时 keyboardLayout 回落到 center 行为，而不是硬编码屏幕中线——
-      // 否则 globalOffsetY 会被静默忽略。UI 侧在横向入场时如实禁用该映射。
-      startY = anchor.y + anchor.height * config.globalOffsetY;
-      dy = 0;
-      dx = style === "bounce"
-        ? (config.bounceHeight + anchor.width * offsetX + halfFont)
-        : (anchor.width + fontSize * 2);
-    } else {
-      // right
-      startX = anchor.x + anchor.width + halfFont;
-      startY = anchor.y + anchor.height * config.globalOffsetY;
-      dy = 0;
-      dx = style === "bounce"
-        ? -(config.bounceHeight + anchor.width * offsetX + halfFont)
-        : -(anchor.width + fontSize * 2);
-    }
-
-    // 抖动：在入场轴上加 ±20px 的随机偏移，避免连按完全重叠
-    const jitter = mapping === "typewriter" ? 0 : Math.random() * 40 - 20;
-    if (isVertical) dy += dy >= 0 ? jitter : -jitter;
-    else dx += dx >= 0 ? jitter : -jitter;
+    const motion = resolveKeyFeedbackMotion({
+      config,
+      bounds: anchor,
+      viewport: { width: screenW, height: screenH },
+      fontSize,
+      layoutX: layoutNormX,
+      typewriterOffset,
+      jitter: Math.random() * 40 - 20,
+    });
+    const { startX, startY } = motion;
 
     // 字体样式
     const weight = FONT_WEIGHT_MAP[config.fontWeight] ?? 700;
@@ -267,50 +235,16 @@ export function createKeyFeedback(deps: EngineDeps): KeyFeedbackModule {
     // 改成 linear + 入场段带曲线后是 86.5%。
     // linear 让 keyframe 的 offset 与真实时间一一对应，可见性由 keyframes 自己说清楚。
     const entranceEasing = getAnimationEasing(config.easing);
-    const targetOpacity = config.opacity / 100;
-    let keyframes: Keyframe[];
-
-    if (style === "raindrop") {
-      // raindrop: 沿入场轴贯穿屏幕；gravity 加速入场轴，wind 偏移垂直于入场轴。
-      const gravityBoost = config.gravity * 0.5;
-      const windDist = (isVertical ? screenW : screenH) * 0.3 * config.wind;
-      const finalDx = dx * (1 + gravityBoost) + (isVertical ? windDist : 0);
-      const finalDy = dy * (1 + gravityBoost) + (isVertical ? 0 : windDist);
-      const midDx = dx * 0.5 + (isVertical ? windDist * 0.3 : 0);
-      const midDy = dy * 0.5 + (isVertical ? 0 : windDist * 0.3);
-      keyframes = [
-        { opacity: 0, transform: `translate(-50%,-50%) translate(0,0)`, easing: entranceEasing },
-        { opacity: targetOpacity, transform: `translate(-50%,-50%) translate(${dx * 0.2}px, ${dy * 0.2}px)`, offset: 0.2 },
-        { opacity: targetOpacity, transform: `translate(-50%,-50%) translate(${midDx}px, ${midDy}px)`, offset: 0.6 },
-        { opacity: 0, transform: `translate(-50%,-50%) translate(${finalDx}px, ${finalDy}px)` },
-      ];
-    } else {
-      // bounce: 物理键帽手感 —— 入场过冲 → 反弹 → 小过冲 → 收敛 → 淡出
-      // 每段 keyframe 用独立 easing，模拟阻尼弹簧
-      const ease = "cubic-bezier(0.4, 0, 0.2, 1)";
-      keyframes = [
-        { opacity: 0, transform: `translate(-50%,-50%) translate(0,0) scale(0.4)`, easing: entranceEasing },
-        { opacity: targetOpacity, transform: `translate(-50%,-50%) translate(${dx * 0.12}px, ${dy * 0.12}px) scale(0.82)`, offset: 0.12, easing: ease },
-        { opacity: targetOpacity, transform: `translate(-50%,-50%) translate(${dx * 1.06}px, ${dy * 1.06}px) scale(1.18)`, offset: 0.42, easing: ease },
-        { transform: `translate(-50%,-50%) translate(${dx * 0.94}px, ${dy * 0.94}px) scale(0.96)`, offset: 0.6, easing: ease },
-        { transform: `translate(-50%,-50%) translate(${dx * 1.02}px, ${dy * 1.02}px) scale(1.04)`, offset: 0.74, easing: ease },
-        { opacity: targetOpacity, transform: `translate(-50%,-50%) translate(${dx}px, ${dy}px) scale(1.0)`, offset: 0.85, easing: ease },
-        { opacity: 0, transform: `translate(-50%,-50%) translate(${dx}px, ${dy}px) scale(1.0)` },
-      ];
-    }
-
-    const lastFrame = { ...keyframes[keyframes.length - 1] };
-    const lastTransform = String(lastFrame.transform || "");
-    if (config.exitStyle === "shrink") {
-      lastFrame.transform = /scale\([^)]*\)/.test(lastTransform)
-        ? lastTransform.replace(/scale\([^)]*\)/, "scale(0.35)")
-        : `${lastTransform} scale(0.35)`;
-    } else if (config.exitStyle === "rise") {
-      lastFrame.transform = `${lastTransform} translateY(-${fontSize * 1.1}px)`;
-    } else if (config.exitStyle === "blur") {
-      lastFrame.filter = `blur(${Math.max(3, fontSize * 0.16)}px)`;
-    }
-    keyframes[keyframes.length - 1] = lastFrame;
+    const keyframes = buildKeyFeedbackKeyframes({
+      config,
+      motion,
+      viewport: { width: screenW, height: screenH },
+      fontSize,
+      entranceEasing,
+      persistentFilter: config.gradient && config.glow
+        ? `drop-shadow(0 0 ${config.glowRadius}px ${hexToRgba(config.glowColor, Math.min(config.opacity / 100, 0.8))})`
+        : undefined,
+    });
 
     // 动画
     state.activeEffects += 1;

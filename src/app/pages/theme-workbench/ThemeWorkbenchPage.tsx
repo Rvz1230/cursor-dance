@@ -92,6 +92,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [keyboardCaptureActive, setKeyboardCaptureActive] = useState(false);
   const {
     gridTemplateColumns,
     isResizing,
@@ -222,7 +223,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
     onCommandPalette: () => setCommandPaletteOpen(true),
     // ⌘N 仍不注册：新建主题的 composer 状态还封装在 ThemeLibrarySidebar 内部。
     // 这一批只接入已经有真实落点的命令，避免吞掉系统快捷键却没有结果。
-  });
+  }, !keyboardCaptureActive);
 
   if (!state.status.isHydrated) {
     return <div className="h-dvh bg-slate-100" />;
@@ -557,7 +558,9 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                     config={keyFeedbackConfig}
                     themeName={activeTheme?.name}
                     accessibilityAuthorized={accessibilityAuthorized}
+                    hasPendingChanges={state.status.unsaved}
                     onOpenAccessibilitySettings={openAccessibilitySettings}
+                    onCaptureChange={setKeyboardCaptureActive}
                     onUpdate={(patch) => updateKeyFeedbackConfig(patch)}
                   />
                 </Suspense>

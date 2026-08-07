@@ -191,6 +191,7 @@ function resetOverlayRuntime(): void {
   state.lastSoundAtByAction = {};
   state.lastKeydownAtByKeycode?.clear();
   state.keyFeedbackCombo = undefined;
+  state.pressedKeycodes?.clear();
   state.activeKeyEffects = 0;
   setNativeCursorHidden(false);
 }
@@ -351,7 +352,10 @@ function dispatchPointer(cursorEvent: PointerInputEvent): void {
 }
 
 function dispatchKeyboard(payload: KeyboardInputEvent): void {
-  if (!pointerInside) return;
+  if (payload.type === "keyup") {
+    engine.keyFeedback.handleKeyboardEvent(payload);
+    return;
+  }
   if (!configStore.isCurrentSiteEnabled()) return;
   const config = configStore.getKeyFeedbackConfig?.();
   if (!config?.enabled) return;

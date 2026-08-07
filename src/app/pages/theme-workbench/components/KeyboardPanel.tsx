@@ -16,7 +16,9 @@ interface KeyboardPanelProps {
   config: KeyFeedbackConfig;
   themeName?: string;
   accessibilityAuthorized?: boolean | null;
+  hasPendingChanges?: boolean;
   onOpenAccessibilitySettings?: () => void;
+  onCaptureChange?: (active: boolean) => void;
   onUpdate: (patch: Partial<KeyFeedbackConfig>) => void;
 }
 
@@ -24,7 +26,9 @@ export function KeyboardPanel({
   config,
   themeName,
   accessibilityAuthorized = null,
+  hasPendingChanges = false,
   onOpenAccessibilitySettings,
+  onCaptureChange,
   onUpdate,
 }: KeyboardPanelProps) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -67,6 +71,7 @@ export function KeyboardPanel({
         </header>
 
         {accessibilityAuthorized === false ? <AccessibilityNotice onOpenSettings={onOpenAccessibilitySettings} /> : null}
+        {hasPendingChanges ? <div className="mb-2.5 rounded-xl bg-sky-50 px-3 py-2 text-xs text-sky-800 ring-1 ring-sky-200">页面预览已更新；桌面实际效果需点击顶部「应用到桌面」。</div> : null}
 
         {!showEditor ? (
           <section className="rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
@@ -78,7 +83,7 @@ export function KeyboardPanel({
         ) : (
           <div className="keyboard-layout grid gap-2.5">
             <div className="keyboard-preview-column min-w-0">
-              <KeyboardPreview config={config} onUpdate={onUpdate} />
+              <KeyboardPreview config={config} onUpdate={onUpdate} onCaptureChange={onCaptureChange} />
               <KeyboardGroup title="内容与语义" description="显示什么，以及不同按键如何区分" className="keyboard-group-meaning"><KeyboardMeaning config={config} onUpdate={onUpdate} /></KeyboardGroup>
             </div>
             <aside className="keyboard-settings-column min-w-0">

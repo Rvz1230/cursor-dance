@@ -60,6 +60,8 @@ export interface EngineState extends ActionRuntimeState, GestureRuntimeState {
   activeKeyEffects?: number;
   /** key-feedback：连续输入节奏状态 */
   keyFeedbackCombo?: { count: number; lastAt: number };
+  /** key-feedback：用于区分真实连按与系统长按自动重复 */
+  pressedKeycodes?: Set<number>;
   /** overlay：上次鼠标全局 DIP 坐标（用于键盘事件多显示器路由） */
   lastMouseGlobalX?: number;
   lastMouseGlobalY?: number;

@@ -1,4 +1,5 @@
 import type { KeySemanticKind } from "@/shared/effect-core/key-feedback-style";
+import type { KeyFeedbackBounds } from "@/shared/effect-core/key-feedback-motion";
 
 const LAYOUT_ROWS = [
   ["Backquote", "Digit1", "Digit2", "Digit3", "Digit4", "Digit5", "Digit6", "Digit7", "Digit8", "Digit9", "Digit0", "Minus", "Equal", "Backspace"],
@@ -27,32 +28,16 @@ const PREVIEW_ANCHORS = {
   caret: { x: 0.79, y: 0.58, width: 0, height: 0 },
 } as const;
 
-export function resolvePreviewEffectPosition(input: {
-  anchor: keyof typeof PREVIEW_ANCHORS;
-  originEdge: "bottom" | "top" | "left" | "right";
-  originMapping: "keyboardLayout" | "center" | "typewriter";
-  globalOffsetX: number;
-  globalOffsetY: number;
-  bounceHeight: number;
-  layoutX: number;
-  typewriterX: number;
-}): { x: number; y: number } {
-  const anchor = PREVIEW_ANCHORS[input.anchor];
-  if (input.anchor === "caret") return { x: anchor.x, y: anchor.y };
-  const localX = input.originMapping === "keyboardLayout"
-    ? 0.05 + input.layoutX * 0.9
-    : input.originMapping === "typewriter"
-      ? input.typewriterX
-      : input.globalOffsetX;
-  const distance = Math.min(0.42, Math.max(0.08, input.bounceHeight / 600));
-  const localY = input.originEdge === "top"
-    ? distance
-    : input.originEdge === "bottom"
-      ? 1 - distance
-      : input.globalOffsetY;
+export function resolvePreviewAnchorBounds(
+  anchorName: keyof typeof PREVIEW_ANCHORS,
+  viewport: { width: number; height: number },
+): KeyFeedbackBounds {
+  const anchor = PREVIEW_ANCHORS[anchorName];
   return {
-    x: Math.min(0.94, Math.max(0.06, anchor.x + anchor.width * localX)),
-    y: Math.min(0.9, Math.max(0.1, anchor.y + anchor.height * localY)),
+    x: anchor.x * viewport.width,
+    y: anchor.y * viewport.height,
+    width: anchor.width * viewport.width,
+    height: anchor.height * viewport.height,
   };
 }
 

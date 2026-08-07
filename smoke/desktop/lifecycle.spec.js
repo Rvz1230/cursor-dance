@@ -165,8 +165,14 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
     const keyboardPreview = workbenchPage.getByLabel("屏幕预览：点一下再打字即可预览效果");
     await expect(keyboardPreview).toBeVisible();
     await keyboardPreview.focus();
+    await expect(workbenchPage.getByText("正在捕获按键 · Esc 退出", { exact: true })).toBeVisible();
+    await keyboardPreview.press("a");
+    await expect(workbenchPage.locator(".keyboard-preview-glyph").filter({ hasText: "a" }).last()).toBeAttached();
     await keyboardPreview.press("Meta+k");
     await expect(workbenchPage.getByRole("dialog", { name: "命令面板" })).toHaveCount(0);
+    await keyboardPreview.press("Escape");
+    await expect(workbenchPage.getByText("正在捕获按键 · Esc 退出", { exact: true })).toHaveCount(0);
+    await expect(workbenchPage.locator(".keyboard-preview-glyph")).toHaveCount(0, { timeout: 2_500 });
     await workbenchPage.getByRole("button", { name: /更多预设/ }).click();
     await workbenchPage.getByRole("button", { name: /霓虹/ }).click();
     await expect(workbenchPage.getByRole("button", { name: /霓虹/ })).toHaveAttribute("aria-pressed", "true");
@@ -387,6 +393,25 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
       title: "README — CursorDance smoke",
     };
     const overlayOrigin = await overlayPage.evaluate(() => ({ x: window.screenX, y: window.screenY }));
+    await electronApp.evaluate(() => {
+      const testing = globalThis.__cursorDanceMainTesting;
+      if (!testing) throw new Error("Desktop smoke routing bridge is unavailable");
+      testing.routeKeyboardEvent({
+        type: "keydown",
+        keycode: 30,
+        altKey: false,
+        ctrlKey: false,
+        metaKey: false,
+        shiftKey: false,
+        repeat: false,
+        timestamp: Date.now(),
+      });
+    });
+    await expect.poll(async () => {
+      const overlays = electronApp.windows().filter((page) => isWindowType(page.url(), "overlay"));
+      return (await Promise.all(overlays.map((page) => page.locator(".cd-key-feedback").count())))
+        .reduce((sum, count) => sum + count, 0);
+    }).toBeGreaterThan(0);
     const sendClick = () => electronApp.evaluate((_electron, point) => {
       const testing = globalThis.__cursorDanceMainTesting;
       if (!testing) throw new Error("Desktop smoke routing bridge is unavailable");
