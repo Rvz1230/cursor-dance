@@ -60,6 +60,7 @@ export function getActiveWindowSnapshot(): ActiveWindowSnapshot {
       owner: { name: owner.name, bundleId },
       title: result.title || "",
       processName: owner.name,
+      bounds: result.bounds,
     };
   } catch (error) {
     const raw = error instanceof Error ? error.message : "";
@@ -82,7 +83,11 @@ function snapshotsEqual(left: ActiveWindowSnapshot | null, right: ActiveWindowSn
   }
   return left.processName === right.processName
     && left.title === right.title
-    && left.owner.bundleId === right.owner.bundleId;
+    && left.owner.bundleId === right.owner.bundleId
+    && left.bounds?.x === right.bounds?.x
+    && left.bounds?.y === right.bounds?.y
+    && left.bounds?.width === right.bounds?.width
+    && left.bounds?.height === right.bounds?.height;
 }
 
 function isCursorDanceWindow(snapshot: ActiveWindowSnapshot): boolean {

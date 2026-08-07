@@ -28,10 +28,14 @@ describe("normalizeKeyFeedbackConfig", () => {
     expect(result.cooldownMs).toBe(defaultKeyFeedbackConfig.cooldownMs);
   });
 
-  it("preserves forward-compat fields (trail/splash) even when not in UI", () => {
+  it("fills the complete visual and motion model", () => {
     const result = normalizeKeyFeedbackConfig({});
+    expect(result.anchor).toBe("screen");
+    expect(result.colorMode).toBe("solid");
+    expect(result.comboGain).toBe(100);
     expect(result.trail).toBe(false);
     expect(result.trailLength).toBe(3);
+    expect(result.exitStyle).toBe("fade");
     expect(result.splash).toBe(false);
   });
 
@@ -48,7 +52,10 @@ describe("normalizeKeyFeedbackConfig", () => {
       animationStyle: "spin" as never,
       originEdge: "middle" as never,
       originMapping: "random" as never,
+      anchor: "element" as never,
       keyDisplayMode: "display" as never,
+      colorMode: "random" as never,
+      exitStyle: "explode" as never,
       fontSize: "large" as unknown as number,
       color: 123 as unknown as string,
       maxSimultaneous: "many" as unknown as number,
@@ -58,7 +65,10 @@ describe("normalizeKeyFeedbackConfig", () => {
     expect(result.animationStyle).toBe(defaultKeyFeedbackConfig.animationStyle);
     expect(result.originEdge).toBe(defaultKeyFeedbackConfig.originEdge);
     expect(result.originMapping).toBe(defaultKeyFeedbackConfig.originMapping);
+    expect(result.anchor).toBe(defaultKeyFeedbackConfig.anchor);
     expect(result.keyDisplayMode).toBe(defaultKeyFeedbackConfig.keyDisplayMode);
+    expect(result.colorMode).toBe(defaultKeyFeedbackConfig.colorMode);
+    expect(result.exitStyle).toBe(defaultKeyFeedbackConfig.exitStyle);
     expect(result.fontSize).toBe(defaultKeyFeedbackConfig.fontSize);
     expect(result.color).toBe(defaultKeyFeedbackConfig.color);
     expect(result.maxSimultaneous).toBe(defaultKeyFeedbackConfig.maxSimultaneous);

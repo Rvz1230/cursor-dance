@@ -30,12 +30,20 @@ interface ActiveWindowOwner {
   bundleId?: string;
 }
 
+interface DesktopWindowBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export type ActiveWindowSnapshot =
   | {
       authorized: true;
       owner: ActiveWindowOwner;
       title: string;
       processName: string;
+      bounds?: DesktopWindowBounds;
     }
   | {
       authorized: false;

@@ -59,8 +59,9 @@ export interface CursorBindingV4 {
 export interface KeyFeedbackConfigV4 {
   readonly enabled: boolean;
   readonly animationStyle: "bounce" | "raindrop";
+  readonly anchor: "screen" | "window" | "caret";
   readonly originEdge: "bottom" | "top" | "left" | "right";
-  readonly originMapping: "keyboardLayout" | "center";
+  readonly originMapping: "keyboardLayout" | "center" | "typewriter";
   readonly globalOffsetX: number;
   readonly globalOffsetY: number;
   readonly fontSize: number;
@@ -72,7 +73,14 @@ export interface KeyFeedbackConfigV4 {
   readonly showModifierKeys: boolean;
   readonly keyDisplayMode: "typed" | "physical";
   readonly semanticStyles: boolean;
+  readonly semShortcut: number;
+  readonly semModifier: number;
+  readonly semSpecial: number;
   readonly typingCombo: boolean;
+  readonly comboGain: number;
+  readonly comboScale: boolean;
+  readonly comboOpacity: boolean;
+  readonly comboGlow: boolean;
   readonly duration: number;
   readonly easing: string;
   readonly scale: number;
@@ -82,8 +90,13 @@ export interface KeyFeedbackConfigV4 {
   readonly glow: boolean;
   readonly glowColor: string;
   readonly glowRadius: number;
+  readonly colorMode: "solid" | "byKey" | "byRhythm" | "bySemantic";
+  readonly hueSpread: number;
+  readonly gradient: boolean;
+  readonly gradientTo: string;
   readonly trail: boolean;
   readonly trailLength: number;
+  readonly exitStyle: "fade" | "shrink" | "rise" | "blur";
   readonly splash: boolean;
   readonly cooldownMs: number;
   readonly maxSimultaneous: number;
@@ -172,6 +185,7 @@ const THEME_KEYS = new Set([
 const KEY_FEEDBACK_KEYS = new Set([
   "enabled",
   "animationStyle",
+  "anchor",
   "originEdge",
   "originMapping",
   "globalOffsetX",
@@ -185,7 +199,14 @@ const KEY_FEEDBACK_KEYS = new Set([
   "showModifierKeys",
   "keyDisplayMode",
   "semanticStyles",
+  "semShortcut",
+  "semModifier",
+  "semSpecial",
   "typingCombo",
+  "comboGain",
+  "comboScale",
+  "comboOpacity",
+  "comboGlow",
   "duration",
   "easing",
   "scale",
@@ -195,8 +216,13 @@ const KEY_FEEDBACK_KEYS = new Set([
   "glow",
   "glowColor",
   "glowRadius",
+  "colorMode",
+  "hueSpread",
+  "gradient",
+  "gradientTo",
   "trail",
   "trailLength",
+  "exitStyle",
   "splash",
   "cooldownMs",
   "maxSimultaneous",
@@ -351,19 +377,26 @@ function validateKeyFeedback(value: unknown, path: string, issues: MutableIssueL
   }
   rejectUnknownKeys(value, KEY_FEEDBACK_KEYS, path, issues);
 
-  const booleans = ["enabled", "uppercase", "showModifierKeys", "semanticStyles", "typingCombo", "glow", "trail", "splash"];
+  const booleans = [
+    "enabled", "uppercase", "showModifierKeys", "semanticStyles", "typingCombo", "comboScale", "comboOpacity",
+    "comboGlow", "glow", "gradient", "trail", "splash",
+  ];
   const numbers = [
     "globalOffsetX", "globalOffsetY", "fontSize", "opacity", "duration", "scale", "bounceHeight", "gravity",
-    "wind", "glowRadius", "trailLength", "cooldownMs", "maxSimultaneous", "delay",
+    "wind", "semShortcut", "semModifier", "semSpecial", "comboGain", "glowRadius", "hueSpread", "trailLength",
+    "cooldownMs", "maxSimultaneous", "delay",
   ];
-  const strings = ["fontWeight", "fontFamily", "color", "easing", "glowColor"];
+  const strings = ["fontWeight", "fontFamily", "color", "easing", "glowColor", "gradientTo"];
   for (const key of booleans) if (typeof value[key] !== "boolean") addIssue(issues, `${path}.${key}`, "must be boolean");
   for (const key of numbers) requireFiniteNumber(value[key], `${path}.${key}`, issues);
   for (const key of strings) requireNonEmptyString(value[key], `${path}.${key}`, issues);
   if (value.animationStyle !== "bounce" && value.animationStyle !== "raindrop") addIssue(issues, `${path}.animationStyle`, "is invalid");
+  if (value.anchor !== "screen" && value.anchor !== "window" && value.anchor !== "caret") addIssue(issues, `${path}.anchor`, "is invalid");
   if (!["bottom", "top", "left", "right"].includes(String(value.originEdge))) addIssue(issues, `${path}.originEdge`, "is invalid");
-  if (value.originMapping !== "keyboardLayout" && value.originMapping !== "center") addIssue(issues, `${path}.originMapping`, "is invalid");
+  if (!["keyboardLayout", "center", "typewriter"].includes(String(value.originMapping))) addIssue(issues, `${path}.originMapping`, "is invalid");
   if (value.keyDisplayMode !== "typed" && value.keyDisplayMode !== "physical") addIssue(issues, `${path}.keyDisplayMode`, "is invalid");
+  if (!["solid", "byKey", "byRhythm", "bySemantic"].includes(String(value.colorMode))) addIssue(issues, `${path}.colorMode`, "is invalid");
+  if (!["fade", "shrink", "rise", "blur"].includes(String(value.exitStyle))) addIssue(issues, `${path}.exitStyle`, "is invalid");
 }
 
 function validateTheme(value: unknown, index: number, issues: MutableIssueList): string | null {

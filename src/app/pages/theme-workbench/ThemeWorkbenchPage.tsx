@@ -556,6 +556,8 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                   <KeyboardPanel
                     config={keyFeedbackConfig}
                     themeName={activeTheme?.name}
+                    accessibilityAuthorized={accessibilityAuthorized}
+                    onOpenAccessibilitySettings={openAccessibilitySettings}
                     onUpdate={(patch) => updateKeyFeedbackConfig(patch)}
                   />
                 </Suspense>

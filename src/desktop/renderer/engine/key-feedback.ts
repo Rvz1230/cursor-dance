@@ -9,6 +9,11 @@ import type { KeyFeedbackConfig } from "@/shared/config/key-feedback";
 import { normalizeKeyFeedbackConfig } from "@/shared/config/key-feedback";
 import { keyLayoutNormalizedX, keyDisplayLabel, isModifierKeycode, isSpecialKeycode } from "./key-layout-map";
 import { hexToRgba, getAnimationEasing } from "./action-config";
+import {
+  deriveKeyFeedbackConfig,
+  resolveKeyFeedbackColor,
+  type KeySemanticKind,
+} from "@/shared/effect-core/key-feedback-style";
 
 const FONT_WEIGHT_MAP: Record<string, number> = {
   "特细": 100, "细体": 200, "标准": 400, "中等": 500,
@@ -22,8 +27,6 @@ const FONT_FAMILY_COMPATIBILITY: Record<string, string> = {
   "SF Pro Rounded": '"SF Pro Rounded", system-ui, sans-serif',
   "Helvetica Neue": '"Helvetica Neue", Helvetica, Arial, sans-serif',
 };
-
-type KeySemanticKind = "character" | "shortcut" | "modifier" | "special";
 
 interface KeyRenderContext {
   kind: KeySemanticKind;
@@ -52,54 +55,9 @@ function resetCombo(state: EngineDeps["state"]): void {
   state.keyFeedbackCombo = undefined;
 }
 
-function deriveRenderConfig(config: KeyFeedbackConfig, context: KeyRenderContext): KeyFeedbackConfig {
-  let next = { ...config };
-
-  if (config.semanticStyles) {
-    if (context.kind === "shortcut") {
-      next = {
-        ...next,
-        originMapping: "center",
-        globalOffsetX: 0.5,
-        globalOffsetY: 0.5,
-        fontSize: config.fontSize * 1.18,
-        duration: Math.round(config.duration * 0.72),
-        opacity: Math.min(100, config.opacity + 8),
-      };
-    } else if (context.kind === "modifier") {
-      next = {
-        ...next,
-        fontSize: config.fontSize * 0.72,
-        duration: Math.round(config.duration * 0.55),
-        opacity: Math.max(45, Math.round(config.opacity * 0.72)),
-      };
-    } else if (context.kind === "special") {
-      next = {
-        ...next,
-        fontSize: config.fontSize * 1.08,
-        duration: Math.round(config.duration * 0.82),
-        opacity: Math.min(100, config.opacity + 4),
-      };
-    }
-  }
-
-  if (config.typingCombo && context.kind === "character" && context.comboLevel > 0) {
-    const boost = Math.min(context.comboLevel, 5);
-    next = {
-      ...next,
-      scale: next.scale * (1 + boost * 0.035),
-      opacity: Math.min(100, next.opacity + boost * 2),
-      glow: next.glow || boost >= 3,
-      glowColor: next.glowColor || next.color,
-      glowRadius: Math.max(next.glowRadius, 6 + boost * 2),
-    };
-  }
-
-  return next;
-}
-
 export function createKeyFeedback(deps: EngineDeps): KeyFeedbackModule {
   const { window: win, document: doc, state, configStore } = deps;
+  let typewriterRun = { x: 0, lastAt: 0 };
 
   function getConfig(): KeyFeedbackConfig {
     const raw = configStore.getKeyFeedbackConfig?.();
@@ -137,10 +95,16 @@ export function createKeyFeedback(deps: EngineDeps): KeyFeedbackModule {
     const kind = getSemanticKind(event);
     const comboLevel = config.typingCombo && kind === "character" ? getComboLevel(state, now) : 0;
     if (kind !== "character") resetCombo(state);
-    renderKeyFeedback(displayChar, event.keycode, deriveRenderConfig(config, { kind, comboLevel }));
+    const context = { kind, comboLevel };
+    renderKeyFeedback(displayChar, event.keycode, deriveKeyFeedbackConfig(config, context), context);
   }
 
-  function renderKeyFeedback(character: string, keycode: number, config: KeyFeedbackConfig): void {
+  function renderKeyFeedback(
+    character: string,
+    keycode: number,
+    config: KeyFeedbackConfig,
+    context: KeyRenderContext,
+  ): void {
     const screenW = win.innerWidth;
     const screenH = win.innerHeight;
     const fontSize = config.fontSize * config.scale;
@@ -169,6 +133,33 @@ export function createKeyFeedback(deps: EngineDeps): KeyFeedbackModule {
     const offsetX = config.globalOffsetX;
     const isVertical = edge === "bottom" || edge === "top";
     const layoutNormX = keyLayoutNormalizedX(keycode);
+    const screenAnchor = { x: 0, y: 0, width: screenW, height: screenH };
+    const activeBounds = config.anchor === "window" ? deps.getActiveWindowBounds?.() : null;
+    const windowAnchor = activeBounds ? {
+      x: Math.max(0, activeBounds.x - (win.screenX || 0)),
+      y: Math.max(0, activeBounds.y - (win.screenY || 0)),
+      width: Math.min(screenW, activeBounds.x - (win.screenX || 0) + activeBounds.width) - Math.max(0, activeBounds.x - (win.screenX || 0)),
+      height: Math.min(screenH, activeBounds.y - (win.screenY || 0) + activeBounds.height) - Math.max(0, activeBounds.y - (win.screenY || 0)),
+    } : null;
+    const anchor = windowAnchor && windowAnchor.width > 0 && windowAnchor.height > 0 ? windowAnchor : screenAnchor;
+    if (config.anchor !== "screen" && anchor === screenAnchor) {
+      deps.diagnostics?.log("keyboard.anchor-fallback", {
+        requested: config.anchor,
+        reason: config.anchor === "caret" ? "caret-unavailable" : "window-bounds-unavailable",
+      });
+    }
+
+    const halfFont = fontSize / 2;
+    let mappedX = anchor.x + anchor.width * (mapping === "center" ? offsetX : layoutNormX);
+    if (mapping === "typewriter" && isVertical) {
+      const now = Date.now();
+      const advance = fontSize * 0.62;
+      if (now - typewriterRun.lastAt > 1200 || typewriterRun.x + advance > anchor.width * 0.88) {
+        typewriterRun = { x: 0, lastAt: now };
+      }
+      mappedX = anchor.x + anchor.width * 0.06 + typewriterRun.x + halfFont;
+      typewriterRun = { x: typewriterRun.x + advance, lastAt: now };
+    }
 
     // 起点（DOM left/top 锚点，屏幕外刚好藏住字符）
     let startX: number;
@@ -182,75 +173,89 @@ export function createKeyFeedback(deps: EngineDeps): KeyFeedbackModule {
     // 要让整字"刚好藏在屏外"——最近边贴屏边——center 须再外推 fontSize/2。
     // bounce 终点 = 距入场边 (bounceHeight + screenDim * globalOffset⊥)；
     // dy/dx 必须把 fontSize/2 也补偿掉，否则低 bounceHeight 时字根本进不来。
-    const halfFont = fontSize / 2;
     if (edge === "bottom") {
-      startX = mapping === "center" ? screenW * offsetX : screenW * layoutNormX;
-      startY = screenH + halfFont;
+      startX = mappedX;
+      startY = anchor.y + anchor.height + halfFont;
       dx = 0;
       dy = style === "bounce"
-        ? -(config.bounceHeight + screenH * config.globalOffsetY + halfFont)
-        : -(screenH + fontSize * 2);
+        ? -(config.bounceHeight + anchor.height * config.globalOffsetY + halfFont)
+        : -(anchor.height + fontSize * 2);
     } else if (edge === "top") {
-      startX = mapping === "center" ? screenW * offsetX : screenW * layoutNormX;
-      startY = -halfFont;
+      startX = mappedX;
+      startY = anchor.y - halfFont;
       dx = 0;
       dy = style === "bounce"
-        ? (config.bounceHeight + screenH * config.globalOffsetY + halfFont)
-        : (screenH + fontSize * 2);
+        ? (config.bounceHeight + anchor.height * config.globalOffsetY + halfFont)
+        : (anchor.height + fontSize * 2);
     } else if (edge === "left") {
-      startX = -halfFont;
+      startX = anchor.x - halfFont;
       // keyLayoutNormalizedX 是 QWERTY 的**横向**位置映射，对纵轴没有语义。
       // 横向入场时 keyboardLayout 回落到 center 行为，而不是硬编码屏幕中线——
       // 否则 globalOffsetY 会被静默忽略。UI 侧在横向入场时如实禁用该映射。
-      startY = screenH * config.globalOffsetY;
+      startY = anchor.y + anchor.height * config.globalOffsetY;
       dy = 0;
       dx = style === "bounce"
-        ? (config.bounceHeight + screenW * offsetX + halfFont)
-        : (screenW + fontSize * 2);
+        ? (config.bounceHeight + anchor.width * offsetX + halfFont)
+        : (anchor.width + fontSize * 2);
     } else {
       // right
-      startX = screenW + halfFont;
-      startY = screenH * config.globalOffsetY;
+      startX = anchor.x + anchor.width + halfFont;
+      startY = anchor.y + anchor.height * config.globalOffsetY;
       dy = 0;
       dx = style === "bounce"
-        ? -(config.bounceHeight + screenW * offsetX + halfFont)
-        : -(screenW + fontSize * 2);
+        ? -(config.bounceHeight + anchor.width * offsetX + halfFont)
+        : -(anchor.width + fontSize * 2);
     }
 
     // 抖动：在入场轴上加 ±20px 的随机偏移，避免连按完全重叠
-    const jitter = Math.random() * 40 - 20;
+    const jitter = mapping === "typewriter" ? 0 : Math.random() * 40 - 20;
     if (isVertical) dy += dy >= 0 ? jitter : -jitter;
     else dx += dx >= 0 ? jitter : -jitter;
-
-    // 创建 DOM 元素
-    const el = doc.createElement("div");
-    el.className = "cd-effect cd-key-feedback";
-    el.textContent = character;
 
     // 字体样式
     const weight = FONT_WEIGHT_MAP[config.fontWeight] ?? 700;
     const safeFamilyName = config.fontFamily.replace(/[;'"\n\r]/g, "").slice(0, 80);
     const family = FONT_FAMILY_COMPATIBILITY[config.fontFamily] ?? `${safeFamilyName || "system-ui"}, system-ui, sans-serif`;
-    el.style.cssText = [
-      `position:absolute`,
-      `left:${startX}px`,
-      `top:${startY}px`,
-      `transform:translate(-50%,-50%)`,
-      `font-size:${fontSize}px`,
-      `font-weight:${weight}`,
-      `font-family:${family}`,
-      `color:${hexToRgba(config.color, config.opacity / 100)}`,
-      `pointer-events:none`,
-      `user-select:none`,
-      `will-change:transform,opacity`,
-      `line-height:1`,
-    ].join(";");
+    const paint = resolveKeyFeedbackColor(config, {
+      layoutX: layoutNormX,
+      kind: context.kind,
+      comboLevel: context.comboLevel,
+    });
 
-    // 发光
-    if (config.glow) {
-      const glowAlpha = Math.min(config.opacity / 100, 0.8);
-      el.style.textShadow = `0 0 ${config.glowRadius}px ${hexToRgba(config.glowColor, glowAlpha)}`;
+    function createGlyph(opacityFactor = 1): HTMLElement {
+      const glyph = doc.createElement("div");
+      glyph.className = "cd-effect cd-key-feedback";
+      glyph.textContent = character;
+      glyph.style.cssText = [
+        "position:absolute",
+        `left:${startX}px`,
+        `top:${startY}px`,
+        "transform:translate(-50%,-50%)",
+        `font-size:${fontSize}px`,
+        `font-weight:${weight}`,
+        `font-family:${family}`,
+        `color:${hexToRgba(paint, config.opacity / 100)}`,
+        `opacity:${opacityFactor}`,
+        "pointer-events:none",
+        "user-select:none",
+        "will-change:transform,opacity,filter",
+        "line-height:1",
+      ].join(";");
+      if (config.gradient) {
+        glyph.style.backgroundImage = `linear-gradient(180deg, ${paint}, ${config.gradientTo})`;
+        glyph.style.backgroundClip = "text";
+        glyph.style.webkitBackgroundClip = "text";
+        glyph.style.color = "transparent";
+      }
+      if (config.glow) {
+        const glowAlpha = Math.min(config.opacity / 100, 0.8);
+        const glowColor = hexToRgba(config.glowColor, glowAlpha);
+        if (config.gradient) glyph.style.filter = `drop-shadow(0 0 ${config.glowRadius}px ${glowColor})`;
+        else glyph.style.textShadow = `0 0 ${config.glowRadius}px ${glowColor}`;
+      }
+      return glyph;
     }
+    const el = createGlyph();
 
     // 构建 keyframes
     //
@@ -294,10 +299,46 @@ export function createKeyFeedback(deps: EngineDeps): KeyFeedbackModule {
       ];
     }
 
+    const lastFrame = { ...keyframes[keyframes.length - 1] };
+    const lastTransform = String(lastFrame.transform || "");
+    if (config.exitStyle === "shrink") {
+      lastFrame.transform = /scale\([^)]*\)/.test(lastTransform)
+        ? lastTransform.replace(/scale\([^)]*\)/, "scale(0.35)")
+        : `${lastTransform} scale(0.35)`;
+    } else if (config.exitStyle === "rise") {
+      lastFrame.transform = `${lastTransform} translateY(-${fontSize * 1.1}px)`;
+    } else if (config.exitStyle === "blur") {
+      lastFrame.filter = `blur(${Math.max(3, fontSize * 0.16)}px)`;
+    }
+    keyframes[keyframes.length - 1] = lastFrame;
+
     // 动画
     state.activeEffects += 1;
     state.activeKeyEffects! += 1;
-    (doc.getElementById("cursordance-root") ?? doc.documentElement).append(el);
+    const root = doc.getElementById("cursordance-root") ?? doc.documentElement;
+    if (config.trail && config.trailLength > 0) {
+      const trailCount = Math.min(6, Math.max(1, Math.round(config.trailLength)));
+      for (let index = trailCount; index >= 1; index -= 1) {
+        const opacityFactor = (1 - index / (trailCount + 1)) * 0.7;
+        const ghost = createGlyph(opacityFactor);
+        ghost.className += " cd-key-feedback-trail";
+        root.append(ghost);
+        const ghostFrames = keyframes.map((frame) => ({
+          ...frame,
+          opacity: typeof frame.opacity === "number" ? frame.opacity * opacityFactor : frame.opacity,
+        }));
+        const ghostAnimation = ghost.animate(ghostFrames, {
+          duration,
+          easing: "linear",
+          delay: startDelay + index * Math.max(24, duration * 0.035),
+          fill: "forwards",
+        });
+        const cleanupGhost = (): void => ghost.remove();
+        ghostAnimation.addEventListener("finish", cleanupGhost, { once: true });
+        ghostAnimation.addEventListener("cancel", cleanupGhost, { once: true });
+      }
+    }
+    root.append(el);
 
     const animation = el.animate(keyframes, {
       duration,

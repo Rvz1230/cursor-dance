@@ -155,6 +155,7 @@ const engine = createEffectEngine({
   constants,
   state,
   configStore,
+  getActiveWindowBounds: () => activeWindowSnapshot?.authorized ? activeWindowSnapshot.bounds ?? null : null,
   diagnostics,
   reportRuntimeError: (scope, message) => diagnostics.log("runtime-error", { scope, message }),
 });

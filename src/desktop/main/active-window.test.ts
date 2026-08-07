@@ -78,6 +78,7 @@ describe("getActiveWindowSnapshot", () => {
       expect(snap.owner.bundleId).toBe("com.microsoft.VSCode");
       expect(snap.title).toBe("index.ts — cursor-dance");
       expect(snap.processName).toBe("Code");
+      expect(snap.bounds).toEqual({ x: 0, y: 0, width: 1280, height: 800 });
     }
   });
 

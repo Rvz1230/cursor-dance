@@ -129,6 +129,8 @@ export interface EngineDeps {
   constants: EngineConstants;
   state: EngineState;
   configStore: ConfigStore;
+  /** key-feedback：当前前台窗口的全局 DIP 边界；缺失时窗口锚点回落到屏幕。 */
+  getActiveWindowBounds?: () => { x: number; y: number; width: number; height: number } | null;
   diagnostics?: DiagnosticsModule;
   reportRuntimeError?: (scope: string, message: string) => void;
 }

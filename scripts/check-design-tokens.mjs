@@ -92,10 +92,10 @@ const RULES = [
   },
   {
     id: "unimplemented-field",
-    // trail / trailLength / splash 在 schema 里保留做前向兼容，但运行时没实现。
-    // UI 不该暴露它们——摆一个拨了没反应的开关比没有这个开关更糟。
-    pattern: /\b(?:trail|trailLength|splash)\b/g,
-    message: "trail / trailLength / splash 运行时未实现，UI 不得暴露（schema 仅作前向兼容保留）",
+    // splash 仍只在 schema 里保留做前向兼容，运行时尚未实现。
+    // trail / trailLength 已由键盘 overlay 与工作台预览共同实现，不再属于此守卫。
+    pattern: /\bsplash\b/g,
+    message: "splash 运行时未实现，UI 不得暴露（schema 仅作前向兼容保留）",
     // 只约束 UI 层：schema、默认值与运行时读写本来就要认这些字段。
     appliesTo: (relativePath) => relativePath.includes("/components/") || relativePath.includes("/pages/"),
   },

@@ -8,10 +8,14 @@ const rendererRoot = resolve(projectRoot, "out/renderer");
 const budgets = {
   workbenchInitialRawBytes: 1_250_000,
   workbenchInitialGzipBytes: 270_000,
-  overlayInitialRawBytes: 180_000,
-  overlayInitialGzipBytes: 45_000,
+  // 键盘动效运行时新增窗口锚点、色相推导、拖尾与四种消散方式。
+  // 重构前实测基线为 177,415 / 42,147 bytes；能力完整接入后约增加 10 KB / 3 KB。
+  overlayInitialRawBytes: 190_000,
+  overlayInitialGzipBytes: 47_000,
   largestJavaScriptChunkBytes: 1_100_000,
-  rendererOutputBytes: 2_200_000,
+  // 新键盘工作台本身为懒加载，初始工作台预算不变；这里只容纳其独立页面与样式产物。
+  // 重构前 renderer 总量实测 2,194,210 bytes，本批新增约 45 KB。
+  rendererOutputBytes: 2_250_000,
 };
 
 async function measureInitialAssets(entryName) {

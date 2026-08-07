@@ -543,3 +543,80 @@ describe("key-feedback: 横向入场的 keyboardLayout 映射", () => {
     });
   }
 });
+
+describe("key-feedback: anchors and advanced presentation", () => {
+  it("anchors positions inside the active foreground window bounds", () => {
+    const { deps, root } = makeFakeDeps({
+      anchor: "window",
+      animationStyle: "bounce",
+      originEdge: "bottom",
+      originMapping: "center",
+      globalOffsetX: 0.5,
+    });
+    deps.getActiveWindowBounds = () => ({ x: 100, y: 200, width: 800, height: 600 });
+    createKeyFeedback(deps).handleKeyboardEvent(makeKeyEvent(KEY_A));
+    expect(root.appended[0].style.cssText).toContain("left:500px");
+    expect(root.appended[0].style.cssText).toContain("top:824px");
+  });
+
+  it("falls back to the screen and records why window bounds are unavailable", () => {
+    const { deps, root } = makeFakeDeps({ anchor: "window" });
+    const events: Array<{ scope: string; payload?: Record<string, unknown> }> = [];
+    deps.diagnostics = { isEnabled: () => true, log: (scope, payload) => events.push({ scope, payload }) };
+    createKeyFeedback(deps).handleKeyboardEvent(makeKeyEvent(KEY_A));
+    expect(root.appended).toHaveLength(1);
+    expect(events).toContainEqual({ scope: "keyboard.anchor-fallback", payload: { requested: "window", reason: "window-bounds-unavailable" } });
+  });
+
+  it("falls back explicitly while caret geometry is not available", () => {
+    const { deps } = makeFakeDeps({ anchor: "caret" });
+    const events: Array<{ scope: string; payload?: Record<string, unknown> }> = [];
+    deps.diagnostics = { isEnabled: () => true, log: (scope, payload) => events.push({ scope, payload }) };
+    createKeyFeedback(deps).handleKeyboardEvent(makeKeyEvent(KEY_A));
+    expect(events).toContainEqual({ scope: "keyboard.anchor-fallback", payload: { requested: "caret", reason: "caret-unavailable" } });
+  });
+
+  it("queues typewriter characters and resets the line after a pause", () => {
+    const { deps, root } = makeFakeDeps({ originMapping: "typewriter", cooldownMs: 0 });
+    const mod = createKeyFeedback(deps);
+    nowSpy = 1000;
+    mod.handleKeyboardEvent(makeKeyEvent(KEY_A));
+    nowSpy = 1100;
+    mod.handleKeyboardEvent(makeKeyEvent(KEY_K));
+    nowSpy = 2401;
+    mod.handleKeyboardEvent(makeKeyEvent(KEY_A));
+    const left = (index: number) => Number(/left:([\d.]+)px/.exec(root.appended[index].style.cssText)?.[1]);
+    expect(left(1)).toBeGreaterThan(left(0));
+    expect(left(2)).toBeCloseTo(left(0));
+  });
+
+  it("renders gradient paint with glow through a drop shadow", () => {
+    const { deps, root } = makeFakeDeps({ gradient: true, gradientTo: "#F43F5E", glow: true });
+    createKeyFeedback(deps).handleKeyboardEvent(makeKeyEvent(KEY_A));
+    const style = root.appended[0].style;
+    expect(style.backgroundImage).toContain("linear-gradient");
+    expect(style.color).toBe("transparent");
+    expect(style.filter).toContain("drop-shadow");
+  });
+
+  it("creates trail ghosts without consuming the simultaneous effect budget", () => {
+    const { deps, root, state } = makeFakeDeps({ trail: true, trailLength: 3 });
+    createKeyFeedback(deps).handleKeyboardEvent(makeKeyEvent(KEY_A));
+    expect(root.appended).toHaveLength(4);
+    expect(root.appended.slice(0, 3).every((element) => element.className.includes("cd-key-feedback-trail"))).toBe(true);
+    expect(state.activeKeyEffects).toBe(1);
+    expect(state.activeEffects).toBe(1);
+  });
+
+  it.each([
+    ["shrink", "scale(0.35)"],
+    ["rise", "translateY(-"],
+    ["blur", "blur("],
+  ] as const)("applies the %s exit treatment to the final frame", (exitStyle, marker) => {
+    const { deps, root } = makeFakeDeps({ exitStyle });
+    createKeyFeedback(deps).handleKeyboardEvent(makeKeyEvent(KEY_A));
+    const frames = root.appended[0].animations[0].keyframes;
+    const frame = frames[frames.length - 1];
+    expect(`${String(frame.transform)} ${String(frame.filter)}`).toContain(marker);
+  });
+});
