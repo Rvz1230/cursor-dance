@@ -93,6 +93,7 @@ export function createTriggerHandlers(deps: TriggerHandlersDeps): TriggerHandler
       getActiveTheme: () => configStore.getActiveTheme?.(),
       getActionConfig: (theme, actionId) => configStore.getActionConfig?.(theme, actionId),
       getActionTriggerConfig: (config) => configStore.getActionTriggerConfig(config),
+      getMaxActiveEffects: () => configStore.getMaxActiveEffects(),
       matchesTriggerZone: (target, triggerZone, event, options) => Boolean(
         configStore.matchesTriggerZone?.(target, triggerZone, event, options),
       ),

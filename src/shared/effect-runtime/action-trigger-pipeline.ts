@@ -6,6 +6,7 @@ import type { AudioSpec, EffectSpec } from "./contracts";
 
 export interface ActionTriggerState extends ActionRuntimeState {
   ready?: boolean;
+  activeEffects?: number;
 }
 
 export interface ActionTriggerCoords {
@@ -27,6 +28,7 @@ interface ActionTriggerConfigStore {
   getActiveTheme(): unknown;
   getActionConfig(theme: unknown, actionId: string): Record<string, unknown> | null | undefined;
   getActionTriggerConfig(actionConfig: Record<string, unknown> | null | undefined): Record<string, unknown>;
+  getMaxActiveEffects?(): number;
   matchesTriggerZone(
     target: unknown,
     triggerZone: unknown,
@@ -181,6 +183,7 @@ export function createActionTriggerPipeline(deps: ActionTriggerPipelineDeps): Ac
       return;
     }
 
+    for (const effect of decision.outputPlan.effects) deps.renderEffect(effect);
     deps.diagnostics?.log("action.fire", {
       sourceActionId,
       resolvedActionId,
@@ -190,9 +193,10 @@ export function createActionTriggerPipeline(deps: ActionTriggerPipelineDeps): Ac
       comboWindowMs: decision.comboWindowMs,
       force: Boolean(options.force),
       outputs: decision.outputs,
+      activeEffects: deps.state.activeEffects,
+      maxActiveEffects: deps.configStore.getMaxActiveEffects?.(),
       target: deps.diagnostics?.describeTarget?.(coords.target),
     });
-    for (const effect of decision.outputPlan.effects) deps.renderEffect(effect);
     if (decision.outputPlan.audio) deps.playAudio(decision.outputPlan.audio, resolvedActionId);
   }
 

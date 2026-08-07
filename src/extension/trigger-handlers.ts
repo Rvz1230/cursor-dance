@@ -22,6 +22,7 @@ interface ContentConfigStore {
   getConfig(): { themes: readonly unknown[]; activeThemeId?: string };
   getActionConfig(theme: unknown, actionId: string): Record<string, unknown> | null | undefined;
   getActionTriggerConfig(config: unknown): Record<string, unknown>;
+  getMaxActiveEffects(): number;
   matchesTriggerZone(
     target: unknown,
     triggerZone: unknown,
@@ -105,6 +106,7 @@ export function createContentTriggerHandlers(runtime: ContentTriggerRuntime): Co
       getActiveTheme: () => configStore.getActiveTheme(),
       getActionConfig: (theme, actionId) => configStore.getActionConfig(theme, actionId) ?? undefined,
       getActionTriggerConfig: (config) => configStore.getActionTriggerConfig(config),
+      getMaxActiveEffects: () => configStore.getMaxActiveEffects(),
       matchesTriggerZone: (target, triggerZone, event, options) => (
         configStore.matchesTriggerZone(target, triggerZone, event, options)
       ),

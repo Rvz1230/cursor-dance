@@ -7,12 +7,13 @@ function createFixture(overrides: { ready?: boolean; enabled?: boolean } = {}) {
   const playAudio = vi.fn();
   const log = vi.fn();
   const pipeline = createActionTriggerPipeline({
-    state: { ready: overrides.ready ?? true },
+    state: { ready: overrides.ready ?? true, activeEffects: 3 },
     configStore: {
       isCurrentContextEnabled: () => overrides.enabled ?? true,
       getActiveTheme: () => ({}),
       getActionConfig: () => actionConfig,
       getActionTriggerConfig: (config) => config as Record<string, unknown>,
+      getMaxActiveEffects: () => 48,
       matchesTriggerZone: () => true,
       resolveCursorStateId: () => "default",
       getCursorStateBinding: (_theme, cursorStateId, actionId) => ({ cursorStateId, actionId }),
@@ -29,13 +30,17 @@ function createFixture(overrides: { ready?: boolean; enabled?: boolean } = {}) {
 
 describe("shared action trigger pipeline", () => {
   it("resolves an action and emits its output plan", () => {
-    const { pipeline, renderEffect } = createFixture();
+    const { pipeline, renderEffect, log } = createFixture();
     pipeline.triggerAction("leftClick", { x: 10, y: 20, target: null, event: null });
     expect(renderEffect).toHaveBeenCalledWith(expect.objectContaining({
       kind: "text",
       actionId: "leftClick",
       x: 10,
       y: 20,
+    }));
+    expect(log).toHaveBeenCalledWith("action.fire", expect.objectContaining({
+      activeEffects: 3,
+      maxActiveEffects: 48,
     }));
   });
 

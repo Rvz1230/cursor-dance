@@ -249,6 +249,12 @@ export function createKeyFeedback(deps: EngineDeps): KeyFeedbackModule {
     // 动画
     state.activeEffects += 1;
     state.activeKeyEffects! += 1;
+    deps.diagnostics?.log("keyboard.fire", {
+      activeEffects: state.activeEffects,
+      maxActiveEffects: configStore.getMaxActiveEffects(),
+      activeKeyEffects: state.activeKeyEffects,
+      maxSimultaneous: config.maxSimultaneous,
+    });
     const root = doc.getElementById("cursordance-root") ?? doc.documentElement;
     if (config.trail && config.trailLength > 0) {
       const trailCount = Math.min(6, Math.max(1, Math.round(config.trailLength)));
