@@ -41,6 +41,15 @@ describe("matchPattern", () => {
     });
   });
 
+  describe("bundle target", () => {
+    it("matches a stable bundle id instead of the localized process name", () => {
+      expect(matchPattern(
+        { bundleId: "com.microsoft.VSCode", processName: "Visual Studio Code", title: "" },
+        { target: "bundle", type: "exact", value: "COM.MICROSOFT.VSCODE" },
+      )).toBe(true);
+    });
+  });
+
   describe("edge cases", () => {
     it("returns false for null pattern", () => {
       expect(matchPattern({ processName: "Code", title: "" }, null)).toBe(false);
@@ -67,6 +76,26 @@ describe("resolveAppRule", () => {
       { id: "r2", pattern: { type: "glob" as const, value: "code-*" }, action: { enable: true, theme: "neon" } },
     ];
     expect(resolveAppRule(rules, { processName: "Code", title: "" })).toBe("disable");
+  });
+
+  it("evaluates direct application rules before advanced patterns", () => {
+    const rules = [
+      { id: "advanced", pattern: { target: "title" as const, type: "glob" as const, value: "*Review*" }, action: "disable" as const },
+      { id: "application", pattern: { target: "process" as const, type: "exact" as const, value: "Code" }, action: { enable: true, theme: "neon" } },
+    ];
+    expect(resolveAppRule(rules, { processName: "Code", title: "Review" })).toEqual({ enable: true, theme: "neon" });
+  });
+
+  it("keeps an explicitly advanced exact process rule in advanced order", () => {
+    const rules = [
+      { id: "advanced", kind: "advanced" as const, pattern: { target: "process" as const, type: "exact" as const, value: "Code" }, action: "disable" as const },
+      { id: "application", kind: "application" as const, pattern: { target: "bundle" as const, type: "exact" as const, value: "com.microsoft.VSCode" }, action: { enable: true, theme: "neon" } },
+    ];
+    expect(resolveAppRule(rules, {
+      bundleId: "com.microsoft.VSCode",
+      processName: "Code",
+      title: "",
+    })).toEqual({ enable: true, theme: "neon" });
   });
 
   it("skips disabled rules", () => {

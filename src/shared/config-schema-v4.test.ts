@@ -192,6 +192,21 @@ describe("schema v4 contract", () => {
     ]));
   });
 
+  it("accepts application metadata and bundle-id desktop matches", () => {
+    const config = createValidConfig();
+    config.contextRules[1] = {
+      id: "desktop-bundle",
+      context: "desktop",
+      kind: "application",
+      preferredThemeId: config.themes[0].id,
+      enabled: true,
+      match: { type: "exact", target: "bundle", value: "com.microsoft.VSCode" },
+      action: { type: "disable" },
+    } as unknown as typeof config.contextRules[number];
+
+    expect(validateCursorDanceConfigV4(config).ok).toBe(true);
+  });
+
   it("keeps web and desktop match shapes discriminated", () => {
     const config = createValidConfig();
     config.contextRules[0] = {

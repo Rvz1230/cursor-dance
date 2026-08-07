@@ -28,7 +28,9 @@ function webRuleToWorkbench(rule: WebContextRule): SiteRule {
 function desktopRuleToWorkbench(rule: DesktopContextRule): AppRule {
   return {
     id: rule.id,
+    kind: rule.kind,
     enabled: rule.enabled,
+    preferredTheme: rule.preferredThemeId,
     pattern: {
       type: rule.match.type,
       target: rule.match.target,
@@ -96,10 +98,16 @@ function workbenchDesktopRuleToContext(rule: AppRule): DesktopContextRule {
   return {
     id: rule.id,
     context: "desktop",
+    ...(rule.kind ? { kind: rule.kind } : {}),
     enabled: rule.enabled !== false,
+    ...(rule.preferredTheme ? { preferredThemeId: rule.preferredTheme } : {}),
     match: {
       type: rule.pattern.type === "glob" ? "glob" : "exact",
-      target: rule.pattern.target === "title" ? "title" : "process",
+      target: rule.pattern.target === "bundle"
+        ? "bundle"
+        : rule.pattern.target === "title"
+          ? "title"
+          : "process",
       value: rule.pattern.value || "",
     },
     action: workbenchActionToContext(rule.action),

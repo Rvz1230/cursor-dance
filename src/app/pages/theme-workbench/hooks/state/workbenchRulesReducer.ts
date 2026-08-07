@@ -16,6 +16,7 @@ export function reduceWorkbenchRulesState(
       const rule = action.payload.rule;
       if (!rule || !rule.pattern || !rule.action) return state;
       const newRule = {
+        ...rule,
         id: rule.id || ("r" + (Date.now().toString(36) + Math.random().toString(36).slice(2, 6))),
         pattern: { ...rule.pattern },
         action: rule.action,

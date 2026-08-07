@@ -2,8 +2,9 @@
 
 import type { ContextRule, ContextRuleAction } from "./domain/cursor-dance";
 
-export type AppRuleTarget = "process" | "title";
+export type AppRuleTarget = "bundle" | "process" | "title";
 export type AppRulePatternType = "exact" | "glob";
+export type AppRuleKind = "application" | "advanced";
 
 export interface AppRulePattern {
   type: AppRulePatternType;
@@ -15,12 +16,16 @@ export type AppRuleAction = "disable" | { enable: boolean; theme?: string };
 
 export interface AppRule {
   id: string;
+  kind?: AppRuleKind;
   pattern: AppRulePattern;
   action: AppRuleAction;
   enabled?: boolean;
+  /** Theme restored when an application rule is enabled again. */
+  preferredTheme?: string;
 }
 
 export interface ActiveAppInfo {
+  bundleId?: string;
   processName: string;
   title: string;
 }
@@ -44,6 +49,8 @@ export type ActiveWindowSnapshot =
       title: string;
       processName: string;
       bounds?: DesktopWindowBounds;
+      /** Explicit element-level AX probe result. Undefined means not probed. */
+      elementAccessAvailable?: boolean;
     }
   | {
       authorized: false;
@@ -58,8 +65,12 @@ export function matchAppPattern(
     return false;
   }
 
-  const target: AppRuleTarget = pattern.target === "title" ? "title" : "process";
-  const haystack = target === "title" ? info.title : info.processName;
+  const target: AppRuleTarget = pattern.target === "bundle"
+    ? "bundle"
+    : pattern.target === "title"
+      ? "title"
+      : "process";
+  const haystack = target === "bundle" ? info.bundleId : target === "title" ? info.title : info.processName;
   const normalizedValue = pattern.value.trim().toLowerCase();
   const normalizedHaystack = (haystack || "").trim().toLowerCase();
   if (!normalizedHaystack || !normalizedValue) return false;
@@ -84,7 +95,17 @@ export function resolveAppRule(
 ): AppRuleAction | null {
   if (!Array.isArray(rules)) return null;
 
-  for (const rule of rules) {
+  const isDirectApplicationRule = (rule: AppRule) => (
+    rule.kind === "application"
+    || (rule.kind !== "advanced" && rule.pattern.type === "exact" && (
+      (rule.pattern.target || "process") === "process" || rule.pattern.target === "bundle"
+    ))
+  );
+  const orderedRules = [
+    ...rules.filter(isDirectApplicationRule),
+    ...rules.filter((rule) => !isDirectApplicationRule(rule)),
+  ];
+  for (const rule of orderedRules) {
     if (!rule || rule.enabled === false || !matchAppPattern(info, rule.pattern)) continue;
     if (rule.action === "disable") return "disable";
     if (rule.action?.enable === true) {
@@ -99,7 +120,11 @@ export function resolveAppRule(
 
 export function activeAppInfoFromSnapshot(snapshot: ActiveWindowSnapshot | null | undefined): ActiveAppInfo | null {
   return snapshot?.authorized
-    ? { processName: snapshot.processName, title: snapshot.title }
+    ? {
+        bundleId: snapshot.owner.bundleId,
+        processName: snapshot.processName,
+        title: snapshot.title,
+      }
     : null;
 }
 

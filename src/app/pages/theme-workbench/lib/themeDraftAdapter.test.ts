@@ -105,8 +105,10 @@ describe("themeDraftAdapter schema v4", () => {
     }];
     state.domain.appRules = [{
       id: "app-rule",
+      kind: "application",
       enabled: true,
-      pattern: { type: "exact", target: "title", value: "Focus" },
+      preferredTheme: "drift",
+      pattern: { type: "exact", target: "bundle", value: "com.example.Focus" },
       action: "disable",
     }];
 
@@ -122,8 +124,10 @@ describe("themeDraftAdapter schema v4", () => {
       {
         id: "app-rule",
         context: "desktop",
+        kind: "application",
         enabled: true,
-        match: { type: "exact", target: "title", value: "Focus" },
+        preferredThemeId: "drift",
+        match: { type: "exact", target: "bundle", value: "com.example.Focus" },
         action: { type: "disable" },
       },
     ]);

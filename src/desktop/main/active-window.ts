@@ -87,7 +87,8 @@ function snapshotsEqual(left: ActiveWindowSnapshot | null, right: ActiveWindowSn
     && left.bounds?.x === right.bounds?.x
     && left.bounds?.y === right.bounds?.y
     && left.bounds?.width === right.bounds?.width
-    && left.bounds?.height === right.bounds?.height;
+    && left.bounds?.height === right.bounds?.height
+    && left.elementAccessAvailable === right.elementAccessAvailable;
 }
 
 function isCursorDanceWindow(snapshot: ActiveWindowSnapshot): boolean {

@@ -136,9 +136,11 @@ export interface WebContextRuleV4 extends ContextRuleBaseV4 {
 
 interface DesktopContextRuleV4 extends ContextRuleBaseV4 {
   readonly context: "desktop";
+  readonly kind?: "application" | "advanced";
+  readonly preferredThemeId?: string;
   readonly match: {
     readonly type: "exact" | "glob";
-    readonly target: "process" | "title";
+    readonly target: "bundle" | "process" | "title";
     readonly value: string;
   };
 }
@@ -456,7 +458,14 @@ function validateContextRule(value: unknown, index: number, themeIds: ReadonlySe
     addIssue(issues, path, "must be a context rule object");
     return null;
   }
-  rejectUnknownKeys(value, new Set(["id", "context", "enabled", "match", "action"]), path, issues);
+  rejectUnknownKeys(
+    value,
+    value.context === "desktop"
+      ? new Set(["id", "context", "enabled", "kind", "preferredThemeId", "match", "action"])
+      : new Set(["id", "context", "enabled", "match", "action"]),
+    path,
+    issues,
+  );
   const id = requireNonEmptyString(value.id, `${path}.id`, issues) ? value.id : null;
   if (typeof value.enabled !== "boolean") addIssue(issues, `${path}.enabled`, "must be boolean");
   validateRuleAction(value.action, `${path}.action`, themeIds, issues);
@@ -471,9 +480,22 @@ function validateContextRule(value: unknown, index: number, themeIds: ReadonlySe
     requireNonEmptyString(value.match.host, `${path}.match.host`, issues);
     if (value.match.path !== undefined && typeof value.match.path !== "string") addIssue(issues, `${path}.match.path`, "must be a string");
   } else if (value.context === "desktop") {
+    if (value.kind !== undefined && value.kind !== "application" && value.kind !== "advanced") {
+      addIssue(issues, `${path}.kind`, "must be application or advanced");
+    }
+    if (value.preferredThemeId !== undefined) {
+      if (
+        !requireNonEmptyString(value.preferredThemeId, `${path}.preferredThemeId`, issues)
+        || !themeIds.has(value.preferredThemeId)
+      ) {
+        addIssue(issues, `${path}.preferredThemeId`, "must reference an existing theme");
+      }
+    }
     rejectUnknownKeys(value.match, new Set(["type", "target", "value"]), `${path}.match`, issues);
     if (value.match.type !== "exact" && value.match.type !== "glob") addIssue(issues, `${path}.match.type`, "must be exact or glob");
-    if (value.match.target !== "process" && value.match.target !== "title") addIssue(issues, `${path}.match.target`, "must be process or title");
+    if (value.match.target !== "bundle" && value.match.target !== "process" && value.match.target !== "title") {
+      addIssue(issues, `${path}.match.target`, "must be bundle, process or title");
+    }
     requireNonEmptyString(value.match.value, `${path}.match.value`, issues);
   } else {
     addIssue(issues, `${path}.context`, "must be web or desktop");
