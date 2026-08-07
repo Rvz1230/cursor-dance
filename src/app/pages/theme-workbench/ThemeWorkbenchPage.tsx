@@ -152,6 +152,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
     updateAtmosphere,
     recentCursorAssets,
     rememberRecentCursorAsset,
+    setCursorSkinEnabled,
     updateCursorSkinState,
     clearCursorSkinState,
     copyDefaultCursorSkinState,
@@ -490,6 +491,8 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                       stateId={selected.cursorStateId}
                       setStateId={setCursorStateId}
                       cursorSkin={draft.cursorSkin}
+                      setCursorSkinEnabled={setCursorSkinEnabled}
+                      notify={toast}
                       recentCursorAssets={recentCursorAssets}
                       updateCursorSkinState={updateCursorSkinState}
                       clearCursorSkinState={clearCursorSkinState}

@@ -33,6 +33,71 @@
     padding-top: 0;
     padding-bottom: 0;
   }
+
+  /* 光标皮肤按工作区实际宽度响应，避免侧栏存在时误用浏览器视口断点。 */
+  .cursor-skin-workspace {
+    container-type: inline-size;
+    container-name: cursor-skin;
+  }
+
+  .cursor-skin-workspace .cursor-skin-header {
+    align-items: flex-start;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .cursor-skin-stage {
+    height: 240px;
+  }
+
+  .cursor-skin-calibration {
+    container-type: size;
+  }
+
+  .cursor-skin-checker {
+    background-color: #fff;
+    background-image:
+      linear-gradient(45deg, #eef2f6 25%, transparent 25%, transparent 75%, #eef2f6 75%),
+      linear-gradient(45deg, #eef2f6 25%, transparent 25%, transparent 75%, #eef2f6 75%);
+    background-position: 0 0, 8px 8px;
+    background-size: 16px 16px;
+  }
+
+  .cursor-skin-dot-grid {
+    background-image: radial-gradient(circle at 1px 1px, #e2e8f0 1px, transparent 0);
+    background-size: 18px 18px;
+  }
+
+  @container cursor-skin (max-width: 699px) {
+    .cursor-skin-workspace .cursor-skin-header {
+      align-items: stretch;
+      flex-direction: column;
+    }
+  }
+
+  @container cursor-skin (min-width: 700px) {
+    .cursor-skin-layout {
+      grid-template-columns: minmax(0, 1fr) 300px;
+    }
+
+    .cursor-skin-stage {
+      height: 300px;
+    }
+  }
+
+  @container cursor-skin (min-width: 1100px) {
+    .cursor-skin-layout {
+      grid-template-columns: minmax(0, 1fr) 360px;
+    }
+
+    .cursor-skin-stage {
+      height: 380px;
+    }
+
+    .cursor-skin-readouts {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
 }
 
 @media (max-width: 760px) {

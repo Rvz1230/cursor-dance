@@ -44,6 +44,14 @@ function createHarness(cursorStateId = "pointer") {
 }
 
 describe("workbench cursor commands", () => {
+  it("toggles the cursor skin without changing its states", () => {
+    const harness = createHarness();
+    const states = harness.current().cursorSkin.states;
+    harness.commands.setCursorSkinEnabled(false);
+    expect(harness.current().cursorSkin.enabled).toBe(false);
+    expect(harness.current().cursorSkin.states).toBe(states);
+  });
+
   it("updates the canonical cursor skin directly", () => {
     const harness = createHarness();
     const pointerState = {

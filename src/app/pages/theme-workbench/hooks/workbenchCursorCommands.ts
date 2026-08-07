@@ -11,6 +11,13 @@ interface WorkbenchCursorCommandOptions {
 }
 
 export function createWorkbenchCursorCommands({ selected, draft, updateCurrentTheme }: WorkbenchCursorCommandOptions) {
+  function setCursorSkinEnabled(enabled: boolean): void {
+    updateCurrentTheme((current) => ({
+      ...current,
+      cursorSkin: { ...current.cursorSkin, enabled },
+    }));
+  }
+
   function updateCursorSkinState(stateId: string, patch: CursorSkinState): void {
     updateCurrentTheme((current) => ({
       ...current,
@@ -42,6 +49,7 @@ export function createWorkbenchCursorCommands({ selected, draft, updateCurrentTh
   }
 
   return {
+    setCursorSkinEnabled,
     updateCursorSkinState,
     clearCursorSkinState,
     copyDefaultCursorSkinState,

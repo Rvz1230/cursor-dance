@@ -110,6 +110,11 @@ export function getCursorStatesForPlatform(
   return CURSOR_STATE_DESCRIPTORS.filter((descriptor) => descriptor.reachableOn.includes(platform));
 }
 
+/** 完整的合法状态清单。编辑器用它展示跨平台配置，并用 reachableOn 如实标注可达性。 */
+export function getAllCursorStates(): readonly CursorStateDescriptor[] {
+  return CURSOR_STATE_DESCRIPTORS;
+}
+
 export function isCursorStateId(value: unknown): value is CursorStateId {
   return typeof value === "string" && value in CURSOR_STATE_DESCRIPTORS_BY_ID;
 }
