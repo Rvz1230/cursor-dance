@@ -77,4 +77,22 @@ describe("workbench cursor commands", () => {
     expect(harness.current().cursorSkin.states.pointer).toBeUndefined();
     expect(harness.current().cursorSkin.states.default).toBeDefined();
   });
+
+  it("clears all skin assets while preserving skin preferences", () => {
+    const harness = createHarness();
+    harness.commands.copyDefaultCursorSkinState("pointer");
+    harness.commands.setCursorSkinEnabled(false);
+    harness.commands.clearCursorSkinAssets();
+    expect(harness.current().cursorSkin.states).toEqual({});
+    expect(harness.current().cursorSkin.enabled).toBe(false);
+    expect(harness.current().cursorSkin.transitionMs).toBe(80);
+  });
+
+  it("derives multiple missing states in one domain update", () => {
+    const harness = createHarness();
+    harness.commands.deriveCursorSkinStates(["pointer", "text"]);
+    expect(harness.current().cursorSkin.states.pointer).toEqual(harness.current().cursorSkin.states.default);
+    expect(harness.current().cursorSkin.states.text).toEqual(harness.current().cursorSkin.states.default);
+    expect(harness.current().cursorSkin.states.pointer).not.toBe(harness.current().cursorSkin.states.default);
+  });
 });

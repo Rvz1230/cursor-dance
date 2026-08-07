@@ -42,17 +42,40 @@ export function createWorkbenchCursorCommands({ selected, draft, updateCurrentTh
     });
   }
 
+  function clearCursorSkinAssets(): void {
+    updateCurrentTheme((current) => ({
+      ...current,
+      cursorSkin: { ...current.cursorSkin, states: {} },
+    }));
+  }
+
   function copyDefaultCursorSkinState(stateId = selected.cursorStateId): void {
     const defaultState = draft.cursorSkin.states.default;
     if (!defaultState) return;
     updateCursorSkinState(stateId, JSON.parse(JSON.stringify(defaultState)) as CursorSkinState);
   }
 
+  function deriveCursorSkinStates(stateIds: readonly string[]): void {
+    updateCurrentTheme((current) => {
+      const defaultState = current.cursorSkin.states.default;
+      if (!defaultState) return current;
+      const states = { ...current.cursorSkin.states };
+      stateIds.forEach((stateId) => {
+        if (stateId !== "default" && !states[stateId]) {
+          states[stateId] = structuredClone(defaultState);
+        }
+      });
+      return { ...current, cursorSkin: { ...current.cursorSkin, states } };
+    });
+  }
+
   return {
     setCursorSkinEnabled,
     updateCursorSkinState,
     clearCursorSkinState,
+    clearCursorSkinAssets,
     copyDefaultCursorSkinState,
+    deriveCursorSkinStates,
     resetCursorSkin: () =>
       updateCurrentTheme((current) => ({ ...current, cursorSkin: createCursorSkin() })),
   };

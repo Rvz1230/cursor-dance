@@ -98,7 +98,27 @@ describe("WorkbenchRepository adapters", () => {
     expect(values.get(DIAGNOSTIC_DEBUG_KEY)).toBe("1");
   });
 
-  it("uses typed desktop bridge storage and session-only recent assets", async () => {
+  it("does not evict pending cursor work when ordinary recent assets reach the limit", async () => {
+    installLocalWindow();
+    const repository = createLocalWorkbenchRepository(codec);
+    for (let index = 0; index < 6; index += 1) {
+      await repository.writeRecentCursorAsset({
+        imageDataUrl: `data:image/png;base64,pending-${index}`,
+        pending: true,
+      });
+    }
+
+    await repository.writeRecentCursorAsset({
+      imageDataUrl: "data:image/png;base64,recent",
+      pending: false,
+    });
+
+    const assets = await repository.readRecentCursorAssets();
+    expect(assets).toHaveLength(6);
+    expect(assets.every((asset) => asset.pending === true)).toBe(true);
+  });
+
+  it("uses typed desktop bridge storage and persistent recent assets", async () => {
     installLocalWindow();
     const config = defaultConfig;
     const bridge = {
@@ -112,12 +132,20 @@ describe("WorkbenchRepository adapters", () => {
     } as CursorDanceStorageBridge;
     const repository = createDesktopWorkbenchRepository(bridge, codec);
     expect(repository.kind).toBe("desktop");
-    expect(repository.recentAssetsPersistence).toBe("session");
+    expect(repository.recentAssetsPersistence).toBe("local-storage");
     expect(await repository.readConfig()).toEqual(config);
     await repository.writeLivePreview({ ...config, enabled: false });
     expect(bridge.setLivePreview).toHaveBeenCalledWith(expect.objectContaining({ enabled: false }));
-    await repository.writeRecentCursorAsset({ imageDataUrl: "data:image/png;base64,AA==" });
+    await repository.writeRecentCursorAsset({
+      imageDataUrl: "data:image/png;base64,AA==",
+      pending: true,
+    });
     expect(await repository.readRecentCursorAssets()).toHaveLength(1);
+
+    const reloadedRepository = createDesktopWorkbenchRepository(bridge, codec);
+    expect(await reloadedRepository.readRecentCursorAssets()).toEqual([
+      expect.objectContaining({ pending: true }),
+    ]);
   });
 
   it("keeps Chrome cursor blobs and auxiliary state in chrome.storage.local", async () => {

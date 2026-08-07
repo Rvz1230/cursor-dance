@@ -1,7 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './src/app/pages/theme-workbench/ThemeWorkbenchPage'
-import './index.css'
+import './src/desktop/renderer/index.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

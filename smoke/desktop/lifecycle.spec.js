@@ -131,6 +131,31 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
     await aiToggle.click();
     await workbenchPage.getByRole("button", { name: "光标皮肤", exact: true }).click();
     await expect(workbenchPage.getByRole("heading", { name: "光标皮肤", exact: true })).toBeVisible();
+    const cursorPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
+    await workbenchPage.locator('input[type="file"]:not([multiple])').setInputFiles({
+      name: "arrow-default.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(cursorPng, "base64"),
+    });
+    await expect(workbenchPage.getByRole("switch", { name: "启用皮肤" })).toBeVisible();
+    await workbenchPage.locator('input[type="file"][multiple]').setInputFiles([
+      { name: "brand-one.svg", mimeType: "image/svg+xml", buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><circle cx="8" cy="8" r="7" fill="red"/></svg>') },
+      { name: "brand-two.svg", mimeType: "image/svg+xml", buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><rect width="16" height="16" fill="blue"/></svg>') },
+    ]);
+    await expect(workbenchPage.getByText("待分配 2", { exact: true })).toBeVisible();
+    await workbenchPage.getByRole("button", { name: "主题与效果", exact: true }).click();
+    await workbenchPage.getByRole("button", { name: "光标皮肤", exact: true }).click();
+    await expect(workbenchPage.getByText("待分配 2", { exact: true })).toBeVisible();
+    await workbenchPage.getByRole("button", { name: "清空", exact: true }).click();
+    await expect(workbenchPage.getByText("待分配 2", { exact: true })).toHaveCount(0);
+    await workbenchPage.getByRole("button", { name: "全部派生", exact: true }).click();
+    await expect(workbenchPage.getByText(/主皮肤 \+ 6 个独立覆盖/)).toBeVisible();
+    await workbenchPage.getByRole("switch", { name: /磁场光晕/ }).click();
+    await expect(workbenchPage.getByRole("slider", { name: "磁场光晕感应半径" })).toBeVisible();
+    await expect(workbenchPage.getByRole("slider", { name: "磁场光晕强度" })).toBeVisible();
+    await workbenchPage.getByRole("button", { name: "清除皮肤", exact: true }).click();
+    await expect(workbenchPage.getByText("把图片拖到这里", { exact: true })).toBeVisible();
+    await expect(workbenchPage.getByText("还没有主皮肤", { exact: true })).toBeVisible();
     await workbenchPage.getByRole("button", { name: "应用规则", exact: true }).click();
     await expect(workbenchPage.getByRole("main").getByText("应用规则", { exact: true })).toBeVisible();
     await expect(workbenchPage.getByText("全局设置 · 不属于任何主题", { exact: true })).toBeVisible();

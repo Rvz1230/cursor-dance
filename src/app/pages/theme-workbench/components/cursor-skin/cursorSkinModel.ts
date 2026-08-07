@@ -1,10 +1,11 @@
 import type { LucideIcon } from "lucide-react";
 import { matchCursorStateIdFromFileName } from "@/shared/cursor-states";
-import { hotspotFromImagePixels, type Hotspot } from "@/shared/effect-core/cursor-hotspot";
+import { hotspotFromImagePixels, hotspotToImagePixels, type Hotspot } from "@/shared/effect-core/cursor-hotspot";
 import type { CursorImageMimeType, CursorSkin, CursorSkinState } from "@/shared/domain/cursor-dance";
+import { validateCursorAssetFile } from "../../lib/cursorAssetPresets";
 import type { CursorAssetDraft } from "../../lib/storage/repository/types";
 
-export const MAX_CURSOR_UPLOAD_BYTES = 300 * 1024;
+const MAX_CURSOR_UPLOAD_BYTES = 300 * 1024;
 export const DEFAULT_BOX_SIZE = 48;
 
 /** 指向点是 0–1 归一化分数，语义与换算见 `shared/effect-core/cursor-hotspot.ts`。 */
@@ -24,7 +25,7 @@ export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-export function readFileAsDataUrl(file: File): Promise<string> {
+function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => (typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("文件读取失败")));
@@ -33,7 +34,7 @@ export function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
-export function getAssetDimensions(dataUrl: string): Promise<{ width: number; height: number }> {
+function getAssetDimensions(dataUrl: string): Promise<{ width: number; height: number }> {
   return new Promise((resolve) => {
     const image = new Image();
     image.onload = () => resolve({ width: image.naturalWidth || DEFAULT_BOX_SIZE, height: image.naturalHeight || DEFAULT_BOX_SIZE });
@@ -42,7 +43,7 @@ export function getAssetDimensions(dataUrl: string): Promise<{ width: number; he
   });
 }
 
-export function inferMimeType(dataUrl: string, fileType = ""): CursorImageMimeType {
+function inferMimeType(dataUrl: string, fileType = ""): CursorImageMimeType {
   if (["image/png", "image/svg+xml", "image/webp", "image/unknown"].includes(fileType)) {
     return fileType as CursorImageMimeType;
   }
@@ -54,6 +55,67 @@ export function inferMimeType(dataUrl: string, fileType = ""): CursorImageMimeTy
 
 export function matchStateId(fileName: string): string {
   return matchCursorStateIdFromFileName(fileName);
+}
+
+export interface CursorBatchPlanItem {
+  fileIndex: number;
+  stateIds: string[];
+  pending: boolean;
+}
+
+/**
+ * 批量导入必须先建立主皮肤，再分配独立槽位。
+ * 没有 default 命名文件时用第一张素材建立主皮肤；重复状态与未识别文件进入待分配区。
+ */
+export function planCursorBatchImport(fileNames: readonly string[], hasMaster: boolean): CursorBatchPlanItem[] {
+  const matches = fileNames.map(matchStateId);
+  const seedIndex = hasMaster ? -1 : Math.max(0, matches.findIndex((stateId) => stateId === "default"));
+  const occupied = new Set<string>();
+  const plan = fileNames.map((_, fileIndex) => ({ fileIndex, stateIds: [] as string[], pending: false }));
+
+  if (seedIndex >= 0 && plan[seedIndex]) {
+    plan[seedIndex].stateIds.push("default");
+    occupied.add("default");
+  }
+
+  matches.forEach((stateId, fileIndex) => {
+    if (!stateId) {
+      plan[fileIndex].pending = fileIndex !== seedIndex;
+      return;
+    }
+    if (occupied.has(stateId)) {
+      if (!plan[fileIndex].stateIds.length) plan[fileIndex].pending = true;
+      return;
+    }
+    plan[fileIndex].stateIds.push(stateId);
+    occupied.add(stateId);
+  });
+
+  return plan;
+}
+
+export async function buildCursorAssetDraftFromFile(
+  file: File,
+  stateMeta?: Pick<CursorStateMeta, "defaultHotspot"> | null,
+  pending = false,
+): Promise<CursorAssetDraft> {
+  const validationMessage = validateCursorAssetFile(file, MAX_CURSOR_UPLOAD_BYTES);
+  if (validationMessage) throw new Error(validationMessage);
+  const dataUrl = await readFileAsDataUrl(file);
+  const dimensions = await getAssetDimensions(dataUrl);
+  const hotspot = getDefaultHotspot(stateMeta);
+  const hotspotPixels = hotspotToImagePixels(hotspot, dimensions.width, dimensions.height);
+  return {
+    imageDataUrl: dataUrl,
+    mimeType: inferMimeType(dataUrl, file.type),
+    hotspotX: hotspotPixels.x,
+    hotspotY: hotspotPixels.y,
+    size: DEFAULT_BOX_SIZE,
+    sourceWidth: dimensions.width,
+    sourceHeight: dimensions.height,
+    name: file.name,
+    pending,
+  };
 }
 
 export function getDisplaySize(skinState: CursorSkinState | null | undefined): number {

@@ -45,6 +45,7 @@ export function normalizeRecentAsset(value: unknown): RecentCursorAsset | null {
     hotspotX: typeof record.hotspotX === "number" ? record.hotspotX : 16,
     hotspotY: typeof record.hotspotY === "number" ? record.hotspotY : 32,
     size: typeof record.size === "number" ? record.size : 48,
+    pending: record.pending === true,
     updatedAt: typeof record.updatedAt === "number" ? record.updatedAt : Date.now(),
   };
 }
@@ -53,6 +54,8 @@ export function dedupeRecentAssets(current: RecentCursorAsset[], value: unknown)
   const next = normalizeRecentAsset(value);
   if (!next) return current;
   return [next, ...current.filter((item) => item.imageDataUrl !== next.imageDataUrl)]
+    // 待分配素材是未完成工作，普通“最近使用”不能把它挤出容量上限。
+    .sort((left, right) => Number(right.pending === true) - Number(left.pending === true))
     .slice(0, MAX_RECENT_CURSOR_ASSETS);
 }
 

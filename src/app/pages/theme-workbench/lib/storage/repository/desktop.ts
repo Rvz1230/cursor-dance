@@ -38,7 +38,9 @@ export function createDesktopWorkbenchRepository(
   codec: WorkbenchRepositoryCodec,
 ): WorkbenchRepository {
   const assetIdByDataUrl = new Map<string, string>();
-  const support = createBrowserFallbackSupport("session");
+  // 待分配素材也复用 recent-assets 仓库；桌面端必须跨页面刷新保留，
+  // 否则批量导入后的手工分配工作会在 renderer 重载时丢失。
+  const support = createBrowserFallbackSupport("local-storage");
 
   function canonicalizeCachedAssets(config: unknown): TransportConfig {
     const next = cloneConfig(config);

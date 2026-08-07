@@ -1,16 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Info, RotateCcw, Upload } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { isDesktop } from "@/shared/runtime";
 import { getAllCursorStates } from "@/shared/cursor-states";
-import { hotspotToImagePixels, normalizeHotspot } from "@/shared/effect-core/cursor-hotspot";
 import type { CursorSkin, CursorSkinState } from "@/shared/domain/cursor-dance";
-import { validateCursorAssetFile } from "../lib/cursorAssetPresets";
+import { MAX_RECENT_CURSOR_ASSETS } from "../lib/storage/chrome-api";
 import type { CursorAssetDraft, RecentCursorAsset } from "../lib/storage/repository/types";
 import {
   CursorCalibrationStage,
-  CursorCapabilityNote,
   CursorModeTabs,
+  CursorPointFeedback,
   CursorProperties,
   CursorSlotList,
   CursorTrialStage,
@@ -19,24 +18,21 @@ import {
   StageBackgroundPicker,
   withCursorStateIcon,
   type CursorStateCard,
-  type PendingCursorAsset,
+  type CalibrationStatus,
   type StageBackground,
   type StudioMode,
 } from "./cursor-skin/CursorSkinStudio";
 import {
-  DEFAULT_BOX_SIZE,
-  MAX_CURSOR_UPLOAD_BYTES,
+  buildCursorAssetDraftFromFile,
   buildSkinStateFromAsset,
-  getAssetDimensions,
-  getDefaultHotspot,
   getResolvedSkinState,
-  inferMimeType,
-  matchStateId,
-  readFileAsDataUrl,
+  planCursorBatchImport,
   type Hotspot,
 } from "./cursor-skin/cursorSkinModel";
 
 type StatusTone = "success" | "error" | "warning" | "info";
+
+const UNTESTED_CALIBRATION: CalibrationStatus = { kind: "untested" };
 
 export interface StatesPanelProps {
   stateId: string;
@@ -47,8 +43,12 @@ export interface StatesPanelProps {
   setCursorSkinEnabled: (enabled: boolean) => void;
   updateCursorSkinState: (stateId: string, skinState: CursorSkinState) => void;
   clearCursorSkinState: (stateId: string) => void;
+  clearCursorSkinAssets: () => void;
   copyDefaultCursorSkinState: (stateId: string) => void;
+  deriveCursorSkinStates: (stateIds: readonly string[]) => void;
   resetCursorSkin: () => void;
+  atmosphere: Record<string, unknown>;
+  updateAtmosphere: (patch: Record<string, unknown>) => void;
   rememberRecentCursorAsset?: (asset: CursorAssetDraft) => void | Promise<void>;
 }
 
@@ -61,18 +61,21 @@ export function StatesPanel({
   setCursorSkinEnabled,
   updateCursorSkinState,
   clearCursorSkinState,
+  clearCursorSkinAssets,
   copyDefaultCursorSkinState,
+  deriveCursorSkinStates,
   resetCursorSkin,
+  atmosphere,
+  updateAtmosphere,
   rememberRecentCursorAsset,
 }: StatesPanelProps) {
   const singleInputRef = useRef<HTMLInputElement | null>(null);
   const batchInputRef = useRef<HTMLInputElement | null>(null);
   const uploadTargetRef = useRef("default");
-  const pendingRef = useRef<PendingCursorAsset[]>([]);
   const [mode, setMode] = useState<StudioMode>("try");
   const [background, setBackground] = useState<StageBackground>("light");
   const [onlyEffective, setOnlyEffective] = useState(false);
-  const [pendingAssets, setPendingAssets] = useState<PendingCursorAsset[]>([]);
+  const [calibrationByState, setCalibrationByState] = useState<Record<string, CalibrationStatus>>({});
   const platform = isDesktop() ? "desktop" : "extension";
   const hasMaster = Boolean(cursorSkin?.states?.default);
 
@@ -99,57 +102,36 @@ export function StatesPanel({
   const defaultState = getResolvedSkinState(cursorSkin, "default").state;
   const grabbingState = getResolvedSkinState(cursorSkin, "grabbing").state;
   const systemCursorCapability = window.electronAPI?.capabilities.systemCursorReplacement;
-
-  pendingRef.current = pendingAssets;
-  useEffect(() => () => {
-    pendingRef.current.forEach((asset) => URL.revokeObjectURL(asset.previewUrl));
-  }, []);
+  const pendingAssets = recentCursorAssets.filter((asset) => asset.pending === true);
+  const reusableAssets = recentCursorAssets.filter((asset) => asset.pending !== true);
 
   function showMessage(text: string, tone: StatusTone) {
     notify({ title: text, tone });
   }
 
-  async function buildSkinStateFromFile(file: File, targetStateId: string): Promise<CursorSkinState> {
-    const validationMessage = validateCursorAssetFile(file, MAX_CURSOR_UPLOAD_BYTES);
-    if (validationMessage) throw new Error(validationMessage);
-    const dataUrl = await readFileAsDataUrl(file);
-    const dimensions = await getAssetDimensions(dataUrl);
-    const stateMeta = stateDescriptors.find((state) => state.id === targetStateId);
-    return {
-      image: {
-        kind: "dataUrl",
-        mimeType: inferMimeType(dataUrl, file.type),
-        dataUrl,
-        width: dimensions.width,
-        height: dimensions.height,
-      },
-      hotspot: getDefaultHotspot(stateMeta),
-      size: { mode: "fixedBox", boxSize: DEFAULT_BOX_SIZE },
-    };
+  function applyCursorState(targetStateId: string, skinState: CursorSkinState) {
+    updateCursorSkinState(targetStateId, skinState);
+    setCalibrationByState((current) => ({ ...current, [targetStateId]: UNTESTED_CALIBRATION }));
+  }
+
+  function clearCursorState(targetStateId: string) {
+    clearCursorSkinState(targetStateId);
+    setCalibrationByState((current) => {
+      const next = { ...current };
+      delete next[targetStateId];
+      return next;
+    });
   }
 
   async function applyFile(file: File | undefined, targetStateId = stateId, announce = true): Promise<boolean> {
     if (!file) return false;
     try {
-      const skinState = await buildSkinStateFromFile(file, targetStateId);
-      updateCursorSkinState(targetStateId, skinState);
-      const cachedHotspot = hotspotToImagePixels(
-        normalizeHotspot(skinState.hotspot),
-        skinState.image.width,
-        skinState.image.height,
-      );
-      void rememberRecentCursorAsset?.({
-        imageDataUrl: skinState.image.kind === "dataUrl" ? skinState.image.dataUrl : undefined,
-        hotspotX: cachedHotspot.x,
-        hotspotY: cachedHotspot.y,
-        size: skinState.size.boxSize || DEFAULT_BOX_SIZE,
-        sourceWidth: skinState.image.width,
-        sourceHeight: skinState.image.height,
-        name: file.name,
-        mimeType: skinState.image.mimeType,
-      });
+      const stateMeta = stateDescriptors.find((state) => state.id === targetStateId);
+      const asset = await buildCursorAssetDraftFromFile(file, stateMeta);
+      applyCursorState(targetStateId, buildSkinStateFromAsset(asset));
+      await rememberRecentCursorAsset?.(asset);
       if (announce) {
-        const label = stateDescriptors.find((state) => state.id === targetStateId)?.label || targetStateId;
+        const label = stateMeta?.label || targetStateId;
         showMessage(`已应用到「${label}」。`, "success");
       }
       return true;
@@ -164,66 +146,62 @@ export function StatesPanel({
     singleInputRef.current?.click();
   }
 
-  function addPendingFiles(files: readonly File[]) {
-    const validFiles = files.filter((file) => !validateCursorAssetFile(file, MAX_CURSOR_UPLOAD_BYTES));
-    const additions = validFiles.map((file, index) => ({
-      id: `${Date.now()}-${index}-${file.name}`,
-      file,
-      previewUrl: URL.createObjectURL(file),
-    }));
-    setPendingAssets((current) => [...current, ...additions]);
-    return { added: additions.length, rejected: files.length - validFiles.length };
-  }
-
   async function applyBatchFiles(fileList: FileList | null) {
     const files = Array.from(fileList || []);
     if (!files.length) return;
+    const plan = planCursorBatchImport(files.map((file) => file.name), hasMaster);
     let applied = 0;
+    let pending = 0;
     let rejected = 0;
-    const unmatched: File[] = [];
-    const occupied = new Set<string>();
-    for (const file of files) {
-      const matchedStateId = matchStateId(file.name);
-      if (!matchedStateId || occupied.has(matchedStateId)) {
-        unmatched.push(file);
+    let overflow = 0;
+    const pendingCapacity = Math.max(0, MAX_RECENT_CURSOR_ASSETS - pendingAssets.length);
+    for (const item of plan) {
+      const file = files[item.fileIndex];
+      if (item.pending && pending >= pendingCapacity) {
+        overflow += 1;
         continue;
       }
-      if (await applyFile(file, matchedStateId, false)) {
-        occupied.add(matchedStateId);
-        applied += 1;
-      } else {
+      try {
+        for (const targetStateId of item.stateIds) {
+          const stateMeta = stateDescriptors.find((state) => state.id === targetStateId);
+          const asset = await buildCursorAssetDraftFromFile(file, stateMeta);
+          applyCursorState(targetStateId, buildSkinStateFromAsset(asset));
+          await rememberRecentCursorAsset?.(asset);
+          applied += 1;
+        }
+        if (item.pending) {
+          const asset = await buildCursorAssetDraftFromFile(file, null, true);
+          await rememberRecentCursorAsset?.(asset);
+          pending += 1;
+        }
+      } catch {
         rejected += 1;
       }
     }
-    const pending = addPendingFiles(unmatched);
-    rejected += pending.rejected;
     showMessage(
-      `已自动匹配 ${applied} 个状态${pending.added ? `，${pending.added} 个素材进入待分配` : ""}${rejected ? `，${rejected} 个文件无效` : ""}。`,
-      rejected ? "warning" : pending.added ? "info" : "success",
+      `已自动配置 ${applied} 个槽位${pending ? `，${pending} 个素材进入待分配` : ""}${overflow ? `，${overflow} 个超过待分配上限` : ""}${rejected ? `，${rejected} 个文件无效` : ""}。`,
+      rejected || overflow ? "warning" : pending ? "info" : "success",
     );
-  }
-
-  function removePending(assetId: string) {
-    setPendingAssets((current) => {
-      const removed = current.find((asset) => asset.id === assetId);
-      if (removed) URL.revokeObjectURL(removed.previewUrl);
-      return current.filter((asset) => asset.id !== assetId);
-    });
   }
 
   async function assignPending(assetId: string, targetStateId: string) {
     const asset = pendingAssets.find((item) => item.id === assetId);
     if (!asset) return;
-    if (await applyFile(asset.file, targetStateId)) {
-      removePending(assetId);
-      setStateId(targetStateId);
-    }
+    applyCursorState(targetStateId, buildSkinStateFromAsset(asset));
+    await rememberRecentCursorAsset?.({ ...asset, pending: false });
+    setStateId(targetStateId);
+    showMessage(`已应用到「${stateDescriptors.find((state) => state.id === targetStateId)?.label || targetStateId}」。`, "success");
   }
 
   function updateHotspot(targetStateId: string, hotspot: Hotspot) {
     const ownState = cursorSkin?.states?.[targetStateId];
     if (!ownState) return;
     updateCursorSkinState(targetStateId, { ...ownState, hotspot });
+    setCalibrationByState((current) => ({ ...current, [targetStateId]: UNTESTED_CALIBRATION }));
+  }
+
+  function updateCalibrationStatus(targetStateId: string, status: CalibrationStatus) {
+    setCalibrationByState((current) => ({ ...current, [targetStateId]: status }));
   }
 
   function updateSize(targetStateId: string, boxSize: number) {
@@ -234,26 +212,30 @@ export function StatesPanel({
 
   function deriveAllStates() {
     const inheriting = stateCards.filter((card) => card.id !== "default" && !card.ownState);
-    inheriting.forEach((card) => copyDefaultCursorSkinState(card.id));
+    deriveCursorSkinStates(inheriting.map((card) => card.id));
     showMessage(inheriting.length ? `已派生 ${inheriting.length} 个独立素材。` : "所有状态都已经是独立素材。", inheriting.length ? "success" : "info");
   }
 
-  function clearPending() {
-    pendingAssets.forEach((asset) => URL.revokeObjectURL(asset.previewUrl));
-    setPendingAssets([]);
+  async function clearPending() {
+    for (const asset of pendingAssets) {
+      await rememberRecentCursorAsset?.({ ...asset, pending: false });
+    }
+    showMessage("待分配素材已移到最近素材。", "success");
   }
 
-  function applyRecentAsset(asset: RecentCursorAsset) {
+  async function applyRecentAsset(asset: RecentCursorAsset) {
     if (!asset.imageDataUrl || !currentCard) return;
-    updateCursorSkinState(currentCard.id, buildSkinStateFromAsset(asset));
+    applyCursorState(currentCard.id, buildSkinStateFromAsset(asset));
+    if (asset.pending) await rememberRecentCursorAsset?.({ ...asset, pending: false });
     showMessage(`已把最近素材应用到「${currentCard.label}」。`, "success");
   }
 
   function resetAll() {
-    clearPending();
+    void clearPending();
     resetCursorSkin();
     setStateId("default");
     setMode("try");
+    setCalibrationByState({});
     showMessage("光标皮肤已重置。", "success");
   }
 
@@ -346,8 +328,9 @@ export function StatesPanel({
                     enabled={cursorSkin?.enabled !== false}
                     background={background}
                     onFixHotspot={(hotspot) => updateHotspot("default", hotspot)}
+                    onCalibrationStatusChange={(status) => updateCalibrationStatus("default", status)}
                   />
-                  <PendingAssetTray assets={pendingAssets} recentAssets={recentCursorAssets} onClear={clearPending} onApplyRecent={applyRecentAsset} />
+                  <PendingAssetTray assets={pendingAssets} recentAssets={reusableAssets} onClear={() => void clearPending()} onApplyRecent={(asset) => void applyRecentAsset(asset)} />
                 </>
               ) : currentCard.ownState ? (
                 <>
@@ -377,7 +360,7 @@ export function StatesPanel({
               onOnlyEffectiveChange={setOnlyEffective}
               onSelect={setStateId}
               onDerive={(id) => { copyDefaultCursorSkinState(id); setStateId(id); }}
-              onInherit={(id) => clearCursorSkinState(id)}
+              onInherit={clearCursorState}
               onDeriveAll={deriveAllStates}
               onUploadDefault={() => openSinglePicker("default")}
               onAssignPending={(assetId, targetStateId) => void assignPending(assetId, targetStateId)}
@@ -386,17 +369,25 @@ export function StatesPanel({
               <CursorProperties
                 card={currentCard}
                 mode={mode}
+                calibrationStatus={calibrationByState[currentCard.id] || UNTESTED_CALIBRATION}
                 onModeChange={setMode}
                 onChangeHotspot={(hotspot) => updateHotspot(currentCard.id, hotspot)}
                 onChangeSize={(size) => updateSize(currentCard.id, size)}
-                onClear={() => clearCursorSkinState(currentCard.id)}
+                onClear={() => {
+                  if (currentCard.id === "default") {
+                    clearCursorSkinAssets();
+                    setCalibrationByState({});
+                  } else {
+                    clearCursorState(currentCard.id);
+                  }
+                }}
                 onReplace={() => openSinglePicker(currentCard.id)}
                 onDerive={() => copyDefaultCursorSkinState(currentCard.id)}
               />
             ) : (
               <section className="rounded-xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center"><p className="text-xs font-medium text-slate-500">尺寸与指向点</p><p className="mx-auto mt-1.5 max-w-[220px] text-2xs leading-relaxed text-slate-500">上传主皮肤后在这里调整，并用准星测试验证。</p></section>
             )}
-            <CursorCapabilityNote />
+            <CursorPointFeedback atmosphere={atmosphere} activeOnThisPlatform={platform === "extension"} onChange={updateAtmosphere} />
           </aside>
         </div>
       </div>

@@ -155,7 +155,9 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
     setCursorSkinEnabled,
     updateCursorSkinState,
     clearCursorSkinState,
+    clearCursorSkinAssets,
     copyDefaultCursorSkinState,
+    deriveCursorSkinStates,
     resetCursorSkin,
     keyFeedbackConfig,
     updateKeyFeedbackConfig,
@@ -496,8 +498,12 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                       recentCursorAssets={recentCursorAssets}
                       updateCursorSkinState={updateCursorSkinState}
                       clearCursorSkinState={clearCursorSkinState}
+                      clearCursorSkinAssets={clearCursorSkinAssets}
                       copyDefaultCursorSkinState={copyDefaultCursorSkinState}
+                      deriveCursorSkinStates={deriveCursorSkinStates}
                       resetCursorSkin={resetCursorSkin}
+                      atmosphere={draft.atmosphere}
+                      updateAtmosphere={updateAtmosphere}
                       rememberRecentCursorAsset={rememberRecentCursorAsset}
                     />
                   </Suspense>

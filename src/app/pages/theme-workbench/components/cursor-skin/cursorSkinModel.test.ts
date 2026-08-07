@@ -4,6 +4,7 @@ import {
   getDefaultHotspot,
   getResolvedSkinState,
   matchStateId,
+  planCursorBatchImport,
 } from "./cursorSkinModel";
 
 describe("cursor skin model", () => {
@@ -14,6 +15,22 @@ describe("cursor skin model", () => {
     expect(matchStateId("brand-logo.png")).toBe("");
     // resize / crosshair / move 等状态运行时不可达，已从真值源移除，不再匹配。
     expect(matchStateId("resize-horizontal.svg")).toBe("");
+  });
+
+  it("seeds a required default skin before assigning named batch assets", () => {
+    expect(planCursorBatchImport(["pointer.png", "text.png", "brand.png"], false)).toEqual([
+      { fileIndex: 0, stateIds: ["default", "pointer"], pending: false },
+      { fileIndex: 1, stateIds: ["text"], pending: false },
+      { fileIndex: 2, stateIds: [], pending: true },
+    ]);
+  });
+
+  it("keeps duplicate and unmatched batch assets available for manual assignment", () => {
+    expect(planCursorBatchImport(["arrow.png", "default-alt.png", "brand.png"], true)).toEqual([
+      { fileIndex: 0, stateIds: ["default"], pending: false },
+      { fileIndex: 1, stateIds: [], pending: true },
+      { fileIndex: 2, stateIds: [], pending: true },
+    ]);
   });
 
   // 最近素材缓存的 hotspotX/Y 是原图像素；cursorSkin.hotspot 是 0–1 分数。

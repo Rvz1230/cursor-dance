@@ -109,10 +109,14 @@ class FakeElement extends FakeEventHub {
   }
 
   querySelectorAll(selector: string): FakeElement[] {
-    const className = selector.startsWith(".") ? selector.slice(1) : "";
+    const selectors = selector.split(",").map((value) => value.trim());
     const matches: FakeElement[] = [];
     for (const child of this.children) {
-      if (className && child.classList.contains(className)) matches.push(child);
+      if (selectors.some((value) => (
+        value.startsWith(".")
+          ? child.classList.contains(value.slice(1))
+          : value === child.tagName.toLowerCase()
+      ))) matches.push(child);
       matches.push(...child.querySelectorAll(selector));
     }
     return matches;
@@ -239,6 +243,20 @@ describe("extension atmosphere lifecycle", () => {
     expect(document.listenerCount("mousemove")).toBe(1);
     expect(window.listenerCount("resize")).toBe(1);
     expect(window.frames.size).toBe(1);
+  });
+
+  it("applies configurable magnetic radius and strength to existing targets", () => {
+    const { atmosphere, target } = createFixture();
+    atmosphere.syncConfig({ mode: "creative-mouse", magnetRadius: 64, magnetStrength: 70 });
+
+    const layer = target.querySelector(".cm-blend-layer");
+    expect(layer?.style.inset).toBe("-64px");
+    expect(layer?.style.background).toBe("rgba(255,255,255,0.7)");
+    expect(layer?.style.boxShadow).toBe("0 0 64px rgba(255,255,255,0.7)");
+
+    atmosphere.syncConfig({ mode: "creative-mouse", magnetRadius: 16, magnetStrength: 25 });
+    expect(layer?.style.inset).toBe("-16px");
+    expect(layer?.style.background).toBe("rgba(255,255,255,0.25)");
   });
 
   it("pauses and resumes animation with page visibility", () => {

@@ -1,6 +1,5 @@
 import { normalizeKeyFeedbackConfig } from "@/shared/config/key-feedback";
 import type { CursorDanceConfig } from "@/shared/domain/cursor-dance";
-import { isDesktop } from "@/shared/runtime";
 import { pickKnownCursorStates } from "@/shared/cursor-states";
 import type {
   WorkbenchPersistableState,
@@ -64,7 +63,8 @@ function buildStoredTheme(
   options: BuildStoredThemeOptions = {},
 ) {
   const previousTheme = getStoredTheme(previousConfig, themeId);
-  const includeAtmosphere = options.includeAtmosphere ?? !isDesktop();
+  // 桌面工作台也负责编辑「网页端生效」的指向反馈，不能在保存桌面主题时静默裁掉。
+  const includeAtmosphere = options.includeAtmosphere ?? true;
   const atmosphere = includeAtmosphere ? (draft.atmosphere || previousTheme?.atmosphere) : undefined;
   return {
     id: themeId,

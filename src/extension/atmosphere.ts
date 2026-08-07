@@ -2,6 +2,8 @@ type AtmosphereMode = "none" | "creative-mouse";
 
 interface AtmosphereConfig {
   mode?: string;
+  magnetRadius?: number;
+  magnetStrength?: number;
 }
 
 interface AtmosphereDiagnostics {
@@ -32,11 +34,12 @@ const INNER_COLOR = "#4caf50";
 const OUTER_SIZE = 42;
 const OUTER_COLOR = "#ffffff";
 const FOLLOW_SPEED = 0.22;
-const HOVER_EXPAND = 20;
 const MIN_DISTANCE = 0.1;
 const BLEND_MODE = "exclusion";
 const TARGET_BLEND_MODE = "difference";
-const MAGNET_SELECTOR = ".g-animation";
+const MAGNET_SELECTOR = ".g-animation,button,a,[role='button']";
+const DEFAULT_MAGNET_RADIUS = 32;
+const DEFAULT_MAGNET_STRENGTH = 45;
 const TEXT_SELECT_WIDTH = 2;
 const TEXT_SELECT_COLOR = "#333333";
 const HIDE_NATIVE_CURSOR_CLASS = "cd-hide-native-cursor";
@@ -49,6 +52,8 @@ export function createContentAtmosphere(runtime: ContentAtmosphereRuntime): Cont
   const magnetTargets = new Map<HTMLElement, MagnetTargetState>();
 
   let mode: AtmosphereMode = "none";
+  let magnetRadius = DEFAULT_MAGNET_RADIUS;
+  let magnetStrength = DEFAULT_MAGNET_STRENGTH;
   let mouseX = window.innerWidth / 2;
   let mouseY = window.innerHeight / 2;
   let outerX = mouseX;
@@ -66,6 +71,13 @@ export function createContentAtmosphere(runtime: ContentAtmosphereRuntime): Cont
   let lastTextTarget: HTMLElement | null = null;
   let textCaretHeight = 18;
   let textBaselineOffset = 2;
+
+  function applyMagnetLayerStyle(layer: HTMLElement): void {
+    const alpha = Math.max(0, Math.min(1, magnetStrength / 100));
+    layer.style.inset = `${-magnetRadius}px`;
+    layer.style.background = `rgba(255,255,255,${alpha})`;
+    layer.style.boxShadow = `0 0 ${magnetRadius}px rgba(255,255,255,${alpha})`;
+  }
 
   function createElements(): void {
     if (innerEl && outerEl) return;
@@ -132,13 +144,12 @@ export function createContentAtmosphere(runtime: ContentAtmosphereRuntime): Cont
     layer.className = "cm-blend-layer";
     layer.style.cssText = [
       "position:absolute",
-      "inset:-10px",
-      "background:#fff",
       "z-index:1",
       `mix-blend-mode:${TARGET_BLEND_MODE}`,
       "pointer-events:none",
       "border-radius:inherit",
     ].join(";");
+    applyMagnetLayerStyle(layer);
 
     const state: MagnetTargetState = {
       element,
@@ -212,6 +223,7 @@ export function createContentAtmosphere(runtime: ContentAtmosphereRuntime): Cont
         outerEl.style.width = `${OUTER_SIZE}px`;
         outerEl.style.height = `${OUTER_SIZE}px`;
         outerEl.style.borderRadius = "50%";
+        outerEl.style.opacity = "1";
       }
     }, 50);
   }
@@ -284,9 +296,10 @@ export function createContentAtmosphere(runtime: ContentAtmosphereRuntime): Cont
   function updateHover(): void {
     if (!innerEl || !outerEl || !currentTarget) return;
     const rect = currentTarget.getBoundingClientRect();
-    outerEl.style.width = `${rect.width + HOVER_EXPAND}px`;
-    outerEl.style.height = `${rect.height + HOVER_EXPAND}px`;
-    outerEl.style.transform = `translate(${rect.left - HOVER_EXPAND / 2}px, ${rect.top - HOVER_EXPAND / 2}px)`;
+    outerEl.style.width = `${rect.width + magnetRadius * 2}px`;
+    outerEl.style.height = `${rect.height + magnetRadius * 2}px`;
+    outerEl.style.opacity = `${Math.max(0.15, magnetStrength / 100)}`;
+    outerEl.style.transform = `translate(${rect.left - magnetRadius}px, ${rect.top - magnetRadius}px)`;
     innerEl.style.transform = `translate(${mouseX - HALF_INNER}px, ${mouseY - HALF_INNER}px)`;
   }
 
@@ -392,9 +405,16 @@ export function createContentAtmosphere(runtime: ContentAtmosphereRuntime): Cont
   function syncConfig(config?: AtmosphereConfig | null): void {
     if (destroyed) return;
     mode = config?.mode === "creative-mouse" ? "creative-mouse" : "none";
+    magnetRadius = typeof config?.magnetRadius === "number"
+      ? Math.max(8, Math.min(96, config.magnetRadius))
+      : DEFAULT_MAGNET_RADIUS;
+    magnetStrength = typeof config?.magnetStrength === "number"
+      ? Math.max(0, Math.min(100, config.magnetStrength))
+      : DEFAULT_MAGNET_STRENGTH;
     if (mode === "creative-mouse") activate();
     else deactivate();
-    diagnostics?.log("atmosphere.sync", { mode });
+    for (const target of magnetTargets.values()) applyMagnetLayerStyle(target.layer);
+    diagnostics?.log("atmosphere.sync", { mode, magnetRadius, magnetStrength });
   }
 
   function destroy(): void {

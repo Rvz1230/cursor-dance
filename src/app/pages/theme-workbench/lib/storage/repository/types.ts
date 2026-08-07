@@ -30,6 +30,8 @@ export interface CursorAssetDraft {
   sourceWidth?: number;
   sourceHeight?: number;
   name?: string;
+  /** 批量导入后尚未分配到状态槽位；素材仓库持久化该标记以支持刷新恢复。 */
+  pending?: boolean;
 }
 
 export type RecentCursorAsset = CursorAssetDraft & Record<string, unknown> & {
