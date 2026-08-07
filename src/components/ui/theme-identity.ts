@@ -57,3 +57,29 @@ export function resolveThemeIcon(iconName: string | undefined | null): LucideIco
   if (!iconName) return Wand2;
   return ICON_OPTIONS.find((option) => option.name === iconName)?.Icon ?? Wand2;
 }
+
+export const EFFECT_TYPE_TONES = {
+  trigger: { name: "触发", tone: "slate" },
+  text: { name: "飘字", tone: "amber" },
+  particle: { name: "粒子", tone: "sky" },
+  ripple: { name: "波纹", tone: "teal" },
+  audio: { name: "音效", tone: "rose" },
+  animation: { name: "动画", tone: "indigo" },
+  image: { name: "贴纸", tone: "orange" },
+  cursor: { name: "光标反馈", tone: "slate" },
+} as const;
+
+const EFFECT_TONE_CHIPS = {
+  slate: "bg-slate-100 text-slate-600",
+  amber: "bg-amber-50 text-amber-700",
+  sky: "bg-sky-50 text-sky-700",
+  teal: "bg-teal-50 text-teal-700",
+  rose: "bg-rose-50 text-rose-700",
+  indigo: "bg-indigo-50 text-indigo-700",
+  orange: "bg-orange-50 text-orange-700",
+} as const;
+
+export function effectToneByName(name: string) {
+  const tone = Object.values(EFFECT_TYPE_TONES).find((item) => item.name === name)?.tone ?? "slate";
+  return EFFECT_TONE_CHIPS[tone];
+}

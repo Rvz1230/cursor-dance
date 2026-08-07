@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/components/ui/utils";
+import { EFFECT_TYPE_TONES } from "@/components/ui/theme-identity";
 import { useTimelineDrag } from "../../lib/useTimelineDrag";
 import {
   DELAY_FIELD_BY_TRACK,
@@ -20,6 +21,16 @@ type GhostMode = "move" | "resize-left" | "resize-right";
 interface TimelineGhost {
   mode: GhostMode;
   deltaMs: number;
+}
+
+function getTimelineTone(tone: string) {
+  if (tone === "amber") return { text: "text-amber-600", dot: "bg-amber-500", border: "border-amber-300/60", gradient: "from-amber-200/90 to-amber-300/80" };
+  if (tone === "sky") return { text: "text-sky-600", dot: "bg-sky-500", border: "border-sky-300/60", gradient: "from-sky-200/90 to-sky-300/80" };
+  if (tone === "teal") return { text: "text-teal-600", dot: "bg-teal-500", border: "border-teal-300/60", gradient: "from-teal-200/90 to-teal-300/80" };
+  if (tone === "rose") return { text: "text-rose-600", dot: "bg-rose-500", border: "border-rose-300/60", gradient: "from-rose-200/90 to-rose-300/80" };
+  if (tone === "indigo") return { text: "text-indigo-600", dot: "bg-indigo-500", border: "border-indigo-300/60", gradient: "from-indigo-200/90 to-indigo-300/80" };
+  if (tone === "orange") return { text: "text-orange-600", dot: "bg-orange-500", border: "border-orange-300/60", gradient: "from-orange-200/90 to-orange-300/80" };
+  return { text: "text-slate-600", dot: "bg-slate-500", border: "border-slate-300/60", gradient: "from-slate-200/90 to-slate-300/80" };
 }
 interface TrackHandleProps {
   side: "left" | "right";
@@ -40,15 +51,6 @@ interface TimelineTrackRowProps {
   isEven: boolean;
   disabled: boolean;
   snapMs: number;
-}
-
-function getTimelineTone(tone: TimelineTrack["tone"]) {
-  if (tone === "rose") return { text: "text-rose-600", dot: "bg-rose-500", border: "border-rose-300/60", gradient: "from-rose-200/90 to-rose-300/80" };
-  if (tone === "teal") return { text: "text-teal-600", dot: "bg-teal-500", border: "border-teal-300/60", gradient: "from-teal-200/90 to-teal-300/80" };
-  if (tone === "amber") return { text: "text-amber-600", dot: "bg-amber-500", border: "border-amber-300/60", gradient: "from-amber-200/90 to-amber-300/80" };
-  if (tone === "sky") return { text: "text-sky-600", dot: "bg-sky-500", border: "border-sky-300/60", gradient: "from-sky-200/90 to-sky-300/80" };
-  if (tone === "violet") return { text: "text-violet-600", dot: "bg-violet-500", border: "border-violet-300/60", gradient: "from-violet-200/90 to-violet-300/80" };
-  return { text: "text-slate-600", dot: "bg-slate-500", border: "border-slate-300/60", gradient: "from-slate-200/90 to-slate-300/80" };
 }
 
 function TrackHandle({
@@ -162,7 +164,7 @@ export function TimelineTrackRow({
     : ghostStart + ghostEditableDuration + tailDuration;
   const leftPct = `${(ghostStart / totalMs) * 100}%`;
   const widthPct = `${Math.max(0.5, ((ghostEnd - ghostStart) / totalMs) * 100)}%`;
-  const tone = getTimelineTone(track.tone);
+  const tone = getTimelineTone(EFFECT_TYPE_TONES[track.id].tone);
   const delayField = DELAY_FIELD_BY_TRACK[track.id];
   const minorTicks = useMemo(() => buildMinorTicks(totalMs), [totalMs]);
   const tickMarks = useMemo(() => buildTickMarks(totalMs), [totalMs]);

@@ -545,9 +545,14 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
               ) : null}
 
               {state.editor.workspaceId === "diagnostics" ? (
-                <div className="h-full overflow-y-auto pr-1">
+                <div className="h-full overflow-y-auto">
                   <Suspense fallback={<DeferredPanelFallback label="正在加载诊断面板…" />}>
-                    <DiagnosticsPanel selectedThemeId={selected.themeId} />
+                    <DiagnosticsPanel
+                      selectedThemeId={selected.themeId}
+                      themeName={activeTheme?.name}
+                      accessibilityAuthorized={accessibilityAuthorized}
+                      activeApp={activeWindowSnapshot}
+                    />
                   </Suspense>
                 </div>
               ) : null}

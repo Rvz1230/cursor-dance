@@ -9,7 +9,7 @@ import {
 import { computeRippleLayers } from "@/shared/effect-core/compute-specs";
 
 export type TimelineTrackId = "text" | "ripple" | "particle" | "animation" | "image" | "audio";
-type TimelineTrackTone = "rose" | "teal" | "amber" | "sky" | "violet" | "slate";
+type TimelineTrackTone = "rose" | "teal" | "amber" | "sky" | "violet" | "slate" | "indigo" | "orange";
 
 interface TimelineMarker {
   label: string;
@@ -93,12 +93,12 @@ export function buildTimelineTracks({ textConfig, particleConfig, rippleConfig, 
       : particleDelay + particleDuration + Math.min(520, Math.max(0, numericValue(particleConfig.particleCount) - 1) * numericValue(particleConfig.particleStagger, 26)))
     : 0;
 
-  if (textConfig.textEnabled) tracks.push({ id: "text", label: "飘字", tone: "rose", start: textDelay, end: textDelay + textDuration, configuredDuration: textDuration, markers: [{ label: "出现", at: textDelay }, { label: "峰值", at: textDelay + Math.round(textDuration * 0.18) }, { label: "淡出", at: textDelay + textDuration }] });
+  if (textConfig.textEnabled) tracks.push({ id: "text", label: "飘字", tone: "amber", start: textDelay, end: textDelay + textDuration, configuredDuration: textDuration, markers: [{ label: "出现", at: textDelay }, { label: "峰值", at: textDelay + Math.round(textDuration * 0.18) }, { label: "淡出", at: textDelay + textDuration }] });
   if (rippleConfig.ripple) tracks.push({ id: "ripple", label: "波纹", tone: "teal", start: rippleDelay, end: rippleEnd, configuredDuration: rippleDuration, markers: [{ label: "扩散", at: rippleDelay }, { label: "最大", at: rippleEnd }] });
-  if (particleConfig.particle) tracks.push({ id: "particle", label: "粒子", tone: "amber", start: particleDelay, end: particleEnd, configuredDuration: particleDuration, markers: [{ label: "喷发", at: particleDelay }, { label: "散开", at: Math.round(particleDelay + (particleEnd - particleDelay) * 0.55) }] });
-  if (animationConfig.animationEnabled) tracks.push({ id: "animation", label: "动画", tone: "sky", start: animationDelay, end: animationDelay + animationDuration, configuredDuration: animationDuration, markers: [{ label: "入场", at: animationDelay }, { label: "收束", at: animationDelay + animationDuration }] });
-  if (imageConfig.imageEnabled && imageConfig.imageDataUrl) tracks.push({ id: "image", label: "贴纸", tone: "violet", start: imageDelay, end: imageDelay + imageDuration, configuredDuration: imageDuration, markers: [{ label: "弹出", at: imageDelay }, { label: "离场", at: imageDelay + imageDuration }] });
-  if (audioConfig.sound) tracks.push({ id: "audio", label: "音效", tone: "slate", start: soundDelay, end: soundDelay + 120, markers: [{ label: "播放", at: soundDelay }] });
+  if (particleConfig.particle) tracks.push({ id: "particle", label: "粒子", tone: "sky", start: particleDelay, end: particleEnd, configuredDuration: particleDuration, markers: [{ label: "喷发", at: particleDelay }, { label: "散开", at: Math.round(particleDelay + (particleEnd - particleDelay) * 0.55) }] });
+  if (animationConfig.animationEnabled) tracks.push({ id: "animation", label: "动画", tone: "indigo", start: animationDelay, end: animationDelay + animationDuration, configuredDuration: animationDuration, markers: [{ label: "入场", at: animationDelay }, { label: "收束", at: animationDelay + animationDuration }] });
+  if (imageConfig.imageEnabled && imageConfig.imageDataUrl) tracks.push({ id: "image", label: "贴纸", tone: "orange", start: imageDelay, end: imageDelay + imageDuration, configuredDuration: imageDuration, markers: [{ label: "弹出", at: imageDelay }, { label: "离场", at: imageDelay + imageDuration }] });
+  if (audioConfig.sound) tracks.push({ id: "audio", label: "音效", tone: "rose", start: soundDelay, end: soundDelay + 120, markers: [{ label: "播放", at: soundDelay }] });
 
   const totalMs = Math.max(TIMELINE_MIN_TOTAL_MS, ...tracks.map((track) => track.end));
   return { tracks, totalMs: Math.ceil(totalMs / 100) * 100 };
