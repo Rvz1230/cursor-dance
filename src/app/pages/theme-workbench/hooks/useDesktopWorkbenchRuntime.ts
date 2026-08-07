@@ -86,9 +86,24 @@ export function useDesktopWorkbenchRuntime() {
     });
   }
 
+  function refreshActiveWindow(): void {
+    const bridge = typeof window !== "undefined" ? window.cursorDanceApp : undefined;
+    if (!bridge) return;
+    void bridge.getActiveWindow().then((snapshot) => {
+      setRuntimeState((current) => ({
+        ...current,
+        activeWindowSnapshot: snapshot,
+        accessibilityAuthorized: snapshot.authorized,
+      }));
+    }).catch(() => {
+      // Keep the last useful snapshot; the next active-window event can recover automatically.
+    });
+  }
+
   return {
     ...runtimeState,
     closeWelcome,
     openAccessibilitySettings,
+    refreshActiveWindow,
   };
 }

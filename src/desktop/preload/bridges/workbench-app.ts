@@ -1,5 +1,7 @@
 import {
   APP_GET_FIRST_RUN,
+  APP_LIST_INSTALLED_APPLICATIONS,
+  APP_PICK_WINDOW,
   APP_MARK_FIRST_RUN_COMPLETE,
   APP_OPEN_EXTERNAL,
   APP_UPDATE_CHECK,
@@ -9,6 +11,7 @@ import {
   APP_UPDATE_STATE_CHANGED,
 } from "../../../shared/ipc-channels";
 import type { DesktopUpdateState } from "../../../shared/desktop-update";
+import type { InstalledApplication, PickWindowResult } from "../../../shared/desktop-ipc-contracts";
 import { createOverlayAppBridge } from "./app";
 import { createIpcSubscription } from "./ipc-subscription";
 import { invokeDesktop } from "./typed-invoke";
@@ -25,6 +28,12 @@ export function createWorkbenchAppBridge() {
     },
     async openExternal(target: string): Promise<{ ok: boolean; error?: string }> {
       return invokeDesktop(APP_OPEN_EXTERNAL, target);
+    },
+    async listInstalledApplications(): Promise<InstalledApplication[]> {
+      return invokeDesktop(APP_LIST_INSTALLED_APPLICATIONS);
+    },
+    async pickWindow(): Promise<PickWindowResult> {
+      return invokeDesktop(APP_PICK_WINDOW);
     },
     async getUpdateState(): Promise<DesktopUpdateState> {
       return invokeDesktop(APP_UPDATE_GET_STATE);

@@ -111,6 +111,8 @@ interface CursorDanceAppActiveWindowAuthorized {
   owner: { name: string; bundleId?: string }
   title: string
   processName: string
+  bounds?: { x: number; y: number; width: number; height: number }
+  elementAccessAvailable?: boolean
 }
 
 interface CursorDanceAppActiveWindowUnauthorized {
@@ -128,6 +130,8 @@ interface CursorDanceAppBridge {
   getFirstRun: () => Promise<boolean>
   markFirstRunComplete: () => Promise<void>
   openExternal: (target: string) => Promise<{ ok: boolean; error?: string }>
+  listInstalledApplications: () => Promise<import("./shared/desktop-ipc-contracts").InstalledApplication[]>
+  pickWindow: () => Promise<import("./shared/desktop-ipc-contracts").PickWindowResult>
   getUpdateState: () => Promise<import("./shared/desktop-update").DesktopUpdateState>
   checkForUpdates: () => Promise<import("./shared/desktop-update").DesktopUpdateState>
   downloadUpdate: () => Promise<import("./shared/desktop-update").DesktopUpdateState>

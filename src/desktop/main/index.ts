@@ -12,11 +12,16 @@ import {
 } from "./overlay-window";
 import { createWorkbenchWindow } from "./workbench-window";
 import { createWorkbenchWindowController } from "./workbench-window-controller";
+import {
+  registerInstalledApplicationsIpc,
+  unregisterInstalledApplicationsIpc,
+} from "./installed-applications";
 import { getAllDisplays, getKeyboardTargetDisplayId, nativePointToDip, onDisplayChanges } from "./screen-utils";
 import { createCursorEventRouter, type CursorEventRouter, type RoutedCursorEvent } from "./cursor-event-router";
 import { registerStoreIpc, unregisterStoreIpc } from "./ipc-handlers";
 import { registerDialogIpc, unregisterDialogIpc } from "./dialog-handlers";
-import { createActiveWindowMonitor, registerActiveWindowIpc, unregisterActiveWindowIpc } from "./active-window";
+import { createActiveWindowMonitor, getActiveWindowSnapshot, registerActiveWindowIpc, unregisterActiveWindowIpc } from "./active-window";
+import { createWindowPickerController, registerWindowPickerIpc, unregisterWindowPickerIpc } from "./window-picker";
 import { registerWindowControlsIpc, unregisterWindowControlsIpc } from "./window-controls";
 import { registerFirstRunIpc, unregisterFirstRunIpc } from "./first-run";
 import { registerAiIpc, unregisterAiIpc } from "./ai-ipc";
@@ -48,6 +53,7 @@ let stopActiveWindowMonitor: (() => void) | null = null;
 let cursorEventRouter: CursorEventRouter | null = null;
 let cursorIpcMessageCount = 0;
 let activeWindowSnapshot: ActiveWindowSnapshot | null = null;
+const windowPickerController = createWindowPickerController({ readSnapshot: getActiveWindowSnapshot });
 
 const isDesktopSmokeTest = process.env.CURSORDANCE_DESKTOP_SMOKE === "1";
 const smokeUserDataPath = process.env.CURSORDANCE_DESKTOP_SMOKE_USER_DATA;
@@ -78,6 +84,7 @@ function sendCursorEventToDisplay(displayId: number, event: RoutedCursorEvent): 
 }
 
 function routeKeyboardEvent(event: NativeKeyboardEvent): void {
+  windowPickerController.handleKeyboardEvent(event);
   const displayId = getKeyboardTargetDisplayId() ?? cursorEventRouter?.getActiveDisplayId();
   if (displayId === null || displayId === undefined) return;
   const target = getOverlayWindows().get(displayId);
@@ -157,6 +164,8 @@ void app.whenReady().then(async () => {
     publish: publishActiveWindowSnapshot,
   });
   registerActiveWindowIpc(() => activeWindowMonitor.getCurrent());
+  registerInstalledApplicationsIpc();
+  registerWindowPickerIpc(windowPickerController);
   if (isDesktopSmokeTest) {
     activeWindowMonitor.poll();
   } else {
@@ -202,7 +211,10 @@ void app.whenReady().then(async () => {
     };
     testingGlobal.__cursorDanceMainTesting = {
       routeCursorEvent: (event) => {
-        if (event.type !== "leave") cursorEventRouter?.route(event);
+        if (event.type !== "leave") {
+          windowPickerController.handleCursorEvent(event);
+          cursorEventRouter?.route(event);
+        }
       },
       routeKeyboardEvent,
       flushPendingMove: () => cursorEventRouter?.flushPendingMove(),
@@ -226,7 +238,10 @@ void app.whenReady().then(async () => {
     try {
       const { startGlobalMouseCapture } = await import("./native-events");
       stopMouseCapture = startGlobalMouseCapture(
-        (event) => cursorEventRouter?.route(event),
+        (event) => {
+          windowPickerController.handleCursorEvent(event);
+          cursorEventRouter?.route(event);
+        },
         routeKeyboardEvent,
       );
     } catch (error) {
@@ -291,6 +306,8 @@ app.on("before-quit", () => {
   unregisterStoreIpc();
   unregisterDialogIpc();
   unregisterActiveWindowIpc();
+  unregisterInstalledApplicationsIpc();
+  unregisterWindowPickerIpc(windowPickerController);
   unregisterWindowControlsIpc();
   unregisterFirstRunIpc();
   unregisterAiIpc();

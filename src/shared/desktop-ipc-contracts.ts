@@ -6,6 +6,8 @@ import {
   AI_RUN_AGENT,
   AI_SET_USER_SETTINGS,
   APP_GET_ACTIVE_WINDOW,
+  APP_LIST_INSTALLED_APPLICATIONS,
+  APP_PICK_WINDOW,
   APP_GET_FIRST_RUN,
   APP_MARK_FIRST_RUN_COMPLETE,
   APP_OPEN_EXTERNAL,
@@ -47,6 +49,18 @@ export type WindowStateSnapshot = {
   isMaximized: boolean;
   isFullScreen: boolean;
 };
+
+export type InstalledApplication = {
+  name: string;
+  processName: string;
+  bundleId?: string;
+  iconDataUrl?: string;
+};
+
+export type PickWindowResult =
+  | { status: "picked"; snapshot: ActiveWindowSnapshot }
+  | { status: "cancelled" }
+  | { status: "failed"; message: string };
 
 export type AiUserSettingsView = {
   hasApiKey: boolean;
@@ -98,6 +112,8 @@ interface DesktopIpcInvokeContract {
   [DIALOG_SAVE_THEME_FILE]: InvokeContract<SaveThemeFileRequest, SaveThemeFileResult>;
   [DIALOG_OPEN_THEME_FILE]: InvokeContract<void, OpenThemeFileResult>;
   [APP_GET_ACTIVE_WINDOW]: InvokeContract<void, ActiveWindowSnapshot>;
+  [APP_LIST_INSTALLED_APPLICATIONS]: InvokeContract<void, InstalledApplication[]>;
+  [APP_PICK_WINDOW]: InvokeContract<void, PickWindowResult>;
   [APP_GET_FIRST_RUN]: InvokeContract<void, boolean>;
   [APP_MARK_FIRST_RUN_COMPLETE]: InvokeContract<void, void>;
   [APP_OPEN_EXTERNAL]: InvokeContract<string, { ok: boolean; error?: string }>;
