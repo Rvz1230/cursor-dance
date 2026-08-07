@@ -556,9 +556,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                 <Suspense fallback={<DeferredPanelFallback label="正在加载键盘动效…" />}>
                   <KeyboardPanel
                     config={keyFeedbackConfig}
-                    themeName={activeTheme?.name}
                     accessibilityAuthorized={accessibilityAuthorized}
-                    hasPendingChanges={state.status.unsaved}
                     onOpenAccessibilitySettings={openAccessibilitySettings}
                     onCaptureChange={setKeyboardCaptureActive}
                     onUpdate={(patch) => updateKeyFeedbackConfig(patch)}

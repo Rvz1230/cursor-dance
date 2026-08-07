@@ -5,18 +5,19 @@ import { defaultKeyFeedbackConfig, type KeyFeedbackConfig } from "@/shared/confi
 import { KeyboardPreview } from "./keyboard/KeyboardPreview";
 import {
   AccessibilityNotice,
-  KeyboardAdvanced,
   KeyboardAppearance,
-  KeyboardGroup,
-  KeyboardMeaning,
+  KeyboardColoring,
+  KeyboardCombo,
+  KeyboardDisplayContent,
+  KeyboardGlyph,
   KeyboardPlacement,
+  KeyboardPrecision,
+  KeyboardSemantic,
 } from "./keyboard/KeyboardSections";
 
 interface KeyboardPanelProps {
   config: KeyFeedbackConfig;
-  themeName?: string;
   accessibilityAuthorized?: boolean | null;
-  hasPendingChanges?: boolean;
   onOpenAccessibilitySettings?: () => void;
   onCaptureChange?: (active: boolean) => void;
   onUpdate: (patch: Partial<KeyFeedbackConfig>) => void;
@@ -24,9 +25,7 @@ interface KeyboardPanelProps {
 
 export function KeyboardPanel({
   config,
-  themeName,
   accessibilityAuthorized = null,
-  hasPendingChanges = false,
   onOpenAccessibilitySettings,
   onCaptureChange,
   onUpdate,
@@ -51,13 +50,10 @@ export function KeyboardPanel({
   const showEditor = config.enabled || editWhileOff;
 
   return (
-    <div className="keyboard-workspace h-full overflow-y-auto bg-slate-50 px-3 py-3">
-      <div className="mx-auto w-full max-w-[1480px]">
+    <div className="keyboard-workspace flex h-full flex-col bg-slate-50 px-3 py-3">
+      <div className="mx-auto flex min-h-0 w-full max-w-[1480px] flex-1 flex-col">
         <header className="mb-2.5 flex min-h-8 items-center justify-between gap-3">
-          <div className="min-w-0">
-            <h1 className="truncate text-base font-semibold text-slate-900">键盘动效</h1>
-            {themeName ? <p className="mt-0.5 truncate text-2xs text-slate-500">当前主题 · {themeName}</p> : null}
-          </div>
+          <h1 className="min-w-0 truncate text-base font-semibold text-slate-900">键盘动效</h1>
           <div className="flex shrink-0 items-center gap-2">
             <button type="button" role="switch" aria-checked={config.enabled} onClick={() => onUpdate({ enabled: !config.enabled })} className="flex h-8 items-center gap-2 rounded-xl bg-white px-2.5 text-xs text-slate-600 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50">
               <span aria-hidden="true" className={cn("inline-flex h-5 w-9 items-center rounded-full p-0.5 transition-colors", config.enabled ? "bg-slate-950" : "bg-slate-200")}><span className={cn("size-4 rounded-full bg-white shadow-sm transition-transform", config.enabled && "translate-x-4")} /></span>
@@ -71,8 +67,6 @@ export function KeyboardPanel({
         </header>
 
         {accessibilityAuthorized === false ? <AccessibilityNotice onOpenSettings={onOpenAccessibilitySettings} /> : null}
-        {hasPendingChanges ? <div className="mb-2.5 rounded-xl bg-sky-50 px-3 py-2 text-xs text-sky-800 ring-1 ring-sky-200">页面预览已更新；桌面实际效果需点击顶部「应用到桌面」。</div> : null}
-
         {!showEditor ? (
           <section className="rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
             <div className="flex items-center justify-between gap-4">
@@ -81,15 +75,19 @@ export function KeyboardPanel({
             </div>
           </section>
         ) : (
-          <div className="keyboard-layout grid gap-2.5">
+          <div className="keyboard-layout grid min-h-0 flex-1 items-start gap-2.5">
             <div className="keyboard-preview-column min-w-0">
               <KeyboardPreview config={config} onUpdate={onUpdate} onCaptureChange={onCaptureChange} />
-              <KeyboardGroup title="内容与语义" description="显示什么，以及不同按键如何区分" className="keyboard-group-meaning"><KeyboardMeaning config={config} onUpdate={onUpdate} /></KeyboardGroup>
+              <KeyboardSemantic config={config} onUpdate={onUpdate} />
+              <KeyboardCombo config={config} onUpdate={onUpdate} />
             </div>
             <aside className="keyboard-settings-column min-w-0">
               <KeyboardAppearance config={config} onUpdate={onUpdate} />
-              <KeyboardGroup title="出现位置" description="锚点、入场方向与停留位置" className="keyboard-group-placement"><KeyboardPlacement config={config} accessibilityAuthorized={accessibilityAuthorized} onUpdate={onUpdate} /></KeyboardGroup>
-              <KeyboardGroup title="高级动效" description="字形、上色、节奏与动画细节" className="keyboard-group-advanced"><KeyboardAdvanced config={config} onUpdate={onUpdate} /></KeyboardGroup>
+              <KeyboardColoring config={config} onUpdate={onUpdate} />
+              <KeyboardGlyph config={config} onUpdate={onUpdate} />
+              <KeyboardPlacement config={config} accessibilityAuthorized={accessibilityAuthorized} onUpdate={onUpdate} />
+              <KeyboardDisplayContent config={config} onUpdate={onUpdate} />
+              <KeyboardPrecision config={config} onUpdate={onUpdate} />
             </aside>
           </div>
         )}

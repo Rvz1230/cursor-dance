@@ -103,10 +103,12 @@
   .keyboard-workspace {
     container-type: inline-size;
     container-name: keyboard-workspace;
+    overflow: hidden;
   }
 
   .keyboard-layout {
     grid-template-columns: minmax(0, 1fr);
+    overflow-y: auto;
   }
 
   .keyboard-preview-column,
@@ -116,9 +118,14 @@
 
   .keyboard-preview-card { order: 1; }
   .keyboard-appearance-card { order: 2; }
-  .keyboard-group-placement { order: 3; }
-  .keyboard-group-meaning { order: 4; }
-  .keyboard-group-advanced { order: 5; }
+  .keyboard-coloring-card { order: 3; }
+  .keyboard-glyph-card { order: 4; }
+  .keyboard-anchor-card { order: 5; }
+  .keyboard-position-card { order: 6; }
+  .keyboard-content-card { order: 7; }
+  .keyboard-semantic-card { order: 8; }
+  .keyboard-combo-card { order: 9; }
+  .keyboard-precision-card { order: 10; }
 
   .keyboard-card {
     overflow: hidden;
@@ -132,12 +139,56 @@
     max-width: 250px;
   }
 
+  .keyboard-custom-swatch {
+    background-color: white;
+    background-image:
+      linear-gradient(45deg, #e2e8f0 25%, transparent 25%, transparent 75%, #e2e8f0 75%),
+      linear-gradient(45deg, #e2e8f0 25%, transparent 25%, transparent 75%, #e2e8f0 75%);
+    background-position: 0 0, 4px 4px;
+    background-size: 8px 8px;
+  }
+
+  .keyboard-stage-tag {
+    border-radius: 0.25rem;
+    background: rgb(255 255 255 / 0.9);
+    padding: 0.125rem 0.375rem;
+    color: rgb(100 116 139);
+    font-size: 0.625rem;
+    font-weight: 500;
+    line-height: 1rem;
+    box-shadow: 0 0 0 1px rgb(226 232 240);
+  }
+
+  .keyboard-legend-grid { grid-template-columns: minmax(0, 1fr); }
+  .keyboard-legend-row {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    border: 1px solid rgb(226 232 240);
+    border-radius: 0.75rem;
+    background: white;
+    padding: 0.25rem 0.625rem;
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.05);
+    transition: color 120ms, background-color 120ms, border-color 120ms;
+  }
+  .keyboard-legend-sample {
+    display: grid;
+    width: 1.75rem;
+    height: 1.75rem;
+    flex-shrink: 0;
+    place-items: center;
+    border-radius: 0.5rem;
+    background: rgb(248 250 252);
+    font-weight: 700;
+    line-height: 1;
+  }
+
   .keyboard-edge-button {
     position: absolute;
-    z-index: 10;
+    z-index: 20;
     display: grid;
     place-items: center;
-    border: 1px solid rgb(203 213 225);
+    border: 1px solid rgb(226 232 240);
     border-radius: 0.5rem;
     background: white;
     color: rgb(100 116 139);
@@ -170,7 +221,8 @@
     box-shadow: 0 1px 3px rgb(15 23 42 / 0.25), 0 0 0 1px rgb(203 213 225);
   }
 
-  .keyboard-rest-handle > span { width: 0.375rem; height: 0.375rem; border-radius: 9999px; background: white; }
+  .keyboard-rest-handle > span:first-child { width: 0.375rem; height: 0.375rem; border-radius: 9999px; background: white; }
+  .keyboard-rest-label { position: absolute; left: 50%; top: 1.5rem; width: max-content; transform: translateX(-50%); }
 
   .keyboard-badge {
     display: inline-flex;
@@ -188,21 +240,35 @@
   .keyboard-badge--warn { background: rgb(255 251 235); color: rgb(146 64 14); }
 
   @container keyboard-workspace (min-width: 700px) {
-    .keyboard-layout { grid-template-columns: minmax(0, 1fr) 350px; }
+    .keyboard-layout { grid-template-columns: minmax(0, 1fr) 350px; overflow: hidden; }
     .keyboard-preview-stage { max-width: 430px; }
     .keyboard-preview-column,
-    .keyboard-settings-column { display: grid; min-width: 0; align-content: start; gap: 0.625rem; }
+    .keyboard-settings-column { display: grid; min-width: 0; min-height: 0; align-content: start; gap: 0.625rem; }
+    .keyboard-settings-column {
+      max-height: 100%;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding-right: 2px;
+      scrollbar-gutter: stable;
+    }
     .keyboard-preview-card,
     .keyboard-appearance-card,
-    .keyboard-group-placement,
-    .keyboard-group-meaning,
-    .keyboard-group-advanced { order: initial; }
+    .keyboard-coloring-card,
+    .keyboard-glyph-card,
+    .keyboard-anchor-card,
+    .keyboard-position-card,
+    .keyboard-content-card,
+    .keyboard-semantic-card,
+    .keyboard-combo-card,
+    .keyboard-precision-card { order: initial; }
   }
 
   @container keyboard-workspace (min-width: 1100px) {
     .keyboard-layout { grid-template-columns: minmax(0, 1fr) 420px; }
     .keyboard-preview-stage { max-width: 720px; }
+    .keyboard-legend-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
+
 }
 
 .keyboard-preview-glyph { opacity: 0; }
