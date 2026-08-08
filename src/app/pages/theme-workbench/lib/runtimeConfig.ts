@@ -8,8 +8,14 @@ import {
   workbenchRulesToContext,
   workbenchWebPatternToMatch,
 } from "./theme-draft/contextRuleAdapter";
+import type { SiteRule, WorkbenchRuleAction } from "../hooks/workbenchStateTypes";
+import type { CursorDanceConfig } from "@/shared/domain/cursor-dance";
 
-function matchPattern(host, path, pattern) {
+function matchPattern(
+  host: string,
+  path: string,
+  pattern: SiteRule["pattern"] | null | undefined,
+): boolean {
   if (!pattern || typeof pattern !== "object") return false;
   return Boolean(resolveWebContextRule([{
     id: "workbench-match-test",
@@ -20,7 +26,12 @@ function matchPattern(host, path, pattern) {
   }], host, path));
 }
 
-function resolveSiteRule(rules, host, path = "/", globalEnabled?: boolean) {
+function resolveSiteRule(
+  rules: SiteRule[] | null | undefined,
+  host: string,
+  path = "/",
+  globalEnabled?: boolean,
+): WorkbenchRuleAction | null {
   if (!Array.isArray(rules) || rules.length === 0) return null;
   const action = resolveWebContextRule(
     workbenchRulesToContext(rules, []),
@@ -42,14 +53,14 @@ const runtimeConfig = {
   cloneValue,
 };
 
-export function getDefaultConfig() {
+export function getDefaultConfig(): CursorDanceConfig {
   return defaultConfig;
 }
 
-export function getRuntimeConfig() {
+export function getRuntimeConfig(): typeof runtimeConfig {
   return runtimeConfig;
 }
 
-export function normalizeStoredConfig(value: unknown) {
+export function normalizeStoredConfig(value: unknown): CursorDanceConfig {
   return normalizeConfig(value, defaultConfig);
 }

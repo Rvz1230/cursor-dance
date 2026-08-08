@@ -1,29 +1,37 @@
 export { normalizeStoredConfig } from "./runtimeConfig";
 export {
-  buildThemeExportPayload,
-  clearLivePreviewConfig,
-  clearRuntimeErrors,
-  clearRuntimeDiagnostics,
-  downloadThemePackExport,
-  pickThemeFile,
-  previewThemePack,
-  readActiveSiteContext,
   readEditorState,
-  readLivePreviewConfig,
   readExtensionConfig,
-  readRecentCursorAssets,
-  readDiagnosticDebugFlag,
-  readRuntimeErrors,
-  readRuntimeDiagnostics,
-  subscribeRuntimeDiagnostics,
-  writeDiagnosticDebugFlag,
+  readLivePreviewConfig,
   writeEditorState,
-  subscribeExtensionConfig,
-  subscribeLivePreviewConfig,
   updateExtensionConfig,
   writeLivePreviewConfig,
+  clearLivePreviewConfig,
+} from "./storage/config-io";
+export {
+  subscribeExtensionConfig,
+  subscribeLivePreviewConfig,
+  subscribeRuntimeDiagnostics,
+} from "./storage/subscriptions";
+export {
+  buildThemeExportPayload,
+  downloadThemePackExport,
+  pickThemeFile,
+} from "./storage/theme-file-io";
+export { readActiveSiteContext } from "./storage/active-site-context";
+export { previewThemePack } from "./storage/preview-transport";
+export {
+  readRecentCursorAssets,
   writeRecentCursorAsset,
-} from "./workbenchStorage";
+} from "./storage/recent-cursor-assets";
+export {
+  clearRuntimeDiagnostics,
+  clearRuntimeErrors,
+  readDiagnosticDebugFlag,
+  readRuntimeDiagnostics,
+  readRuntimeErrors,
+  writeDiagnosticDebugFlag,
+} from "./storage/diagnostics-io";
 export {
   buildPreviewThemePackFromWorkbench,
   buildStoredConfigFromWorkbench,

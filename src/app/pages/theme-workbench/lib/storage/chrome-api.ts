@@ -11,30 +11,30 @@ const EDITOR_STATE_STORAGE_KEY = "cursordance.editorState";
 const MAX_CURSOR_ASSET_DATA_URL_LENGTH = 600 * 1024;
 const MAX_RECENT_CURSOR_ASSETS = 6;
 
-let localPreviewChannel = null;
-let previewStorageAccessPromise = null;
+let localPreviewChannel: BroadcastChannel | null = null;
+let previewStorageAccessPromise: Promise<void> | null = null;
 
-function getChromeApi() {
+function getChromeApi(): Chrome | null {
   if (typeof window === "undefined") return null;
   return window.chrome ?? null;
 }
 
 // 桌面端 preload 注入的存储桥。扩展端、静态预览、单测里
 // 都不存在，返回 null —— 让上层的 chrome / localStorage 分支接管。
-function getElectronStorageBridge() {
+function getElectronStorageBridge(): CursorDanceStorageBridge | null {
   if (typeof window === "undefined") return null;
   return window.cursorDanceStorage ?? null;
 }
 
-function postLocalPreviewMessage(message) {
+function postLocalPreviewMessage(message: unknown): void {
   if (typeof window === "undefined" || typeof window.BroadcastChannel !== "function") return;
   localPreviewChannel ??= new window.BroadcastChannel(LOCAL_PREVIEW_CHANNEL_NAME);
   localPreviewChannel.postMessage(message);
 }
 
-async function ensurePreviewStorageAccess(chromeApi) {
+async function ensurePreviewStorageAccess(chromeApi: Chrome | null | undefined): Promise<void> {
   if (!chromeApi?.storage?.session?.setAccessLevel) return;
-  if (!previewStorageAccessPromise) {
+  if (previewStorageAccessPromise === null) {
     previewStorageAccessPromise = chromeApi.storage.session
       .setAccessLevel({ accessLevel: "TRUSTED_AND_UNTRUSTED_CONTEXTS" })
       .catch(() => {});
@@ -42,7 +42,7 @@ async function ensurePreviewStorageAccess(chromeApi) {
   await previewStorageAccessPromise;
 }
 
-function canUseLocalStorage() {
+function canUseLocalStorage(): boolean {
   if (typeof window === "undefined" || !window.localStorage) return false;
   try {
     const probeKey = "__cursordance_preview_probe__";
@@ -54,17 +54,17 @@ function canUseLocalStorage() {
   }
 }
 
-function parseBooleanFlag(value) {
+function parseBooleanFlag(value: unknown): boolean {
   if (value === true) return true;
   if (typeof value !== "string") return false;
   return ["1", "true", "on", "yes", "debug"].includes(value.trim().toLowerCase());
 }
 
-function buildCursorAssetStorageKey(themeId, stateId) {
+function buildCursorAssetStorageKey(themeId: string, stateId: string): string {
   return `${CURSOR_ASSET_STORAGE_KEY_PREFIX}${themeId}.${stateId}`;
 }
 
-function slugifyFileSegment(value, fallback = "theme") {
+function slugifyFileSegment(value: unknown, fallback = "theme"): string {
   return String(value || "")
     .trim()
     .toLowerCase()

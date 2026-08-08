@@ -18,10 +18,18 @@
     "src/app/pages/theme-workbench/components/WorkspaceNavigationItem.tsx",
     "src/app/pages/theme-workbench/components/cursor-skin/cursorSkinModel.ts",
     "src/app/pages/theme-workbench/lib/cardResetFields.ts",
+    "src/app/pages/theme-workbench/lib/runtimeConfig.ts",
+    "src/app/pages/theme-workbench/lib/storage/active-site-context.ts",
+    "src/app/pages/theme-workbench/lib/storage/chrome-api.ts",
+    "src/app/pages/theme-workbench/lib/storage/diagnostics-io.ts",
+    "src/app/pages/theme-workbench/lib/storage/preview-transport.ts",
+    "src/app/pages/theme-workbench/lib/storage/recent-cursor-assets.ts",
+    "src/app/pages/theme-workbench/lib/storage/theme-file-io.ts",
     "src/app/pages/theme-workbench/lib/theme-draft/contextRuleAdapter.ts",
     "src/app/pages/theme-workbench/lib/undoStack.ts",
     "src/app/pages/theme-workbench/lib/storage/repository/types.ts",
-    "src/app/pages/theme-workbench/model/actionConfigOptions.ts"
+    "src/app/pages/theme-workbench/model/actionConfigOptions.ts",
+    "src/app/pages/theme-workbench/model/workbenchSchema.ts"
   ],
   "exclude": [
     "node_modules",

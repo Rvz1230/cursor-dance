@@ -59,7 +59,15 @@ import { ANIMATION_EASING_OPTIONS } from "./actionConfigOptions";
 import { getDefaultActionConfigs } from "@/shared/effect-core/default-action-configs";
 import { isDesktop } from "@/shared/runtime";
 import { getCursorStatesForPlatform, type CursorStateId } from "@/shared/cursor-states";
-import { createCursorBindings, createCursorSkin } from "@/shared/domain/cursor-dance";
+import {
+  createCursorBindings,
+  createCursorSkin,
+  type CursorDanceTheme,
+} from "@/shared/domain/cursor-dance";
+import type {
+  WorkbenchThemeDraft,
+  WorkbenchThemeMeta,
+} from "../hooks/workbenchStateTypes";
 
 export type WorkbenchWorkspaceGroup = "personalization" | "automation" | "system";
 
@@ -109,7 +117,7 @@ const FALLBACK_THEMES = [
 
 const THEME_TONES = ["amber", "teal", "sky", "rose", "slate"];
 
-const THEME_TONE_BY_ID = {
+const THEME_TONE_BY_ID: Record<string, string> = {
   "mono-geo": "slate",
   drift: "teal",
   molten: "amber",
@@ -152,23 +160,32 @@ export const CURSOR_STATES = getCursorStatesForPlatform(isDesktop() ? "desktop" 
     icon: CURSOR_STATE_ICONS[descriptor.id],
   }));
 
-function getDefaultThemePacks() {
+function getDefaultThemePacks(): readonly CursorDanceTheme[] {
   return defaultConfig.themes;
 }
 
-function getThemeSummaryActionConfig(themePack) {
-  if (themePack?.actionConfigs?.leftClick) {
-    const baseActionConfig = createThemeDraft(themePack?.id).actionConfigs.leftClick;
-    const storedActionConfig = themePack.actionConfigs.leftClick;
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function getThemeSummaryActionConfig(themePack: unknown): Record<string, unknown> | null {
+  const source = asRecord(themePack);
+  const id = typeof source?.id === "string" ? source.id : "";
+  const actionConfigs = asRecord(source?.actionConfigs);
+  const storedActionConfig = asRecord(actionConfigs?.leftClick);
+  if (storedActionConfig) {
+    const baseActionConfig = createThemeDraft(id).actionConfigs.leftClick;
     return mergeActionConfig(baseActionConfig, storedActionConfig);
   }
-  if (themePack?.id && THEME_TONE_BY_ID[themePack.id]) {
-    return createThemeDraft(themePack.id).actionConfigs.leftClick;
+  if (id && THEME_TONE_BY_ID[id]) {
+    return createThemeDraft(id).actionConfigs.leftClick;
   }
   return null;
 }
 
-function buildThemeSummary(themePack) {
+function buildThemeSummary(themePack: unknown): string {
   const actionConfig = getThemeSummaryActionConfig(themePack);
   const parts = [];
 
@@ -194,28 +211,38 @@ function buildThemeSummary(themePack) {
   return parts.slice(0, 3).join(" · ") || "默认反馈主题";
 }
 
-function toThemeKindLabel(kind) {
+function toThemeKindLabel(kind: unknown): string {
   return kind === "builtin" || kind === "内置" ? "内置" : "自定义";
 }
 
-function getThemeTone(themeId, fallbackIndex = 0) {
-  return THEME_TONE_BY_ID[themeId] || THEME_TONES[fallbackIndex % THEME_TONES.length];
+function getThemeTone(themeId: string | undefined, fallbackIndex = 0): string {
+  return (themeId ? THEME_TONE_BY_ID[themeId] : undefined)
+    || THEME_TONES[fallbackIndex % THEME_TONES.length];
 }
 
-export function buildWorkbenchThemeMeta(themePack, fallbackIndex = 0) {
-  const description = themePack?.description || "未填写说明";
+export function buildWorkbenchThemeMeta(
+  themePack: unknown,
+  fallbackIndex = 0,
+): WorkbenchThemeMeta {
+  const source = asRecord(themePack);
+  const id = typeof source?.id === "string" ? source.id : `theme-${fallbackIndex + 1}`;
+  const name = typeof source?.name === "string" ? source.name : `主题 ${fallbackIndex + 1}`;
+  const description = typeof source?.description === "string" ? source.description : "未填写说明";
+  const icon = typeof source?.icon === "string" ? source.icon : "Wand2";
   return {
-    id: themePack?.id || `theme-${fallbackIndex + 1}`,
-    name: themePack?.name || `主题 ${fallbackIndex + 1}`,
-    kind: toThemeKindLabel(themePack?.kind),
+    id,
+    name,
+    kind: toThemeKindLabel(source?.kind),
     summary: buildThemeSummary(themePack),
     description,
-    tone: getThemeTone(themePack?.id, fallbackIndex),
-    icon: themePack?.icon || "Wand2",
+    tone: getThemeTone(id, fallbackIndex),
+    icon,
   };
 }
 
-function buildThemeLibrarySeed(themes = getDefaultThemePacks()) {
+function buildThemeLibrarySeed(
+  themes: readonly unknown[] = getDefaultThemePacks(),
+): WorkbenchThemeMeta[] {
   if (!themes.length) return FALLBACK_THEMES;
   return themes.map((theme, index) => buildWorkbenchThemeMeta(theme, index));
 }
@@ -241,11 +268,11 @@ export const PANEL_META = {
   keyboard: { icon: Keyboard },
 };
 
-export function formatActionLabel(actionId) {
+export function formatActionLabel(actionId: string): string {
   return ACTIONS.find((item) => item.id === actionId)?.label ?? "左键单击";
 }
 
-export function createThemeDraft(themeId) {
+export function createThemeDraft(themeId: string): WorkbenchThemeDraft {
   const actionConfigs = getDefaultActionConfigs(themeId);
   return {
     actionConfigs,
