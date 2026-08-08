@@ -4,8 +4,8 @@ import type { ContextRule, ContextRuleAction } from "./domain/cursor-dance";
 import { isContextRuleActionEffective } from "./context-rule-actions";
 
 export type AppRuleTarget = "bundle" | "process" | "title";
-export type AppRulePatternType = "exact" | "glob";
-export type AppRuleKind = "application" | "advanced";
+type AppRulePatternType = "exact" | "glob";
+type AppRuleKind = "application" | "advanced";
 
 export interface AppRulePattern {
   type: AppRulePatternType;

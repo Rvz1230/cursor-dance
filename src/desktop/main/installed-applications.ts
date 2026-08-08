@@ -64,7 +64,7 @@ async function describeApplication(path: string): Promise<InstalledApplication> 
   };
 }
 
-export async function listInstalledApplications(): Promise<InstalledApplication[]> {
+async function listInstalledApplications(): Promise<InstalledApplication[]> {
   if (process.platform !== "darwin") return [];
   const paths = await listApplicationBundles();
   const applications: InstalledApplication[] = [];

@@ -1,7 +1,7 @@
 {
   "name": "cursor-dance",
   "private": true,
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Customizable mouse interaction effects for the desktop and the web.",
   "author": {
     "name": "CursorDance",
@@ -65,6 +65,7 @@
     "verify:package": "node scripts/verify-packaged-desktop.mjs",
     "test:package": "node scripts/smoke-packaged-desktop.mjs",
     "release:verify-tag": "node scripts/release-artifacts.mjs verify-tag",
+    "release:verify-commit": "node scripts/release-artifacts.mjs verify-commit",
     "release:verify-signing": "node scripts/release-artifacts.mjs verify-signing",
     "release:checksums": "node scripts/release-artifacts.mjs checksums"
   },

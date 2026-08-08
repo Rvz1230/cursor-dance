@@ -21,7 +21,7 @@ import { WorkspaceNavigationItem } from "./WorkspaceNavigationItem";
 import type { WorkbenchLayoutPreset } from "../hooks/useWorkbenchColumnLayout";
 import type { WorkbenchWorkspaceGroup } from "../model/workbenchSchema";
 
-export interface WorkbenchWorkspaceItem {
+interface WorkbenchWorkspaceItem {
   id: string;
   label: string;
   icon: LucideIcon;

@@ -28,12 +28,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.RELEASE_TAG }}
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22.12.0
           cache: npm
       - run: npm ci
       - run: npm run release:verify-tag -- "$RELEASE_TAG"
+      - run: npm run release:verify-commit -- "$RELEASE_TAG"
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run check:conventions
@@ -79,7 +81,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  publish:
+  stage-draft:
     needs: package-macos
     runs-on: ubuntu-latest
     permissions:
@@ -96,7 +98,7 @@ jobs:
           name: release-darwin-arm64
           path: release-artifacts
       - run: npm run release:checksums -- release-artifacts
-      - name: Create or resume draft release
+      - name: Create or update draft release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -110,4 +112,4 @@ jobs:
             gh release create "$RELEASE_TAG" --draft --generate-notes --verify-tag --title "CursorDance $RELEASE_TAG"
           fi
           gh release upload "$RELEASE_TAG" release-artifacts/* --clobber
-          gh release edit "$RELEASE_TAG" --draft=false
+          echo "Release $RELEASE_TAG remains a draft. Publish it only after the clean-Mac acceptance checklist passes." >> "$GITHUB_STEP_SUMMARY"

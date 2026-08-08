@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Check, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/components/ui/utils";
 import type { ActiveWindowSnapshot, AppRule } from "@/shared/app-rules";
@@ -88,9 +89,13 @@ export function ApplicationRulesSection({
 
       {!applicationRules.length ? (
         activeApp && !activeApp.authorized ? (
-          <div className="px-4 py-8 text-center">
-            <div className="text-xs font-medium text-slate-600">还读不到最近用过的应用</div>
-            <div className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-slate-500">请切换到目标应用后重试；也可以从已安装应用列表选择，或用「高级匹配规则」手写进程名。</div>
+          <div className="px-4 py-4">
+            <EmptyState
+              icon={Search}
+              title="还读不到最近用过的应用"
+              description="请切换到目标应用后重试；也可以从已安装应用列表选择，或手写进程名。"
+              tone="blocked"
+            />
           </div>
         ) : (
           <div className="px-4 py-3">
@@ -120,10 +125,14 @@ export function ApplicationRulesSection({
           </div>
         )
       ) : !visibleApplicationRules.length ? (
-        <div className="px-4 py-8 text-center">
-          <div className="text-xs font-medium text-slate-600">没有匹配「{query}」的应用</div>
-          <div className="mt-1 text-xs text-slate-500">应用名与 bundle id 都会被搜到</div>
-          <Button variant="outline" className="mt-2.5 h-7 px-2.5 text-xs" onClick={() => setQuery("")}>清空筛选</Button>
+        <div className="px-4 py-4">
+          <EmptyState
+            icon={Search}
+            title={`没有匹配「${query}」的应用`}
+            description="应用名与 Bundle ID 都会被搜到"
+            tone="filtered"
+            action={<Button variant="outline" className="h-7 px-2.5 text-xs" onClick={() => setQuery("")}>清空筛选</Button>}
+          />
         </div>
       ) : (
         <div className="divide-y divide-slate-100">

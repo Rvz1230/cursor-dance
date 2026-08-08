@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  assertReleaseCommit,
   assertReleaseTag,
   assertSigningEnvironment,
   createReleaseChecksums,
@@ -32,6 +33,11 @@ describe("release artifact gates", () => {
   it("requires the tag to exactly match the package version", () => {
     expect(() => assertReleaseTag("v0.6.0", "0.6.0")).not.toThrow();
     expect(() => assertReleaseTag("v0.6.1", "0.6.0")).toThrow(/does not match/);
+  });
+
+  it("requires the release tag to point at the current main commit", () => {
+    expect(() => assertReleaseCommit("abc", "abc")).not.toThrow();
+    expect(() => assertReleaseCommit("abc", "def")).toThrow(/current origin\/main/);
   });
 
   it("does not allow a release without all signing credentials", () => {

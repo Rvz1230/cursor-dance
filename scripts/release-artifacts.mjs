@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,6 +12,19 @@ export function assertReleaseTag(tag, version) {
   if (tag !== expected) {
     throw new Error(`Release tag ${JSON.stringify(tag)} does not match package version ${JSON.stringify(expected)}`);
   }
+}
+
+export function assertReleaseCommit(tagCommit, mainCommit) {
+  if (!tagCommit || tagCommit !== mainCommit) {
+    throw new Error(`Release tag commit ${tagCommit || "unknown"} is not the current origin/main commit ${mainCommit || "unknown"}`);
+  }
+}
+
+function gitRevision(revision) {
+  return execFileSync("git", ["rev-parse", revision], {
+    cwd: projectRoot,
+    encoding: "utf8",
+  }).trim();
 }
 
 export function requiredSigningVariables(platform) {
@@ -95,12 +109,18 @@ async function main() {
     console.info("[release] required signing environment is present");
     return;
   }
+  if (command === "verify-commit") {
+    const tag = argument || process.env.GITHUB_REF_NAME || "";
+    assertReleaseCommit(gitRevision(`${tag}^{commit}`), gitRevision("origin/main^{commit}"));
+    console.info(`[release] verified ${tag} points to the current origin/main commit`);
+    return;
+  }
   if (command === "checksums") {
     const result = await createReleaseChecksums(argument || join(projectRoot, "release-artifacts"));
     console.info(`[release] wrote ${result.entries.length} checksums to ${result.outputPath}`);
     return;
   }
-  throw new Error("Usage: release-artifacts.mjs <verify-tag|verify-signing|checksums> [value]");
+  throw new Error("Usage: release-artifacts.mjs <verify-tag|verify-commit|verify-signing|checksums> [value]");
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

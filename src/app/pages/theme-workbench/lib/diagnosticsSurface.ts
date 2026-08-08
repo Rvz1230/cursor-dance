@@ -1,6 +1,6 @@
 const MAX_DIAGNOSTIC_ENTRIES = 80;
 
-export const DIAGNOSTIC_REASON_LABELS = {
+const DIAGNOSTIC_REASON_LABELS = {
   "not-ready": "引擎未就绪",
   "site-disabled": "被应用规则禁用",
   "trigger-zone-filtered": "不在触发区域内",
