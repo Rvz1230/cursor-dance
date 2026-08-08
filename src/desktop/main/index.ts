@@ -236,6 +236,7 @@ void app.whenReady().then(() => {
         resetCursorIpcCount: () => void;
         getCursorIpcCount: () => number;
         publishActiveWindowSnapshot: (snapshot: ActiveWindowSnapshot) => void;
+        loadNativeEventsModule: () => Promise<boolean>;
       };
     };
     testingGlobal.__cursorDanceMainTesting = {
@@ -251,6 +252,10 @@ void app.whenReady().then(() => {
       resetCursorIpcCount: () => { cursorIpcMessageCount = 0; },
       getCursorIpcCount: () => cursorIpcMessageCount,
       publishActiveWindowSnapshot,
+      loadNativeEventsModule: async () => {
+        await import("./native-events");
+        return true;
+      },
     };
   }
   stopDisplayWatcher = onDisplayChanges(({ added, removed, changed }) => {

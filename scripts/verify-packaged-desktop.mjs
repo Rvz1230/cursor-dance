@@ -67,6 +67,15 @@ function verifyWindowsSignature(path) {
   }
 }
 
+function runMacCheck(command, args, description) {
+  const result = spawnSync(command, args, { encoding: "utf8" });
+  if (result.error) throw result.error;
+  if (result.status !== 0) {
+    throw new Error(`${description} failed: ${(result.stderr || result.stdout).trim()}`);
+  }
+  console.info(`[desktop-package] ${description}: verified`);
+}
+
 async function verifyHelperProtocol() {
   const child = spawn(helperPath, [], { stdio: ["pipe", "pipe", "pipe"] });
   const statuses = [];
@@ -165,18 +174,41 @@ if (!installerPaths.some((path) => updateMetadata.includes(basename(path)))) {
 if (paths.platform === "darwin") {
   await requirePath(join(paths.appDirectory, "Contents", "Info.plist"));
   await requirePath(join(resources, "icon.icns"));
-  const signature = spawnSync("codesign", ["--verify", "--deep", "--strict", paths.appDirectory], { encoding: "utf8" });
   const requireSignature = process.env.CURSORDANCE_REQUIRE_SIGNATURE === "1";
-  if (requireSignature && signature.status !== 0) throw new Error(`macOS signature verification failed: ${signature.stderr.trim()}`);
+  const signature = spawnSync("codesign", ["--verify", "--deep", "--strict", paths.appDirectory], { encoding: "utf8" });
+  if (requireSignature && signature.status !== 0) {
+    throw new Error(`macOS signature verification failed: ${signature.stderr.trim()}`);
+  }
   if (requireSignature) {
     const details = spawnSync("codesign", ["-dv", "--verbose=4", paths.appDirectory], { encoding: "utf8" });
     if (details.status !== 0 || !details.stderr.includes("Authority=Developer ID Application:")) {
       throw new Error(`macOS release is not signed with Developer ID Application: ${details.stderr.trim()}`);
     }
+    runMacCheck(
+      "spctl",
+      ["--assess", "--type", "execute", "--verbose=4", paths.appDirectory],
+      "Gatekeeper app assessment",
+    );
+  }
+  for (const dmgPath of dmgPaths) {
+    runMacCheck("hdiutil", ["verify", dmgPath], `DMG integrity (${basename(dmgPath)})`);
+    if (requireSignature) {
+      runMacCheck(
+        "spctl",
+        ["--assess", "--type", "open", "--context", "context:primary-signature", "--verbose=4", dmgPath],
+        `Gatekeeper DMG assessment (${basename(dmgPath)})`,
+      );
+    }
   }
   if (process.env.CURSORDANCE_REQUIRE_NOTARIZATION === "1") {
-    const notarization = spawnSync("xcrun", ["stapler", "validate", paths.appDirectory], { encoding: "utf8" });
-    if (notarization.status !== 0) throw new Error(`macOS notarization validation failed: ${notarization.stderr.trim()}`);
+    runMacCheck("xcrun", ["stapler", "validate", paths.appDirectory], "app notarization ticket");
+    for (const dmgPath of dmgPaths) {
+      runMacCheck(
+        "xcrun",
+        ["stapler", "validate", dmgPath],
+        `DMG notarization ticket (${basename(dmgPath)})`,
+      );
+    }
   }
   console.info(`[desktop-package] signature: ${signature.status === 0 ? "verified" : "unsigned (expected until R6-4)"}`);
 } else if (process.env.CURSORDANCE_REQUIRE_SIGNATURE === "1") {

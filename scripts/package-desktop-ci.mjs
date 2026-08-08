@@ -58,5 +58,8 @@ if (platform === "darwin" && process.env.CURSORDANCE_REQUIRE_NOTARIZATION === "1
   builderArguments.push("--config.mac.notarize=true");
 }
 runNode(join(projectRoot, "node_modules", "electron-builder", "cli.js"), builderArguments);
+if (platform === "darwin" && process.env.CURSORDANCE_REQUIRE_NOTARIZATION === "1") {
+  runNode(join(projectRoot, "scripts", "notarize-macos-dmg.mjs"), [outputDirectory]);
+}
 
 console.info(`[desktop-package] built ${targetKey}: ${outputDirectory}`);
