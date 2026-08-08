@@ -3,6 +3,7 @@ import type {
   ContextRuleAction,
   WebContextRule,
 } from "./domain/cursor-dance";
+import { isContextRuleActionEffective } from "./context-rule-actions";
 
 type WebHostPattern = WebContextRule["match"];
 
@@ -64,6 +65,16 @@ export function resolveWebContextRule(
   rules: unknown,
   host: unknown,
   path: unknown,
+  globalEnabled?: boolean,
 ): ContextRuleAction | null {
-  return findWebContextRule(rules, host, path)?.action || null;
+  if (!Array.isArray(rules)) return null;
+  const pathname = typeof path === "string" && path.startsWith("/") ? path : `/${path || ""}`;
+  for (const rule of rules) {
+    if (!isEnabledWebRule(rule)) continue;
+    if (!matchHostPattern(host, rule.match)) continue;
+    if (rule.match.path && !pathname.startsWith(rule.match.path)) continue;
+    if (globalEnabled !== undefined && !isContextRuleActionEffective(rule.action, globalEnabled)) continue;
+    return rule.action;
+  }
+  return null;
 }

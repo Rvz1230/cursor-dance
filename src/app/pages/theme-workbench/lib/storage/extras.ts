@@ -93,6 +93,7 @@ export async function readActiveSiteContext() {
       && window.location.hostname.length > 0;
     return {
       host: isPreviewPage ? window.location.hostname.toLowerCase() : "example.com",
+      path: isPreviewPage ? window.location.pathname || "/" : "/",
       isSupportedPage: isPreviewPage,
       isPreviewMode: isPreviewPage,
       tabId: isPreviewPage ? 0 : null,
@@ -105,12 +106,13 @@ export async function readActiveSiteContext() {
     const isSupportedPage = url?.protocol === "http:" || url?.protocol === "https:";
     return {
       host: isSupportedPage ? url.hostname.toLowerCase() : "example.com",
+      path: isSupportedPage ? url.pathname || "/" : "/",
       isSupportedPage,
       isPreviewMode: false,
       tabId: activeTab?.id ?? null,
     };
   } catch {
-    return { host: "example.com", isSupportedPage: false, isPreviewMode: false, tabId: null };
+    return { host: "example.com", path: "/", isSupportedPage: false, isPreviewMode: false, tabId: null };
   }
 }
 

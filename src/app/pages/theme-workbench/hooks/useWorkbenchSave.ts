@@ -2,8 +2,7 @@ import { useRef } from "react";
 import {
   buildStoredConfigFromWorkbench,
   clearLivePreviewConfig,
-  readExtensionConfig,
-  writeExtensionConfig,
+  updateExtensionConfig,
 } from "../lib/workbenchConfig";
 import type {
   WorkbenchConfigRef,
@@ -24,13 +23,13 @@ export function useWorkbenchSave({ state, dispatch, configRef }: WorkbenchSaveOp
   return async function saveChanges() {
     dispatch({ type: "save/start" });
     try {
-      const previousConfig = configRef.current ?? (await readExtensionConfig());
-      const nextConfig = buildStoredConfigFromWorkbench(previousConfig, state);
-      const savedConfig = await writeExtensionConfig(nextConfig);
+      const savedConfig = await updateExtensionConfig((currentConfig) => (
+        buildStoredConfigFromWorkbench(currentConfig, state)
+      ));
       configRef.current = savedConfig;
 
       const latestState = stateRef.current;
-      const hasStaleSelection = latestState.domain.activeThemeId !== nextConfig.activeThemeId;
+      const hasStaleSelection = latestState.domain.activeThemeId !== savedConfig.activeThemeId;
       if (!latestState.status.unsaved || !hasStaleSelection) {
         await clearLivePreviewConfig();
       }

@@ -89,6 +89,7 @@ interface WorkbenchStatusState {
 interface WorkbenchRuntimeState {
   site: {
     host: string;
+    path: string;
     isSupportedPage: boolean;
     tabId: number | null;
   };

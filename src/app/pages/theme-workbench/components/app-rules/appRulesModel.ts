@@ -5,7 +5,13 @@ import type {
   AppRuleAction,
   AppRulePattern,
 } from "@/shared/app-rules";
-import { activeAppInfoFromSnapshot, matchAppPattern } from "@/shared/app-rules";
+import {
+  activeAppInfoFromSnapshot,
+  isAppRuleActionEffective,
+  isDirectApplicationRule,
+  matchAppPattern,
+  orderAppRulesByPriority,
+} from "@/shared/app-rules";
 
 export interface ApplicationCandidate {
   key: string;
@@ -51,9 +57,7 @@ export function rememberApplication(
 }
 
 export function isApplicationRule(rule: AppRule): boolean {
-  if (rule.kind) return rule.kind === "application";
-  const target = rule.pattern.target || "process";
-  return rule.pattern.type === "exact" && (target === "bundle" || target === "process");
+  return isDirectApplicationRule(rule);
 }
 
 export function applicationPattern(application: ApplicationCandidate): AppRulePattern {
@@ -81,17 +85,10 @@ export function resolveRuleMatchStates(
 ): Map<string, RuleMatchState> {
   const result = new Map<string, RuleMatchState>();
   if (!info) return result;
-  const orderedRules = [
-    ...rules.filter(isApplicationRule),
-    ...rules.filter((rule) => !isApplicationRule(rule)),
-  ];
+  const orderedRules = orderAppRulesByPriority(rules);
   const matching = orderedRules.filter((rule) => (
     rule.enabled !== false
-    && (globalEnabled === undefined || (
-      globalEnabled
-        ? rule.action === "disable" || Boolean(rule.action.theme)
-        : rule.action !== "disable"
-    ))
+    && (globalEnabled === undefined || isAppRuleActionEffective(rule.action, globalEnabled))
     && matchAppPattern(info, rule.pattern)
   ));
   matching.forEach((rule, index) => result.set(rule.id, index === 0 ? "active" : "shadowed"));
@@ -105,15 +102,10 @@ export function resolveAppRuleDecision(
 ): AppRuleDecision | null {
   const info = activeAppInfoFromSnapshot(snapshot);
   if (!info) return null;
-  const orderedRules = [
-    ...rules.filter(isApplicationRule),
-    ...rules.filter((rule) => !isApplicationRule(rule)),
-  ];
+  const orderedRules = orderAppRulesByPriority(rules);
   const rule = orderedRules.find((candidate) => (
     candidate.enabled !== false
-    && (globalEnabled
-      ? candidate.action === "disable" || Boolean(candidate.action.theme)
-      : candidate.action !== "disable")
+    && isAppRuleActionEffective(candidate.action, globalEnabled)
     && matchAppPattern(info, candidate.pattern)
   ));
   if (!rule) return { enabled: globalEnabled, action: null, ruleId: null };

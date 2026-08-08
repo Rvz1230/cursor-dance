@@ -138,10 +138,12 @@ export function createContentConfigStore(runtime: ContentConfigStoreRuntime): Co
   }
 
   function getResolvedWebRule() {
+    const config = getConfig();
     return resolveWebContextRule(
-      getConfig().contextRules,
+      config.contextRules,
       window.location.hostname.trim().toLowerCase(),
       window.location.pathname || "/",
+      config.enabled,
     );
   }
 

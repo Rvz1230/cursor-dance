@@ -20,7 +20,7 @@ export {
   writeEditorState,
   subscribeExtensionConfig,
   subscribeLivePreviewConfig,
-  writeExtensionConfig,
+  updateExtensionConfig,
   writeLivePreviewConfig,
   writeRecentCursorAsset,
 } from "./workbenchStorage";

@@ -259,6 +259,7 @@ export function startContentRuntime(options: ContentRuntimeOptions = {}): Conten
   });
 
   configStore.setOnSyncComplete(() => {
+    triggerHandlers.reset();
     if (state.ready) syncAtmosphere();
   });
   const ready = configStore.syncConfigFromStorage({
@@ -289,10 +290,15 @@ export function startContentRuntime(options: ContentRuntimeOptions = {}): Conten
         );
         localPreviewChannel.addEventListener("message", (event) => {
           const message = (event.data || {}) as Record<string, unknown>;
-          if (message.type === "config-updated") {
+          if (message.type === "config-updated" || message.type === "preview-config-updated") {
             configStore.setConfig(message.config || defaultConfig);
+            triggerHandlers.reset();
             cursorOverlay.clearStateCursorOverlay();
             syncAtmosphere();
+          } else if (message.type === "preview-config-cleared") {
+            configStore.debouncedSyncConfigFromStorage({
+              clearStateCursorOverlay: cursorOverlay.clearStateCursorOverlay,
+            });
           } else if (message.type === "preview-theme") {
             triggerHandlers.previewAtViewportCenter(
               message.themeId as string | undefined,
@@ -308,13 +314,14 @@ export function startContentRuntime(options: ContentRuntimeOptions = {}): Conten
   }
 
   const handleStorageChange = (changes: Record<string, StorageChange>, areaName: string): void => {
-    if (areaName !== "local") return;
     const changedKeys = Object.keys(changes);
-    if (
+    const storedConfigChanged = areaName === "local" && (
       changedKeys.includes(CONTENT_RUNTIME_CONSTANTS.CONFIG_STORAGE_KEY)
-      || changedKeys.includes(CONTENT_RUNTIME_CONSTANTS.LIVE_PREVIEW_CONFIG_STORAGE_KEY)
       || changedKeys.some((key) => key.startsWith(CONTENT_RUNTIME_CONSTANTS.CURSOR_ASSET_STORAGE_KEY_PREFIX))
-    ) {
+    );
+    const livePreviewChanged = areaName === "session"
+      && changedKeys.includes(CONTENT_RUNTIME_CONSTANTS.LIVE_PREVIEW_CONFIG_STORAGE_KEY);
+    if (storedConfigChanged || livePreviewChanged) {
       configStore.debouncedSyncConfigFromStorage({
         clearStateCursorOverlay: cursorOverlay.clearStateCursorOverlay,
       });
@@ -380,6 +387,7 @@ export function startContentRuntime(options: ContentRuntimeOptions = {}): Conten
       if (destroyed) return;
       destroyed = true;
       state.ready = false;
+      triggerHandlers.reset();
       configStore.destroy();
       for (const cleanup of cleanupCallbacks.splice(0)) cleanup();
       localPreviewChannel?.close();

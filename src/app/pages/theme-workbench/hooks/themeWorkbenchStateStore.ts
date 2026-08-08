@@ -31,6 +31,7 @@ export const initialState: WorkbenchState = {
   runtime: {
     site: {
       host: "example.com",
+      path: "/",
       isSupportedPage: false,
       tabId: null,
     },

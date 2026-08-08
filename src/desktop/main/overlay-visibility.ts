@@ -18,6 +18,7 @@ export function shouldKeepOverlaysVisible(
   const action = resolveDesktopContextAction(
     validation.value.contextRules,
     activeAppInfoFromSnapshot(activeWindow),
+    validation.value.enabled,
   );
   if (action?.type === "disable") return false;
   if (action?.type === "enable") return true;

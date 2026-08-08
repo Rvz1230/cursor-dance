@@ -157,6 +157,7 @@ export function hydrateWorkbenchState(value: unknown, site: WorkbenchSiteInput):
     runtime: {
       site: {
         host: site.host,
+        path: site.path ?? "/",
         isSupportedPage: site.isSupportedPage ?? false,
         tabId: site.tabId ?? null,
       },

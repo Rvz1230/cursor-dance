@@ -70,6 +70,7 @@ export interface ContentTriggerHandlers {
   handlePointerOver(event: PointerEvent): void;
   handlePointerOut(event: PointerEvent): void;
   previewAtViewportCenter(themeId?: string, previewTheme?: unknown, actionId?: string): void;
+  reset(): void;
 }
 
 function makeCoordsFromEvent(event: MouseEvent) {
@@ -98,7 +99,7 @@ export function createContentTriggerHandlers(runtime: ContentTriggerRuntime): Co
     cursorOverlay,
   } = runtime;
 
-  const { triggerAction, scheduleActionTrigger } = createActionTriggerPipeline({
+  const { triggerAction, scheduleActionTrigger, clearPendingTriggers } = createActionTriggerPipeline({
     state,
     diagnostics,
     configStore: {
@@ -258,6 +259,20 @@ export function createContentTriggerHandlers(runtime: ContentTriggerRuntime): Co
     longPressTracker.cancel();
   }
 
+  function reset(): void {
+    longPressTracker.forceClear();
+    doubleClickDetector.reset();
+    clearPendingTriggers();
+    if (state.hoverTimeoutId !== null) window.clearTimeout(state.hoverTimeoutId);
+    state.hoverTimeoutId = null;
+    state.hoverTarget = null;
+    state.lastWheelEventAt = 0;
+    state.lastTriggerAtByAction = {};
+    state.actionRunCounts = {};
+    state.actionComboStates = {};
+    visualEffects.clearOrbitalParticles();
+  }
+
   function handleRightPointerDown(event: PointerEvent): void {
     if (event.button !== 2) return;
     const theme = configStore.getActiveTheme();
@@ -403,5 +418,6 @@ export function createContentTriggerHandlers(runtime: ContentTriggerRuntime): Co
     handlePointerOver,
     handlePointerOut,
     previewAtViewportCenter,
+    reset,
   };
 }

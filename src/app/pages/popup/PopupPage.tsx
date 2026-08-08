@@ -13,16 +13,17 @@ import "./popup-motion.css";
 const W = 360;
 const H = 540;
 
-function Toggle({ checked, onChange }) {
+function Toggle({ checked, disabled = false, onChange }) {
   return (
     <button
       type="button"
       role="switch"
       aria-checked={checked}
+      disabled={disabled}
       aria-label="全局开关"
       onClick={() => onChange(!checked)}
       className={cn(
-        "relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-150 ease-out",
+        "relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-150 ease-out disabled:cursor-wait disabled:opacity-50",
         checked ? "bg-slate-900" : "bg-slate-200"
       )}
     >
@@ -102,10 +103,10 @@ export default function PopupPage() {
   // ── handlers ──
   const switchTo = useCallback(
     (themeId) => {
-      if (themeId === activeId) return;
+      if (busyKey || themeId === activeId) return;
       void setThemeId(themeId);
     },
-    [activeId, setThemeId]
+    [activeId, busyKey, setThemeId]
   );
 
   const handlePreview = useCallback(async () => {
@@ -137,7 +138,7 @@ export default function PopupPage() {
         <img src="logo.svg" alt="" className="size-6 rounded-md" />
         <span className="text-base font-semibold text-slate-900">CursorDance</span>
         <div className="ml-auto flex items-center">
-          <Toggle checked={enabled} onChange={setEnabled} />
+          <Toggle checked={enabled} disabled={Boolean(busyKey)} onChange={setEnabled} />
         </div>
       </header>
 
@@ -182,6 +183,7 @@ export default function PopupPage() {
             activeId={activeId}
             onSelect={switchTo}
             accent={accent}
+            disabled={Boolean(busyKey)}
           />
         </div>
       )}

@@ -3,7 +3,7 @@ export {
   readExtensionConfig,
   readLivePreviewConfig,
   writeEditorState,
-  writeExtensionConfig,
+  updateExtensionConfig,
   writeLivePreviewConfig,
   clearLivePreviewConfig,
 } from "./storage/config-io";

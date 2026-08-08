@@ -51,4 +51,25 @@ describe("v4 web context matcher", () => {
     ], "example.com", "/")).toBeNull();
     expect(resolveWebContextRule(null, "example.com", "/")).toBeNull();
   });
+
+  it("skips context actions that cannot change the global state", () => {
+    const rules = [{
+      id: "follow-global",
+      context: "web",
+      enabled: true,
+      match: { type: "exact", host: "example.com" },
+      action: { type: "enable" },
+    }, {
+      id: "disable-docs",
+      context: "web",
+      enabled: true,
+      match: { type: "exact", host: "example.com", path: "/docs" },
+      action: { type: "disable" },
+    }];
+
+    expect(resolveWebContextRule(rules, "example.com", "/docs", true))
+      .toEqual({ type: "disable" });
+    expect(resolveWebContextRule(rules, "example.com", "/docs", false))
+      .toEqual({ type: "enable" });
+  });
 });

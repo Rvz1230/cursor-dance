@@ -82,6 +82,7 @@ function createFixture() {
   const clearEffects = vi.fn();
   const debounceConfigSync = vi.fn();
   const previewAtViewportCenter = vi.fn();
+  const resetTriggerHandlers = vi.fn();
   let onSyncComplete: (() => void) | null = null;
   const destroyConfigStore = vi.fn(() => { onSyncComplete = null; });
   const configStore = {
@@ -106,6 +107,7 @@ function createFixture() {
     handlePointerOver: vi.fn(),
     handlePointerOut: vi.fn(),
     previewAtViewportCenter,
+    reset: resetTriggerHandlers,
   };
   const factories = {
     createDiagnostics: vi.fn(() => ({
@@ -146,6 +148,7 @@ function createFixture() {
     debounceConfigSync,
     destroyConfigStore,
     previewAtViewportCenter,
+    resetTriggerHandlers,
     getOnSyncComplete: () => onSyncComplete,
   };
 }
@@ -167,6 +170,13 @@ describe("extension content runtime assembly", () => {
       [CONTENT_RUNTIME_CONSTANTS.CONFIG_STORAGE_KEY]: {},
     }, "local");
     expect(fixture.debounceConfigSync).toHaveBeenCalledTimes(1);
+    fixture.getStorageListener()?.({
+      [CONTENT_RUNTIME_CONSTANTS.LIVE_PREVIEW_CONFIG_STORAGE_KEY]: {},
+    }, "session");
+    expect(fixture.debounceConfigSync).toHaveBeenCalledTimes(2);
+
+    fixture.getOnSyncComplete()?.();
+    expect(fixture.resetTriggerHandlers).toHaveBeenCalledTimes(1);
 
     const respond = vi.fn();
     fixture.getMessageListener()?.({
@@ -185,6 +195,7 @@ describe("extension content runtime assembly", () => {
     expect(fixture.removeStorageListener).toHaveBeenCalledTimes(1);
     expect(fixture.removeMessageListener).toHaveBeenCalledTimes(1);
     expect(fixture.destroyConfigStore).toHaveBeenCalledTimes(1);
+    expect(fixture.resetTriggerHandlers).toHaveBeenCalledTimes(2);
     expect(fixture.getOnSyncComplete()).toBeNull();
     expect(fixture.destroyAtmosphere).toHaveBeenCalledTimes(1);
     expect(fixture.clearEffects).toHaveBeenCalledTimes(1);

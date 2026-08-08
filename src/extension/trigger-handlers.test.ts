@@ -52,7 +52,7 @@ function createFixture() {
   const handlers = createContentTriggerHandlers(
     runtime as unknown as Parameters<typeof createContentTriggerHandlers>[0],
   );
-  return { handlers, renderText, syncStateCursorOverlay };
+  return { handlers, configs, renderText, syncStateCursorOverlay };
 }
 
 function pointerEvent(overrides: Partial<PointerEvent> = {}): PointerEvent {
@@ -84,5 +84,23 @@ describe("extension trigger handlers adapter", () => {
     handlers.handlePointerOver(event);
     expect(syncStateCursorOverlay).toHaveBeenCalledWith(event);
     expect(renderText).toHaveBeenCalledWith(10, 20, expect.any(Object), "hover", 1);
+  });
+
+  it("cancels delayed actions when the active config changes", async () => {
+    vi.useFakeTimers();
+    try {
+      const { handlers, configs, renderText } = createFixture();
+      configs.leftClick = { ...configs.leftClick, holdMs: 100 };
+
+      handlers.handleLeftPointerDown(pointerEvent());
+      expect(renderText).not.toHaveBeenCalled();
+      handlers.reset();
+      await vi.runAllTimersAsync();
+
+      expect(renderText).not.toHaveBeenCalled();
+      handlers.reset();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

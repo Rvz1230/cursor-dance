@@ -1,6 +1,7 @@
 /** @platform shared — desktop application rule schema and pure matching helpers. */
 
 import type { ContextRule, ContextRuleAction } from "./domain/cursor-dance";
+import { isContextRuleActionEffective } from "./context-rule-actions";
 
 export type AppRuleTarget = "bundle" | "process" | "title";
 export type AppRulePatternType = "exact" | "glob";
@@ -89,24 +90,44 @@ export function matchAppPattern(
   }
 }
 
-export function resolveAppRule(
-  rules: AppRule[] | null | undefined,
-  info: ActiveAppInfo,
-): AppRuleAction | null {
-  if (!Array.isArray(rules)) return null;
-
-  const isDirectApplicationRule = (rule: AppRule) => (
-    rule.kind === "application"
+export function isDirectApplicationRule(rule: Pick<AppRule, "kind" | "pattern">): boolean {
+  return rule.kind === "application"
     || (rule.kind !== "advanced" && rule.pattern.type === "exact" && (
       (rule.pattern.target || "process") === "process" || rule.pattern.target === "bundle"
-    ))
-  );
-  const orderedRules = [
+    ));
+}
+
+export function orderAppRulesByPriority<T extends Pick<AppRule, "kind" | "pattern">>(
+  rules: readonly T[],
+): T[] {
+  return [
     ...rules.filter(isDirectApplicationRule),
     ...rules.filter((rule) => !isDirectApplicationRule(rule)),
   ];
+}
+
+export function isAppRuleActionEffective(action: AppRuleAction, globalEnabled: boolean): boolean {
+  if (action === "disable") {
+    return isContextRuleActionEffective({ type: "disable" }, globalEnabled);
+  }
+  if (action.enable !== true) return false;
+  return isContextRuleActionEffective({
+    type: "enable",
+    ...(action.theme ? { themeId: action.theme } : {}),
+  }, globalEnabled);
+}
+
+export function resolveAppRule(
+  rules: AppRule[] | null | undefined,
+  info: ActiveAppInfo,
+  globalEnabled?: boolean,
+): AppRuleAction | null {
+  if (!Array.isArray(rules)) return null;
+
+  const orderedRules = orderAppRulesByPriority(rules);
   for (const rule of orderedRules) {
     if (!rule || rule.enabled === false || !matchAppPattern(info, rule.pattern)) continue;
+    if (globalEnabled !== undefined && !isAppRuleActionEffective(rule.action, globalEnabled)) continue;
     if (rule.action === "disable") return "disable";
     if (rule.action?.enable === true) {
       return {
@@ -131,12 +152,28 @@ export function activeAppInfoFromSnapshot(snapshot: ActiveWindowSnapshot | null 
 export function resolveDesktopContextAction(
   rules: readonly ContextRule[] | null | undefined,
   info: ActiveAppInfo | null | undefined,
+  globalEnabled?: boolean,
 ): ContextRuleAction | null {
   if (!Array.isArray(rules) || !info) return null;
-  for (const rule of rules) {
+  const desktopRules = rules.filter((rule): rule is Extract<ContextRule, { context: "desktop" }> => (
+    rule.context === "desktop"
+  ));
+  const orderedRules = [
+    ...desktopRules.filter((rule) => isDirectApplicationRule({
+      kind: rule.kind,
+      pattern: rule.match,
+    })),
+    ...desktopRules.filter((rule) => !isDirectApplicationRule({
+      kind: rule.kind,
+      pattern: rule.match,
+    })),
+  ];
+  for (const rule of orderedRules) {
+    const actionIsEffective = globalEnabled === undefined
+      || isContextRuleActionEffective(rule.action, globalEnabled);
     if (
-      rule.context === "desktop"
-      && rule.enabled
+      rule.enabled
+      && actionIsEffective
       && matchAppPattern(info, rule.match)
     ) {
       return rule.action;

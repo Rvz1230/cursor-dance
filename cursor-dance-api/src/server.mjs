@@ -6,6 +6,7 @@ import {
   createAiAgentProposal,
   validateAiStreamingRequest,
   getAiServiceHealth,
+  getAiRequestLimits,
   validateAiApiAccess,
 } from "./proposal-service.mjs";
 import { AI_SCHEMA_VERSION } from "./field-defs.js";
@@ -18,6 +19,8 @@ import {
 
 const DEPRECATED_ENDPOINTS = ["/api/ai/modify-scheme", "/api/ai/generate-scheme"];
 
+class RequestBodyTooLargeError extends Error {}
+
 function sendJson(response, statusCode, payload, origin = "") {
   response.writeHead(statusCode, {
     "Content-Type": "application/json; charset=utf-8",
@@ -26,31 +29,101 @@ function sendJson(response, statusCode, payload, origin = "") {
   response.end(JSON.stringify(payload));
 }
 
-async function readJsonBody(request) {
+function assertBodySize(length, maxBytes) {
+  if (length > maxBytes) throw new RequestBodyTooLargeError("Request body is too large");
+}
+
+async function readJsonBody(request, maxBytes = getAiRequestLimits().maxRequestBytes) {
   // FC3: body is pre-buffered as Buffer, string, or parsed object
   if (request.body != null) {
     let raw;
-    if (typeof request.body === "string") {
+    if (Buffer.isBuffer(request.body)) {
+      assertBodySize(request.body.byteLength, maxBytes);
+      raw = request.body.toString("utf8");
+    } else if (typeof request.body === "string") {
       raw = request.body;
     } else if (typeof request.body === "object" && !Array.isArray(request.body)) {
       // Already parsed JSON object
-      return { body: request.body, rawBodyLength: Buffer.byteLength(JSON.stringify(request.body), "utf8") };
+      const rawBodyLength = Buffer.byteLength(JSON.stringify(request.body), "utf8");
+      assertBodySize(rawBodyLength, maxBytes);
+      return { body: request.body, rawBodyLength };
     } else {
-      // Buffer or other — try to convert
       raw = String(request.body);
     }
+    const rawBodyLength = Buffer.byteLength(raw, "utf8");
+    assertBodySize(rawBodyLength, maxBytes);
     if (!raw.trim()) return { body: {}, rawBodyLength: 0 };
-    return { body: JSON.parse(raw), rawBodyLength: Buffer.byteLength(raw, "utf8") };
+    return { body: JSON.parse(raw), rawBodyLength };
   }
 
-  // Standard Node HTTP: read from stream
-  const chunks = [];
-  for await (const chunk of request) {
-    chunks.push(chunk);
+  const contentLengthValue = Array.isArray(request.headers?.["content-length"])
+    ? request.headers["content-length"][0]
+    : request.headers?.["content-length"];
+  const contentLength = Number.parseInt(contentLengthValue || "", 10);
+  if (Number.isFinite(contentLength) && contentLength > maxBytes) {
+    request.resume();
+    assertBodySize(contentLength, maxBytes);
   }
-  const buffer = Buffer.concat(chunks);
-  if (!buffer.length) return { body: {}, rawBodyLength: 0 };
-  return { body: JSON.parse(buffer.toString("utf8")), rawBodyLength: buffer.byteLength };
+
+  // Standard Node HTTP: stop retaining chunks as soon as the transport limit is crossed.
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let rawBodyLength = 0;
+
+    const cleanup = () => {
+      request.off("data", onData);
+      request.off("end", onEnd);
+      request.off("error", onError);
+      request.off("aborted", onAborted);
+    };
+    const onError = (error) => {
+      cleanup();
+      reject(error);
+    };
+    const onAborted = () => onError(new Error("Request aborted"));
+    const onData = (chunk) => {
+      const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      rawBodyLength += buffer.byteLength;
+      if (rawBodyLength > maxBytes) {
+        cleanup();
+        request.once("error", () => {});
+        request.resume();
+        reject(new RequestBodyTooLargeError("Request body is too large"));
+        return;
+      }
+      chunks.push(buffer);
+    };
+    const onEnd = () => {
+      cleanup();
+      try {
+        if (!rawBodyLength) {
+          resolve({ body: {}, rawBodyLength: 0 });
+          return;
+        }
+        const buffer = Buffer.concat(chunks, rawBodyLength);
+        resolve({ body: JSON.parse(buffer.toString("utf8")), rawBodyLength });
+      } catch (error) {
+        reject(error);
+      }
+    };
+
+    request.on("data", onData);
+    request.once("end", onEnd);
+    request.once("error", onError);
+    request.once("aborted", onAborted);
+  });
+}
+
+function sendBodyReadError(request, response, error) {
+  if (error instanceof RequestBodyTooLargeError) {
+    sendJson(response, 413, {
+      error: "Request body is too large",
+      code: "invalid_request",
+      schemaVersion: AI_SCHEMA_VERSION,
+    }, request.headers.origin || "");
+    return;
+  }
+  sendJson(response, 400, { error: "Invalid JSON body" }, request.headers.origin || "");
 }
 
 function sendSseHeaders(response, origin = "") {
@@ -75,8 +148,8 @@ async function handleAgentRun(request, response) {
     const parsed = await readJsonBody(request);
     payload = parsed.body;
     rawBodyLength = parsed.rawBodyLength;
-  } catch {
-    sendJson(response, 400, { error: "Invalid JSON body" }, request.headers.origin || "");
+  } catch (error) {
+    sendBodyReadError(request, response, error);
     return;
   }
 
@@ -142,8 +215,8 @@ async function handleSchemeProposal(request, response) {
     const parsed = await readJsonBody(request);
     payload = parsed.body;
     rawBodyLength = parsed.rawBodyLength;
-  } catch {
-    sendJson(response, 400, { error: "Invalid JSON body" }, request.headers.origin || "");
+  } catch (error) {
+    sendBodyReadError(request, response, error);
     return;
   }
 
@@ -180,8 +253,8 @@ async function handleSchemeProposalStream(request, response) {
     const parsed = await readJsonBody(request);
     payload = parsed.body;
     rawBodyLength = parsed.rawBodyLength;
-  } catch {
-    sendJson(response, 400, { error: "Invalid JSON body" }, request.headers.origin || "");
+  } catch (error) {
+    sendBodyReadError(request, response, error);
     return;
   }
 
@@ -240,7 +313,7 @@ async function handleSchemeProposalStream(request, response) {
   }
 }
 
-function createApp() {
+export function createApp() {
   return createServer(async (request, response) => {
     if (request.method === "OPTIONS") {
       sendJson(response, 204, {}, request.headers.origin || "");

@@ -4,7 +4,7 @@ import { themeAccent, themeIcon } from "./ThemeIdentityCard";
 const CARD_SIZE = 56;
 const CARD_GAP = 52;
 
-export function ThemeCarousel({ themes, activeId, onSelect, accent }) {
+export function ThemeCarousel({ themes, activeId, onSelect, accent, disabled = false }) {
   const n = themes.length;
   const idx = Math.max(0, themes.findIndex((t) => t.id === activeId));
 
@@ -26,9 +26,10 @@ export function ThemeCarousel({ themes, activeId, onSelect, accent }) {
             <button
               key={t.id}
               type="button"
+              disabled={disabled}
               onClick={() => onSelect(t.id)}
               aria-label={`切换到 ${t.name}`}
-              className="absolute flex shrink-0 flex-col items-center gap-1 transition-[transform,opacity] duration-300 ease-out"
+              className="absolute flex shrink-0 flex-col items-center gap-1 transition-[transform,opacity] duration-300 ease-out disabled:cursor-wait"
               style={{
                 opacity: active ? 1 : Math.abs(raw) === 1 ? 0.4 : 0.15,
                 zIndex: active ? 10 : 1,
@@ -79,6 +80,7 @@ export function ThemeCarousel({ themes, activeId, onSelect, accent }) {
           <>
             <button
               type="button"
+              disabled={disabled}
               onClick={(e) => { e.stopPropagation(); onSelect(themes[(idx - 1 + n) % n].id); }}
               aria-label="上一个主题"
               className="absolute left-0.5 z-10 flex size-7 items-center justify-center rounded-full bg-white/80 shadow-sm ring-1 ring-slate-200 backdrop-blur-sm hover:bg-white active:scale-[0.95]"
@@ -87,6 +89,7 @@ export function ThemeCarousel({ themes, activeId, onSelect, accent }) {
             </button>
             <button
               type="button"
+              disabled={disabled}
               onClick={(e) => { e.stopPropagation(); onSelect(themes[(idx + 1 + n) % n].id); }}
               aria-label="下一个主题"
               className="absolute right-0.5 z-10 flex size-7 items-center justify-center rounded-full bg-white/80 shadow-sm ring-1 ring-slate-200 backdrop-blur-sm hover:bg-white active:scale-[0.95]"
@@ -103,6 +106,7 @@ export function ThemeCarousel({ themes, activeId, onSelect, accent }) {
             <button
               key={i}
               type="button"
+              disabled={disabled}
               aria-label={`第 ${i + 1} 个主题`}
               onClick={() => onSelect(themes[i].id)}
               className="rounded-full transition-[width,height,background-color,opacity] duration-300"

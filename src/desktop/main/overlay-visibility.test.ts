@@ -58,6 +58,29 @@ describe("shouldKeepOverlaysVisible", () => {
     expect(shouldKeepOverlaysVisible(config, { ...safariSnapshot, title: "Example" })).toBe(true);
   });
 
+  it("prioritizes a direct application override over an earlier advanced rule", () => {
+    const config = {
+      ...defaultConfig,
+      contextRules: [{
+        id: "advanced-disable",
+        context: "desktop" as const,
+        kind: "advanced" as const,
+        enabled: true,
+        match: { type: "glob" as const, target: "title" as const, value: "*CursorDance*" },
+        action: { type: "disable" as const },
+      }, {
+        id: "application-enable",
+        context: "desktop" as const,
+        kind: "application" as const,
+        enabled: true,
+        match: { type: "exact" as const, target: "bundle" as const, value: "com.microsoft.VSCode" },
+        action: { type: "enable" as const, themeId: "drift" },
+      }],
+    };
+
+    expect(shouldKeepOverlaysVisible(config, codeSnapshot)).toBe(true);
+  });
+
   it("falls back to the global switch when active-window access is unavailable", () => {
     const unauthorized = { authorized: false as const, message: "permission denied" };
     expect(shouldKeepOverlaysVisible(defaultConfig, unauthorized)).toBe(true);

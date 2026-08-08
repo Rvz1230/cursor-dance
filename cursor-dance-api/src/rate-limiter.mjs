@@ -12,8 +12,10 @@ import fs from "node:fs";
 import path from "node:path";
 
 // ── 滑动窗口状态 ──────────────────────────────────────────
-const IP_RPM = new Map(); // ip → number[]  (毫秒时间戳)
-const IP_RPH = new Map();
+const IP_WINDOWS = {
+  quick: { rpm: new Map(), rph: new Map() },
+  agent: { rpm: new Map(), rph: new Map() },
+};
 
 let currentConcurrency = 0;
 let currentConcurrencyAgent = 0;
@@ -21,7 +23,6 @@ let currentConcurrencyAgent = 0;
 let dailyCount = 0;
 let currentDate = "";
 let budgetFilePath = "";
-let saveCounter = 0;
 
 const MINUTE_MS = 60_000;
 const HOUR_MS = 3_600_000;
@@ -36,6 +37,7 @@ let cfg = {
   rpmIpAgent: 1,
   rphIpAgent: 5,
   dailyRequestBudget: 0,
+  trustProxy: false,
 };
 
 /**
@@ -52,6 +54,7 @@ export function configureRateLimiter(env = {}) {
     rpmIpAgent: pInt(env.CURSORDANCE_AI_RPM_IP_AGENT, 1),
     rphIpAgent: pInt(env.CURSORDANCE_AI_RPH_IP_AGENT, 5),
     dailyRequestBudget: pInt(env.CURSORDANCE_AI_DAILY_REQUEST_BUDGET, 0),
+    trustProxy: env.CURSORDANCE_AI_TRUST_PROXY === "1",
   };
 
   budgetFilePath = env.CURSORDANCE_AI_BUDGET_FILE || "";
@@ -59,6 +62,9 @@ export function configureRateLimiter(env = {}) {
   // 重置日计数器
   currentDate = todayStr();
   dailyCount = 0;
+  currentConcurrency = 0;
+  currentConcurrencyAgent = 0;
+  clearIpWindows();
 
   if (cfg.dailyRequestBudget > 0 && budgetFilePath) {
     loadBudget();
@@ -79,6 +85,7 @@ export function acquireSlot(request, mode = "quick") {
 
   const now = Date.now();
   const ip = clientIp(request);
+  const windows = windowsFor(mode);
 
   // 占用并发槽位
   if (mode === "agent") {
@@ -88,8 +95,8 @@ export function acquireSlot(request, mode = "quick") {
   }
 
   // 记录 IP 滑动窗口
-  pushWindow(IP_RPM, ip, now, MINUTE_MS);
-  pushWindow(IP_RPH, ip, now, HOUR_MS);
+  pushWindow(windows.rpm, ip, now, MINUTE_MS);
+  pushWindow(windows.rph, ip, now, HOUR_MS);
 
   // 计入日预算
   checkDayRollover();
@@ -122,7 +129,10 @@ export function getRateLimitMetrics() {
     dailyCount,
     dailyBudget: cfg.dailyRequestBudget,
     date: currentDate,
-    trackedIps: IP_RPM.size,
+    trackedIps: new Set([
+      ...IP_WINDOWS.quick.rpm.keys(),
+      ...IP_WINDOWS.agent.rpm.keys(),
+    ]).size,
   };
 }
 
@@ -133,6 +143,7 @@ function checkLimits(request, mode) {
 
   const isAgent = mode === "agent";
   const now = Date.now();
+  const windows = windowsFor(mode);
 
   // 1. 并发限制
   const maxConc = isAgent ? cfg.maxConcurrencyAgent : cfg.maxConcurrency;
@@ -145,13 +156,13 @@ function checkLimits(request, mode) {
 
   // 2. IP 频率 — 每分钟
   const maxRpm = isAgent ? cfg.rpmIpAgent : cfg.rpmIp;
-  if (windowCount(IP_RPM, ip, MINUTE_MS, now) >= maxRpm) {
+  if (windowCount(windows.rpm, ip, MINUTE_MS, now) >= maxRpm) {
     return reject(429, 60, "请求过于频繁，请稍后再试", "rate_limited");
   }
 
   // 3. IP 频率 — 每小时
   const maxRph = isAgent ? cfg.rphIpAgent : cfg.rphIp;
-  if (windowCount(IP_RPH, ip, HOUR_MS, now) >= maxRph) {
+  if (windowCount(windows.rph, ip, HOUR_MS, now) >= maxRph) {
     return reject(429, 3600, "已达到每小时请求上限，请稍后再试", "rate_limited_hourly");
   }
 
@@ -169,14 +180,27 @@ function reject(status, retryAfter, error, code) {
 }
 
 function clientIp(request) {
-  const fwd = request.headers?.["x-forwarded-for"];
-  if (fwd) {
-    const ip = (Array.isArray(fwd) ? fwd[0] : fwd).split(",")[0].trim();
-    if (ip) return ip;
+  if (cfg.trustProxy) {
+    const fwd = request.headers?.["x-forwarded-for"];
+    if (fwd) {
+      const ip = (Array.isArray(fwd) ? fwd[0] : fwd).split(",")[0].trim();
+      if (ip) return ip;
+    }
+    const real = request.headers?.["x-real-ip"];
+    if (real) return Array.isArray(real) ? real[0] : real;
   }
-  const real = request.headers?.["x-real-ip"];
-  if (real) return Array.isArray(real) ? real[0] : real;
   return request.socket?.remoteAddress || "unknown";
+}
+
+function windowsFor(mode) {
+  return mode === "agent" ? IP_WINDOWS.agent : IP_WINDOWS.quick;
+}
+
+function clearIpWindows() {
+  IP_WINDOWS.quick.rpm.clear();
+  IP_WINDOWS.quick.rph.clear();
+  IP_WINDOWS.agent.rpm.clear();
+  IP_WINDOWS.agent.rph.clear();
 }
 
 // ── 滑动窗口工具 ──────────────────────────────────────────
@@ -218,8 +242,7 @@ function checkDayRollover() {
   if (today !== currentDate) {
     currentDate = today;
     dailyCount = 0;
-    IP_RPM.clear();
-    IP_RPH.clear();
+    clearIpWindows();
     persistBudget();
   }
 }
@@ -239,9 +262,6 @@ function loadBudget() {
 
 function persistBudget() {
   if (!budgetFilePath || cfg.dailyRequestBudget <= 0) return;
-
-  saveCounter++;
-  if (saveCounter % 5 !== 0) return;
 
   try {
     const dir = path.dirname(budgetFilePath);

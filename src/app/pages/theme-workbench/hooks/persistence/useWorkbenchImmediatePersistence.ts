@@ -1,19 +1,36 @@
 import { useEffect, useRef } from "react";
 import {
-  buildStoredConfigFromWorkbench,
-  writeExtensionConfig,
+  buildStoredThemePackFromWorkbench,
+  normalizeStoredConfig,
+  updateExtensionConfig,
 } from "../../lib/workbenchConfig";
 import type { WorkbenchPersistenceContext } from "./workbenchPersistenceTypes";
 import type { CursorDanceConfig } from "@/shared/domain/cursor-dance";
+import type { WorkbenchState } from "../workbenchStateTypes";
 
-function persistLatestConfig({
+export function buildConfigWithNewThemes(
+  baseConfig: CursorDanceConfig,
+  state: WorkbenchState,
+): CursorDanceConfig {
+  const storedThemeIds = new Set(baseConfig.themes.map((theme) => theme.id));
+  const addedThemes = state.domain.themes
+    .filter((theme) => !storedThemeIds.has(theme.meta.id))
+    .map((theme) => buildStoredThemePackFromWorkbench(baseConfig, state, theme.meta.id));
+  return addedThemes.length
+    ? normalizeStoredConfig({
+        ...baseConfig,
+        themes: [...baseConfig.themes, ...addedThemes],
+      })
+    : baseConfig;
+}
+
+function persistNewThemes({
   stateRef,
   configRef,
 }: Pick<WorkbenchPersistenceContext, "stateRef" | "configRef">): void {
-  const baseConfig = configRef.current;
-  if (!baseConfig) return;
-  const nextConfig = buildStoredConfigFromWorkbench(baseConfig, stateRef.current);
-  writeExtensionConfig(nextConfig).then((savedConfig) => {
+  void updateExtensionConfig((currentConfig) => (
+    buildConfigWithNewThemes(currentConfig, stateRef.current)
+  )).then((savedConfig) => {
     configRef.current = savedConfig;
   }).catch(() => {});
 }
@@ -41,7 +58,7 @@ export function useWorkbenchImmediatePersistence(
       return;
     }
     if (currentCount > prevThemeCountRef.current) {
-      persistLatestConfig({ stateRef, configRef });
+      persistNewThemes({ stateRef, configRef });
     }
     prevThemeCountRef.current = currentCount;
   }, [configRef, stateRef, state.domain.themes, state.status.isHydrated]);
@@ -51,9 +68,10 @@ export function useWorkbenchImmediatePersistence(
     if (!state.status.isHydrated) return;
     if (state.domain.enabled === prevEnabledRef.current) return;
     prevEnabledRef.current = state.domain.enabled;
-    const nextConfig = buildImmediateEnabledConfig(configRef.current, state.domain.enabled);
-    if (!nextConfig) return;
-    writeExtensionConfig(nextConfig).then((savedConfig) => {
+    void updateExtensionConfig((currentConfig) => ({
+      ...currentConfig,
+      enabled: state.domain.enabled,
+    })).then((savedConfig) => {
       configRef.current = savedConfig;
     }).catch(() => {});
   }, [configRef, stateRef, state.domain.enabled, state.status.isHydrated]);

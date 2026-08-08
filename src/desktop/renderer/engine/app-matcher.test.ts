@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { matchAppPattern as matchPattern, resolveAppRule } from "../../../shared/app-rules";
+import {
+  matchAppPattern as matchPattern,
+  resolveAppRule,
+  resolveDesktopContextAction,
+} from "../../../shared/app-rules";
 
 describe("matchPattern", () => {
   describe("exact type", () => {
@@ -134,5 +138,56 @@ describe("resolveAppRule", () => {
       { id: "r1", pattern: { type: "exact" as const, value: "Code" }, action: { enable: true, theme: 123 as unknown as string } },
     ];
     expect(resolveAppRule(rules, { processName: "Code", title: "" })).toEqual({ enable: true, theme: undefined });
+  });
+});
+
+describe("canonical desktop context rule resolution", () => {
+  const info = {
+    bundleId: "com.microsoft.VSCode",
+    processName: "Code",
+    title: "Review — cursor-dance",
+  };
+
+  it("uses the same application-before-advanced priority after v4 persistence", () => {
+    const rules = [{
+      id: "advanced",
+      context: "desktop" as const,
+      kind: "advanced" as const,
+      enabled: true,
+      match: { target: "title" as const, type: "glob" as const, value: "*Review*" },
+      action: { type: "disable" as const },
+    }, {
+      id: "application",
+      context: "desktop" as const,
+      kind: "application" as const,
+      enabled: true,
+      match: { target: "bundle" as const, type: "exact" as const, value: "com.microsoft.VSCode" },
+      action: { type: "enable" as const, themeId: "drift" },
+    }];
+
+    expect(resolveDesktopContextAction(rules, info, true)).toEqual({
+      type: "enable",
+      themeId: "drift",
+    });
+  });
+
+  it("lets a no-op follow-global action fall through to a meaningful rule", () => {
+    const rules = [{
+      id: "application",
+      context: "desktop" as const,
+      kind: "application" as const,
+      enabled: true,
+      match: { target: "bundle" as const, type: "exact" as const, value: "com.microsoft.VSCode" },
+      action: { type: "enable" as const },
+    }, {
+      id: "advanced",
+      context: "desktop" as const,
+      kind: "advanced" as const,
+      enabled: true,
+      match: { target: "title" as const, type: "glob" as const, value: "*Review*" },
+      action: { type: "disable" as const },
+    }];
+
+    expect(resolveDesktopContextAction(rules, info, true)).toEqual({ type: "disable" });
   });
 });

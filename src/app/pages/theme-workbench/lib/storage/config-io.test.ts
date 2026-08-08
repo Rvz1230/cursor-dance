@@ -1,7 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { defaultConfig } from "@/shared/config/default-config";
 import { getDefaultActionConfigs } from "@/shared/effect-core/default-action-configs";
-import { writeLivePreviewConfig } from "./config-io";
+import {
+  __testing__ as configIoTesting,
+  updateExtensionConfig,
+  writeLivePreviewConfig,
+} from "./config-io";
 import { __testing__ as repositoryTesting } from "./repository";
 
 const ASSET_ID = `sha256:${"b".repeat(64)}`;
@@ -37,6 +41,7 @@ function materializedResult(payload) {
 }
 
 afterEach(() => {
+  configIoTesting.resetMutationQueues();
   repositoryTesting.reset();
   Reflect.deleteProperty(globalThis, "window");
 });
@@ -72,5 +77,40 @@ describe("desktop config asset transport", () => {
     const third = payloads[2] as ReturnType<typeof configWithInlineImages>;
     expect(third.themes[0].actionConfigs.leftClick).not.toHaveProperty("imageAssetId");
     expect(third.themes[0].actionConfigs.leftClick.imageDataUrl).toBe("");
+  });
+});
+
+describe("serialized config mutations", () => {
+  it("applies rapid functional updates to the latest stored config", async () => {
+    let stored = structuredClone(defaultConfig);
+    const setConfig = vi.fn(async (payload) => {
+      await Promise.resolve();
+      stored = structuredClone(payload);
+      return stored;
+    });
+    Object.assign(globalThis, {
+      window: {
+        cursorDanceStorage: {
+          getConfig: vi.fn(async () => stored),
+          setConfig,
+          getLivePreview: vi.fn(async () => null),
+          setLivePreview: vi.fn(async (payload) => payload),
+          clearLivePreview: vi.fn(async () => undefined),
+          onChange: vi.fn(() => () => {}),
+          onLivePreviewChange: vi.fn(() => () => {}),
+        },
+      },
+    });
+
+    const nextThemeId = defaultConfig.themes.find((theme) => theme.id !== defaultConfig.activeThemeId)?.id
+      ?? defaultConfig.activeThemeId;
+    await Promise.all([
+      updateExtensionConfig((current) => ({ ...current, enabled: false })),
+      updateExtensionConfig((current) => ({ ...current, activeThemeId: nextThemeId })),
+    ]);
+
+    expect(stored.enabled).toBe(false);
+    expect(stored.activeThemeId).toBe(nextThemeId);
+    expect(setConfig).toHaveBeenCalledTimes(2);
   });
 });

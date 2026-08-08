@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   createWorkbenchThemeState,
   clearLivePreviewConfig,
@@ -13,7 +13,7 @@ import {
   readRuntimeErrors,
   subscribeExtensionConfig,
   subscribeLivePreviewConfig,
-  writeExtensionConfig,
+  updateExtensionConfig,
 } from "../theme-workbench/lib/workbenchConfig";
 import {
   buildInitialNotice,
@@ -35,6 +35,7 @@ import type { CursorDanceConfig } from "@/shared/domain/cursor-dance";
 
 const EMPTY_SITE: PopupSiteContext = {
   host: "",
+  path: "/",
   isSupportedPage: false,
   isPreviewMode: false,
   tabId: null,
@@ -57,6 +58,7 @@ export function usePopupState() {
   const [busyKey, setBusyKey] = useState("");
   const [notice, setNotice] = useState<PopupNotice>({ tone: "slate", message: "正在连接主题切换器…" });
   const [runtimeErrors, setRuntimeErrors] = useState<RuntimeDiagnosticEntry[]>([]);
+  const latestCommitIdRef = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -117,7 +119,7 @@ export function usePopupState() {
   }, [effectiveConfig, site]);
 
   const activeThemeId = hydrated.domain.activeThemeId;
-  const siteAction = getSiteAction(effectiveConfig, site.host, "/");
+  const siteAction = getSiteAction(effectiveConfig, site.host, site.path);
   const effectiveActiveThemeId = getEffectiveActiveThemeId(siteAction, activeThemeId);
   const previewActionId = getPreviewActionId(editorState);
   const activeAction = ACTIONS.find((item) => item.id === previewActionId) ?? ACTIONS[0];
@@ -145,12 +147,13 @@ export function usePopupState() {
     ) => CursorDanceConfig | Promise<CursorDanceConfig>,
     nextNotice: PopupNotice | null,
   ): Promise<CursorDanceConfig | null> {
+    const commitId = ++latestCommitIdRef.current;
     setBusyKey(key);
     try {
-      const currentConfig = await readExtensionConfig();
+      const savedConfig = await updateExtensionConfig(async (currentConfig) => (
+        normalizeStoredConfig(await updater(currentConfig))
+      ));
       const currentLivePreviewConfig = await readLivePreviewConfig();
-      const nextConfig = normalizeStoredConfig(await updater(currentConfig));
-      const savedConfig = await writeExtensionConfig(nextConfig);
       setConfig(savedConfig);
 
       if (currentLivePreviewConfig) {
@@ -172,7 +175,7 @@ export function usePopupState() {
       });
       return null;
     } finally {
-      setBusyKey("");
+      if (latestCommitIdRef.current === commitId) setBusyKey("");
     }
   }
 

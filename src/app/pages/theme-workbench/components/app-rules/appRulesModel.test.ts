@@ -106,6 +106,14 @@ describe("application rules presentation model", () => {
       action: { enable: true },
       ruleId: "title",
     });
+    expect(resolveAppRuleDecision([
+      { ...rules[1], action: { enable: false, theme: "drift" } },
+      rules[0],
+    ], figma, true)).toEqual({
+      enabled: false,
+      action: "disable",
+      ruleId: "title",
+    });
   });
 
   it("falls back to the global behavior when nothing matches", () => {

@@ -9,6 +9,7 @@ import { defaultConfig, type CursorDanceConfig } from "@/shared/config/default-c
 
 const site: PopupSiteContext = {
   host: "docs.example.com",
+  path: "/docs/guide",
   isSupportedPage: true,
   isPreviewMode: false,
   tabId: 1,
@@ -30,7 +31,7 @@ const config: CursorDanceConfig = {
 
 describe("popupConfigModel", () => {
   it("resolves the same stored web rule used by the extension runtime", () => {
-    const action = getSiteAction(config, site.host, "/");
+    const action = getSiteAction(config, site.host, site.path);
     expect(action).toEqual({ type: "enable", themeId: "drift" });
     expect(getEffectiveActiveThemeId(action, "mono-geo")).toBe("drift");
   });
@@ -52,5 +53,27 @@ describe("popupConfigModel", () => {
     );
     expect(next.activeThemeId).toBe("sunset");
     expect(next.contextRules).toBe(config.contextRules);
+  });
+
+  it("uses the active pathname for path-scoped rules", () => {
+    const pathConfig: CursorDanceConfig = {
+      ...config,
+      contextRules: [{
+        id: "docs-path",
+        context: "web",
+        enabled: true,
+        match: { type: "exact", host: site.host, path: "/docs" },
+        action: { type: "enable", themeId: "drift" },
+      }],
+    };
+
+    expect(getSiteAction(pathConfig, site.host, site.path)).toEqual({
+      type: "enable",
+      themeId: "drift",
+    });
+    const next = resolveNextConfigForThemeChange(pathConfig, site, "sunset");
+    expect(next.activeThemeId).toBe(pathConfig.activeThemeId);
+    expect(next.contextRules[0].action).toEqual({ type: "enable", themeId: "sunset" });
+    expect(getSiteAction(pathConfig, site.host, "/pricing")).toBeNull();
   });
 });

@@ -131,7 +131,8 @@ export function createConfigStore(deps: ConfigStoreDeps): ConfigStoreApi {
   }
 
   function getResolvedAppRule(): ContextRuleAction | null {
-    return resolveDesktopContextAction(getConfig().contextRules, getActiveAppInfo?.());
+    const config = getConfig();
+    return resolveDesktopContextAction(config.contextRules, getActiveAppInfo?.(), config.enabled);
   }
 
   const runtimeConfigCore = createRuntimeConfigCore({

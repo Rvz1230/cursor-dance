@@ -7,6 +7,7 @@ import type { CursorDanceConfig } from "@/shared/domain/cursor-dance";
 
 export interface PopupSiteContext {
   host: string;
+  path: string;
   isSupportedPage: boolean;
   isPreviewMode: boolean;
   tabId: number | null;
@@ -51,7 +52,7 @@ export function getSiteAction(
   host: string,
   path: string,
 ): ContextRuleAction | null {
-  return resolveWebContextRule(config?.contextRules, host, path);
+  return resolveWebContextRule(config?.contextRules, host, path, config?.enabled);
 }
 
 export function getEffectiveActiveThemeId(
@@ -69,7 +70,7 @@ export function resolveNextConfigForThemeChange(
   themeId: string,
 ): CursorDanceConfig {
   const rules = Array.isArray(currentConfig.contextRules) ? currentConfig.contextRules : [];
-  const matchedRule = findWebContextRule(rules, site.host, "/");
+  const matchedRule = findWebContextRule(rules, site.host, site.path);
   const matchedIndex = matchedRule ? rules.indexOf(matchedRule) : -1;
 
   if (matchedIndex >= 0 && site.host) {

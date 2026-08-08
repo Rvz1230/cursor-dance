@@ -181,8 +181,13 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
   });
   const activeAppInfo = activeAppInfoFromSnapshot(activeWindowSnapshot);
   const contextAction = isDesktop()
-    ? (activeAppInfo ? resolveAppRule(state.domain.appRules, activeAppInfo) : null)
-    : getRuntimeConfig().resolveSiteRule(state.domain.siteRules, state.runtime.site.host);
+    ? (activeAppInfo ? resolveAppRule(state.domain.appRules, activeAppInfo, state.domain.enabled) : null)
+    : getRuntimeConfig().resolveSiteRule(
+        state.domain.siteRules,
+        state.runtime.site.host,
+        state.runtime.site.path,
+        state.domain.enabled,
+      );
   const previewActionConfig = previewActionConfigsMap?.[selected.actionId] || currentActionConfig;
   const previewTimeline = buildTimelineModel(previewActionConfig);
   const previewTextConfig = getActionTextConfig(previewActionConfig);
