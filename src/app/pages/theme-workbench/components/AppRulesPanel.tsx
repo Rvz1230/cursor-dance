@@ -45,11 +45,11 @@ import {
   applicationPattern,
   applicationRuleMatchesCandidate,
   isApplicationRule,
-  rememberApplication,
   resolveAppRuleDecision,
   resolveRuleMatchStates,
   type ApplicationCandidate,
 } from "./app-rules/appRulesModel";
+import { useApplicationCatalog } from "./app-rules/useApplicationCatalog";
 import "./app-rules/app-rules.css";
 
 type Notify = (input: {
@@ -185,9 +185,13 @@ export function AppRulesPanel({
   reorderAppRules,
   toggleAppRule,
 }: AppRulesPanelProps) {
-  const [recentApplications, setRecentApplications] = useState<ApplicationCandidate[]>([]);
-  const [installedApplications, setInstalledApplications] = useState<ApplicationCandidate[]>([]);
-  const [installedLoading, setInstalledLoading] = useState(false);
+  const {
+    activeApplication,
+    allApplications,
+    enrichedRecentApplications,
+    installedApplications,
+    installedLoading,
+  } = useApplicationCatalog(activeApp);
   const [pickerAnchor, setPickerAnchor] = useState<"header" | "list" | "empty" | null>(null);
   const [waitingForPick, setWaitingForPick] = useState(false);
   const [wizard, setWizard] = useState<AppRuleWizardState | null>(null);
@@ -200,57 +204,8 @@ export function AppRulesPanel({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setRecentApplications((current) => rememberApplication(current, activeApp));
-  }, [activeApp]);
-
-  useEffect(() => {
     if (wizard) scrollRef.current?.scrollTo({ top: 0 });
   }, [wizard]);
-
-  useEffect(() => {
-    const bridge = typeof window !== "undefined" ? window.cursorDanceApp : undefined;
-    if (!bridge) return undefined;
-    let cancelled = false;
-    setInstalledLoading(true);
-    void bridge.listInstalledApplications().then((applications) => {
-      if (cancelled) return;
-      setInstalledApplications(applications.map((application) => ({
-        ...application,
-        key: (application.bundleId || application.processName).toLocaleLowerCase(),
-        title: "",
-      })));
-    }).catch(() => {
-      if (!cancelled) setInstalledApplications([]);
-    }).finally(() => {
-      if (!cancelled) setInstalledLoading(false);
-    });
-    return () => { cancelled = true; };
-  }, []);
-
-  const enrichedRecentApplications = useMemo(() => recentApplications.map((application) => {
-    const installed = installedApplications.find((candidate) => (
-      (application.bundleId && candidate.bundleId === application.bundleId)
-      || candidate.processName.toLocaleLowerCase() === application.processName.toLocaleLowerCase()
-    ));
-    return installed ? {
-      ...application,
-      bundleId: application.bundleId || installed.bundleId,
-      iconDataUrl: installed.iconDataUrl,
-    } : application;
-  }), [installedApplications, recentApplications]);
-  const activeApplication = useMemo(() => {
-    const application = applicationFromSnapshot(activeApp);
-    if (!application) return null;
-    const installed = installedApplications.find((candidate) => (
-      (application.bundleId && candidate.bundleId === application.bundleId)
-      || candidate.processName.toLocaleLowerCase() === application.processName.toLocaleLowerCase()
-    ));
-    return installed ? {
-      ...application,
-      bundleId: application.bundleId || installed.bundleId,
-      iconDataUrl: installed.iconDataUrl,
-    } : application;
-  }, [activeApp, installedApplications]);
 
   const activeInfo = activeAppInfoFromSnapshot(activeApp);
   const matchStates = useMemo(
@@ -263,13 +218,6 @@ export function AppRulesPanel({
   );
   const applicationRules = appRules.filter(isApplicationRule);
   const advancedRules = appRules.filter((rule) => !isApplicationRule(rule));
-  const allApplications = useMemo(
-    () => [...enrichedRecentApplications, ...installedApplications.filter((candidate) => (
-      !enrichedRecentApplications.some((recent) => recent.processName.toLocaleLowerCase() === candidate.processName.toLocaleLowerCase())
-    ))],
-    [enrichedRecentApplications, installedApplications],
-  );
-
   const candidateForRule = (rule: AppRule): ApplicationCandidate => (
     allApplications.find((candidate) => (
       applicationRuleMatchesCandidate(rule, candidate)
