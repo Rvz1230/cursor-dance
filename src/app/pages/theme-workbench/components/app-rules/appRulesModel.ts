@@ -92,7 +92,7 @@ export function applicationCandidateForRule(
   };
 }
 
-export function isVoidApplicationRule(rule: AppRule, globalEnabled: boolean): boolean {
+export function isRuleRedundantWithGlobal(rule: AppRule, globalEnabled: boolean): boolean {
   return rule.enabled !== false && (
     globalEnabled
       ? rule.action !== "disable" && !rule.action.theme

@@ -6,7 +6,7 @@ import {
   applicationPattern,
   applicationRuleMatchesCandidate,
   isApplicationRule,
-  isVoidApplicationRule,
+  isRuleRedundantWithGlobal,
   rememberApplication,
   resolveAppRuleDecision,
   resolveRuleMatchStates,
@@ -94,9 +94,9 @@ describe("application rules presentation model", () => {
   });
 
   it("detects application rules whose action is identical to the global behavior", () => {
-    expect(isVoidApplicationRule({ ...rules[1], action: { enable: true } }, true)).toBe(true);
-    expect(isVoidApplicationRule({ ...rules[1], action: "disable" }, false)).toBe(true);
-    expect(isVoidApplicationRule({ ...rules[1], action: "disable", enabled: false }, false)).toBe(false);
+    expect(isRuleRedundantWithGlobal({ ...rules[1], action: { enable: true } }, true)).toBe(true);
+    expect(isRuleRedundantWithGlobal({ ...rules[1], action: "disable" }, false)).toBe(true);
+    expect(isRuleRedundantWithGlobal({ ...rules[1], action: "disable", enabled: false }, false)).toBe(false);
   });
 
   it("prioritizes application rows before ordered advanced rules", () => {

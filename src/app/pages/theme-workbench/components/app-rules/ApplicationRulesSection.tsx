@@ -10,7 +10,7 @@ import { ApplicationIcon, RuleMenu } from "./AppRuleElements";
 import {
   applicationCandidateForRule,
   isApplicationRule,
-  isVoidApplicationRule,
+  isRuleRedundantWithGlobal,
   type ApplicationCandidate,
 } from "./appRulesModel";
 
@@ -49,7 +49,7 @@ export function ApplicationRulesSection({
   const activeInfo = activeAppInfoFromSnapshot(activeApp);
   const applicationRules = appRules.filter(isApplicationRule);
   const candidateForRule = (rule: AppRule) => applicationCandidateForRule(rule, applications);
-  const isVoidRule = (rule: AppRule) => isVoidApplicationRule(rule, globalEnabled);
+  const isVoidRule = (rule: AppRule) => isRuleRedundantWithGlobal(rule, globalEnabled);
   const voidRules = applicationRules.filter(isVoidRule);
   const pausedCount = applicationRules.filter((rule) => rule.enabled === false).length;
   const liveCount = applicationRules.filter((rule) => rule.enabled !== false && !isVoidRule(rule)).length;
