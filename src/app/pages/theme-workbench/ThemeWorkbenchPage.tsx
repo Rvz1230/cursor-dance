@@ -100,10 +100,12 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
   } = useWorkbenchColumnLayout(aiPanelOpen);
   const {
     welcomeState,
+    accessibilityState,
     accessibilityAuthorized,
     activeWindowSnapshot,
     closeWelcome,
     openAccessibilitySettings,
+    requestAccessibility,
     refreshActiveWindow,
   } = useDesktopWorkbenchRuntime();
   const {
@@ -474,8 +476,8 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
           open
           onClose={closeWelcome}
           platform={(window.electronAPI?.platform || "darwin") as NodeJS.Platform}
-          needsAccessibility={accessibilityAuthorized === false}
-          onOpenAccessibilitySettings={openAccessibilitySettings}
+          needsAccessibility={accessibilityState?.status === "required"}
+          onRequestAccessibility={requestAccessibility}
         />
       ) : null}
       {aiSettingsOpen && typeof window !== "undefined" && window.cursorDanceAi ? (

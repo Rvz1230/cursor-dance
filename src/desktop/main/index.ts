@@ -1,4 +1,4 @@
-import { app, BrowserWindow, nativeImage } from "electron";
+import { app, BrowserWindow, nativeImage, systemPreferences } from "electron";
 import { join } from "path";
 import type { NativeKeyboardEvent } from "./native-events";
 import { broadcastToWindows, sendToWindow } from "./broadcast";
@@ -37,15 +37,22 @@ import {
   readLivePreview,
   writeConfig,
 } from "./electron-store";
-import { APP_ACTIVE_WINDOW_CHANGED, APP_UPDATE_STATE_CHANGED, CURSOR_EVENT, KEYBOARD_EVENT } from "../../shared/ipc-channels";
+import {
+  APP_ACCESSIBILITY_STATE_CHANGED,
+  APP_ACTIVE_WINDOW_CHANGED,
+  APP_UPDATE_STATE_CHANGED,
+  CURSOR_EVENT,
+  KEYBOARD_EVENT,
+} from "../../shared/ipc-channels";
 import {
   registerAssetProtocol,
   registerAssetSchemePrivileges,
   unregisterAssetProtocol,
 } from "./asset-protocol";
 import type { ActiveWindowSnapshot } from "../../shared/app-rules";
+import { createAccessibilityController, type AccessibilityController } from "./accessibility-controller";
+import { registerAccessibilityIpc, unregisterAccessibilityIpc } from "./accessibility-ipc";
 
-let stopMouseCapture: (() => void) | null = null;
 let stopDisplayWatcher: (() => void) | null = null;
 let stopVisibilityWatchers: (() => void) | null = null;
 let stopAutoUpdater: (() => void) | null = null;
@@ -53,6 +60,7 @@ let stopActiveWindowMonitor: (() => void) | null = null;
 let cursorEventRouter: CursorEventRouter | null = null;
 let cursorIpcMessageCount = 0;
 let activeWindowSnapshot: ActiveWindowSnapshot | null = null;
+let accessibilityController: AccessibilityController | null = null;
 const windowPickerController = createWindowPickerController({ readSnapshot: getActiveWindowSnapshot });
 
 const isDesktopSmokeTest = process.env.CURSORDANCE_DESKTOP_SMOKE === "1";
@@ -145,7 +153,7 @@ function openWorkbench(): void {
   workbenchWindowController.open();
 }
 
-void app.whenReady().then(async () => {
+void app.whenReady().then(() => {
   registerAssetProtocol();
 
   if (process.platform === "darwin" && !app.isPackaged && app.dock) {
@@ -160,6 +168,27 @@ void app.whenReady().then(async () => {
   //    否则 renderer 启动时第一波 invoke 会拿不到 handler 直接挂。
   registerStoreIpc(() => BrowserWindow.getAllWindows());
   registerDialogIpc();
+  accessibilityController = createAccessibilityController({
+    // 打包 smoke 不触碰宿主机的 TCC 数据库，但仍保留完整 IPC 状态链路。
+    platform: isDesktopSmokeTest ? "linux" : process.platform,
+    isTrusted: (prompt) => systemPreferences.isTrustedAccessibilityClient(prompt),
+    startCapture: async () => {
+      if (isDesktopSmokeTest) return () => undefined;
+      const { startGlobalMouseCapture } = await import("./native-events");
+      return startGlobalMouseCapture(
+        (event) => {
+          windowPickerController.handleCursorEvent(event);
+          cursorEventRouter?.route(event);
+        },
+        routeKeyboardEvent,
+      );
+    },
+    publish: (state) => {
+      broadcastToWindows(() => BrowserWindow.getAllWindows(), APP_ACCESSIBILITY_STATE_CHANGED, state);
+    },
+  });
+  registerAccessibilityIpc(accessibilityController);
+  accessibilityController.start();
   const activeWindowMonitor = createActiveWindowMonitor({
     publish: publishActiveWindowSnapshot,
   });
@@ -233,23 +262,7 @@ void app.whenReady().then(async () => {
     for (const d of changed) syncOverlayBounds(d);
   });
 
-  // 3) uiohook 全局鼠标捕获 → IPC 广播
-  if (!isDesktopSmokeTest) {
-    try {
-      const { startGlobalMouseCapture } = await import("./native-events");
-      stopMouseCapture = startGlobalMouseCapture(
-        (event) => {
-          windowPickerController.handleCursorEvent(event);
-          cursorEventRouter?.route(event);
-        },
-        routeKeyboardEvent,
-      );
-    } catch (error) {
-      console.error("[CursorDance] failed to start global mouse capture:", error);
-    }
-  }
-
-  // 4) 系统托盘 + 全局 enabled 同步
+  // 3) 系统托盘 + 全局 enabled 同步
   //    onConfigChange 是 store 变更的回调，tray 借此重建菜单；
   //    同时这里订阅一份用来同步 overlay 显隐——无论是 tray 触发还是 workbench
   //    触发的 enabled 翻转都会走到这里。
@@ -277,6 +290,7 @@ void app.whenReady().then(async () => {
   app.on("activate", () => {
     openWorkbench();
     ensureOverlayPerDisplay();
+    void accessibilityController?.refresh();
   });
 });
 
@@ -289,8 +303,8 @@ app.on("window-all-closed", () => {
 });
 
 app.on("before-quit", () => {
-  stopMouseCapture?.();
-  stopMouseCapture = null;
+  accessibilityController?.stop();
+  accessibilityController = null;
   cursorEventRouter?.stop();
   cursorEventRouter = null;
   delete (globalThis as typeof globalThis & { __cursorDanceMainTesting?: unknown }).__cursorDanceMainTesting;
@@ -305,6 +319,7 @@ app.on("before-quit", () => {
   destroyTray();
   unregisterStoreIpc();
   unregisterDialogIpc();
+  unregisterAccessibilityIpc();
   unregisterActiveWindowIpc();
   unregisterInstalledApplicationsIpc();
   unregisterWindowPickerIpc(windowPickerController);

@@ -6,6 +6,8 @@ import {
   AI_RUN_AGENT,
   AI_SET_USER_SETTINGS,
   APP_GET_ACTIVE_WINDOW,
+  APP_ACCESSIBILITY_GET_STATE,
+  APP_ACCESSIBILITY_REQUEST,
   APP_LIST_INSTALLED_APPLICATIONS,
   APP_PICK_WINDOW,
   APP_GET_FIRST_RUN,
@@ -29,6 +31,7 @@ import {
   WINDOW_TOGGLE_MAXIMIZE,
 } from "./ipc-channels";
 import type { DesktopUpdateState } from "./desktop-update";
+import type { DesktopAccessibilityState } from "./desktop-accessibility";
 
 export type SaveThemeFileRequest = {
   defaultFileName: string;
@@ -112,6 +115,8 @@ interface DesktopIpcInvokeContract {
   [DIALOG_SAVE_THEME_FILE]: InvokeContract<SaveThemeFileRequest, SaveThemeFileResult>;
   [DIALOG_OPEN_THEME_FILE]: InvokeContract<void, OpenThemeFileResult>;
   [APP_GET_ACTIVE_WINDOW]: InvokeContract<void, ActiveWindowSnapshot>;
+  [APP_ACCESSIBILITY_GET_STATE]: InvokeContract<void, DesktopAccessibilityState>;
+  [APP_ACCESSIBILITY_REQUEST]: InvokeContract<void, DesktopAccessibilityState>;
   [APP_LIST_INSTALLED_APPLICATIONS]: InvokeContract<void, InstalledApplication[]>;
   [APP_PICK_WINDOW]: InvokeContract<void, PickWindowResult>;
   [APP_GET_FIRST_RUN]: InvokeContract<void, boolean>;

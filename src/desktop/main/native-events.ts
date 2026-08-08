@@ -112,7 +112,20 @@ class UiohookInputSource implements IInputSource {
     uIOhook.on("keydown", this.onKeyDown);
     uIOhook.on("keyup", this.onKeyUp);
 
-    uIOhook.start();
+    try {
+      uIOhook.start();
+    } catch (error) {
+      // start 失败时也必须移除监听；否则授权后重试会重复注册同一批回调。
+      uIOhook.off("mousemove", this.onMouseMove);
+      uIOhook.off("mousedown", this.onMouseDown);
+      uIOhook.off("mouseup", this.onMouseUp);
+      uIOhook.off("wheel", this.onWheel);
+      uIOhook.off("keydown", this.onKeyDown);
+      uIOhook.off("keyup", this.onKeyUp);
+      this.callback = null;
+      this.keyboardCallback = null;
+      throw error;
+    }
     this.started = true;
     console.log("[uiohook] started — listening for global mouse + keyboard events");
 

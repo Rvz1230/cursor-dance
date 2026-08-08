@@ -15,6 +15,7 @@ describe("desktop Workbench bootstrap", () => {
     const bootstrap = loadDesktopWorkbenchBootstrap({
       getFirstRun: async () => true,
       getActiveWindow: () => neverSettles,
+      getAccessibilityState: async () => ({ status: "required" }),
     });
 
     await expect(bootstrap.welcomeState).resolves.toBe("open");
@@ -24,9 +25,11 @@ describe("desktop Workbench bootstrap", () => {
     const bootstrap = loadDesktopWorkbenchBootstrap({
       getFirstRun: async () => { throw new Error("first-run unavailable"); },
       getActiveWindow: async () => activeWindow,
+      getAccessibilityState: async () => ({ status: "running" }),
     });
 
     await expect(bootstrap.welcomeState).resolves.toBe("closed");
     await expect(bootstrap.activeWindowSnapshot).resolves.toBe(activeWindow);
+    await expect(bootstrap.accessibilityState).resolves.toEqual({ status: "running" });
   });
 });

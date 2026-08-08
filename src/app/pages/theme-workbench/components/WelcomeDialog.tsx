@@ -22,7 +22,7 @@ interface WelcomeDialogProps {
    */
   platform: NodeJS.Platform;
   needsAccessibility: boolean;
-  onOpenAccessibilitySettings?: () => void;
+  onRequestAccessibility?: () => void;
 }
 
 const TIPS: Array<{ icon: typeof Hand; title: string; body: string }> = [
@@ -48,7 +48,7 @@ export function WelcomeDialog({
   onClose,
   platform,
   needsAccessibility,
-  onOpenAccessibilitySettings,
+  onRequestAccessibility,
 }: WelcomeDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next) onClose(); }}>
@@ -88,17 +88,17 @@ export function WelcomeDialog({
               <div className="flex items-start gap-2 text-xs text-amber-900">
                 <SettingsIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
                 <div className="min-w-0">
-                  <div className="font-semibold">建议授予「辅助功能」权限</div>
+                  <div className="font-semibold">桌面效果需要「辅助功能」权限</div>
                   <p className="mt-0.5 leading-5">
-                    用于按应用切换主题 / 禁用效果——粒子和声音本身不需要权限。
+                    未授权时只能在工作台中预览。授权后全局鼠标与键盘效果会自动开始，无需重启应用。
                   </p>
-                  {onOpenAccessibilitySettings ? (
+                  {onRequestAccessibility ? (
                     <button
                       type="button"
-                      onClick={onOpenAccessibilitySettings}
+                      onClick={onRequestAccessibility}
                       className="mt-1.5 text-xs font-medium text-amber-900 underline underline-offset-2 hover:text-amber-700"
                     >
-                      打开系统设置 → 隐私与安全 → 辅助功能
+                      授予辅助功能权限
                     </button>
                   ) : null}
                 </div>

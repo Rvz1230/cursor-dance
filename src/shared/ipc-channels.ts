@@ -39,6 +39,11 @@ export const APP_PICK_WINDOW = "cursordance:app-pick-window";
 /** 主进程 → renderer：前台应用或授权状态发生变化。 */
 export const APP_ACTIVE_WINDOW_CHANGED = "cursordance:app-active-window-changed";
 
+/** Workbench ↔ 主进程：macOS 辅助功能授权与全局输入监听状态。 */
+export const APP_ACCESSIBILITY_GET_STATE = "cursordance:app-accessibility-get-state";
+export const APP_ACCESSIBILITY_REQUEST = "cursordance:app-accessibility-request";
+export const APP_ACCESSIBILITY_STATE_CHANGED = "cursordance:app-accessibility-state-changed";
+
 /** renderer → 主进程：读取 / 翻转 firstRun flag。
  *  flag 单独存盘（key: cursordance:firstRun），不污染 cursordance.config。
  *  WelcomeDialog 首次启动展示，关闭后写 false；后续启动直接跳过。 */
