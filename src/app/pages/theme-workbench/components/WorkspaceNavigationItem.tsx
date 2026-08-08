@@ -3,6 +3,7 @@ import { cn } from "@/components/ui/utils";
 
 interface WorkspaceNavigationItemProps {
   item: {
+    id: string;
     icon: ComponentType<{ className?: string }>;
     label: string;
   };
@@ -21,6 +22,7 @@ export function WorkspaceNavigationItem({
   return (
     <button
       type="button"
+      data-workspace-id={item.id}
       onClick={onClick}
       aria-current={active ? "page" : undefined}
       className={cn(

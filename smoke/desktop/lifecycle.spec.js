@@ -160,13 +160,20 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
     await expect(workbenchPage.getByRole("main").getByText("应用规则", { exact: true })).toBeVisible();
     await expect(workbenchPage.getByText("全局设置 · 不属于任何主题", { exact: true })).toBeVisible();
     await expect(workbenchPage.getByRole("button", { name: /展开主题库|收起主题库/ })).toHaveCount(0);
+    await workbenchPage.getByRole("button", { name: "添加应用", exact: true }).click();
+    await expect(workbenchPage.getByLabel("搜索应用名称或 bundle id")).toBeVisible();
     await workbenchPage.getByRole("button", { name: "键盘动效", exact: true }).click();
     await expect(workbenchPage.getByRole("heading", { name: "键盘动效", exact: true })).toBeVisible();
+    await expect(workbenchPage.getByLabel("搜索应用名称或 bundle id")).toHaveCount(0);
     const keyboardPreview = workbenchPage.getByLabel("屏幕预览：点一下再打字即可预览效果");
     await expect(keyboardPreview).toBeVisible();
+    await workbenchPage.getByRole("button", { name: /^调制/ }).click();
+    const comboCard = workbenchPage.locator(".keyboard-combo-card");
+    await expect(comboCard).toContainText("未在连打");
     await keyboardPreview.focus();
     await expect(keyboardPreview).toBeFocused();
-    await keyboardPreview.press("a");
+    await workbenchPage.keyboard.type("abcd", { delay: 15 });
+    expect(await comboCard.innerText()).toContain("3 级");
     await expect(workbenchPage.locator(".keyboard-preview-glyph").filter({ hasText: "a" }).last()).toBeAttached();
     await keyboardPreview.press("Meta+k");
     await expect(workbenchPage.getByRole("dialog", { name: "命令面板" })).toHaveCount(0);
@@ -185,7 +192,7 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
     await workbenchPage.getByRole("button", { name: /^字形/ }).click();
     await workbenchPage.getByRole("switch", { name: "拖尾", exact: true }).click();
     await workbenchPage.getByRole("button", { name: "诊断面板", exact: true }).click();
-    await expect(workbenchPage.getByRole("button", { name: /开启诊断|关闭诊断/ })).toBeVisible();
+    await expect(workbenchPage.getByRole("button", { name: /开启采集|关闭采集/ })).toBeVisible();
     await workbenchPage.getByRole("button", { name: "键盘动效", exact: true }).click();
     await workbenchPage.getByRole("button", { name: /^锚点/ }).click();
     await expect(workbenchPage.getByRole("radio", { name: /前台窗口/ })).toHaveAttribute("aria-checked", "true");
@@ -275,10 +282,12 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
         "getFirstRun",
         "getUpdateState",
         "installUpdate",
+        "listInstalledApplications",
         "markFirstRunComplete",
         "onActiveWindowChanged",
         "onUpdateStateChanged",
         "openExternal",
+        "pickWindow",
       ],
       updateState: { status: "unsupported" },
       windowControls: true,

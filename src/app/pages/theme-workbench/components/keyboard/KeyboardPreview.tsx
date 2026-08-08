@@ -111,10 +111,11 @@ function KeyboardEffect({ effect, onFinished }: { effect: PreviewEffect; onFinis
   );
 }
 
-export function KeyboardPreview({ config, onUpdate, onCaptureChange }: {
+export function KeyboardPreview({ config, onUpdate, onCaptureChange, onComboLevelChange }: {
   config: KeyFeedbackConfig;
   onUpdate: (patch: Partial<KeyFeedbackConfig>) => void;
   onCaptureChange?: (active: boolean) => void;
+  onComboLevelChange?: (level: number) => void;
 }) {
   const [wall, setWall] = useState<"light" | "dark">("light");
   const [open, setOpen] = useState(true);
@@ -146,6 +147,10 @@ export function KeyboardPreview({ config, onUpdate, onCaptureChange }: {
     if (comboResetTimer.current !== null) window.clearTimeout(comboResetTimer.current);
     onCaptureChange?.(false);
   }, [onCaptureChange]);
+
+  useEffect(() => {
+    onComboLevelChange?.(comboLevel);
+  }, [comboLevel, onComboLevelChange]);
 
   useEffect(() => {
     if (!focused) return;

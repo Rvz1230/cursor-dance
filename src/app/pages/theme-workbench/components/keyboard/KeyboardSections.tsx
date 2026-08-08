@@ -11,6 +11,7 @@ import { defaultKeyFeedbackConfig, type KeyFeedbackConfig } from "@/shared/confi
 import { getHueShiftUnavailableReason } from "@/shared/effect-core/key-feedback-style";
 import { KEYBOARD_PRESETS, isKeyboardPresetActive } from "./keyboardPresets";
 import type { KeyboardPreset } from "./keyboardPresets";
+import { formatKeyboardComboStatus } from "./keyboardComboModel";
 
 const COLORS = ["#F59E0B", "#0EA5E9", "#0D9488", "#F43F5E", "#8B5CF6", "#FFFFFF", "#0F172A"];
 
@@ -137,8 +138,8 @@ export function KeyboardAppearance({ config, onUpdate }: { config: KeyFeedbackCo
   );
 }
 
-function AnchorChoice({ active, title, description, badge, onClick }: { active: boolean; title: string; description: string; badge: ReactNode; onClick: () => void }) {
-  return <button type="button" role="radio" aria-checked={active} onClick={onClick} className={cn("flex w-full items-start gap-2.5 rounded-xl border bg-white px-3 py-2.5 text-left shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50", active ? "border-slate-950" : "border-slate-200")}><span className={cn("mt-0.5 grid size-4 shrink-0 place-items-center rounded-full border bg-white", active ? "border-slate-950 after:size-2 after:rounded-full after:bg-slate-950" : "border-slate-300")} /><span className="min-w-0 flex-1"><span className="flex flex-wrap items-center gap-1.5"><span className="text-xs font-medium text-slate-900">{title}</span>{badge}</span><span className="mt-0.5 block text-2xs leading-relaxed text-slate-500">{description}</span></span></button>;
+function AnchorChoice({ active, title, description, badge, disabled = false, onClick }: { active: boolean; title: string; description: string; badge: ReactNode; disabled?: boolean; onClick: () => void }) {
+  return <button type="button" role="radio" aria-checked={active} disabled={disabled} onClick={onClick} className={cn("flex w-full items-start gap-2.5 rounded-xl border bg-white px-3 py-2.5 text-left shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:opacity-60", active ? "border-slate-950" : "border-slate-200")}><span className={cn("mt-0.5 grid size-4 shrink-0 place-items-center rounded-full border bg-white", active ? "border-slate-950 after:size-2 after:rounded-full after:bg-slate-950" : "border-slate-300")} /><span className="min-w-0 flex-1"><span className="flex flex-wrap items-center gap-1.5"><span className="text-xs font-medium text-slate-900">{title}</span>{badge}</span><span className="mt-0.5 block text-2xs leading-relaxed text-slate-500">{description}</span></span></button>;
 }
 
 export function KeyboardPlacement({ config, accessibilityAuthorized, onUpdate }: { config: KeyFeedbackConfig; accessibilityAuthorized: boolean | null; onUpdate: (patch: Partial<KeyFeedbackConfig>) => void }) {
@@ -150,7 +151,7 @@ export function KeyboardPlacement({ config, accessibilityAuthorized, onUpdate }:
         <div className="space-y-1.5" role="radiogroup" aria-label="键盘动效锚点">
           <AnchorChoice active={config.anchor === "screen"} title="屏幕" description="整块屏幕的边缘，和现在一样。" badge={<span className="keyboard-badge keyboard-badge--ok">现在生效</span>} onClick={() => onUpdate({ anchor: "screen" })} />
           <AnchorChoice active={config.anchor === "window"} title="前台窗口" description="跟着你正在用的那个窗口，换窗口就跟着走。" badge={windowBadge} onClick={() => onUpdate({ anchor: "window" })} />
-          <AnchorChoice active={config.anchor === "caret"} title="文字插入点" description="从光标插入点冒出来，跟着你打的字往右推。" badge={accessibilityAuthorized === false ? <span className="keyboard-badge keyboard-badge--warn">需要权限</span> : <span className="keyboard-badge">待系统能力</span>} onClick={() => onUpdate({ anchor: "caret" })} />
+          <AnchorChoice active={config.anchor === "caret"} title="文字插入点" description="系统插入点位置尚未接入，当前版本暂不可选。" badge={<span className="keyboard-badge">待系统能力</span>} disabled onClick={() => onUpdate({ anchor: "caret" })} />
         </div>
       </InnerSection>
       <InnerSection className="keyboard-position-card" title="位置" description="也可以直接在预览里拖" summary={`${EDGE_LABELS[config.originEdge]} · ${{ keyboardLayout: "按键位", center: "固定", typewriter: "打字机" }[config.originMapping]}`}>
@@ -179,7 +180,7 @@ function semanticDescription(kind: "character" | "shortcut" | "modifier" | "spec
 }
 
 function SemanticRow({ name, sample, description, color, sampleScale = 1, sampleOpacity = 1, disabled, value, onChange }: { name: string; sample: string; description: string; color: string; sampleScale?: number; sampleOpacity?: number; disabled?: boolean; value?: number; onChange?: (value: number) => void }) {
-  return <div className={cn("keyboard-legend-row", disabled && "opacity-60")}><span className="keyboard-legend-sample" style={{ color, fontSize: 13 * sampleScale, opacity: sampleOpacity }}>{sample}</span><span className="shrink-0 whitespace-nowrap text-xs font-medium text-slate-800">{name}</span><span className="min-w-0 flex-1 truncate text-2xs text-slate-500" title={description}>{description}</span>{value === undefined ? null : <div className={cn("w-20 shrink-0", disabled && "pointer-events-none")}><Select value={SEMANTIC_TIERS.find((tier) => tier.value === value)?.label ?? "标准"} onChange={(label) => onChange?.(SEMANTIC_TIERS.find((tier) => tier.label === label)?.value ?? 1)} options={SEMANTIC_TIERS.map((tier) => tier.label)} /></div>}</div>;
+  return <div className={cn("keyboard-legend-row", disabled && "opacity-60")}><span className="keyboard-legend-sample" style={{ color, fontSize: 13 * sampleScale, opacity: sampleOpacity }}>{sample}</span><span className="shrink-0 whitespace-nowrap text-xs font-medium text-slate-800">{name}</span><span className="min-w-0 flex-1 truncate text-2xs text-slate-500" title={description}>{description}</span>{value === undefined ? null : <div className="w-20 shrink-0"><Select aria-label={`${name}强度`} disabled={disabled} value={SEMANTIC_TIERS.find((tier) => tier.value === value)?.label ?? "标准"} onChange={(label) => onChange?.(SEMANTIC_TIERS.find((tier) => tier.label === label)?.value ?? 1)} options={SEMANTIC_TIERS.map((tier) => tier.label)} /></div>}</div>;
 }
 
 export function KeyboardSemantic({ config, onUpdate }: { config: KeyFeedbackConfig; onUpdate: (patch: Partial<KeyFeedbackConfig>) => void }) {
@@ -197,10 +198,11 @@ export function KeyboardSemantic({ config, onUpdate }: { config: KeyFeedbackConf
   </Card>;
 }
 
-export function KeyboardCombo({ config, onUpdate }: { config: KeyFeedbackConfig; onUpdate: (patch: Partial<KeyFeedbackConfig>) => void }) {
+export function KeyboardCombo({ config, currentLevel, onUpdate }: { config: KeyFeedbackConfig; currentLevel: number; onUpdate: (patch: Partial<KeyFeedbackConfig>) => void }) {
+  const status = formatKeyboardComboStatus(config, currentLevel);
   return <InnerSection className="keyboard-combo-card" title="调制" description="打字越快，效果越强" summary={config.typingCombo ? `开 · ${config.comboGain}%` : "关闭"}>
     <SwitchRow label="启用节奏调制" checked={config.typingCombo} onChange={(typingCombo) => onUpdate({ typingCombo })} />
-    {config.typingCombo ? <><Field label="强度" value={`${config.comboGain} %`} note="100% 就是现在运行时的系数：每级 +3.5% 字号、+2 不透明度。"><Slider compact showInput={false} label="节奏调制强度" value={config.comboGain} min={0} max={200} defaultValue={100} onChange={(comboGain) => onUpdate({ comboGain })} /></Field><div className="border-t border-slate-100 pt-3"><span className="text-xs font-medium text-slate-600">作用于</span><div className="mt-2 space-y-1.5"><SwitchRow label="字号" checked={config.comboScale} onChange={(comboScale) => onUpdate({ comboScale })} /><SwitchRow label="不透明度" checked={config.comboOpacity} onChange={(comboOpacity) => onUpdate({ comboOpacity })} /><SwitchRow label="发光（3 级以上点亮）" checked={config.comboGlow} onChange={(comboGlow) => onUpdate({ comboGlow })} /></div></div><div className="border-t border-slate-100 pt-3"><div className="flex items-center justify-between gap-2"><span className="text-xs font-medium text-slate-600">当前档位</span><span className="text-xs font-semibold tabular-nums text-slate-500">未在连打</span></div><p className="mt-1.5 text-2xs leading-relaxed text-slate-500">连续打字试试——间隔 260ms 内算连击，最高 5 级。按住一个键不放的自动重复不计入节奏。</p></div></> : null}
+    {config.typingCombo ? <><Field label="强度" value={`${config.comboGain} %`} note="100% 就是现在运行时的系数：每级 +3.5% 字号、+2 不透明度。"><Slider compact showInput={false} label="节奏调制强度" value={config.comboGain} min={0} max={200} defaultValue={100} onChange={(comboGain) => onUpdate({ comboGain })} /></Field><div className="border-t border-slate-100 pt-3"><span className="text-xs font-medium text-slate-600">作用于</span><div className="mt-2 space-y-1.5"><SwitchRow label="字号" checked={config.comboScale} onChange={(comboScale) => onUpdate({ comboScale })} /><SwitchRow label="不透明度" checked={config.comboOpacity} onChange={(comboOpacity) => onUpdate({ comboOpacity })} /><SwitchRow label="发光（3 级以上点亮）" checked={config.comboGlow} onChange={(comboGlow) => onUpdate({ comboGlow })} /></div></div><div className="border-t border-slate-100 pt-3"><div className="flex items-center justify-between gap-2"><span className="text-xs font-medium text-slate-600">当前档位</span><span className={cn("text-xs font-semibold tabular-nums", currentLevel > 0 ? "text-slate-700" : "text-slate-500")}>{status}</span></div><p className="mt-1.5 text-2xs leading-relaxed text-slate-500">连续打字试试——间隔 260ms 内算连击，最高 5 级。按住一个键不放的自动重复不计入节奏。</p></div></> : null}
   </InnerSection>;
 }
 

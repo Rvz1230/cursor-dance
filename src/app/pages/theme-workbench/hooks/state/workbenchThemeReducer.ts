@@ -118,27 +118,6 @@ export function reduceWorkbenchThemeState(
         },
       }, themeId, { preserveUnsaved: false });
     }
-    case "key-feedback/update": {
-      const themeId = state.domain.activeThemeId;
-      const currentDraft = findWorkbenchTheme(state.domain.themes, themeId)?.draft;
-      if (!currentDraft) return state;
-      return markThemeDirty({
-        ...state,
-        domain: {
-          ...state.domain,
-          themes: replaceTheme(state.domain.themes, themeId, (theme) => ({
-            ...theme,
-            draft: {
-              ...currentDraft,
-              keyFeedbackConfig: normalizeKeyFeedbackConfig({
-                ...currentDraft.keyFeedbackConfig,
-                ...action.payload,
-              }),
-            },
-          })),
-        },
-      }, themeId);
-    }
     default:
       return state;
   }

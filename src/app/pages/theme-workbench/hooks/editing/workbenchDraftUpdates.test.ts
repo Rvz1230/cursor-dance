@@ -5,7 +5,9 @@ import {
   applyActionConfigPatch,
   applyActionConfigPatches,
   applyAtmospherePatch,
+  applyKeyFeedbackConfigPatch,
   getActionPatchMergeKey,
+  getKeyFeedbackPatchMergeKey,
 } from "./workbenchDraftUpdates";
 
 describe("workbenchDraftUpdates", () => {
@@ -37,5 +39,15 @@ describe("workbenchDraftUpdates", () => {
     expect(next.atmosphere).toEqual({ mode: "follow", strength: 0.8 });
     expect(getActionPatchMergeKey("leftClick", { textColor: "#fff", fontSize: 20 }))
       .toBe("leftClick:fontSize,textColor");
+  });
+
+  it("patches keyboard feedback through the shared draft and merges only single-field edits", () => {
+    const draft = createThemeDraft("mono-geo");
+    const next = applyKeyFeedbackConfigPatch(draft, { fontSize: 72 });
+
+    expect(next.keyFeedbackConfig.fontSize).toBe(72);
+    expect(next.actionConfigs).toBe(draft.actionConfigs);
+    expect(getKeyFeedbackPatchMergeKey({ fontSize: 72 })).toBe("key-feedback:fontSize");
+    expect(getKeyFeedbackPatchMergeKey({ fontSize: 72, color: "#00FFAA" })).toBeUndefined();
   });
 });

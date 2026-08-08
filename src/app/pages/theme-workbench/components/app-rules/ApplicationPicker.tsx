@@ -50,7 +50,17 @@ export function ApplicationPicker({
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
-      <PopoverContent align="end" sideOffset={6} className="flex max-h-[min(500px,calc(100dvh-7rem))] w-[min(440px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl p-0">
+      <PopoverContent
+        align="end"
+        sideOffset={6}
+        className="flex max-h-[min(500px,calc(100dvh-7rem))] w-[min(440px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl p-0"
+        onPointerDownOutside={(event) => {
+          const target = event.detail.originalEvent.target;
+          if (target instanceof Element && target.closest("[data-workspace-id]")) {
+            event.preventDefault();
+          }
+        }}
+      >
         <div className="shrink-0 border-b border-slate-100 p-3">
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-slate-500" />

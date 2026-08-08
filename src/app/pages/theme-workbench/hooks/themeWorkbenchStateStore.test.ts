@@ -32,8 +32,11 @@ describe("themeWorkbenchStateStore", () => {
         },
       },
       {
-        type: "key-feedback/update",
-        payload: { color: "#FF00AA", fontSize: 90 },
+        type: "theme/update-current",
+        payload: (current) => ({
+          ...current,
+          keyFeedbackConfig: { ...current.keyFeedbackConfig, color: "#FF00AA", fontSize: 90 },
+        }),
       }
     );
 
@@ -168,8 +171,11 @@ describe("themeWorkbenchStateStore", () => {
     const themeA = initialState.domain.activeThemeId;
     const themeB = initialState.domain.themes.find((theme) => theme.meta.id !== themeA)?.meta.id;
     const editedState = reducer(initialState, {
-      type: "key-feedback/update",
-      payload: { color: "#00FFAA", fontSize: 72 },
+      type: "theme/update-current",
+      payload: (current) => ({
+        ...current,
+        keyFeedbackConfig: { ...current.keyFeedbackConfig, color: "#00FFAA", fontSize: 72 },
+      }),
     });
 
     const storedConfig = buildStoredConfigFromWorkbench(

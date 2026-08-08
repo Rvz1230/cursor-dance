@@ -32,6 +32,7 @@ export function KeyboardPanel({
 }: KeyboardPanelProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [editWhileOff, setEditWhileOff] = useState(false);
+  const [previewComboLevel, setPreviewComboLevel] = useState(0);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -77,9 +78,9 @@ export function KeyboardPanel({
         ) : (
           <div className="keyboard-layout grid min-h-0 flex-1 items-start gap-2.5">
             <div className="keyboard-preview-column min-w-0">
-              <KeyboardPreview config={config} onUpdate={onUpdate} onCaptureChange={onCaptureChange} />
+              <KeyboardPreview config={config} onUpdate={onUpdate} onCaptureChange={onCaptureChange} onComboLevelChange={setPreviewComboLevel} />
               <KeyboardSemantic config={config} onUpdate={onUpdate} />
-              <KeyboardCombo config={config} onUpdate={onUpdate} />
+              <KeyboardCombo config={config} currentLevel={previewComboLevel} onUpdate={onUpdate} />
             </div>
             <aside className="keyboard-settings-column min-w-0">
               <KeyboardAppearance config={config} onUpdate={onUpdate} />

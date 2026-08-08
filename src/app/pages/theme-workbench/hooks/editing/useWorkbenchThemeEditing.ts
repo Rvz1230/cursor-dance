@@ -14,7 +14,9 @@ import {
   applyActionConfigPatch,
   applyActionConfigPatches,
   applyAtmospherePatch,
+  applyKeyFeedbackConfigPatch,
   getActionPatchMergeKey,
+  getKeyFeedbackPatchMergeKey,
 } from "./workbenchDraftUpdates";
 
 interface WorkbenchThemeEditingOptions {
@@ -75,7 +77,13 @@ export function useWorkbenchThemeEditing({
       updateCurrentTheme((current) => applyAtmospherePatch(current, patch)),
     keyFeedbackConfig: normalizeKeyFeedbackConfig(draft.keyFeedbackConfig),
     updateKeyFeedbackConfig: (patch: Partial<KeyFeedbackConfig>) =>
-      dispatch({ type: "key-feedback/update", payload: patch }),
+      updateCurrentTheme(
+        (current) => applyKeyFeedbackConfigPatch(current, patch),
+        {
+          label: "键盘动效",
+          mergeKey: getKeyFeedbackPatchMergeKey(patch),
+        },
+      ),
     ...cursorCommands,
   };
 }
