@@ -9,7 +9,6 @@ import { WorkbenchPreviewRail } from "./components/WorkbenchPreviewRail";
 import { PreviewTimeline } from "./components/preview-rail/PreviewTimeline";
 import { usePreviewPlayback } from "./components/preview-rail/usePreviewPlayback";
 import { getRuntimeConfig } from "./lib/runtimeConfig";
-import { WORKSPACE_SHORTCUT_ORDER } from "./lib/shortcuts";
 import { ThemeLibrarySidebar } from "./components/ThemeLibrarySidebar";
 import { WelcomeDialog } from "./components/WelcomeDialog";
 import { cn } from "@/components/ui/utils";
@@ -26,17 +25,15 @@ import { getEnabledEffectCount } from "./lib/effectCardModel";
 import { buildTimelineModel } from "./lib/timelineModel";
 import { getActionTextConfig } from "./model/workbenchSchema";
 import { useWorkbenchColumnLayout } from "./hooks/useWorkbenchColumnLayout";
-import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
 import { useDesktopWorkbenchRuntime } from "./hooks/useDesktopWorkbenchRuntime";
 import {
   WorkbenchToolbar,
-  type WorkbenchHeaderProps,
   type WorkbenchHeaderRenderer,
 } from "./components/WorkbenchChrome";
 import {
   WorkbenchCommandPalette,
-  type WorkbenchCommand,
 } from "./components/WorkbenchCommandPalette";
+import { useWorkbenchPageActions } from "./hooks/useWorkbenchPageActions";
 
 const AiAssistantPanel = lazy(() => import("./components/AiAssistantPanel").then((module) => ({
   default: module.AiAssistantPanel,
@@ -93,6 +90,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
   const [aiSettingsOpen, setAiSettingsOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [keyboardCaptureActive, setKeyboardCaptureActive] = useState(false);
+  const workbench = useThemeWorkbenchState();
   const {
     gridTemplateColumns,
     isResizing,
@@ -162,7 +160,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
     resetCursorSkin,
     keyFeedbackConfig,
     updateKeyFeedbackConfig,
-  } = useThemeWorkbenchState();
+  } = workbench;
   const {
     previewProposal,
     aiSnapshot,
@@ -203,154 +201,43 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
   const workbenchAtmosphere = isExtension() ? draft?.atmosphere : undefined;
   const activeWorkspace = workspaceItems.find((item) => item.id === state.editor.workspaceId);
   const themeScoped = activeWorkspace?.group === "personalization";
-
-  // 撤销 / 重做：快捷键与工具栏按钮走同一条路径，不写两遍
-  function runUndo() {
-    const label = undoStack.undo(selected.themeId);
-    // 没有可撤销的就如实说，而不是静默无反应
-    toast(label
-      ? { title: `已撤销：${label}`, tone: "info", undo: { label: "重做", run: runRedo } }
-      : { title: "没有可撤销的改动", tone: "info" });
-  }
-  function runRedo() {
-    const label = undoStack.redo(selected.themeId);
-    toast(label
-      ? { title: `已重做：${label}`, tone: "info", undo: { label: "撤销", run: runUndo } }
-      : { title: "没有可重做的改动", tone: "info" });
-  }
-
-  // 快捷键（决策 #6）。必须挂在 hydration 早退**之前** —— hook 不能出现在条件返回之后。
-  useGlobalShortcuts({
-    onUndo: runUndo,
-    onRedo: runRedo,
-    onToggleAi: () => setAiPanelOpen((open) => !open),
-    onWorkspace: setWorkspaceId,
-    onCommandPalette: () => setCommandPaletteOpen(true),
-    // ⌘N 仍不注册：新建主题的 composer 状态还封装在 ThemeLibrarySidebar 内部。
-    // 这一批只接入已经有真实落点的命令，避免吞掉系统快捷键却没有结果。
-  }, !keyboardCaptureActive);
+  const {
+    headerProps,
+    commandPaletteCommands,
+    handleUpdateActionConfig,
+  } = useWorkbenchPageActions({
+    workspaceItems,
+    workspaceId: state.editor.workspaceId,
+    selectedThemeId: selected.themeId,
+    themeName: activeTheme?.name || "当前主题",
+    themeScoped,
+    isWorkbench,
+    enabled: state.domain.enabled,
+    unsaved: state.status.unsaved,
+    isSaving: state.status.isSaving,
+    saveError: state.status.saveError,
+    undoStack,
+    setWorkspaceId,
+    setEnabled,
+    saveChanges,
+    restoreAppliedChanges,
+    resetCurrentTheme,
+    updateActionConfig,
+    keyboardCaptureActive,
+    aiPanelOpen,
+    setAiPanelOpen,
+    setAiSettingsOpen,
+    setCommandPaletteOpen,
+    layoutPreset,
+    setLayoutPreset,
+    clearPreview,
+    toast,
+  });
 
   if (!state.status.isHydrated) {
     return <div className="h-dvh bg-slate-100" />;
   }
 
-  async function handleSaveChanges() {
-    const result = await saveChanges();
-    if (result.ok) {
-      toast({ tone: "success", title: "已应用到桌面" });
-    } else {
-      toast({ tone: "error", title: "保存失败", description: result.error || "请稍后重试。" });
-    }
-  }
-
-  async function handleRestoreAppliedChanges() {
-    try {
-      await restoreAppliedChanges();
-      clearPreview();
-      toast({ tone: "info", title: "已恢复桌面正在使用的版本" });
-    } catch (error) {
-      toast({
-        tone: "error",
-        title: "恢复失败",
-        description: error instanceof Error ? error.message : "请稍后重试。",
-      });
-    }
-  }
-
-  function handleResetCurrentTheme() {
-    resetCurrentTheme();
-    toast({ tone: "info", title: "已恢复当前主题默认配置" });
-  }
-
-  function handleUpdateActionConfig(patch) {
-    clearPreview();
-    updateActionConfig(patch);
-    if (patch && Object.prototype.hasOwnProperty.call(patch, "textColor")) {
-      toast({ tone: "info", title: "已更新飘字颜色", description: patch.textColor });
-    }
-  }
-
-  const headerProps: WorkbenchHeaderProps = {
-    workspaceItems,
-    workspaceId: state.editor.workspaceId,
-    setWorkspaceId,
-    themeName: activeTheme?.name || "当前主题",
-    themeScoped,
-    enabled: state.domain.enabled,
-    setEnabled,
-    unsaved: state.status.unsaved,
-    undo: { run: runUndo, label: undoStack.undoLabel(selected.themeId) },
-    redo: { run: runRedo, label: undoStack.redoLabel(selected.themeId) },
-    isSaving: state.status.isSaving,
-    saveError: state.status.saveError,
-    saveChanges: () => { void handleSaveChanges(); },
-    restoreAppliedChanges: () => { void handleRestoreAppliedChanges(); },
-    resetCurrentTheme: handleResetCurrentTheme,
-    aiPanelOpen,
-    setAiPanelOpen,
-    openAiSettings:
-      typeof window !== "undefined" && window.cursorDanceAi
-        ? () => setAiSettingsOpen(true)
-        : undefined,
-    layoutPreset,
-    setLayoutPreset,
-    openCommandPalette: () => setCommandPaletteOpen(true),
-  };
-
-  const commandPaletteCommands: WorkbenchCommand[] = [
-    ...workspaceItems.map((item) => ({
-      id: `workspace-${item.id}`,
-      group: "工作区" as const,
-      label: `切到${item.label}`,
-      shortcut: `⌘${WORKSPACE_SHORTCUT_ORDER.indexOf(item.id as typeof WORKSPACE_SHORTCUT_ORDER[number]) + 1}`,
-      run: () => setWorkspaceId(item.id),
-    })),
-    ...(state.status.unsaved ? [{
-      id: "apply",
-      group: "编辑" as const,
-      label: themeScoped ? "应用到桌面" : "应用全局设置",
-      keywords: ["保存", "发布"],
-      run: () => { void handleSaveChanges(); },
-    }, {
-      id: "restore-applied",
-      group: "编辑" as const,
-      label: "恢复已应用版本",
-      keywords: ["撤销草稿", "回退"],
-      run: () => { void handleRestoreAppliedChanges(); },
-    }] : []),
-    ...(themeScoped ? [{
-      id: "reset-theme",
-      group: "编辑" as const,
-      label: "恢复当前主题默认",
-      run: handleResetCurrentTheme,
-    }] : []),
-    ...(undoStack.undoLabel(selected.themeId) ? [{
-      id: "undo",
-      group: "编辑" as const,
-      label: `撤销：${undoStack.undoLabel(selected.themeId)}`,
-      shortcut: "⌘Z",
-      run: runUndo,
-    }] : []),
-    ...(undoStack.redoLabel(selected.themeId) ? [{
-      id: "redo",
-      group: "编辑" as const,
-      label: `重做：${undoStack.redoLabel(selected.themeId)}`,
-      shortcut: "⌘⇧Z",
-      run: runRedo,
-    }] : []),
-    ...(isWorkbench ? [{
-      id: "toggle-ai",
-      group: "视图" as const,
-      label: aiPanelOpen ? "关闭 AI 助手" : "打开 AI 助手",
-      shortcut: "⌘J",
-      run: () => setAiPanelOpen((open) => !open),
-    }, ...(["config", "split", "preview"] as const).map((preset) => ({
-      id: `layout-${preset}`,
-      group: "视图" as const,
-      label: ({ config: "专注配置", split: "对半布局", preview: "专注预览" })[preset],
-      run: () => setLayoutPreset(preset),
-    }))] : []),
-  ];
 
   return (
     <div

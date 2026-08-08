@@ -12,19 +12,24 @@ import {
   RotateCcw,
   Search,
   Undo2,
+  type LucideIcon,
 } from "lucide-react";
 import { BrandMark } from "@/components/ui/brand-mark";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/components/ui/utils";
 import { WorkspaceNavigationItem } from "./WorkspaceNavigationItem";
-import { useThemeWorkbenchState } from "../hooks/useThemeWorkbenchState";
 import type { WorkbenchLayoutPreset } from "../hooks/useWorkbenchColumnLayout";
+import type { WorkbenchWorkspaceGroup } from "../model/workbenchSchema";
 
-type ThemeWorkbenchState = ReturnType<typeof useThemeWorkbenchState>;
-type WorkspaceItem = ThemeWorkbenchState["workspaceItems"][number];
+export interface WorkbenchWorkspaceItem {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  group: WorkbenchWorkspaceGroup;
+}
 
 export interface WorkbenchHeaderProps {
-  workspaceItems: ThemeWorkbenchState["workspaceItems"];
+  workspaceItems: WorkbenchWorkspaceItem[];
   workspaceId: string;
   setWorkspaceId: (id: string) => void;
   themeName: string;
@@ -49,7 +54,7 @@ export interface WorkbenchHeaderProps {
 
 export type WorkbenchHeaderRenderer = (props: WorkbenchHeaderProps) => ReactNode;
 
-const GROUP_LABELS: Record<WorkspaceItem["group"], string> = {
+const GROUP_LABELS: Record<WorkbenchWorkspaceItem["group"], string> = {
   personalization: "个性化",
   automation: "自动化",
   system: "系统",

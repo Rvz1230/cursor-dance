@@ -272,7 +272,7 @@ export function formatActionLabel(actionId: string): string {
   return ACTIONS.find((item) => item.id === actionId)?.label ?? "左键单击";
 }
 
-export function createThemeDraft(themeId: string): WorkbenchThemeDraft {
+export function createThemeDraft(themeId: string | null | undefined): WorkbenchThemeDraft {
   const actionConfigs = getDefaultActionConfigs(themeId);
   return {
     actionConfigs,
