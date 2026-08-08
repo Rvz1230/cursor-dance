@@ -118,7 +118,7 @@ export function ApplicationPicker({
                   : "扫描 /Applications、/System/Applications 与 ~/Applications"}
             </p>
             {tab === "recent" && !authorized ? (
-              <p className="px-2 py-6 text-center text-xs leading-relaxed text-slate-500">需要辅助功能权限才能记录最近用过的应用。</p>
+              <p className="px-2 py-6 text-center text-xs leading-relaxed text-slate-500">暂时没有读取到最近使用的应用，请切换到目标应用后重试。</p>
             ) : installedLoading && tab === "installed" ? (
               <p className="px-2 py-6 text-center text-xs text-slate-500">正在读取已安装应用…</p>
             ) : visibleApplications.length ? visibleApplications.map((application) => {

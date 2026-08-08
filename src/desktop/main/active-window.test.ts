@@ -1,10 +1,8 @@
 // active-window IPC 单元测试
 //
 // 验证两件事：
-//   1. get-windows 抛 macOS 权限错时，getActiveWindowSnapshot 把英文错误归一化为
-//      中文「需要辅助功能权限」并设 authorized: false（不向 renderer 暴露 native 错）。
-//   2. activeWindowSync 返回正常 macOS Result 时，输出与 ActiveAppInfo 形状对齐
-//      （processName = owner.name，bundleId 透传）。
+//   1. native 调用失败时收敛为 authorized: false。
+//   2. macOS 只读取 owner / Bundle ID，不申请窗口标题所需权限。
 //
 // get-windows 整包 mock 掉，避免 vitest 环境里 require native binary。
 
@@ -31,7 +29,7 @@ describe("getActiveWindowSnapshot", () => {
     activeWindowSyncMock.mockReset();
   });
 
-  it("macOS 权限缺失：归一化为中文权限提示", () => {
+  it("native 调用失败：返回不可用快照", () => {
     activeWindowSyncMock.mockImplementation(() => {
       throw new Error(
         "Command failed: get-windows requires the accessibility permission in System Settings › Privacy & Security › Accessibility.",
@@ -40,14 +38,7 @@ describe("getActiveWindowSnapshot", () => {
     const snap = getActiveWindowSnapshot();
     expect(snap.authorized).toBe(false);
     if (!snap.authorized) {
-      // 测试环境 process.platform 是否为 darwin 取决于实机；只断言关键中文文案。
-      // 在 macOS 上跑（项目主开发机），message 应包含「辅助功能权限」。
-      // 在 linux/CI 上跑，归一化分支不命中，message 是 raw 英文 —— 此时只断言 false。
-      if (process.platform === "darwin") {
-        expect("message" in snap ? snap.message : "").toContain("辅助功能权限");
-      } else {
-        expect(typeof ("message" in snap ? snap.message : "")).toBe("string");
-      }
+      expect(typeof ("message" in snap ? snap.message : "")).toBe("string");
     }
   });
 
@@ -57,7 +48,7 @@ describe("getActiveWindowSnapshot", () => {
     expect(snap.authorized).toBe(false);
   });
 
-  it("正常 macOS Result → 抽出 owner.name / bundleId / title", () => {
+  it("正常 macOS Result → 抽出 owner.name / bundleId，标题明确置空", () => {
     activeWindowSyncMock.mockReturnValue({
       platform: "macos",
       title: "index.ts — cursor-dance",
@@ -76,10 +67,14 @@ describe("getActiveWindowSnapshot", () => {
     if (snap.authorized) {
       expect(snap.owner.name).toBe("Code");
       expect(snap.owner.bundleId).toBe("com.microsoft.VSCode");
-      expect(snap.title).toBe("index.ts — cursor-dance");
+      expect(snap.title).toBe("");
       expect(snap.processName).toBe("Code");
       expect(snap.bounds).toEqual({ x: 0, y: 0, width: 1280, height: 800 });
     }
+    expect(activeWindowSyncMock).toHaveBeenCalledWith({
+      accessibilityPermission: false,
+      screenRecordingPermission: false,
+    });
   });
 
   it("非 macOS Result：bundleId 缺省 undefined，processName 仍取 owner.name", () => {

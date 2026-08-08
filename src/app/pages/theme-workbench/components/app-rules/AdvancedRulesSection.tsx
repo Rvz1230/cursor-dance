@@ -23,14 +23,25 @@ import {
   type ApplicationCandidate,
 } from "./appRulesModel";
 
-function emptyAdvancedRule(): AppRule {
+export function createAdvancedRuleDraft(): AppRule {
   return {
     id: "",
     kind: "advanced",
-    pattern: { type: "glob", value: "", target: "title" },
+    pattern: { type: "glob", value: "", target: "process" },
     action: "disable",
     enabled: true,
   };
+}
+
+export function validateAdvancedRuleDraft(
+  draft: AppRule,
+  supportsWindowTitleRules: boolean,
+): string | null {
+  if (!supportsWindowTitleRules && draft.pattern.target === "title") {
+    return "当前版本不支持窗口标题规则，请将匹配目标改为进程名。";
+  }
+  if (!draft.pattern.value.trim()) return "请填写匹配值。";
+  return null;
 }
 
 function AdvancedRuleEditor({
@@ -38,6 +49,7 @@ function AdvancedRuleEditor({
   themes,
   activeApp,
   error,
+  supportsWindowTitleRules,
   onChange,
   onComplete,
   onCancel,
@@ -46,19 +58,29 @@ function AdvancedRuleEditor({
   themes: RuleThemeOption[];
   activeApp: ActiveWindowSnapshot | null;
   error: string;
+  supportsWindowTitleRules: boolean;
   onChange: (draft: AppRule) => void;
   onComplete: () => void;
   onCancel: () => void;
 }) {
   const target: AppRuleTarget = draft.pattern.target === "title" ? "title" : "process";
   const active = activeApp?.authorized ? activeApp : null;
+  const targetOptions: Array<{ value: AppRuleTarget; label: string }> = [
+    { value: "process", label: "进程名" },
+  ];
+  if (supportsWindowTitleRules || target === "title") {
+    targetOptions.push({
+      value: "title",
+      label: supportsWindowTitleRules ? "窗口标题" : "窗口标题（当前版本不可用）",
+    });
+  }
   return (
     <div className="mb-2.5 rounded-xl border border-slate-200 bg-slate-50 p-3">
       <div className="grid gap-3 sm:grid-cols-2">
         <RuleField label="匹配目标">
           <Select
             value={target}
-            options={[{ value: "process", label: "进程名" }, { value: "title", label: "窗口标题" }]}
+            options={targetOptions}
             onChange={(value) => onChange({ ...draft, pattern: { ...draft.pattern, target: value } })}
             label="匹配目标"
           />
@@ -78,7 +100,7 @@ function AdvancedRuleEditor({
               placeholder={target === "title" ? "*演示模式*" : "Code-*"}
               onChange={(event) => onChange({ ...draft, pattern: { ...draft.pattern, value: event.target.value } })}
             />
-            {active ? (
+            {active && (target !== "title" || supportsWindowTitleRules) ? (
               <Button
                 variant="outline"
                 className="h-9 shrink-0 px-2.5 text-xs"
@@ -94,6 +116,11 @@ function AdvancedRuleEditor({
         </RuleField>
         <RuleActionFields draft={draft} themes={themes} onChange={onChange} />
       </div>
+      {!supportsWindowTitleRules && target === "title" ? (
+        <p role="status" className="mt-2 text-xs font-medium text-amber-700">
+          macOS 首版不读取窗口标题。这条历史规则会保留，但当前不会命中；请改为进程名后再保存。
+        </p>
+      ) : null}
       {error ? <p role="alert" className="mt-2 text-xs font-medium text-rose-600">{error}</p> : null}
       <div className="mt-3 flex justify-end gap-2 border-t border-slate-200 pt-2.5">
         <Button variant="ghost" className="h-8 px-3 text-xs" onClick={onCancel}>取消</Button>
@@ -118,6 +145,7 @@ export function AdvancedRulesSection({
   toggleRule,
   removeRule,
   onRuleSaved,
+  supportsWindowTitleRules,
 }: {
   appRules: AppRule[];
   themes: RuleThemeOption[];
@@ -133,6 +161,7 @@ export function AdvancedRulesSection({
   toggleRule: (id: string) => void;
   removeRule: (rule: AppRule, label: string) => void;
   onRuleSaved: (editing: boolean) => void;
+  supportsWindowTitleRules: boolean;
 }) {
   const advancedRules = appRules.filter((rule) => !isApplicationRule(rule));
   const [open, setOpen] = useState(() => advancedRules.length > 0);
@@ -151,7 +180,7 @@ export function AdvancedRulesSection({
 
   const startAdd = () => {
     setOpen(true);
-    setDraft(emptyAdvancedRule());
+    setDraft(createAdvancedRuleDraft());
     setEditingRuleId(null);
     closeApplicationWizard();
     setEditorError("");
@@ -167,11 +196,12 @@ export function AdvancedRulesSection({
 
   const complete = () => {
     if (!draft) return;
-    const value = draft.pattern.value.trim();
-    if (!value) {
-      setEditorError("请填写匹配值。");
+    const validationError = validateAdvancedRuleDraft(draft, supportsWindowTitleRules);
+    if (validationError) {
+      setEditorError(validationError);
       return;
     }
+    const value = draft.pattern.value.trim();
     const payload = {
       kind: "advanced" as const,
       pattern: { ...draft.pattern, value },
@@ -204,7 +234,7 @@ export function AdvancedRulesSection({
       <button type="button" onClick={() => setOpen((current) => !current)} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50" aria-expanded={open}>
         <div className="min-w-0">
           <h2 className="flex items-center gap-2 text-sm font-medium text-slate-900">高级匹配规则<span className="inline-flex items-center rounded-full bg-slate-100 px-1.5 py-0.5 text-xs font-medium tabular-nums text-slate-600">{advancedRules.length}</span></h2>
-          <div className="mt-0.5 text-xs text-slate-500">按进程名或窗口标题做模式匹配，<span className="font-medium text-slate-600">这里的规则有顺序</span></div>
+          <div className="mt-0.5 text-xs text-slate-500">按进程名做模式匹配，<span className="font-medium text-slate-600">这里的规则有顺序</span></div>
         </div>
         <ChevronDown className={cn("size-4 shrink-0 text-slate-500 transition-transform", open && "rotate-180")} />
       </button>
@@ -212,10 +242,10 @@ export function AdvancedRulesSection({
         <div className="border-t border-slate-100 px-4 py-3">
           <div className="mb-2.5 flex items-start gap-2 rounded-xl bg-slate-50 px-3 py-2">
             <Info className="mt-0.5 size-3.5 shrink-0 text-slate-500" />
-            <p className="text-xs leading-relaxed text-slate-500">裁决顺序：<span className="font-semibold text-slate-700">例外应用</span> → <span className="font-semibold text-slate-700">高级规则（自上而下第一条命中）</span> → <span className="font-semibold text-slate-700">默认行为</span>。只有同一个应用需要按窗口标题分情况处理时才需要用到这里。</p>
+            <p className="text-xs leading-relaxed text-slate-500">裁决顺序：<span className="font-semibold text-slate-700">例外应用</span> → <span className="font-semibold text-slate-700">高级规则（自上而下第一条命中）</span> → <span className="font-semibold text-slate-700">默认行为</span>。需要按进程名通配或精确匹配时再使用这里。</p>
           </div>
           {draft && !applicationWizardOpen ? (
-            <AdvancedRuleEditor draft={draft} themes={themes} activeApp={activeApp} error={editorError} onChange={setDraft} onComplete={complete} onCancel={() => { setDraft(null); setEditorError(""); }} />
+            <AdvancedRuleEditor draft={draft} themes={themes} activeApp={activeApp} error={editorError} supportsWindowTitleRules={supportsWindowTitleRules} onChange={setDraft} onComplete={complete} onCancel={() => { setDraft(null); setEditorError(""); }} />
           ) : null}
           <div className="space-y-1.5">
             {!advancedRules.length ? <p className="px-1 py-2 text-xs text-slate-500">还没有任何匹配规则。绝大多数需求用上面的列表就够了。</p> : advancedRules.map((rule) => {
@@ -257,7 +287,9 @@ export function AdvancedRulesSection({
                     <span className={cn("adv-badge", rule.action === "disable" ? "bg-amber-50 text-amber-800" : "bg-emerald-50 text-emerald-800")}>{rule.action === "disable" ? "关闭" : `启用 · ${themeName(themes, rule.action.theme)}`}</span>
                     {rule.enabled === false
                       ? <span className="row-void">已暂停</span>
-                      : voidRule
+                      : rule.pattern.target === "title" && !supportsWindowTitleRules
+                        ? <span className="row-void">当前版本不支持</span>
+                        : voidRule
                         ? <span className="row-void">{globalEnabled ? "与默认相同" : "白名单下无效"}</span>
                         : <MatchBadge state={matchState} coveredBy={coveredBy} />}
                   </div>

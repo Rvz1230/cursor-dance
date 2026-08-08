@@ -26,7 +26,6 @@ export function ApplicationRulesSection({
   applications,
   recentApplications,
   renderPicker,
-  openAccessibilitySettings,
   addDefaultDisabled,
   updateRule,
   toggleRule,
@@ -39,7 +38,6 @@ export function ApplicationRulesSection({
   applications: ApplicationCandidate[];
   recentApplications: ApplicationCandidate[];
   renderPicker: (anchor: ApplicationRulesPickerAnchor, trigger: ReactNode) => ReactNode;
-  openAccessibilitySettings?: () => void;
   addDefaultDisabled: (application: ApplicationCandidate) => void;
   updateRule: (id: string, updates: Partial<AppRule>) => void;
   toggleRule: (id: string) => void;
@@ -92,8 +90,7 @@ export function ApplicationRulesSection({
         activeApp && !activeApp.authorized ? (
           <div className="px-4 py-8 text-center">
             <div className="text-xs font-medium text-slate-600">还读不到最近用过的应用</div>
-            <div className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-slate-500">授权辅助功能后，这里会列出刚刚用过的应用供你一键添加；在此之前可以用「高级匹配规则」手写进程名。</div>
-            <Button className="mt-2.5 h-7 px-2.5 text-xs" onClick={openAccessibilitySettings}>打开系统设置</Button>
+            <div className="mx-auto mt-1 max-w-md text-xs leading-relaxed text-slate-500">请切换到目标应用后重试；也可以从已安装应用列表选择，或用「高级匹配规则」手写进程名。</div>
           </div>
         ) : (
           <div className="px-4 py-3">

@@ -3,7 +3,6 @@ import {
   AlertCircle,
   ArrowRight,
   ChevronDown,
-  ExternalLink,
   Info,
   Plus,
 } from "lucide-react";
@@ -61,7 +60,7 @@ export interface AppRulesPanelProps {
   activeThemeId: string;
   globalEnabled: boolean;
   activeApp: ActiveWindowSnapshot | null;
-  openAccessibilitySettings?: () => void;
+  supportsWindowTitleRules: boolean;
   refreshActiveApp?: () => void;
   openDiagnostics?: () => void;
   notify?: Notify;
@@ -79,7 +78,7 @@ export function AppRulesPanel({
   activeThemeId,
   globalEnabled,
   activeApp,
-  openAccessibilitySettings,
+  supportsWindowTitleRules,
   refreshActiveApp,
   openDiagnostics,
   notify,
@@ -153,7 +152,7 @@ export function AppRulesPanel({
   const startPicking = async () => {
     if (!activeApp?.authorized) {
       setPickerAnchor(null);
-      openAccessibilitySettings?.();
+      notify?.({ title: "暂时无法识别目标应用", description: activeApp?.message || "请切换到目标应用后重试。", tone: "warning" });
       return;
     }
     setPickerAnchor(null);
@@ -289,11 +288,8 @@ export function AppRulesPanel({
             <div className="mb-2.5 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
               <AlertCircle className="mt-0.5 size-4 shrink-0 text-amber-600" />
               <div className="min-w-0">
-                <div className="text-xs font-medium text-amber-900">需要辅助功能权限才能识别刚才使用的应用</div>
-                <p className="mt-1 text-xs leading-relaxed text-amber-800">授权后即可用「最近使用」和「点选」添加应用；在此之前只能手写匹配规则。</p>
-                <button type="button" onClick={openAccessibilitySettings} className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-amber-900 underline underline-offset-2 transition-colors hover:text-amber-700">
-                  打开系统设置 → 隐私与安全 → 辅助功能<ExternalLink className="size-3" />
-                </button>
+                <div className="text-xs font-medium text-amber-900">暂时无法识别刚才使用的应用</div>
+                <p className="mt-1 text-xs leading-relaxed text-amber-800">请切换到目标应用后重试，也可以从已安装应用列表选择，或手写进程名规则。</p>
               </div>
             </div>
           ) : null}
@@ -376,7 +372,6 @@ export function AppRulesPanel({
             applications={allApplications}
             recentApplications={enrichedRecentApplications}
             renderPicker={(anchor, trigger) => picker(anchor, trigger)}
-            openAccessibilitySettings={openAccessibilitySettings}
             addDefaultDisabled={addDefaultDisabled}
             updateRule={updateAppRule}
             toggleRule={toggleAppRule}
@@ -398,6 +393,7 @@ export function AppRulesPanel({
             toggleRule={toggleAppRule}
             removeRule={removeRule}
             onRuleSaved={(editing) => notify?.({ title: editing ? "已更新匹配规则" : "已添加匹配规则" })}
+            supportsWindowTitleRules={supportsWindowTitleRules}
           />
         </div>
       </div>

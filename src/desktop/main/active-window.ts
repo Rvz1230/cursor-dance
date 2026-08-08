@@ -7,12 +7,10 @@
 //   1. **同步路径优先**：activeWindowSync 在 macOS / Windows / Linux 上都比异步 PoC 便宜
 //      （没有 microtask/promise 调度），适合 ~10Hz 轮询场景；调用方仍按 Promise 取值
 //      以便未来切换到 activeWindow() 不破坏 IPC 契约。
-//   2. **macOS 权限失败安静返回**：`activeWindowSync` 在没有辅助功能 + 屏幕录制权限时
-//      会同步抛 native 错。捕获后返回 { authorized: false, ... }，不上报；
-//      调用方（应用规则面板）拿到这个状态后引导用户去系统设置授权。
-//   3. **关闭权限提示对话框**：默认 get-windows 会触发 macOS 系统弹窗（一次性）。
-//      但桌面端首次启动时我们不希望立刻弹——把 screenRecordingPermission 关掉，
-//      只保留 accessibilityPermission（标题字段才是规则匹配的核心）。
+//   2. **最小权限**：macOS 首版不为应用规则申请辅助功能或屏幕录制权限。
+//      owner.name / bundleId 足以支持应用级规则；窗口标题读取明确作为未支持能力。
+//   3. **失败安静返回**：当前没有 active window（例如锁屏）或 native 调用失败时，
+//      返回 { authorized: false, ... } 作为“元数据暂不可用”，不误导成权限问题。
 //
 // 输出形态与 shared/app-rules 的 ActiveAppInfo 一致 + 额外字段：
 //   { authorized: true, owner: { name, bundleId? }, title: string, processName }
@@ -33,19 +31,14 @@ export type { ActiveWindowSnapshot } from "../../shared/app-rules";
 export function getActiveWindowSnapshot(): ActiveWindowSnapshot {
   try {
     const result = activeWindowSync({
-      accessibilityPermission: true,
+      accessibilityPermission: false,
       screenRecordingPermission: false,
     }) as ActiveWindowResult | undefined;
 
     if (!result) {
-      // 通常是 macOS 没有授权（同时也覆盖：当前没有 active window，例如锁屏）。
-      // 文案保持中性：renderer 会再根据 process.platform 决定是否提示「辅助功能权限」。
       return {
         authorized: false,
-        message:
-          process.platform === "darwin"
-            ? "需要辅助功能权限：请在系统设置 → 隐私与安全 → 辅助功能 中允许 CursorDance。"
-            : "无法获取当前前台窗口。",
+        message: "暂时无法获取当前前台应用。",
       };
     }
 
@@ -58,20 +51,15 @@ export function getActiveWindowSnapshot(): ActiveWindowSnapshot {
     return {
       authorized: true,
       owner: { name: owner.name, bundleId },
-      title: result.title || "",
+      // get-windows 在 macOS 关闭 Screen Recording 后不保证 title；契约上直接置空，
+      // 避免历史缓存或实现差异让标题规则看似偶尔可用。
+      title: result.platform === "macos" ? "" : result.title || "",
       processName: owner.name,
       bounds: result.bounds,
     };
   } catch (error) {
     const raw = error instanceof Error ? error.message : "";
-    // get-windows 在 macOS 没有辅助功能权限时会同步抛 native 错（execFileSync 失败），
-    // 错误文本固定包含 "accessibility permission"。把这种 case 归一化到中文权限提示，
-    // 其它平台 / 其它错误透传 raw message 便于排查。
-    const isMacAccessibility =
-      process.platform === "darwin" && /accessibility permission/i.test(raw);
-    const message = isMacAccessibility
-      ? "需要辅助功能权限：请在系统设置 → 隐私与安全 → 辅助功能 中允许 CursorDance。"
-      : raw || "无法获取当前前台窗口。";
+    const message = raw || "暂时无法获取当前前台应用。";
     return { authorized: false, message };
   }
 }

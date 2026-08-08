@@ -50,7 +50,7 @@ export function ActiveRuleSummary({
           )}
         </div>
         <button type="button" onClick={openDiagnostics} className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-slate-500 underline underline-offset-2 transition-colors hover:text-slate-900">为什么？<ArrowRight className="size-3" /></button>
-        {refreshActiveApp && !activeApp?.authorized ? <button type="button" onClick={refreshActiveApp} className="sr-only">重新检测辅助功能权限</button> : null}
+        {refreshActiveApp && !activeApp?.authorized ? <button type="button" onClick={refreshActiveApp} className="sr-only">重新检测前台应用</button> : null}
       </div>
     </div>
   );

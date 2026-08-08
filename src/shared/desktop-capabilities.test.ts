@@ -13,4 +13,9 @@ describe("desktop capabilities", () => {
     expect(resolveDesktopCapabilities("win32").systemCursorReplacement.status).toBe("planned");
     expect(resolveDesktopCapabilities("linux").systemCursorReplacement.status).toBe("unsupported");
   });
+
+  it("does not expose title rules on macOS without Screen Recording", () => {
+    expect(resolveDesktopCapabilities("darwin").windowTitleRules.status).toBe("unsupported");
+    expect(resolveDesktopCapabilities("win32").windowTitleRules.status).toBe("supported");
+  });
 });

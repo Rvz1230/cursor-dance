@@ -415,7 +415,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                         activeThemeId={state.domain.activeThemeId}
                         globalEnabled={state.domain.enabled}
                         activeApp={activeWindowSnapshot}
-                        openAccessibilitySettings={openAccessibilitySettings}
+                        supportsWindowTitleRules={window.electronAPI?.capabilities.windowTitleRules.status === "supported"}
                         refreshActiveApp={refreshActiveWindow}
                         openDiagnostics={() => setWorkspaceId("diagnostics")}
                         notify={toast}
