@@ -78,6 +78,28 @@ export function applicationRuleMatchesCandidate(
     && rule.pattern.value.trim().toLocaleLowerCase() === candidateValue?.trim().toLocaleLowerCase();
 }
 
+export function applicationCandidateForRule(
+  rule: AppRule,
+  applications: readonly ApplicationCandidate[],
+): ApplicationCandidate {
+  return applications.find((application) => (
+    applicationRuleMatchesCandidate(rule, application)
+  )) || {
+    key: `rule:${rule.id}`,
+    name: rule.pattern.value,
+    processName: rule.pattern.value,
+    title: "",
+  };
+}
+
+export function isVoidApplicationRule(rule: AppRule, globalEnabled: boolean): boolean {
+  return rule.enabled !== false && (
+    globalEnabled
+      ? rule.action !== "disable" && !rule.action.theme
+      : rule.action === "disable"
+  );
+}
+
 export function resolveRuleMatchStates(
   rules: readonly AppRule[],
   info: ActiveAppInfo | null,

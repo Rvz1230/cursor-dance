@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { ActiveWindowSnapshot, AppRule } from "@/shared/app-rules";
 import {
+  applicationCandidateForRule,
   applicationFromSnapshot,
   applicationPattern,
   applicationRuleMatchesCandidate,
   isApplicationRule,
+  isVoidApplicationRule,
   rememberApplication,
   resolveAppRuleDecision,
   resolveRuleMatchStates,
@@ -76,6 +78,25 @@ describe("application rules presentation model", () => {
       type: "exact",
       value: "Figma",
     });
+  });
+
+  it("resolves application metadata for a rule and falls back to its pattern", () => {
+    const application = applicationFromSnapshot(figma)!;
+    expect(applicationCandidateForRule({
+      ...rules[1],
+      pattern: applicationPattern(application),
+    }, [application])).toBe(application);
+    expect(applicationCandidateForRule(rules[1], [])).toMatchObject({
+      key: "rule:app",
+      name: "Figma",
+      processName: "Figma",
+    });
+  });
+
+  it("detects application rules whose action is identical to the global behavior", () => {
+    expect(isVoidApplicationRule({ ...rules[1], action: { enable: true } }, true)).toBe(true);
+    expect(isVoidApplicationRule({ ...rules[1], action: "disable" }, false)).toBe(true);
+    expect(isVoidApplicationRule({ ...rules[1], action: "disable", enabled: false }, false)).toBe(false);
   });
 
   it("prioritizes application rows before ordered advanced rules", () => {

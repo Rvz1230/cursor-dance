@@ -17,6 +17,7 @@
     "src/app/pages/theme-workbench/components/WorkbenchActionTab.tsx",
     "src/app/pages/theme-workbench/components/WorkbenchSettingSection.tsx",
     "src/app/pages/theme-workbench/components/WorkspaceNavigationItem.tsx",
+    "src/app/pages/theme-workbench/components/app-rules/ApplicationRulesSection.tsx",
     "src/app/pages/theme-workbench/components/app-rules/useApplicationCatalog.ts",
     "src/app/pages/theme-workbench/components/cursor-skin/cursorSkinModel.ts",
     "src/app/pages/theme-workbench/lib/cardResetFields.ts",
