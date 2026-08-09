@@ -207,6 +207,8 @@ cursor-dance/
         enabled: true,
         shape: "ribbon",
         length: 24,
+        blendMode: "screen",
+        quality: "auto",
         segments: {
           tail: { color: "#14B8A6", width: 2.4, opacity: 24 },
           middle: { color: "#508ACE", width: 4.96, opacity: 52 },

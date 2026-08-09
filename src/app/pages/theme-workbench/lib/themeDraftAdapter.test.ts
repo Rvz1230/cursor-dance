@@ -103,6 +103,8 @@ describe("themeDraftAdapter schema v4", () => {
       trail: {
         enabled: true,
         shape: "stardust",
+        blendMode: "screen",
+        quality: "balanced",
         length: 32,
         width: 7,
         lifetimeMs: 520,
@@ -121,6 +123,8 @@ describe("themeDraftAdapter schema v4", () => {
     expect(storedTrail).toMatchObject({
       enabled: true,
       shape: "stardust",
+      blendMode: "screen",
+      quality: "balanced",
       turnResponse: 88,
       gestureResponse: 72,
     });

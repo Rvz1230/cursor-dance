@@ -172,6 +172,8 @@ test("saved cursor trail runs in the standalone Web runtime page", async ({ cont
   await tailColorInput.fill("#123456");
   await tailColorInput.press("Enter");
   await tailColorInput.press("Escape");
+  await selectRadixOption(workbenchPage, trailPanel, 0, "滤色");
+  await selectRadixOption(workbenchPage, trailPanel, 1, "省电");
   await trailPanel.getByRole("spinbutton", { name: "尾部宽度" }).fill("3.7");
   await trailPanel.getByRole("spinbutton", { name: "尾部宽度" }).press("Enter");
   await trailPanel.getByRole("spinbutton", { name: "中段透明度" }).fill("47");
@@ -190,6 +192,8 @@ test("saved cursor trail runs in the standalone Web runtime page", async ({ cont
   }, CONFIG_STORAGE_KEY)).toMatchObject({
     enabled: true,
     shape: "stardust",
+    blendMode: "screen",
+    quality: "eco",
     turnResponse: 88,
     gestureResponse: 72,
     colors: ["#123456", "#FB7185"],

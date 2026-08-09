@@ -2,6 +2,7 @@ import { MousePointer2 } from "lucide-react";
 import { ColorField } from "@/components/ui/color-field";
 import { FieldRow } from "@/components/ui/field-row";
 import { Slider } from "@/components/ui/slider";
+import { Select } from "@/components/ui/select";
 import {
   CURSOR_TRAIL_PRESETS,
   DEFAULT_CURSOR_TRAIL_CONFIG,
@@ -13,6 +14,20 @@ import {
 } from "@/shared/config/cursor-trail";
 import type { EffectPreset } from "../../lib/effectCardModel";
 import { WorkbenchEffectCard } from "../effect-cards/WorkbenchEffectCard";
+
+const BLEND_MODE_OPTIONS = [
+  { value: "normal", label: "正常", description: "忠实保留设定颜色" },
+  { value: "screen", label: "滤色", description: "在深色背景上更明亮" },
+  { value: "soft-light", label: "柔光", description: "轻柔融入背景明暗" },
+  { value: "overlay", label: "叠加", description: "加强背景对比与饱和度" },
+] as const;
+
+const QUALITY_OPTIONS = [
+  { value: "auto", label: "自动", description: "从精细开始，持续掉帧时逐级降档" },
+  { value: "eco", label: "省电", description: "30 FPS、低像素密度与较少粒子" },
+  { value: "balanced", label: "平衡", description: "兼顾清晰度和资源占用" },
+  { value: "fine", label: "精细", description: "完整采样与高像素密度" },
+] as const;
 
 const TRAIL_PRESETS: EffectPreset[] = CURSOR_TRAIL_PRESETS.map((preset) => {
   const { enabled: _enabled, ...patch } = preset.config;
@@ -65,7 +80,7 @@ export function CursorTrailCard({ atmosphere, onChange }: CursorTrailCardProps) 
           head: { ...DEFAULT_CURSOR_TRAIL_SEGMENTS.head },
         },
       } })}
-      settingCount={16}
+      settingCount={18}
       primaryCount={4}
       primary={(
         <>
@@ -87,6 +102,8 @@ export function CursorTrailCard({ atmosphere, onChange }: CursorTrailCardProps) 
           <TrailSegmentEditor segmentId="head" label="光标附近" description="最靠近指针" value={config.segments.head} onChange={updateSegment} />
         </div>
       </div>
+      <FieldRow label="混合模式" hint="控制拖尾如何与浅色或深色背景叠加。" control={<Select value={config.blendMode} options={BLEND_MODE_OPTIONS} onChange={(blendMode) => updateTrail({ blendMode })} aria-label="鼠标拖尾混合模式" />} />
+      <FieldRow label="性能档位" hint="自动档只会逐级降档，避免在临界帧率反复跳动。" control={<Select value={config.quality} options={QUALITY_OPTIONS} onChange={(quality) => updateTrail({ quality })} aria-label="鼠标拖尾性能档位" />} />
       <FieldRow label="速度响应" hint="移动越快，轨迹越有张力。" control={<Slider value={config.velocityResponse} min={0} max={100} suffix="%" onChange={(velocityResponse) => updateTrail({ velocityResponse })} label="鼠标拖尾速度响应" />} />
       <FieldRow label="转向散射" hint="拐弯越急，越容易甩出侧向光点。" control={<Slider value={config.turnResponse} min={0} max={100} suffix="%" onChange={(turnResponse) => updateTrail({ turnResponse })} label="鼠标拖尾转向散射" />} />
       <FieldRow label="手势爆发" hint="快速甩动产生闪光，急停形成收束涟漪。" control={<Slider value={config.gestureResponse} min={0} max={100} suffix="%" onChange={(gestureResponse) => updateTrail({ gestureResponse })} label="鼠标拖尾手势爆发" />} />

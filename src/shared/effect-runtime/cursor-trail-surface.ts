@@ -2,7 +2,47 @@
 
 import {
   normalizeCursorTrailConfig,
+  type CursorTrailBlendMode,
+  type CursorTrailQuality,
 } from "@/shared/config/cursor-trail";
+
+export type CursorTrailResolvedQuality = Exclude<CursorTrailQuality, "auto">;
+
+type CursorTrailQualityProfile = readonly [
+  dprCap: number,
+  pointLimit: number,
+  sparkLimit: number,
+  pulseLimit: number,
+  stardustLayers: number,
+  minFrameIntervalMs: number,
+];
+
+const QUALITY_PROFILES: readonly CursorTrailQualityProfile[] = [
+  [1, 18, 32, 4, 1, 1_000 / 30],
+  [1.5, 36, 64, 8, 2, 0],
+  [2, 48, 96, 12, 2, 0],
+];
+
+export function resolveCursorTrailCompositeOperation(mode: CursorTrailBlendMode): GlobalCompositeOperation {
+  return mode === "normal" ? "source-over" : mode;
+}
+
+function resolveCursorTrailQualityProfile(
+  quality: CursorTrailQuality,
+  autoQuality: CursorTrailResolvedQuality = "fine",
+): CursorTrailQualityProfile {
+  const resolved = quality === "auto" ? autoQuality : quality;
+  return QUALITY_PROFILES[resolved === "eco" ? 0 : resolved === "balanced" ? 1 : 2];
+}
+
+export function resolveNextAutoQuality(
+  current: CursorTrailResolvedQuality,
+  averageFrameMs: number,
+): CursorTrailResolvedQuality {
+  if (current === "fine" && averageFrameMs > 20) return "balanced";
+  if (current === "balanced" && averageFrameMs > 28) return "eco";
+  return current;
+}
 
 interface TrailPoint {
   x: number;
@@ -120,6 +160,11 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
   let frameId: number | null = null;
   let destroyed = false;
   let reducedMotion = false;
+  let autoQuality: CursorTrailResolvedQuality = "fine";
+  let frameSampleTotal = 0;
+  let frameSampleCount = 0;
+  let lastObservedFrameAt: number | null = null;
+  let lastPaintAt = Number.NEGATIVE_INFINITY;
   const mediaQuery = options.respectReducedMotion === false || typeof platformWindow.matchMedia !== "function"
     ? null
     : platformWindow.matchMedia("(prefers-reduced-motion: reduce)");
@@ -134,10 +179,27 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
     else platformWindow.clearTimeout(id);
   };
 
+  const getQualityProfile = (): CursorTrailQualityProfile => resolveCursorTrailQualityProfile(config.quality, autoQuality);
+
+  function observeFrame(timestamp: number): void {
+    if (config.quality !== "auto") return;
+    if (lastObservedFrameAt !== null) {
+      const elapsed = timestamp - lastObservedFrameAt;
+      if (elapsed > 0 && elapsed < 250) {
+        frameSampleTotal += elapsed;
+        frameSampleCount += 1;
+      }
+    }
+    lastObservedFrameAt = timestamp;
+    if (frameSampleCount < 24) return;
+    autoQuality = resolveNextAutoQuality(autoQuality, frameSampleTotal / frameSampleCount);
+    frameSampleTotal = frameSampleCount = 0;
+  }
+
   function getSize(): { width: number; height: number; dpr: number } {
     const width = root?.clientWidth || platformWindow.innerWidth || 1;
     const height = root?.clientHeight || platformWindow.innerHeight || 1;
-    const dpr = Math.min(2, Math.max(1, platformWindow.devicePixelRatio || 1));
+    const dpr = Math.min(getQualityProfile()[0], Math.max(1, platformWindow.devicePixelRatio || 1));
     return { width, height, dpr };
   }
 
@@ -202,7 +264,7 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
       context.shadowColor = context.fillStyle;
       context.shadowBlur = config.glow * (1 + Math.min(1, point.velocity / 24) * (config.velocityResponse / 100) * 0.8);
       context.globalAlpha = pointOpacity(point, timestamp, index, points.length, segment.opacity);
-      for (let spark = 0; spark < 2; spark += 1) {
+      for (let spark = 0; spark < getQualityProfile()[4]; spark += 1) {
         const phase = point.x * 0.07 + point.y * 0.05 + index * 1.7 + spark * Math.PI;
         const offset = segment.width * (0.35 + spark * 0.25);
         context.beginPath();
@@ -288,7 +350,8 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
         opacity: segment.opacity,
       });
     }
-    if (sparks.length > 96) sparks.splice(0, sparks.length - 96);
+    const sparkLimit = getQualityProfile()[2];
+    if (sparks.length > sparkLimit) sparks.splice(0, sparks.length - sparkLimit);
   }
 
   function addGesturePulse(point: TrailPoint, kind: "flick" | "stop", intensity: number, timestamp = point.bornAt): void {
@@ -301,7 +364,8 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
       intensity,
       kind,
     });
-    if (pulses.length > 12) pulses.splice(0, pulses.length - 12);
+    const pulseLimit = getQualityProfile()[3];
+    if (pulses.length > pulseLimit) pulses.splice(0, pulses.length - pulseLimit);
   }
 
   function drawSparks(timestamp: number): void {
@@ -347,6 +411,13 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
       clearCanvas();
       return;
     }
+    observeFrame(timestamp);
+    const qualityProfile = getQualityProfile();
+    if (timestamp - lastPaintAt < qualityProfile[5]) {
+      frameId = requestFrame(render);
+      return;
+    }
+    lastPaintAt = timestamp;
     if (stopPulseArmed && lastPoint && timestamp - lastMoveAt >= 90) {
       const stopEnergy = Math.min(1, lastPoint.velocity / 24) * (config.gestureResponse / 100);
       addGesturePulse(lastPoint, "stop", stopEnergy, lastMoveAt + 90);
@@ -362,6 +433,7 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
     }
     if (context) {
       context.save();
+      context.globalCompositeOperation = resolveCursorTrailCompositeOperation(config.blendMode);
       if (config.shape === "stardust") drawStardust(timestamp);
       else if (config.shape === "pixel") drawPixels(timestamp);
       else if (config.shape === "echo") drawEcho(timestamp);
@@ -383,6 +455,9 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
     pulses = [];
     lastPoint = null;
     stopPulseArmed = false;
+    frameSampleTotal = frameSampleCount = 0;
+    lastObservedFrameAt = null;
+    lastPaintAt = Number.NEGATIVE_INFINITY;
     if (frameId !== null) cancelFrame(frameId);
     frameId = null;
     clearCanvas();
@@ -399,7 +474,14 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
 
   return {
     syncConfig(value: unknown) {
+      const previousQuality = config.quality;
       config = normalizeCursorTrailConfig(value);
+      if (config.quality !== previousQuality) {
+        autoQuality = "fine";
+        frameSampleTotal = frameSampleCount = 0;
+        lastObservedFrameAt = null;
+        lastPaintAt = Number.NEGATIVE_INFINITY;
+      }
       if (!config.enabled) clear();
       else if (points.length) ensureFrame();
     },
@@ -447,7 +529,8 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
         lastFlickAt = timestamp;
       }
       stopPulseArmed = next.velocity >= 10 && config.gestureResponse > 0;
-      if (points.length > config.length) points.splice(0, points.length - config.length);
+      const pointLimit = Math.min(config.length, getQualityProfile()[1]);
+      if (points.length > pointLimit) points.splice(0, points.length - pointLimit);
       ensureFrame();
     },
     leave() {

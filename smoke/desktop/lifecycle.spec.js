@@ -378,6 +378,8 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
             trail: {
               enabled: true,
               shape: "stardust",
+              blendMode: "soft-light",
+              quality: "balanced",
               length: 32,
               width: 7,
               lifetimeMs: 520,
@@ -402,6 +404,8 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
     expect(desktopStoredTrail).toMatchObject({
       enabled: true,
       shape: "stardust",
+      blendMode: "soft-light",
+      quality: "balanced",
       segments: {
         tail: { color: "#F59E0B", width: 2.1, opacity: 27 },
         middle: { color: "#F88848", width: 4.34, opacity: 56 },

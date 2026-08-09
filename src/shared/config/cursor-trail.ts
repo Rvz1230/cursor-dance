@@ -5,6 +5,8 @@ import type { ConfigJsonObject } from "../config-schema-v4";
 export type CursorTrailPresetId = "comet" | "stardust" | "pixel" | "echo";
 type CursorTrailShape = "ribbon" | "stardust" | "pixel" | "echo";
 export type CursorTrailSegmentId = "tail" | "middle" | "head";
+export type CursorTrailBlendMode = "normal" | "screen" | "soft-light" | "overlay";
+export type CursorTrailQuality = "auto" | "eco" | "balanced" | "fine";
 
 type CursorTrailSegmentStyle = ConfigJsonObject & {
   readonly color: string;
@@ -26,6 +28,8 @@ export type CursorTrailConfig = ConfigJsonObject & {
   readonly velocityResponse: number;
   readonly turnResponse: number;
   readonly gestureResponse: number;
+  readonly blendMode: CursorTrailBlendMode;
+  readonly quality: CursorTrailQuality;
   readonly colors: readonly [string, string];
   readonly segments: CursorTrailSegments;
 };
@@ -64,6 +68,8 @@ export const DEFAULT_CURSOR_TRAIL_CONFIG: CursorTrailConfig = Object.freeze({
   velocityResponse: 60,
   turnResponse: 36,
   gestureResponse: 55,
+  blendMode: "normal",
+  quality: "auto",
   colors: DEFAULT_COLORS,
   segments: DEFAULT_CURSOR_TRAIL_SEGMENTS,
 });
@@ -91,6 +97,8 @@ export const CURSOR_TRAIL_PRESETS: readonly CursorTrailPreset[] = Object.freeze(
       velocityResponse: 82,
       turnResponse: 88,
       gestureResponse: 72,
+      blendMode: "normal",
+      quality: "auto",
       colors: ["#F59E0B", "#FB7185"],
       segments: {
         tail: { color: "#F59E0B", width: 2.1, opacity: 27 },
@@ -115,6 +123,8 @@ export const CURSOR_TRAIL_PRESETS: readonly CursorTrailPreset[] = Object.freeze(
       velocityResponse: 36,
       turnResponse: 24,
       gestureResponse: 64,
+      blendMode: "normal",
+      quality: "auto",
       colors: ["#0EA5E9", "#6366F1"],
       segments: {
         tail: { color: "#0EA5E9", width: 2.7, opacity: 29 },
@@ -139,6 +149,8 @@ export const CURSOR_TRAIL_PRESETS: readonly CursorTrailPreset[] = Object.freeze(
       velocityResponse: 24,
       turnResponse: 18,
       gestureResponse: 92,
+      blendMode: "normal",
+      quality: "auto",
       colors: ["#0F172A", "#64748B"],
       segments: {
         tail: { color: "#0F172A", width: 4.2, opacity: 16 },
@@ -199,6 +211,14 @@ function isCursorTrailShape(value: unknown): value is CursorTrailShape {
   return value === "ribbon" || value === "stardust" || value === "pixel" || value === "echo";
 }
 
+function isCursorTrailBlendMode(value: unknown): value is CursorTrailBlendMode {
+  return value === "normal" || value === "screen" || value === "soft-light" || value === "overlay";
+}
+
+function isCursorTrailQuality(value: unknown): value is CursorTrailQuality {
+  return value === "auto" || value === "eco" || value === "balanced" || value === "fine";
+}
+
 function createDefaultCursorTrailConfig(): CursorTrailConfig {
   return {
     ...DEFAULT_CURSOR_TRAIL_CONFIG,
@@ -241,6 +261,8 @@ export function normalizeCursorTrailConfig(value: unknown): CursorTrailConfig {
     velocityResponse: Math.round(clampNumber(source.velocityResponse, DEFAULT_CURSOR_TRAIL_CONFIG.velocityResponse, 0, 100)),
     turnResponse: Math.round(clampNumber(source.turnResponse, DEFAULT_CURSOR_TRAIL_CONFIG.turnResponse, 0, 100)),
     gestureResponse: Math.round(clampNumber(source.gestureResponse, DEFAULT_CURSOR_TRAIL_CONFIG.gestureResponse, 0, 100)),
+    blendMode: isCursorTrailBlendMode(source.blendMode) ? source.blendMode : DEFAULT_CURSOR_TRAIL_CONFIG.blendMode,
+    quality: isCursorTrailQuality(source.quality) ? source.quality : DEFAULT_CURSOR_TRAIL_CONFIG.quality,
     colors,
     segments: {
       tail: normalizeSegment(sourceSegments.tail, legacySegments.tail),

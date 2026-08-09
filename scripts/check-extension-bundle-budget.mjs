@@ -12,8 +12,8 @@ const budgets = {
   optionsInitialRawBytes: 695_000,
   optionsInitialGzipBytes: 212_000,
   largestJavaScriptChunkBytes: 350_000,
-  // Content runtime 接入同一套拖尾 surface，并包含转向散射与甩动/急停手势运行时。
-  contentRuntimeBytes: 108_000,
+  // 拖尾 surface 增加混合模式与自适应质量，较 107,832-byte 基线净增约 1.1 KB。
+  contentRuntimeBytes: 110_000,
 };
 
 async function measureInitialAssets(entryName) {

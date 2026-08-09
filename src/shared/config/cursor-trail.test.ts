@@ -20,6 +20,8 @@ describe("cursor trail config", () => {
       velocityResponse: -10,
       turnResponse: 180,
       gestureResponse: -20,
+      blendMode: "invalid",
+      quality: "maximum",
       colors: ["#112233", ""],
     })).toEqual({
       enabled: true,
@@ -33,6 +35,8 @@ describe("cursor trail config", () => {
       velocityResponse: 0,
       turnResponse: 100,
       gestureResponse: 0,
+      blendMode: "normal",
+      quality: "auto",
       colors: ["#112233", "#8B5CF6"],
       segments: {
         tail: { color: "#112233", width: 1, opacity: 3 },
@@ -56,6 +60,12 @@ describe("cursor trail config", () => {
       middle: { color: "#777777", width: 12.5, opacity: 44 },
       head: { color: "#FFFFFF", width: 32, opacity: 100 },
     });
+  });
+
+  it("preserves supported blend and quality modes", () => {
+    const config = normalizeCursorTrailConfig({ blendMode: "soft-light", quality: "eco" });
+    expect(config.blendMode).toBe("soft-light");
+    expect(config.quality).toBe("eco");
   });
 
   it("treats presets as starting points and returns independent color arrays", () => {

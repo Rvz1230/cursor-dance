@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { createCursorTrailSurface, mixCursorTrailColor } from "./cursor-trail-surface";
+import {
+  createCursorTrailSurface,
+  mixCursorTrailColor,
+  resolveCursorTrailCompositeOperation,
+  resolveNextAutoQuality,
+} from "./cursor-trail-surface";
 
 function createFixture() {
   const context = {
@@ -105,6 +110,39 @@ describe("cursor trail surface", () => {
 
   it("mixes hexadecimal preset colors deterministically", () => {
     expect(mixCursorTrailColor("#000000", "#FFFFFF", 0.5)).toBe("rgb(128, 128, 128)");
+  });
+
+  it("maps blend modes to Canvas composite operations", () => {
+    expect(resolveCursorTrailCompositeOperation("normal")).toBe("source-over");
+    expect(resolveCursorTrailCompositeOperation("screen")).toBe("screen");
+    expect(resolveCursorTrailCompositeOperation("soft-light")).toBe("soft-light");
+    expect(resolveCursorTrailCompositeOperation("overlay")).toBe("overlay");
+  });
+
+  it("only degrades auto quality when a frame threshold is exceeded", () => {
+    expect(resolveNextAutoQuality("fine", 21)).toBe("balanced");
+    expect(resolveNextAutoQuality("balanced", 29)).toBe("eco");
+    expect(resolveNextAutoQuality("eco", 40)).toBe("eco");
+    expect(resolveNextAutoQuality("fine", 16.7)).toBe("fine");
+  });
+
+  it("applies the selected blend mode and eco pixel density", () => {
+    const fixture = createFixture();
+    const surface = createCursorTrailSurface({
+      window: fixture.window,
+      document: fixture.document,
+      root: fixture.root,
+      respectReducedMotion: false,
+    });
+    surface.syncConfig({ enabled: true, shape: "ribbon", quality: "eco", blendMode: "screen" });
+    surface.move(20, 20);
+    fixture.setTime(40);
+    surface.move(80, 50);
+    fixture.frames.shift()?.(40);
+
+    expect(fixture.canvas.width).toBe(320);
+    expect(fixture.canvas.height).toBe(180);
+    expect(fixture.context.globalCompositeOperation).toBe("screen");
   });
 
   it("interpolates width, color and opacity across three trail segments", () => {

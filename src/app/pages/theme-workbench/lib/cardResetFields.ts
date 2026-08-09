@@ -110,6 +110,8 @@ export const CARD_RESET_FIELDS: Record<string, readonly string[]> = {
     "velocityResponse",
     "turnResponse",
     "gestureResponse",
+    "blendMode",
+    "quality",
     "colors",
     "segments",
   ],
