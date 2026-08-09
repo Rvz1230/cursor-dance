@@ -36,7 +36,7 @@ describe("workbenchDraftUpdates", () => {
     const draft = createThemeDraft("mono-geo");
     const next = applyAtmospherePatch(draft, { mode: "follow", strength: 0.8 });
 
-    expect(next.atmosphere).toEqual({ mode: "follow", strength: 0.8 });
+    expect(next.atmosphere).toEqual({ ...draft.atmosphere, mode: "follow", strength: 0.8 });
     expect(getActionPatchMergeKey("leftClick", { textColor: "#fff", fontSize: 20 }))
       .toBe("leftClick:fontSize,textColor");
   });

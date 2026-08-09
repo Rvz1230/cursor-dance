@@ -157,6 +157,7 @@ export default function PopupPage() {
               name={current.theme.name}
               Icon={themeIcon(current.theme)}
               siteAction={siteAction}
+              atmosphere={current.themePack?.atmosphere}
             />
           ) : (
             <div className="flex h-full items-center justify-center rounded-2xl border border-slate-200/80 bg-white shadow-sm">

@@ -10,6 +10,29 @@
     font-family: "SF Pro Display", "SF Pro Text", "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
   }
   .key-glyph { position: absolute; line-height: 1; pointer-events: none; user-select: none; white-space: pre; }
+  /*
+    默认与大窗口使用真正的编辑器分栏：左边只负责预览，右边负责配置并独立滚动。
+    主区页头保持固定，调整长配置时不再反复丢失预览上下文。
+  */
+  [data-w="md"] #main.keyboard-main,
+  [data-w="lg"] #main.keyboard-main { display: flex; flex-direction: column; overflow: hidden; }
+  [data-w="md"] #mainGrid,
+  [data-w="lg"] #mainGrid { min-height: 0; flex: 1 1 0%; align-items: start; overflow: hidden; }
+  [data-w="md"] #mainGrid { grid-template-columns: minmax(0, 1fr) 350px; }
+  [data-w="lg"] #mainGrid { grid-template-columns: minmax(0, 1fr) 420px; }
+  [data-w="md"] .settings-column,
+  [data-w="lg"] .settings-column {
+    max-height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 2px;
+    scrollbar-gutter: stable;
+  }
+  [data-w="md"] .kbd-stage { max-width: 430px; }
+  [data-w="lg"] .kbd-stage { max-width: 720px; }
+  /* 最小窗口回到单列文档流，避免嵌套滚动。 */
+  [data-w="sm"] .kbd-stage { max-width: 250px; }
+  .compact-group > section { border-radius: .65rem; box-shadow: none; }
 </style>
 </head>
 <body class="bg-slate-200 p-6 text-slate-900">
@@ -20,13 +43,8 @@
 <template id="page">
 
       <!-- 页头 -->
-      <div class="mb-2.5 flex flex-row items-start justify-between gap-3 group-data-[w=sm]/win:flex-col group-data-[w=sm]/win:items-stretch">
-        <div class="min-w-0">
-          <h1 class="text-base font-semibold text-slate-900 text-balance">键盘动效</h1>
-          <p id="pageDesc" class="mt-1 max-w-2xl text-xs leading-relaxed text-slate-500 text-pretty">
-            按键时在屏幕上显示按下的字符。点一下预览再打字，就能看到桌面上的真实效果。
-          </p>
-        </div>
+      <div class="mb-2.5 flex min-h-8 flex-row items-center justify-between gap-3">
+        <h1 class="min-w-0 text-base font-semibold text-slate-900 text-balance">键盘动效</h1>
         <div class="flex shrink-0 flex-wrap items-center gap-2">
           <!--
             全页最重要的控件原先是个 `<div>`：`tabIndex` 实测 -1、无 `role`——
@@ -39,10 +57,14 @@
             <span id="enableKnob" class="switch-knob switch-on"></span>
             <span class="font-medium">启用动效</span>
           </button>
-          <button id="resetBtn" class="btn-ghost h-8 px-3 text-xs">
-            <svg class="mr-1.5 size-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"/></svg>
-            恢复默认
-          </button>
+          <div class="relative">
+            <button id="pageMoreBtn" class="grid size-8 place-items-center rounded-xl bg-white text-slate-500 shadow-sm ring-1 ring-slate-200 transition-colors hover:bg-slate-50 hover:text-slate-800" aria-label="更多操作" aria-expanded="false">···</button>
+            <div id="pageMoreMenu" class="absolute right-0 top-10 z-30 hidden w-36 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg">
+              <button id="resetBtn" class="flex h-8 w-full items-center rounded-lg px-2.5 text-left text-xs text-slate-600 hover:bg-slate-50">
+                恢复当前主题默认
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -50,7 +72,7 @@
       <div data-show="denied" class="mb-2.5 flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
         <svg class="mt-0.5 size-4 shrink-0 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
         <div class="min-w-0">
-          <div class="text-xs font-medium text-amber-900">需要辅助功能权限才能捕获全局按键</div>
+          <div class="text-xs font-medium text-amber-900">仅预览模式 · 需要辅助功能权限</div>
           <p class="mt-1 hint-warn">
             授权前动效只在下方预览里生效，桌面上不会出现。预览本身不需要权限，可以先把外观调好。
           </p>
@@ -60,6 +82,16 @@
           </button>
         </div>
       </div>
+
+      <section id="offSummary" class="mb-2.5 hidden rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+        <div class="flex items-center justify-between gap-4">
+          <div class="min-w-0">
+            <h3 class="text-sm font-medium text-slate-900">当前主题的键盘动效已关闭</h3>
+            <p class="mt-1 text-xs leading-relaxed text-slate-500">配置仍然保留，重新开启后会立即恢复。</p>
+          </div>
+          <button id="editWhileOffBtn" class="btn-ghost h-8 shrink-0 px-3 text-xs">继续调整</button>
+        </div>
+      </section>
 
       <!--
         和 02 同一个坑：`xl:grid-cols-[...]` 看的是浏览器视口，在固定尺寸的模拟窗口里**从不生效**。
@@ -86,7 +118,7 @@
       <div id="mainGrid" class="grid gap-2.5 group-data-[w=md]/win:grid-cols-[minmax(0,1fr)_300px] group-data-[w=lg]/win:grid-cols-[minmax(0,1fr)_360px]">
 
         <!-- ════ 左：屏幕预览 + 语义分层 ════ -->
-        <div class="grid content-start gap-2.5 group-data-[w=sm]/win:contents">
+        <div class="preview-column grid min-w-0 content-start gap-2.5 group-data-[w=sm]/win:contents">
           <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm group-data-[w=sm]/win:order-1">
             <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
               <div class="min-w-0">
@@ -103,12 +135,12 @@
                   「在页面任意处打字都会触发」删掉不丢信息：舞台里的 #typeHint
                   写着「直接开始打字」，顶栏提示也写着同一件事，这里是第三遍。
                 -->
-                <div class="mt-0.5 text-xs text-slate-500"><span id="previewScaleWrap">按 <span id="previewScale" class="tabular-nums">50</span>% 模拟 1440px 屏幕</span><span id="previewNote"></span></div>
+                <div class="hidden"><span id="previewScaleWrap"><span id="previewScale">50</span></span><span id="previewNote"></span></div>
               </div>
               <div class="flex flex-wrap items-center gap-2">
                 <div class="seg-group" role="radiogroup" aria-label="桌面底色">
-                  <button data-wall="light" role="radio" aria-checked="false" class="seg-item">浅色桌面</button>
-                  <button data-wall="dark" role="radio" aria-checked="false" class="seg-item">深色桌面</button>
+                  <button data-wall="light" role="radio" aria-checked="false" class="seg-item">浅色</button>
+                  <button data-wall="dark" role="radio" aria-checked="false" class="seg-item">深色</button>
                 </div>
                 <!--
                   预览可折叠。**这一节是唯一没法靠压缩解决的纵向占用**：
@@ -289,7 +321,7 @@
           </section>
 
           <!-- 语义分层：把不可见的分级规则变成带实时样例的图例 -->
-          <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm group-data-[w=sm]/win:order-8">
+          <section id="semanticCard" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm group-data-[w=sm]/win:order-8">
             <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
               <div class="min-w-0">
                 <h3 class="text-sm font-medium text-slate-900">语义分层</h3>
@@ -341,7 +373,7 @@
             原先只有一个 #comboBody，如果直接拿它当折叠体，就会有两个 owner
             抢同一个 class：展开一次、关一次开关，两边状态立刻错乱。
           -->
-          <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm group-data-[w=sm]/win:order-9">
+          <section id="comboCard" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm group-data-[w=sm]/win:order-9">
             <button data-sec-toggle="combo" class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50" aria-expanded="false" aria-controls="comboSection">
               <div class="min-w-0">
                 <h3 class="text-sm font-medium text-slate-900">调制</h3>
@@ -387,10 +419,10 @@
         </div>
 
         <!-- ════ 右：外观 / 位置 / 内容 / 精调 ════ -->
-        <aside class="grid content-start gap-2.5 group-data-[w=sm]/win:contents">
+        <aside class="settings-column grid min-w-0 content-start gap-2.5 group-data-[w=sm]/win:contents">
 
           <!-- 外观 -->
-          <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm group-data-[w=sm]/win:order-2">
+          <section id="appearanceCard" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm group-data-[w=sm]/win:order-2">
             <div class="border-b border-slate-100 px-4 py-3">
               <h3 class="text-sm font-medium text-slate-900">外观</h3>
               <div class="mt-0.5 text-xs text-slate-500">先挑一个预设，再微调</div>
@@ -455,7 +487,7 @@
             基准色留在「外观」（那是「挑一个颜色」这个主任务），
             怎么让它变化是第二层决定，收起来正合适。
           -->
-          <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm group-data-[w=sm]/win:order-3">
+          <section id="paintCard" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm group-data-[w=sm]/win:order-3">
             <button data-sec-toggle="paint" class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50" aria-expanded="false" aria-controls="paintBody">
               <div class="min-w-0">
                 <h3 class="text-sm font-medium text-slate-900">上色</h3>
@@ -515,7 +547,7 @@
             发光跟着过来，是因为它和「粗细／字体」一样属于字的长相，
             而且它自带一个子字段（发光半径），留在主卡会再撑高 60px。
           -->
-          <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm group-data-[w=sm]/win:order-4">
+          <section id="glyphCard" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm group-data-[w=sm]/win:order-4">
             <button data-sec-toggle="glyph" class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50" aria-expanded="false" aria-controls="glyphBody">
               <div class="min-w-0">
                 <h3 class="text-sm font-medium text-slate-900">字形</h3>
@@ -620,7 +652,7 @@
             折叠范式**不是新发明的**：本页的「精调」原先就是这么做的（#advToggle），
             这里只是把同一个模式补齐到其余三个区块（决策 #2 同源：常用先行，其余收起）。
           -->
-          <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm group-data-[w=sm]/win:order-5">
+          <section id="anchorCard" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm group-data-[w=sm]/win:order-5">
             <button data-sec-toggle="anchor" class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50" aria-expanded="false" aria-controls="anchorBody">
               <div class="min-w-0">
                 <h3 class="text-sm font-medium text-slate-900">锚点</h3>
@@ -650,7 +682,7 @@
           </section>
 
           <!-- 位置 -->
-          <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm group-data-[w=sm]/win:order-6">
+          <section id="positionDetailCard" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm group-data-[w=sm]/win:order-6">
             <button data-sec-toggle="pos" class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50" aria-expanded="false" aria-controls="posBody">
               <div class="min-w-0">
                 <h3 class="text-sm font-medium text-slate-900">位置</h3>
@@ -726,7 +758,7 @@
           </section>
 
           <!-- 内容 -->
-          <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm group-data-[w=sm]/win:order-7">
+          <section id="contentCard" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm group-data-[w=sm]/win:order-7">
             <button data-sec-toggle="content" class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50" aria-expanded="false" aria-controls="contentBody">
               <div class="min-w-0">
                 <h3 class="text-sm font-medium text-slate-900">显示内容</h3>
@@ -756,7 +788,7 @@
           </section>
 
           <!-- 精调 -->
-          <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm group-data-[w=sm]/win:order-10">
+          <section id="precisionCard" class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm group-data-[w=sm]/win:order-10">
             <button id="advToggle" class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50">
               <div class="min-w-0">
                 <h3 class="text-sm font-medium text-slate-900">精调</h3>
@@ -808,9 +840,9 @@
 <script src="../controls.js"></script>
 <script src="../shell.js"></script>
 <script>
-mountShell({ active: 'keyboard', mainClass: 'min-w-0 flex-1 overflow-y-auto bg-slate-50 px-3 py-3',
+mountShell({ active: 'keyboard', mainClass: 'keyboard-main min-w-0 flex-1 overflow-y-auto bg-slate-50 px-3 py-3',
   proto: [['bounce', '① 键帽弹跳'], ['rain', '② 雨滴 · 深色桌面'], ['off', '③ 已关闭'], ['denied', '④ 缺少辅助功能权限']],
-  hint: '点一下屏幕预览开始捕获按键 · 试试 ⌘K、⇧、⏎ 看语义分层 · Esc 退出',
+  hint: '点一下屏幕预览开始捕获按键 · 试试 ⌘⇧7、⇧、⏎ · Esc 退出',
   onProto: (id) => onProtoState(id) });
 </script>
 <script>
@@ -852,6 +884,7 @@ const DEFAULTS = {
   authorized: true,
 };
 let cfg = { ...DEFAULTS };
+let editWhileOff = false;
 
 const PRESETS = [
   { id: 'keycap', name: '键帽弹跳', desc: '从下方弹起', patch: { animationStyle: 'bounce', originEdge: 'bottom', originMapping: 'keyboardLayout', bounceHeight: 140, globalOffsetY: 0.08, fontSize: 48, duration: 900, color: '#F59E0B', glow: false } },
@@ -2018,11 +2051,26 @@ $('glowToggle').addEventListener('click', () => { const before = { ...cfg }; cfg
 $('enableToggle').addEventListener('click', () => {
   const before = { ...cfg };
   cfg.enabled = !cfg.enabled;
+  if (!cfg.enabled) editWhileOff = false;
   syncEnabledChrome();
   syncAll();
   commit(cfg.enabled ? '已开启动效' : '已关闭动效', before);
 });
-$('resetBtn').addEventListener('click', () => { const before = { ...cfg }; cfg = { ...DEFAULTS, _wall: cfg._wall }; syncAll(); commit('已恢复默认', before); });
+$('pageMoreBtn').addEventListener('click', () => {
+  const open = $('pageMoreMenu').classList.toggle('hidden') === false;
+  $('pageMoreBtn').setAttribute('aria-expanded', String(open));
+});
+$('resetBtn').addEventListener('click', () => {
+  const before = { ...cfg };
+  cfg = { ...DEFAULTS, _wall: cfg._wall };
+  $('pageMoreMenu').classList.add('hidden');
+  $('pageMoreBtn').setAttribute('aria-expanded', 'false');
+  syncEnabledChrome(); syncAll(); commit('已恢复当前主题默认', before);
+});
+$('editWhileOffBtn').addEventListener('click', () => {
+  editWhileOff = true;
+  syncEnabledChrome();
+});
 /*
   预览折叠。收起后要顺手把「屏幕预览」自己的说明改掉——展开时那句讲的是
   缩放比和「在页面任意处打字都会触发」，收起后既看不到缩放也看不到效果，
@@ -2045,6 +2093,41 @@ $('advToggle').addEventListener('click', () => {
   $('advChevron').classList.toggle('rotate-180', open);
   $('advToggle').setAttribute('aria-expanded', String(open));
 });
+
+/*
+  常驻界面只保留四个决策层。原有能力没有删除，而是按任务重新归组：
+  锚点+位置、内容+语义、上色+字形+节奏+精调。这样低频能力仍然可达，
+  但不会用七张同权卡片挤占首屏。
+*/
+function compactKeyboardLayout() {
+  const aside = $('appearanceCard').parentElement;
+  let cursor = $('appearanceCard');
+  const groups = [
+    { key: 'placement', title: '出现位置', desc: '锚点、入场方向与停留位置', cards: ['anchorCard', 'positionDetailCard'] },
+    { key: 'meaning', title: '内容与语义', desc: '显示什么，以及不同按键如何区分', cards: ['contentCard', 'semanticCard'] },
+    { key: 'advanced', title: '高级动效', desc: '字形、上色、节奏与动画细节', cards: ['paintCard', 'glyphCard', 'comboCard', 'precisionCard'] },
+  ];
+  groups.forEach((group, index) => {
+    const section = document.createElement('section');
+    section.className = 'overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm';
+    section.style.order = String(index + 3);
+    section.innerHTML = `
+      <button data-sec-toggle="${group.key}" class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50" aria-expanded="false">
+        <span class="min-w-0"><span class="block text-sm font-medium text-slate-900">${group.title}</span><span class="mt-0.5 block text-xs text-slate-500">${group.desc}</span></span>
+        <span class="flex shrink-0 items-center gap-2"><span data-sec-sum="${group.key}" class="text-xs text-slate-500"></span><svg data-sec-chevron="${group.key}" class="size-4 shrink-0 text-slate-500 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span>
+      </button>
+      <div data-sec-body="${group.key}" class="compact-group hidden grid gap-1.5 border-t border-slate-100 bg-slate-50/70 p-2"></div>`;
+    cursor.insertAdjacentElement('afterend', section);
+    const body = section.querySelector(`[data-sec-body="${group.key}"]`);
+    group.cards.forEach((id) => {
+      const card = $(id);
+      card.style.order = 'initial';
+      body.appendChild(card);
+    });
+    cursor = section;
+  });
+}
+compactKeyboardLayout();
 
 /**
  * 锚点 / 位置 / 显示内容 三个区块的折叠。
@@ -2090,6 +2173,13 @@ const SEC_SUMMARY = {
     const name = (HUE_DRIVERS.find(([id]) => id === (cfg.colorMode || 'solid')) || HUE_DRIVERS[0])[1];
     return [name, cfg.gradient ? '渐变' : null].filter(Boolean).join(' · ');
   },
+  placement: () => {
+    const a = ANCHORS.find((x) => x.id === cfg.anchor) || ANCHORS[0];
+    const edge = { top: '上方', bottom: '下方', left: '左侧', right: '右侧' }[effectiveEdge(cfg)] || '';
+    return `${a.name} · ${edge}`;
+  },
+  meaning: () => cfg.semanticStyles ? '已开启 · 4 类' : '已关闭',
+  advanced: () => cfg.typingCombo ? '节奏调制已开启' : '使用基础效果',
 };
 function syncSecSummaries() {
   Object.entries(SEC_SUMMARY).forEach(([k, fn]) => {
@@ -2538,17 +2628,18 @@ function knob(el, on) {
  * 不靠视觉上的半死不活去暗示。
  */
 function syncEnabledChrome() {
+  const compactOff = !cfg.enabled && !editWhileOff;
   $('offBadge').classList.toggle('hidden', cfg.enabled);
   $('offBadge').classList.toggle('grid', !cfg.enabled);
   $('typeHint').classList.toggle('hidden', !cfg.enabled);
-  $('pageDesc').textContent = cfg.enabled
-    ? '按键时在屏幕上显示按下的字符。点一下预览再打字，就能看到桌面上的真实效果。'
-    : '动效已关闭，桌面上不会出现字符。下面的调整照常保存，开启后立即生效。';
+  $('offSummary').classList.toggle('hidden', !compactOff);
+  $('mainGrid').classList.toggle('hidden', compactOff);
   $('enableToggle').setAttribute('aria-checked', String(cfg.enabled));
 }
 
 // ── 原型状态
 function onProtoState(s) {
+  editWhileOff = false;
   if (s === 'bounce') cfg = { ...DEFAULTS, _wall: 'light' };
   if (s === 'rain') cfg = { ...DEFAULTS, ...PRESETS[1].patch, _wall: 'dark' };
   if (s === 'off') cfg = { ...cfg, enabled: false };

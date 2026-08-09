@@ -12,6 +12,7 @@ import {
   type CursorDanceTheme,
 } from "../domain/cursor-dance";
 import { defaultKeyFeedbackConfig } from "./key-feedback";
+import { createDefaultAtmosphereConfig } from "./cursor-trail";
 import { CURSOR_STATE_IDS } from "../cursor-states";
 
 export type { CursorDanceConfig };
@@ -28,6 +29,7 @@ export function createDefaultThemes(): CursorDanceTheme[] {
     cursorBindings: createCursorBindings(CURSOR_STATE_IDS),
     cursorSkin: createCursorSkin(),
     keyFeedbackConfig: cloneValue(defaultKeyFeedbackConfig),
+    atmosphere: createDefaultAtmosphereConfig(),
   }));
 }
 

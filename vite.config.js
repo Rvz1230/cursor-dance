@@ -82,6 +82,7 @@ export default defineConfig(({ mode }) => {
         input: {
           options: path.resolve(projectRoot, "index.html"),
           popup: path.resolve(projectRoot, "popup.html"),
+          runtimePreview: path.resolve(projectRoot, "runtime-preview.html"),
         },
       },
     },

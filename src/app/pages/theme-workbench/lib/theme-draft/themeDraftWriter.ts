@@ -1,5 +1,5 @@
 import { normalizeKeyFeedbackConfig } from "@/shared/config/key-feedback";
-import type { CursorDanceConfig } from "@/shared/domain/cursor-dance";
+import type { CursorDanceConfig, CursorDanceTheme } from "@/shared/domain/cursor-dance";
 import { pickKnownCursorStates } from "@/shared/cursor-states";
 import type {
   WorkbenchPersistableState,
@@ -44,7 +44,7 @@ function buildCursorBindings(draft: WorkbenchThemeDraft) {
   }));
 }
 
-function buildStoredActionConfigs(draft: WorkbenchThemeDraft) {
+function buildStoredActionConfigs(draft: WorkbenchThemeDraft): CursorDanceTheme["actionConfigs"] {
   const actionConfigs = pickStoredWorkbenchActionConfigs(draft.actionConfigs) as Record<
     string,
     Record<string, unknown>
@@ -52,7 +52,7 @@ function buildStoredActionConfigs(draft: WorkbenchThemeDraft) {
   for (const actionConfig of Object.values(actionConfigs)) {
     if (actionConfig.imageDataUrl === "") delete actionConfig.imageAssetId;
   }
-  return actionConfigs;
+  return actionConfigs as CursorDanceTheme["actionConfigs"];
 }
 
 function buildStoredTheme(
@@ -61,11 +61,13 @@ function buildStoredTheme(
   previousConfig: CursorDanceConfig,
   themeRecord: WorkbenchTheme["meta"] | undefined,
   options: BuildStoredThemeOptions = {},
-) {
+): CursorDanceTheme {
   const previousTheme = getStoredTheme(previousConfig, themeId);
   // 桌面工作台也负责编辑「网页端生效」的指向反馈，不能在保存桌面主题时静默裁掉。
   const includeAtmosphere = options.includeAtmosphere ?? true;
-  const atmosphere = includeAtmosphere ? (draft.atmosphere || previousTheme?.atmosphere) : undefined;
+  const atmosphere = includeAtmosphere
+    ? (draft.atmosphere || previousTheme?.atmosphere) as CursorDanceTheme["atmosphere"]
+    : undefined;
   return {
     id: themeId,
     name: themeRecord?.name ?? previousTheme?.name ?? themeId,

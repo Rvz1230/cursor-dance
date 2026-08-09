@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Columns,
+  ExternalLink,
   Loader2,
   PanelLeft,
   PanelRight,
@@ -20,6 +21,10 @@ import { cn } from "@/components/ui/utils";
 import { WorkspaceNavigationItem } from "./WorkspaceNavigationItem";
 import type { WorkbenchLayoutPreset } from "../hooks/useWorkbenchColumnLayout";
 import type { WorkbenchWorkspaceGroup } from "../model/workbenchSchema";
+import {
+  getWorkbenchRuntimeCopy,
+  type WorkbenchRuntimeTarget,
+} from "../lib/workbenchRuntimeTarget";
 
 interface WorkbenchWorkspaceItem {
   id: string;
@@ -43,6 +48,8 @@ export interface WorkbenchHeaderProps {
   saveError?: string | null;
   saveChanges: () => void;
   restoreAppliedChanges: () => void;
+  runtimeTarget: WorkbenchRuntimeTarget;
+  openRuntimePreview?: () => void;
   resetCurrentTheme: () => void;
   aiPanelOpen?: boolean;
   setAiPanelOpen?: (value: boolean) => void;
@@ -160,6 +167,8 @@ export function WorkbenchScopeHeader({
   saveError,
   saveChanges,
   restoreAppliedChanges,
+  runtimeTarget,
+  openRuntimePreview,
 }: Pick<
   WorkbenchHeaderProps,
   | "themeName"
@@ -171,7 +180,10 @@ export function WorkbenchScopeHeader({
   | "saveError"
   | "saveChanges"
   | "restoreAppliedChanges"
+  | "runtimeTarget"
+  | "openRuntimePreview"
 >) {
+  const runtimeCopy = getWorkbenchRuntimeCopy(runtimeTarget);
   return (
     <header className="shrink-0 border-b border-slate-200 bg-white px-3 py-2">
       <div className="flex min-w-0 items-center gap-3">
@@ -185,12 +197,12 @@ export function WorkbenchScopeHeader({
               <span className="truncate font-medium text-slate-700">正在编辑：{themeName}</span>
               {unsaved ? (
                 <span className="shrink-0 rounded-lg bg-amber-50 px-1.5 py-0.5 font-medium text-amber-700 ring-1 ring-amber-200">
-                  未应用
+                  {runtimeCopy.pending}
                 </span>
               ) : (
                 <span className="inline-flex shrink-0 items-center gap-1 text-slate-500">
                   <Check className="size-3 text-emerald-500" aria-hidden="true" />
-                  已应用到桌面
+                  {runtimeCopy.appliedTheme}
                 </span>
               )}
             </>
@@ -210,12 +222,18 @@ export function WorkbenchScopeHeader({
           <div className="flex shrink-0 items-center gap-1.5">
             <Button className="h-7 px-2.5 text-xs" onClick={saveChanges} disabled={isSaving}>
               {isSaving ? <Loader2 className="mr-1.5 size-3 animate-spin" aria-hidden="true" /> : null}
-              {isSaving ? "应用中" : themeScoped ? "应用到桌面" : "应用全局设置"}
+              {isSaving ? runtimeCopy.applying : themeScoped ? runtimeCopy.applyTheme : runtimeCopy.applyGlobal}
             </Button>
             <Button variant="ghost" className="h-7 px-2 text-xs" onClick={restoreAppliedChanges} disabled={isSaving}>
-              恢复已应用版本
+              {runtimeCopy.restore}
             </Button>
           </div>
+        ) : null}
+        {runtimeTarget === "local" && openRuntimePreview ? (
+          <Button variant="outline" className="h-7 shrink-0 px-2.5 text-xs" onClick={openRuntimePreview}>
+            <ExternalLink className="mr-1.5 size-3" aria-hidden="true" />
+            网页试用
+          </Button>
         ) : null}
         <Button
           variant="ghost"
@@ -246,6 +264,7 @@ export function WorkbenchToolbar({
   setWorkspaceId,
   themeScoped,
   unsaved,
+  runtimeTarget,
   undo,
   redo,
   resetCurrentTheme,
@@ -255,6 +274,7 @@ export function WorkbenchToolbar({
   setLayoutPreset,
   openCommandPalette,
 }: WorkbenchHeaderProps) {
+  const runtimeCopy = getWorkbenchRuntimeCopy(runtimeTarget);
   return (
     <div className="shrink-0 border-b border-slate-200 bg-slate-50 px-3 py-2">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -290,7 +310,7 @@ export function WorkbenchToolbar({
             <div className="flex h-8 shrink-0 items-center gap-1 rounded-xl bg-white px-1 shadow-sm ring-1 ring-slate-200">
               <span className={cn("inline-flex items-center gap-1.5 px-1.5 text-xs font-medium", unsaved ? "text-amber-700" : "text-slate-500") }>
                 {unsaved ? <span className="size-1.5 rounded-full bg-amber-400" aria-hidden="true" /> : <Check className="size-3 text-emerald-500" aria-hidden="true" />}
-                <span className="hidden lg:inline">{unsaved ? "草稿待应用" : "草稿已同步"}</span>
+                <span className="hidden lg:inline">{unsaved ? `草稿${runtimeCopy.pending}` : "草稿已同步"}</span>
               </span>
               <span className="h-3 w-px bg-slate-200" aria-hidden="true" />
               <Button

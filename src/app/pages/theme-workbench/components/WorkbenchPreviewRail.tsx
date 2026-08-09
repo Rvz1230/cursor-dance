@@ -36,7 +36,6 @@ function buildOutputTags({ textConfig, particleConfig, rippleConfig, audioConfig
 
 export function WorkbenchPreviewRail({ actionId = "leftClick", config, comparisonConfig, actionConfigsMap, disabled = false, previewMode = false, atmosphere, playback, totalMs }) {
   const [background, setBackground] = useState("light");
-  const [showTrail, setShowTrail] = useState(false);
   const [compareMode, setCompareMode] = useState(false);
   const textConfig = useMemo(() => getActionTextConfig(config), [config]);
   const particleConfig = useMemo(() => getActionParticleConfig(config), [config]);
@@ -69,7 +68,6 @@ export function WorkbenchPreviewRail({ actionId = "leftClick", config, compariso
             ))}
           </div>
           <button type="button" onClick={burst} disabled={disabled} className="h-7 rounded-lg border border-slate-200 px-2.5 text-xs font-medium text-slate-600 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 disabled:opacity-40">连打</button>
-          <button type="button" aria-pressed={showTrail} onClick={() => setShowTrail((value) => !value)} className={cn("h-7 rounded-lg border px-2.5 text-xs font-medium shadow-sm transition-colors", showTrail ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50")}>轨迹</button>
           <button type="button" aria-pressed={compareMode} onClick={() => setCompareMode((value) => !value)} className={cn("h-7 rounded-lg border px-2.5 text-xs font-medium shadow-sm transition-colors", compareMode ? "border-slate-950 bg-slate-950 text-white" : "border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50")}>A/B</button>
         </div>
       </div>
@@ -86,7 +84,6 @@ export function WorkbenchPreviewRail({ actionId = "leftClick", config, compariso
         triggerInterval={playback.triggerInterval}
         atmosphere={atmosphere}
         background={background}
-        showTrail={showTrail}
         onReplay={playback.replay}
       />
 

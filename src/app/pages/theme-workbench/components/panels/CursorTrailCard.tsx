@@ -1,0 +1,126 @@
+import { MousePointer2 } from "lucide-react";
+import { ColorField } from "@/components/ui/color-field";
+import { FieldRow } from "@/components/ui/field-row";
+import { Slider } from "@/components/ui/slider";
+import {
+  CURSOR_TRAIL_PRESETS,
+  DEFAULT_CURSOR_TRAIL_CONFIG,
+  DEFAULT_CURSOR_TRAIL_SEGMENTS,
+  normalizeCursorTrailConfig,
+  type AtmosphereConfig,
+  type CursorTrailConfig,
+  type CursorTrailSegmentId,
+} from "@/shared/config/cursor-trail";
+import type { EffectPreset } from "../../lib/effectCardModel";
+import { WorkbenchEffectCard } from "../effect-cards/WorkbenchEffectCard";
+
+const TRAIL_PRESETS: EffectPreset[] = CURSOR_TRAIL_PRESETS.map((preset) => {
+  const { enabled: _enabled, ...patch } = preset.config;
+  return { name: preset.label, patch };
+});
+
+interface CursorTrailCardProps {
+  atmosphere: AtmosphereConfig | Record<string, unknown>;
+  onChange(patch: Record<string, unknown>): void;
+}
+
+export function CursorTrailCard({ atmosphere, onChange }: CursorTrailCardProps) {
+  const config = normalizeCursorTrailConfig(atmosphere.trail);
+
+  function updateTrail(patch: Partial<CursorTrailConfig>): void {
+    onChange({ trail: { ...config, ...patch } });
+  }
+
+  function updateSegment(segmentId: CursorTrailSegmentId, patch: Partial<CursorTrailConfig["segments"][CursorTrailSegmentId]>): void {
+    const segments = {
+      ...config.segments,
+      [segmentId]: { ...config.segments[segmentId], ...patch },
+    };
+    updateTrail({
+      segments,
+      colors: [segments.tail.color, segments.head.color],
+      width: segments.head.width,
+      opacity: segments.head.opacity,
+    });
+  }
+
+  return (
+    <WorkbenchEffectCard
+      id="card-cursor-trail"
+      cardKey="trail"
+      title="鼠标拖尾"
+      icon={MousePointer2}
+      enabled={config.enabled}
+      config={config}
+      baseline={DEFAULT_CURSOR_TRAIL_CONFIG}
+      presets={TRAIL_PRESETS}
+      onChange={(patch) => updateTrail({ ...patch, enabled: true })}
+      onToggle={(enabled) => updateTrail({ enabled })}
+      onReset={() => onChange({ trail: {
+        ...DEFAULT_CURSOR_TRAIL_CONFIG,
+        colors: [...DEFAULT_CURSOR_TRAIL_CONFIG.colors],
+        segments: {
+          tail: { ...DEFAULT_CURSOR_TRAIL_SEGMENTS.tail },
+          middle: { ...DEFAULT_CURSOR_TRAIL_SEGMENTS.middle },
+          head: { ...DEFAULT_CURSOR_TRAIL_SEGMENTS.head },
+        },
+      } })}
+      settingCount={16}
+      primaryCount={4}
+      primary={(
+        <>
+          <FieldRow label="轨迹长度" hint="保留多少个移动采样点。" control={<Slider value={config.length} min={6} max={48} ticks={[12, 24, 36]} snapToTicks onChange={(length) => updateTrail({ length })} label="鼠标拖尾轨迹长度" />} />
+          <FieldRow label="余辉时间" hint="停止移动后，拖尾完全消散所需时间。" control={<Slider value={config.lifetimeMs} min={120} max={900} step={20} suffix="ms" onChange={(lifetimeMs) => updateTrail({ lifetimeMs })} label="鼠标拖尾余辉时间" />} />
+          <FieldRow label="路径平滑" control={<Slider value={config.smoothing} min={0} max={90} suffix="%" onChange={(smoothing) => updateTrail({ smoothing })} label="鼠标拖尾路径平滑度" />} />
+          <FieldRow label="柔光范围" control={<Slider value={config.glow} min={0} max={24} suffix="px" onChange={(glow) => updateTrail({ glow })} label="鼠标拖尾柔光范围" />} />
+        </>
+      )}
+    >
+      <div>
+        <div className="mb-2">
+          <div className="text-xs font-medium text-slate-700">分段轨迹</div>
+          <div className="mt-0.5 text-2xs text-slate-500">三段之间会平滑过渡，可分别控制颜色、宽度和透明度。</div>
+        </div>
+        <div className="space-y-2">
+          <TrailSegmentEditor segmentId="tail" label="尾部" description="即将消散" value={config.segments.tail} onChange={updateSegment} />
+          <TrailSegmentEditor segmentId="middle" label="中段" description="主体过渡" value={config.segments.middle} onChange={updateSegment} />
+          <TrailSegmentEditor segmentId="head" label="光标附近" description="最靠近指针" value={config.segments.head} onChange={updateSegment} />
+        </div>
+      </div>
+      <FieldRow label="速度响应" hint="移动越快，轨迹越有张力。" control={<Slider value={config.velocityResponse} min={0} max={100} suffix="%" onChange={(velocityResponse) => updateTrail({ velocityResponse })} label="鼠标拖尾速度响应" />} />
+      <FieldRow label="转向散射" hint="拐弯越急，越容易甩出侧向光点。" control={<Slider value={config.turnResponse} min={0} max={100} suffix="%" onChange={(turnResponse) => updateTrail({ turnResponse })} label="鼠标拖尾转向散射" />} />
+      <FieldRow label="手势爆发" hint="快速甩动产生闪光，急停形成收束涟漪。" control={<Slider value={config.gestureResponse} min={0} max={100} suffix="%" onChange={(gestureResponse) => updateTrail({ gestureResponse })} label="鼠标拖尾手势爆发" />} />
+    </WorkbenchEffectCard>
+  );
+}
+
+function TrailSegmentEditor({
+  segmentId,
+  label,
+  description,
+  value,
+  onChange,
+}: {
+  segmentId: CursorTrailSegmentId;
+  label: string;
+  description: string;
+  value: CursorTrailConfig["segments"][CursorTrailSegmentId];
+  onChange(segmentId: CursorTrailSegmentId, patch: Partial<CursorTrailConfig["segments"][CursorTrailSegmentId]>): void;
+}) {
+  return (
+    <section aria-label={`${label}轨迹样式`} className="rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm">
+      <div className="mb-2 flex items-center gap-2">
+        <span className="size-2.5 rounded-full ring-2 ring-white shadow-sm" style={{ backgroundColor: value.color }} aria-hidden="true" />
+        <span className="text-xs font-semibold text-slate-800">{label}</span>
+        <span className="text-2xs text-slate-500">{description}</span>
+      </div>
+      <div className="grid gap-2 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <ColorField label={`${label}颜色`} value={value.color} onChange={(color) => onChange(segmentId, { color })} />
+        <div className="space-y-1">
+          <Slider compact value={value.width} min={1} max={32} step={0.1} suffix="px" label={`${label}宽度`} onChange={(width) => onChange(segmentId, { width })} />
+          <Slider compact value={value.opacity} min={0} max={100} suffix="%" label={`${label}透明度`} onChange={(opacity) => onChange(segmentId, { opacity })} />
+        </div>
+      </div>
+    </section>
+  );
+}

@@ -15,7 +15,7 @@ import { cn } from "@/components/ui/utils";
 import { PanelSkeleton } from "@/components/ui/skeleton";
 import { ToastProvider, useToast } from "@/components/ui/toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { isDesktop, isExtension } from "@/shared/runtime";
+import { isDesktop } from "@/shared/runtime";
 import {
   activeAppInfoFromSnapshot,
   resolveAppRule,
@@ -200,7 +200,7 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
     totalMs: previewTimeline.totalMs,
   });
   const isPreviewingAiProposal = isPreviewingAction(selected.actionId);
-  const workbenchAtmosphere = isExtension() ? draft?.atmosphere : undefined;
+  const workbenchAtmosphere = draft?.atmosphere;
   const activeWorkspace = workspaceItems.find((item) => item.id === state.editor.workspaceId);
   const themeScoped = activeWorkspace?.group === "personalization";
   const {
@@ -314,6 +314,8 @@ function ThemeWorkbenchPageContent({ renderHeader }: ThemeWorkbenchPageProps) {
                         conflicts={currentConflicts}
                         atmosphere={workbenchAtmosphere}
                         updateAtmosphere={updateAtmosphere}
+                        accessibilityAuthorized={accessibilityAuthorized}
+                        onRequestAccessibility={requestAccessibility}
                       />
                     </div>
 

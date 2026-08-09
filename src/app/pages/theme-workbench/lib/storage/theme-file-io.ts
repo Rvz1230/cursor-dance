@@ -42,8 +42,8 @@ export async function downloadThemePackExport(themePack: CursorDanceTheme): Prom
   const bridge = getDialogBridge();
   if (bridge?.saveThemeFile) {
     const result = await bridge.saveThemeFile({ defaultFileName: fileName, contents });
-    if (!result.ok) throw new Error(result.error || "导出主题失败。");
-    return result.canceled ? null : fileName;
+    if (result.ok === false) throw new Error(result.error || "导出主题失败。");
+    return result.canceled === true ? null : fileName;
   }
 
   if (typeof window === "undefined" || typeof document === "undefined") {
@@ -66,8 +66,8 @@ export async function pickThemeFile(): Promise<PickedThemeFile | null> {
   const bridge = getDialogBridge();
   if (!bridge?.openThemeFile) return null;
   const result = await bridge.openThemeFile();
-  if (!result.ok) throw new Error(result.error || "读取主题文件失败。");
-  if (result.canceled) return null;
+  if (result.ok === false) throw new Error(result.error || "读取主题文件失败。");
+  if (result.canceled === true) return null;
   const fileName = result.filePath.split(/[\\/]/).pop() || "theme.json";
   return { fileName, contents: result.contents };
 }

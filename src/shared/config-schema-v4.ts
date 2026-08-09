@@ -7,7 +7,7 @@ type ConfigJsonValue =
   | ConfigJsonPrimitive
   | readonly ConfigJsonValue[]
   | { readonly [key: string]: ConfigJsonValue };
-type ConfigJsonObject = { readonly [key: string]: ConfigJsonValue };
+export type ConfigJsonObject = { readonly [key: string]: ConfigJsonValue };
 
 type ThemeKindV4 = "builtin" | "custom";
 type CursorBindingModeV4 = "inherit" | "override";

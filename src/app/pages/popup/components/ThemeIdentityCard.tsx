@@ -1,6 +1,7 @@
 import { useMemo, type CSSProperties } from "react";
 import { CircleDashed, ImagePlus, Monitor, MousePointer2, Sparkles, Type, Volume2, Wand2 } from "lucide-react";
 import { resolveThemeIcon } from "@/components/ui/theme-identity";
+import { getCursorTrailConfig } from "@/shared/config/cursor-trail";
 import AnimatedPreview from "../AnimatedPreview";
 
 export function themeIcon(theme) {
@@ -135,8 +136,7 @@ function ImageBlock({ ac, accent }) {
 function CursorFeedbackBlock({ ac, accent }) {
   const hasGlow = ac?.cursorGlowColor?.trim();
   const hasShake = ac?.shake;
-  const hasTrail = ac?.cursorTrailEnabled;
-  if (!hasGlow && !hasShake && !hasTrail) return null;
+  if (!hasGlow && !hasShake) return null;
   return (
     <span
       className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-2xs font-medium"
@@ -145,7 +145,20 @@ function CursorFeedbackBlock({ ac, accent }) {
       <MousePointer2 className="size-3.5" />
       {hasGlow && <span>光晕</span>}
       {hasShake && !hasGlow && <span>震动</span>}
-      {hasTrail && !hasGlow && !hasShake && <span>拖尾</span>}
+    </span>
+  );
+}
+
+function CursorTrailBlock({ atmosphere, accent }) {
+  const trail = getCursorTrailConfig(atmosphere);
+  if (!trail.enabled) return null;
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-2xs font-medium"
+      style={{ backgroundColor: `${accent}08`, color: accent }}
+    >
+      <MousePointer2 className="size-3.5" />
+      <span>拖尾</span>
     </span>
   );
 }
@@ -213,9 +226,10 @@ function BubbleBackground({ accent }) {
 
 // ── IdentityCard ─────────────────────────────────────────────
 
-export function ThemeIdentityCard({ actionConfig, accent, name, Icon: ThemeIcon, siteAction }) {
+export function ThemeIdentityCard({ actionConfig, accent, name, Icon: ThemeIcon, siteAction, atmosphere }) {
   const tags = effectSummary(actionConfig);
-  const hasEffects = tags.length > 0;
+  const hasTrail = getCursorTrailConfig(atmosphere).enabled;
+  const hasEffects = tags.length > 0 || hasTrail;
   const hasSiteRule = siteAction?.enable;
 
   return (
@@ -282,7 +296,7 @@ export function ThemeIdentityCard({ actionConfig, accent, name, Icon: ThemeIcon,
                 </div>
               )}
               {/* Feedback group */}
-              {(actionConfig?.textEnabled || actionConfig?.sound || actionConfig?.imageEnabled || actionConfig?.cursorGlowColor?.trim() || actionConfig?.shake || actionConfig?.cursorTrailEnabled) && (
+              {(actionConfig?.textEnabled || actionConfig?.sound || actionConfig?.imageEnabled || actionConfig?.cursorGlowColor?.trim() || actionConfig?.shake || hasTrail) && (
                 <div className="flex flex-col gap-0.5">
                   <span className="text-xs font-semibold text-xs font-semibold text-slate-400">反馈</span>
                   <div className="flex flex-wrap gap-1">
@@ -290,6 +304,7 @@ export function ThemeIdentityCard({ actionConfig, accent, name, Icon: ThemeIcon,
                     <SoundBlock ac={actionConfig} />
                     <ImageBlock ac={actionConfig} accent={accent} />
                     <CursorFeedbackBlock ac={actionConfig} accent={accent} />
+                    <CursorTrailBlock atmosphere={atmosphere} accent={accent} />
                   </div>
                 </div>
               )}

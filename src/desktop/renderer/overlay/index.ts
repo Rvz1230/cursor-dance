@@ -45,6 +45,8 @@ import type {
   PointerInputEvent,
   RuntimeInputEvent,
 } from "../../../shared/effect-runtime/contracts";
+import { getCursorTrailConfig } from "../../../shared/config/cursor-trail";
+import { createCursorTrailSurface } from "../../../shared/effect-runtime/cursor-trail-surface";
 
 const constants: EngineConstants = {
   ROOT_ID: "cursordance-root",
@@ -159,6 +161,15 @@ const engine = createEffectEngine({
   diagnostics,
   reportRuntimeError: (scope, message) => diagnostics.log("runtime-error", { scope, message }),
 });
+const cursorTrail = createCursorTrailSurface({ window, document });
+
+function syncCursorTrailConfig(): void {
+  if (configStore.isCurrentSiteEnabled?.() === false) {
+    cursorTrail.syncConfig({ enabled: false });
+    return;
+  }
+  cursorTrail.syncConfig(getCursorTrailConfig(configStore.getActiveTheme?.()?.atmosphere));
+}
 
 function syncCursorSkinAtLastPosition(): void {
   const gx = state.lastMouseGlobalX;
@@ -187,6 +198,7 @@ function resetOverlayRuntime(): void {
   engine.triggerHandlers.reset();
   engine.effectSurface.clear();
   engine.cursorOverlay.clearStateCursorOverlay();
+  cursorTrail.syncConfig({ enabled: false });
   engine.audioRuntime.suspend();
   state.lastSoundAtByAction = {};
   state.lastKeydownAtByKeycode?.clear();
@@ -202,6 +214,7 @@ function syncRuntimeAvailability(): void {
     return;
   }
   syncCursorSkinAtLastPosition();
+  syncCursorTrailConfig();
 }
 
 function applyOverlayConfig(next: unknown, source: "stored" | "live-preview" | "default"): void {
@@ -320,6 +333,7 @@ function dispatchPointer(cursorEvent: PointerInputEvent): void {
     }
     setActiveCursorSkinState(dragStarted ? "grabbing" : "default");
     engine.cursorOverlay.syncStateCursorOverlay(cursorEvent.x, cursorEvent.y, resolveCachedCursorState());
+    cursorTrail.move(cursorEvent.x, cursorEvent.y);
     return;
   }
 
@@ -372,6 +386,7 @@ function dispatchInput(event: RuntimeInputEvent): void {
     setActiveCursorSkinState("default");
     engine.triggerHandlers.handlePointerCancel();
     engine.cursorOverlay.clearStateCursorOverlay();
+    cursorTrail.leave();
     setNativeCursorHidden(false);
     return;
   }
@@ -393,6 +408,7 @@ window.addEventListener("beforeunload", () => {
   unsubscribeActiveWindow?.();
   unsubscribeInput();
   resetOverlayRuntime();
+  cursorTrail.destroy();
 });
 
 console.info("[cursordance] overlay engine wired");

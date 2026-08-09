@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { Circle } from "lucide-react";
 import { buildWorkbenchCommands } from "./useWorkbenchPageActions";
 
 const noop = vi.fn();
@@ -8,7 +9,7 @@ function build(overrides: Partial<Parameters<typeof buildWorkbenchCommands>[0]> 
     workspaceItems: [{
       id: "workbench",
       label: "主题与效果",
-      icon: () => null,
+      icon: Circle,
       group: "personalization",
     }],
     unsaved: false,
@@ -25,6 +26,8 @@ function build(overrides: Partial<Parameters<typeof buildWorkbenchCommands>[0]> 
     resetCurrentTheme: noop,
     undo: noop,
     redo: noop,
+    runtimeTarget: "desktop",
+    openRuntimePreview: noop,
     ...overrides,
   });
 }
@@ -55,5 +58,11 @@ describe("buildWorkbenchCommands", () => {
       "redo",
     ]));
     expect(commands.find((command) => command.id === "undo")?.label).toBe("撤销：字号");
+  });
+
+  it("uses local save language and exposes the real Web runtime", () => {
+    const commands = build({ runtimeTarget: "local", unsaved: true });
+    expect(commands.find((command) => command.id === "apply")?.label).toBe("保存到浏览器");
+    expect(commands.find((command) => command.id === "open-runtime-preview")?.label).toBe("打开网页试用");
   });
 });

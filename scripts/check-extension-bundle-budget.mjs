@@ -7,10 +7,13 @@ const distRoot = resolve(projectRoot, "dist");
 const budgets = {
   popupInitialRawBytes: 370_000,
   popupInitialGzipBytes: 112_000,
-  optionsInitialRawBytes: 650_000,
-  optionsInitialGzipBytes: 200_000,
+  // 主题级鼠标拖尾新增三段配置与录制/循环预览；保留约 1.5% 窄幅余量。
+  // 平台语义分流与网页试用入口约增加 3.6 KB / 2.6 KB。
+  optionsInitialRawBytes: 695_000,
+  optionsInitialGzipBytes: 212_000,
   largestJavaScriptChunkBytes: 350_000,
-  contentRuntimeBytes: 100_000,
+  // Content runtime 接入同一套拖尾 surface，并包含转向散射与甩动/急停手势运行时。
+  contentRuntimeBytes: 108_000,
 };
 
 async function measureInitialAssets(entryName) {

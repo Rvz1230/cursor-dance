@@ -59,7 +59,7 @@ npm run dev:electron
 - **7 种触发动作**：左键单击、右键单击、双击、长按、滚轮、悬停、悬停离开
 - **8 类反馈效果**：数字/文本飘字、粒子、波纹、音效、动画、图片贴纸、光标形状、氛围粒子
 - **光标状态**：按平台暴露运行时真正能识别的状态——扩展 6 种（普通、文本选择、可点击、不可用、忙碌、帮助），桌面 2 种（普通、拖拽中）。每种可独立绑定动作和光标图案。清单与可达性的唯一真值源是 `src/shared/cursor-states.ts`
-- **氛围效果（Chrome 扩展）**：自定义光标拖尾、氛围粒子、视差跟随，增强页面沉浸感
+- **持续效果**：Web 与桌面端共享可编辑鼠标拖尾；网页端另支持可点击元素的磁场光晕
 - **主题系统**：4 套内置主题 + 自定义主题的创建、复制、导入/导出
 - **站点规则**：按域名独立配置启用/禁用、指定专属主题
 - **AI 方案助手**：自然语言描述需求，自动生成效果配置
@@ -201,6 +201,20 @@ cursor-dance/
       hover: { ... }
     },
     keyFeedbackConfig: { enabled: true, ... }
+    atmosphere: {
+      mode: "none",
+      trail: {
+        enabled: true,
+        shape: "ribbon",
+        length: 24,
+        segments: {
+          tail: { color: "#14B8A6", width: 2.4, opacity: 24 },
+          middle: { color: "#508ACE", width: 4.96, opacity: 52 },
+          head: { color: "#8B5CF6", width: 8, opacity: 72 }
+        },
+        ...
+      }
+    }
   }],
   contextRules: [
     { id: "r1", context: "web", enabled: true, match: { type: "glob", host: "*.example.com" }, action: { type: "enable", themeId: "petal" } }

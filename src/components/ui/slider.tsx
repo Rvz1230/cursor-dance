@@ -18,7 +18,11 @@ export function snapSliderValue(
   snapToTicks = false,
   disableSnap = false,
 ): number {
-  const stepped = Math.round(value / step) * step;
+  const stepText = String(step).toLowerCase();
+  const decimalPlaces = stepText.includes("e-")
+    ? Number(stepText.split("e-")[1])
+    : (stepText.split(".")[1]?.length ?? 0);
+  const stepped = Number((Math.round(value / step) * step).toFixed(Math.min(12, decimalPlaces)));
   if (!snapToTicks || disableSnap) return clampSliderValue(stepped, min, max);
   const threshold = (max - min) * 0.03;
   const tick = ticks.find((candidate) => Math.abs(candidate - stepped) <= threshold);

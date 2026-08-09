@@ -138,6 +138,91 @@ test("popup theme selection, live preview override, and fallback to saved config
   await clickAndExpectText(page, "+1");
 });
 
+test("saved cursor trail runs in the standalone Web runtime page", async ({ context, page }) => {
+  await clearLocalState(page);
+
+  const workbenchPage = await context.newPage();
+  await workbenchPage.goto("/index.html");
+  await expect(workbenchPage.getByRole("button", { name: "网页试用" })).toBeVisible();
+
+  const trailPanel = panelByName(workbenchPage, /^鼠标拖尾$/);
+  await trailPanel.getByRole("switch", { name: "鼠标拖尾开关" }).click();
+  await trailPanel.getByRole("radio", { name: "星尘", exact: true }).click();
+
+  const previewStage = workbenchPage.getByTestId("trail-preview-stage");
+  const editorState = previewStage.locator("[data-trail-editor-state]");
+  await previewStage.getByRole("button", { name: "录制路径", exact: true }).click();
+  await expect(editorState).toHaveAttribute("data-trail-editor-state", "armed");
+  const stageBox = await previewStage.boundingBox();
+  if (!stageBox) throw new Error("Trail preview stage has no layout box");
+  await workbenchPage.mouse.move(stageBox.x + stageBox.width * 0.2, stageBox.y + stageBox.height * 0.55);
+  await workbenchPage.mouse.down();
+  await workbenchPage.mouse.move(stageBox.x + stageBox.width * 0.45, stageBox.y + stageBox.height * 0.25, { steps: 8 });
+  await workbenchPage.mouse.move(stageBox.x + stageBox.width * 0.78, stageBox.y + stageBox.height * 0.62, { steps: 10 });
+  await workbenchPage.mouse.up();
+  await expect(editorState).toHaveAttribute("data-trail-editor-state", "playing");
+  await previewStage.getByRole("button", { name: "暂停轨迹循环" }).click();
+  await expect(editorState).toHaveAttribute("data-trail-editor-state", "paused");
+  await previewStage.getByRole("button", { name: "播放轨迹循环" }).click();
+  await expect(editorState).toHaveAttribute("data-trail-editor-state", "playing");
+
+  await revealPanelSettings(trailPanel);
+  await trailPanel.getByRole("button", { name: /^尾部颜色：/ }).click();
+  const tailColorInput = workbenchPage.getByLabel("输入尾部颜色十六进制值");
+  await tailColorInput.fill("#123456");
+  await tailColorInput.press("Enter");
+  await tailColorInput.press("Escape");
+  await trailPanel.getByRole("spinbutton", { name: "尾部宽度" }).fill("3.7");
+  await trailPanel.getByRole("spinbutton", { name: "尾部宽度" }).press("Enter");
+  await trailPanel.getByRole("spinbutton", { name: "中段透明度" }).fill("47");
+  await trailPanel.getByRole("spinbutton", { name: "中段透明度" }).press("Enter");
+  await trailPanel.getByRole("spinbutton", { name: "光标附近宽度" }).fill("11.2");
+  await trailPanel.getByRole("spinbutton", { name: "光标附近宽度" }).press("Enter");
+  await expect(editorState).toHaveAttribute("data-trail-editor-state", "playing");
+  await workbenchPage.getByRole("button", { name: "保存到浏览器" }).click();
+
+  await expect.poll(() => workbenchPage.evaluate((configKey) => {
+    const raw = window.localStorage.getItem(configKey);
+    if (!raw) return null;
+    const config = JSON.parse(raw);
+    const theme = config.themes?.find((item) => item.id === config.activeThemeId);
+    return theme?.atmosphere?.trail ?? null;
+  }, CONFIG_STORAGE_KEY)).toMatchObject({
+    enabled: true,
+    shape: "stardust",
+    turnResponse: 88,
+    gestureResponse: 72,
+    colors: ["#123456", "#FB7185"],
+    width: 11.2,
+    segments: {
+      tail: { color: "#123456", width: 3.7, opacity: 27 },
+      middle: { color: "#F88848", width: 4.34, opacity: 47 },
+      head: { color: "#FB7185", width: 11.2, opacity: 78 },
+    },
+  });
+
+  await workbenchPage.getByRole("button", { name: "网页试用" }).click();
+  const runtimePage = workbenchPage;
+  await runtimePage.waitForLoadState("domcontentloaded");
+  await expect(runtimePage).toHaveURL(/\/runtime-preview\.html$/);
+  await expect(runtimePage.locator('canvas[data-cursordance-trail="true"]')).toBeVisible();
+
+  await runtimePage.mouse.move(260, 360);
+  await runtimePage.mouse.move(760, 360, { steps: 12 });
+  await runtimePage.mouse.move(760, 700, { steps: 8 });
+  await runtimePage.waitForFunction(() => {
+    const canvas = document.querySelector('canvas[data-cursordance-trail="true"]');
+    if (!(canvas instanceof HTMLCanvasElement)) return false;
+    const context2d = canvas.getContext("2d");
+    if (!context2d) return false;
+    const pixels = context2d.getImageData(0, 0, canvas.width, canvas.height).data;
+    for (let index = 3; index < pixels.length; index += 4) {
+      if (pixels[index] > 0) return true;
+    }
+    return false;
+  });
+});
+
 test("image effect can preview live, save into config, and render in content runtime", async ({ context, page }) => {
   await clearLocalState(page);
 
@@ -164,7 +249,7 @@ test("image effect can preview live, save into config, and render in content run
   await page.reload();
   await clickAndExpectImageEffect(page);
 
-  await workbenchPage.getByRole("button", { name: "应用到桌面" }).click();
+  await workbenchPage.getByRole("button", { name: "保存到浏览器" }).click();
   await page.waitForFunction((configKey) => {
     const raw = window.localStorage.getItem(configKey);
     if (!raw) return false;
@@ -204,7 +289,7 @@ test("animation effect can preview live, save into config, and render in content
   await page.reload();
   await clickAndExpectAnimationEffect(page);
 
-  await workbenchPage.getByRole("button", { name: "应用到桌面" }).click();
+  await workbenchPage.getByRole("button", { name: "保存到浏览器" }).click();
   await page.waitForFunction((configKey) => {
     const raw = window.localStorage.getItem(configKey);
     if (!raw) return false;
@@ -235,7 +320,7 @@ test("audio blend modes stay distinguishable on bilibili-like media reassertion"
 
   await audioPanel.getByRole("switch", { name: "音效开关" }).click();
   await selectRadixOption(workbenchPage, audioPanel, 1, "保持原音量");
-  await workbenchPage.getByRole("button", { name: "应用到桌面" }).click();
+  await workbenchPage.getByRole("button", { name: "保存到浏览器" }).click();
   await waitForStoredAudioBlendMode(workbenchPage, "保持原音量");
 
   await page.evaluate(() => window.__cursorDanceSmokeMedia?.reset());
@@ -246,7 +331,7 @@ test("audio blend modes stay distinguishable on bilibili-like media reassertion"
   });
 
   await selectRadixOption(workbenchPage, audioPanel, 1, "压低页面音频");
-  await workbenchPage.getByRole("button", { name: "应用到桌面" }).click();
+  await workbenchPage.getByRole("button", { name: "保存到浏览器" }).click();
   await waitForStoredAudioBlendMode(workbenchPage, "压低页面音频");
 
   await page.evaluate(() => {
@@ -260,7 +345,7 @@ test("audio blend modes stay distinguishable on bilibili-like media reassertion"
   });
 
   await selectRadixOption(workbenchPage, audioPanel, 1, "仅插件音效");
-  await workbenchPage.getByRole("button", { name: "应用到桌面" }).click();
+  await workbenchPage.getByRole("button", { name: "保存到浏览器" }).click();
   await waitForStoredAudioBlendMode(workbenchPage, "仅插件音效");
 
   await page.evaluate(() => {
@@ -358,8 +443,8 @@ test("workbench dialogs, save toast, color picker, and slider controls are usabl
   await fontSizeInput.fill("26");
   await fontSizeInput.blur();
 
-  await workbenchPage.getByRole("button", { name: "应用到桌面" }).click();
-  await expect(workbenchPage.getByLabel("Notifications (F8)").getByText("已应用到桌面", { exact: true })).toBeVisible();
+  await workbenchPage.getByRole("button", { name: "保存到浏览器" }).click();
+  await expect(workbenchPage.getByLabel("Notifications (F8)").getByText("已保存到浏览器", { exact: true })).toBeVisible();
 
   await workbenchPage.waitForFunction((configKey) => {
     const raw = window.localStorage.getItem(configKey);

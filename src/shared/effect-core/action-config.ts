@@ -95,7 +95,7 @@ const ACTION_IMAGE_FIELDS = [
   "imageOffsetY",
   "imageDelay",
 ] as const;
-const ACTION_CURSOR_FEEDBACK_FIELDS = ["shake", "cursorOverride", "cursorSize", "cursorTrailEnabled", "cursorTrailCount", "cursorTrailOpacity", "cursorGlowColor"] as const;
+const ACTION_CURSOR_FEEDBACK_FIELDS = ["shake", "cursorOverride", "cursorSize", "cursorGlowColor"] as const;
 
 const ACTION_RUNTIME_FIELDS = Array.from(new Set([
   ...ACTION_TRIGGER_FIELDS,

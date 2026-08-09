@@ -5,4 +5,3 @@ const PLATFORM = typeof window !== "undefined" && "cursorDanceApp" in window
   : "extension" as const;
 
 export const isDesktop = () => PLATFORM === "desktop";
-export const isExtension = () => PLATFORM === "extension";

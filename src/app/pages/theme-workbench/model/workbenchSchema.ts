@@ -19,6 +19,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { defaultKeyFeedbackConfig } from "@/shared/config/key-feedback";
+import { createDefaultAtmosphereConfig } from "@/shared/config/cursor-trail";
 import { defaultConfig } from "@/shared/config/default-config";
 import {
   AUDIO_BLEND_OPTIONS,
@@ -281,7 +282,7 @@ export function createThemeDraft(themeId: string | null | undefined): WorkbenchT
     cursorSkin: createCursorSkin(),
     keyFeedbackConfig: { ...defaultKeyFeedbackConfig },
     resetKeyFeedbackConfig: { ...defaultKeyFeedbackConfig },
-    atmosphere: { mode: "none" },
+    atmosphere: createDefaultAtmosphereConfig(),
   };
 }
 

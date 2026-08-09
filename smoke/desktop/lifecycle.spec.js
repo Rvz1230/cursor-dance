@@ -278,16 +278,19 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
       appMethods: [
         "checkForUpdates",
         "downloadUpdate",
+        "getAccessibilityState",
         "getActiveWindow",
         "getFirstRun",
         "getUpdateState",
         "installUpdate",
         "listInstalledApplications",
         "markFirstRunComplete",
+        "onAccessibilityStateChanged",
         "onActiveWindowChanged",
         "onUpdateStateChanged",
         "openExternal",
         "pickWindow",
+        "requestAccessibility",
       ],
       updateState: { status: "unsupported" },
       windowControls: true,
@@ -360,10 +363,50 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
       return testing.getCursorIpcCount();
     })).resolves.toBe(0);
 
-    await workbenchPage.evaluate(async () => {
+    const desktopStoredTrail = await workbenchPage.evaluate(async () => {
       if (!window.cursorDanceStorage) throw new Error("cursorDanceStorage bridge is unavailable");
       const current = await window.cursorDanceStorage.getConfig();
-      await window.cursorDanceStorage.setConfig({ ...(current || {}), enabled: true });
+      const config = current || {};
+      const activeThemeId = config.activeThemeId;
+      const stored = await window.cursorDanceStorage.setConfig({
+        ...config,
+        enabled: true,
+        themes: (config.themes || []).map((theme) => theme.id === activeThemeId ? {
+          ...theme,
+          atmosphere: {
+            ...(theme.atmosphere || {}),
+            trail: {
+              enabled: true,
+              shape: "stardust",
+              length: 32,
+              width: 7,
+              lifetimeMs: 520,
+              smoothing: 42,
+              opacity: 78,
+              glow: 10,
+              velocityResponse: 82,
+              turnResponse: 88,
+              gestureResponse: 72,
+              colors: ["#F59E0B", "#FB7185"],
+              segments: {
+                tail: { color: "#F59E0B", width: 2.1, opacity: 27 },
+                middle: { color: "#F88848", width: 4.34, opacity: 56 },
+                head: { color: "#FB7185", width: 7, opacity: 78 },
+              },
+            },
+          },
+        } : theme),
+      });
+      return stored.themes.find((theme) => theme.id === stored.activeThemeId)?.atmosphere?.trail;
+    });
+    expect(desktopStoredTrail).toMatchObject({
+      enabled: true,
+      shape: "stardust",
+      segments: {
+        tail: { color: "#F59E0B", width: 2.1, opacity: 27 },
+        middle: { color: "#F88848", width: 4.34, opacity: 56 },
+        head: { color: "#FB7185", width: 7, opacity: 78 },
+      },
     });
     await expect.poll(async () => {
       const state = await readWindowState(electronApp);
@@ -399,6 +442,33 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
       title: "README — CursorDance smoke",
     };
     const overlayOrigin = await overlayPage.evaluate(() => ({ x: window.screenX, y: window.screenY }));
+    const sendMove = (x, y) => electronApp.evaluate((_electron, point) => {
+      const testing = globalThis.__cursorDanceMainTesting;
+      if (!testing) throw new Error("Desktop smoke routing bridge is unavailable");
+      testing.routeCursorEvent({
+        type: "mousemove",
+        x: point.x,
+        y: point.y,
+        buttons: 0,
+        timestamp: Date.now(),
+      });
+    }, { x: overlayOrigin.x + x, y: overlayOrigin.y + y });
+    await sendMove(100, 160);
+    await overlayPage.waitForTimeout(24);
+    await sendMove(420, 160);
+    await overlayPage.waitForTimeout(24);
+    await sendMove(420, 420);
+    await expect.poll(() => overlayPage.evaluate(() => {
+      const canvas = document.querySelector('canvas[data-cursordance-trail="true"]');
+      if (!(canvas instanceof HTMLCanvasElement)) return false;
+      const context = canvas.getContext("2d");
+      if (!context) return false;
+      const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+      for (let index = 3; index < pixels.length; index += 4) {
+        if (pixels[index] > 0) return true;
+      }
+      return false;
+    })).toBe(true);
     await electronApp.evaluate(() => {
       const testing = globalThis.__cursorDanceMainTesting;
       if (!testing) throw new Error("Desktop smoke routing bridge is unavailable");

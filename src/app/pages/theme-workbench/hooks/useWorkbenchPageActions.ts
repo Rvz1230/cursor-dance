@@ -6,6 +6,12 @@ import { useGlobalShortcuts } from "./useGlobalShortcuts";
 import { WORKSPACE_SHORTCUT_ORDER } from "../lib/shortcuts";
 import type { useToast } from "@/components/ui/toast";
 import type { WorkbenchActionConfig } from "./workbenchStateTypes";
+import {
+  detectWorkbenchRuntimeTarget,
+  getWorkbenchRuntimeCopy,
+  openLocalRuntimePreview,
+  type WorkbenchRuntimeTarget,
+} from "../lib/workbenchRuntimeTarget";
 
 type Toast = ReturnType<typeof useToast>;
 type LayoutSetter = (preset: Exclude<WorkbenchLayoutPreset, "custom">) => void;
@@ -34,6 +40,8 @@ interface BuildWorkbenchCommandsOptions {
   resetCurrentTheme: () => void;
   undo: () => void;
   redo: () => void;
+  runtimeTarget: WorkbenchRuntimeTarget;
+  openRuntimePreview: () => void;
 }
 
 export function buildWorkbenchCommands({
@@ -52,7 +60,10 @@ export function buildWorkbenchCommands({
   resetCurrentTheme,
   undo,
   redo,
+  runtimeTarget,
+  openRuntimePreview,
 }: BuildWorkbenchCommandsOptions): WorkbenchCommand[] {
+  const runtimeCopy = getWorkbenchRuntimeCopy(runtimeTarget);
   return [
     ...workspaceItems.map((item) => ({
       id: `workspace-${item.id}`,
@@ -66,13 +77,13 @@ export function buildWorkbenchCommands({
     ...(unsaved ? [{
       id: "apply",
       group: "编辑" as const,
-      label: themeScoped ? "应用到桌面" : "应用全局设置",
+      label: themeScoped ? runtimeCopy.applyTheme : runtimeCopy.applyGlobal,
       keywords: ["保存", "发布"],
       run: applyChanges,
     }, {
       id: "restore-applied",
       group: "编辑" as const,
-      label: "恢复已应用版本",
+      label: runtimeCopy.restore,
       keywords: ["撤销草稿", "回退"],
       run: restoreAppliedChanges,
     }] : []),
@@ -95,6 +106,13 @@ export function buildWorkbenchCommands({
       label: `重做：${redoLabel}`,
       shortcut: "⌘⇧Z",
       run: redo,
+    }] : []),
+    ...(runtimeTarget === "local" ? [{
+      id: "open-runtime-preview",
+      group: "视图" as const,
+      label: "打开网页试用",
+      keywords: ["拖尾", "运行时", "预览"],
+      run: openRuntimePreview,
     }] : []),
     ...(isWorkbench ? [{
       id: "toggle-ai",
@@ -126,7 +144,7 @@ interface UseWorkbenchPageActionsOptions {
   setWorkspaceId: WorkbenchHeaderProps["setWorkspaceId"];
   setEnabled: WorkbenchHeaderProps["setEnabled"];
   saveChanges: () => Promise<SaveResult>;
-  restoreAppliedChanges: () => Promise<void>;
+  restoreAppliedChanges: () => Promise<unknown>;
   resetCurrentTheme: () => void;
   updateActionConfig: (patch: WorkbenchActionConfig) => void;
   keyboardCaptureActive: boolean;
@@ -172,6 +190,8 @@ export function useWorkbenchPageActions({
   commandPaletteCommands: WorkbenchCommand[];
   handleUpdateActionConfig: (patch: WorkbenchActionConfig) => void;
 } {
+  const runtimeTarget = detectWorkbenchRuntimeTarget();
+  const runtimeCopy = getWorkbenchRuntimeCopy(runtimeTarget);
   function runUndo(): void {
     const label = undoStack.undo(selectedThemeId);
     toast(label
@@ -196,16 +216,33 @@ export function useWorkbenchPageActions({
 
   async function applyChanges(): Promise<void> {
     const result = await saveChanges();
-    toast(result.ok
-      ? { tone: "success", title: "已应用到桌面" }
-      : { tone: "error", title: "保存失败", description: result.error || "请稍后重试。" });
+    if (result.ok) {
+      toast({
+        tone: "success",
+        title: runtimeCopy.success,
+        ...(runtimeTarget === "local"
+          ? { description: "点击“网页试用”即可在真实内容运行时中体验拖尾。" }
+          : {}),
+      });
+      return;
+    }
+    toast({ tone: "error", title: "保存失败", description: ("error" in result ? result.error : "") || "请稍后重试。" });
+  }
+
+  function openRuntimePreview(): void {
+    if (openLocalRuntimePreview()) return;
+    toast({
+      tone: "error",
+      title: "无法打开网页试用",
+      description: "请刷新工作台后重试。",
+    });
   }
 
   async function restoreChanges(): Promise<void> {
     try {
       await restoreAppliedChanges();
       clearPreview();
-      toast({ tone: "info", title: "已恢复桌面正在使用的版本" });
+      toast({ tone: "info", title: runtimeCopy.restored });
     } catch (error) {
       toast({
         tone: "error",
@@ -248,6 +285,8 @@ export function useWorkbenchPageActions({
     saveError,
     saveChanges: () => { void applyChanges(); },
     restoreAppliedChanges: () => { void restoreChanges(); },
+    runtimeTarget,
+    openRuntimePreview: runtimeTarget === "local" ? openRuntimePreview : undefined,
     resetCurrentTheme: resetTheme,
     aiPanelOpen,
     setAiPanelOpen,
@@ -277,6 +316,8 @@ export function useWorkbenchPageActions({
       resetCurrentTheme: resetTheme,
       undo: runUndo,
       redo: runRedo,
+      runtimeTarget,
+      openRuntimePreview,
     }),
     handleUpdateActionConfig,
   };

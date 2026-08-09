@@ -11,6 +11,7 @@ describe("slider value contract", () => {
   it("quantizes values to the configured step", () => {
     expect(snapSliderValue(12.6, 0, 100, 1)).toBe(13);
     expect(snapSliderValue(12.4, 0, 100, 0.5)).toBe(12.5);
+    expect(snapSliderValue(11.2, 1, 32, 0.1)).toBe(11.2);
   });
 
   it("snaps near a tick and lets Option temporarily bypass snapping", () => {

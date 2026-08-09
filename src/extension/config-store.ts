@@ -15,6 +15,10 @@ import type {
   CursorDanceTheme,
   CursorSkinState,
 } from "@/shared/domain/cursor-dance";
+import {
+  getCursorTrailConfig,
+  type AtmosphereConfig,
+} from "@/shared/config/cursor-trail";
 
 type ActionConfig = Record<string, unknown>;
 type ContentTheme = CursorDanceTheme;
@@ -78,7 +82,7 @@ export interface ContentConfigStore {
   getMaxActiveEffects(): number;
   syncConfigFromStorage(options: { clearStateCursorOverlay(): void }): Promise<void>;
   debouncedSyncConfigFromStorage(options: { clearStateCursorOverlay(): void }): void;
-  getAtmosphereConfig(theme: ContentTheme | null | undefined): { mode: string };
+  getAtmosphereConfig(theme: ContentTheme | null | undefined): AtmosphereConfig;
   setOnSyncComplete(callback: (() => void) | null): void;
   destroy(): void;
 }
@@ -195,9 +199,15 @@ export function createContentConfigStore(runtime: ContentConfigStoreRuntime): Co
     onSyncComplete = callback;
   }
 
-  function getAtmosphereConfig(theme: ContentTheme | null | undefined): { mode: string } {
-    const mode = theme?.atmosphere?.mode;
-    return { mode: typeof mode === "string" ? mode : "none" };
+  function getAtmosphereConfig(theme: ContentTheme | null | undefined): AtmosphereConfig {
+    const source = theme?.atmosphere;
+    const mode = source?.mode;
+    return {
+      mode: typeof mode === "string" ? mode : "none",
+      ...(typeof source?.magnetRadius === "number" ? { magnetRadius: source.magnetRadius } : {}),
+      ...(typeof source?.magnetStrength === "number" ? { magnetStrength: source.magnetStrength } : {}),
+      trail: getCursorTrailConfig(source),
+    };
   }
 
   async function syncConfigFromStorage({ clearStateCursorOverlay }: {

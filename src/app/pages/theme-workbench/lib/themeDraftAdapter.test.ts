@@ -95,6 +95,39 @@ describe("themeDraftAdapter schema v4", () => {
     expect(validateCursorDanceConfigV4(stored).ok).toBe(true);
   });
 
+  it("keeps the complete theme-level trail when saving and rehydrating", () => {
+    const state = hydrate();
+    const draft = getTheme(state).draft;
+    draft.atmosphere = {
+      ...draft.atmosphere,
+      trail: {
+        enabled: true,
+        shape: "stardust",
+        length: 32,
+        width: 7,
+        lifetimeMs: 520,
+        smoothing: 42,
+        opacity: 78,
+        glow: 10,
+        velocityResponse: 82,
+        turnResponse: 88,
+        gestureResponse: 72,
+        colors: ["#F59E0B", "#FB7185"],
+      },
+    };
+
+    const stored = buildStoredConfigFromWorkbench(defaultConfig, state);
+    const storedTrail = stored.themes.find((theme) => theme.id === state.domain.activeThemeId)?.atmosphere?.trail;
+    expect(storedTrail).toMatchObject({
+      enabled: true,
+      shape: "stardust",
+      turnResponse: 88,
+      gestureResponse: 72,
+    });
+    const rehydrated = hydrate(stored);
+    expect(getTheme(rehydrated).draft.atmosphere.trail).toEqual(storedTrail);
+  });
+
   it("round-trips web and desktop rules through contextRules", () => {
     const state = hydrate();
     state.domain.siteRules = [{

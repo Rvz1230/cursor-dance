@@ -97,10 +97,21 @@ export const CARD_RESET_FIELDS: Record<string, readonly string[]> = {
     "shake",
     "cursorOverride",
     "cursorSize",
-    "cursorTrailEnabled",
-    "cursorTrailCount",
-    "cursorTrailOpacity",
     "cursorGlowColor",
+  ],
+  trail: [
+    "shape",
+    "length",
+    "width",
+    "lifetimeMs",
+    "smoothing",
+    "opacity",
+    "glow",
+    "velocityResponse",
+    "turnResponse",
+    "gestureResponse",
+    "colors",
+    "segments",
   ],
 };
 
@@ -118,7 +129,7 @@ export function buildCardResetPatch(
     const currentValue = currentConfig[field];
     const defaultValue = defaultConfig[field];
     if (!shallowEqual(currentValue, defaultValue)) {
-      patch[field] = Array.isArray(defaultValue) ? [...defaultValue] : defaultValue;
+      patch[field] = cloneResetValue(defaultValue);
       changed = true;
     }
   }
@@ -134,5 +145,19 @@ function shallowEqual(a: unknown, b: unknown): boolean {
     }
     return true;
   }
+  if (a && b && typeof a === "object" && typeof b === "object") {
+    const left = a as Record<string, unknown>;
+    const right = b as Record<string, unknown>;
+    const keys = Object.keys(left);
+    return keys.length === Object.keys(right).length && keys.every((key) => shallowEqual(left[key], right[key]));
+  }
   return false;
+}
+
+function cloneResetValue<T>(value: T): T {
+  if (Array.isArray(value)) return value.map(cloneResetValue) as T;
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, cloneResetValue(item)])) as T;
+  }
+  return value;
 }

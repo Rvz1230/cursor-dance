@@ -152,7 +152,7 @@ export function AppRulesPanel({
   const startPicking = async () => {
     if (!activeApp?.authorized) {
       setPickerAnchor(null);
-      notify?.({ title: "暂时无法识别目标应用", description: activeApp?.message || "请切换到目标应用后重试。", tone: "warning" });
+      notify?.({ title: "暂时无法识别目标应用", description: activeApp && "message" in activeApp ? activeApp.message : "请切换到目标应用后重试。", tone: "warning" });
       return;
     }
     setPickerAnchor(null);

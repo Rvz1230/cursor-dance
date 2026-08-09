@@ -75,6 +75,12 @@ interface CursorDanceThemeV4 {
 
 这会替代 v3 中互相重叠的 `cursorStates`、`cursorModes`、`cursorStateActions`、`cursorStateAssets` 以及两处 `cursorSkin`。
 
+### 持续效果
+
+`atmosphere` 保存不依赖单次点击动作的主题级效果。`atmosphere.trail` 是 Web 与桌面端共享的鼠标拖尾配置，包含启用状态、形态、采样长度、余辉时间、平滑度、柔光、速度响应、转向散射和手势爆发。`segments.tail / middle / head` 分别保存尾部、中段和光标附近的颜色、宽度与透明度；旧配置中的 `colors / width / opacity` 仍会被读取并自动推导三段样式。网页端的磁场光晕继续使用同一对象中的 `mode`、`magnetRadius` 与 `magnetStrength`。
+
+拖尾不写入任何 `actionConfigs`：动作配置只描述一次点击、滚轮或长按产生的反馈，持续移动效果始终跟随当前主题。
+
 ### 素材引用
 
 ```ts

@@ -6,6 +6,10 @@ import {
 } from "@/shared/config/default-config";
 import { createContentAtmosphere, type ContentAtmosphere } from "./atmosphere";
 import {
+  createCursorTrailSurface,
+  type CursorTrailSurface,
+} from "@/shared/effect-runtime/cursor-trail-surface";
+import {
   createContentAudioRuntime,
   type ContentAudioState,
 } from "./audio";
@@ -82,6 +86,7 @@ const contentRuntimeFactories = {
   createCursorOverlay: createContentCursorOverlay,
   createTriggerHandlers: createContentTriggerHandlers,
   createAtmosphere: createContentAtmosphere,
+  createCursorTrail: createCursorTrailSurface,
 };
 
 type ContentRuntimeFactories = typeof contentRuntimeFactories;
@@ -235,6 +240,10 @@ export function startContentRuntime(options: ContentRuntimeOptions = {}): Conten
     ...runtime,
     diagnostics,
   });
+  const cursorTrail: CursorTrailSurface = factories.createCursorTrail({
+    window: platformWindow,
+    document: platformDocument,
+  });
 
   let destroyed = false;
   let localPreviewChannel: BroadcastChannel | null = null;
@@ -244,7 +253,14 @@ export function startContentRuntime(options: ContentRuntimeOptions = {}): Conten
     if (destroyed) return;
     try {
       const theme = configStore.getActiveTheme();
-      atmosphere.syncConfig(configStore.getAtmosphereConfig(theme));
+      const config = configStore.getAtmosphereConfig(theme);
+      if (configStore.isCurrentSiteEnabled()) {
+        atmosphere.syncConfig(config);
+        cursorTrail.syncConfig(config.trail);
+      } else {
+        atmosphere.syncConfig({ mode: "none" });
+        cursorTrail.syncConfig({ enabled: false });
+      }
     } catch (error) {
       reportRuntimeError("atmosphere-sync", error);
     }
@@ -358,26 +374,34 @@ export function startContentRuntime(options: ContentRuntimeOptions = {}): Conten
 
   platformDocument.addEventListener("pointerdown", triggerHandlers.handleLeftPointerDown, true);
   platformDocument.addEventListener("pointerdown", triggerHandlers.handleRightPointerDown, true);
-  platformDocument.addEventListener("pointermove", cursorOverlay.syncStateCursorOverlay, { capture: true, passive: true });
+  const handlePointerMove = (event: PointerEvent): void => {
+    cursorOverlay.syncStateCursorOverlay(event);
+    cursorTrail.move(event.clientX, event.clientY);
+  };
+  const handleWindowBlur = (): void => {
+    cursorOverlay.clearStateCursorOverlay();
+    cursorTrail.leave();
+  };
+  platformDocument.addEventListener("pointermove", handlePointerMove, { capture: true, passive: true });
   platformDocument.addEventListener("pointerup", triggerHandlers.handlePointerUp, true);
   platformDocument.addEventListener("pointercancel", triggerHandlers.handlePointerCancel, true);
   platformDocument.addEventListener("contextmenu", triggerHandlers.handleContextMenu, true);
   platformDocument.addEventListener("wheel", triggerHandlers.handleWheel, { capture: true, passive: true });
   platformDocument.addEventListener("pointerover", triggerHandlers.handlePointerOver, true);
   platformDocument.addEventListener("pointerout", triggerHandlers.handlePointerOut, true);
-  platformWindow.addEventListener("blur", cursorOverlay.clearStateCursorOverlay);
+  platformWindow.addEventListener("blur", handleWindowBlur);
 
   cleanupCallbacks.push(
     () => platformDocument.removeEventListener("pointerdown", triggerHandlers.handleLeftPointerDown, true),
     () => platformDocument.removeEventListener("pointerdown", triggerHandlers.handleRightPointerDown, true),
-    () => platformDocument.removeEventListener("pointermove", cursorOverlay.syncStateCursorOverlay, true),
+    () => platformDocument.removeEventListener("pointermove", handlePointerMove, true),
     () => platformDocument.removeEventListener("pointerup", triggerHandlers.handlePointerUp, true),
     () => platformDocument.removeEventListener("pointercancel", triggerHandlers.handlePointerCancel, true),
     () => platformDocument.removeEventListener("contextmenu", triggerHandlers.handleContextMenu, true),
     () => platformDocument.removeEventListener("wheel", triggerHandlers.handleWheel, true),
     () => platformDocument.removeEventListener("pointerover", triggerHandlers.handlePointerOver, true),
     () => platformDocument.removeEventListener("pointerout", triggerHandlers.handlePointerOut, true),
-    () => platformWindow.removeEventListener("blur", cursorOverlay.clearStateCursorOverlay),
+    () => platformWindow.removeEventListener("blur", handleWindowBlur),
   );
 
   return {
@@ -397,6 +421,7 @@ export function startContentRuntime(options: ContentRuntimeOptions = {}): Conten
         platformWindow.clearTimeout(state.longPressState.timeoutId as number);
       }
       atmosphere.destroy();
+      cursorTrail.destroy();
       cursorOverlay.clearStateCursorOverlay();
       visualEffects.clearEffects();
       platformDocument.getElementById(CONTENT_RUNTIME_CONSTANTS.ROOT_ID)?.remove();

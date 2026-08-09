@@ -79,6 +79,8 @@ function createFixture() {
   const clearStateCursorOverlay = vi.fn();
   const syncAtmosphere = vi.fn();
   const destroyAtmosphere = vi.fn();
+  const syncCursorTrail = vi.fn();
+  const destroyCursorTrail = vi.fn();
   const clearEffects = vi.fn();
   const debounceConfigSync = vi.fn();
   const previewAtViewportCenter = vi.fn();
@@ -90,6 +92,7 @@ function createFixture() {
     setConfig: vi.fn(() => config),
     getConfig: vi.fn(() => config),
     isLocalPreviewHost: vi.fn(() => false),
+    isCurrentSiteEnabled: vi.fn(() => true),
     getActiveTheme: vi.fn(() => config.themes[0]),
     getAtmosphereConfig: vi.fn(() => ({ mode: "none" })),
     setOnSyncComplete: vi.fn((callback) => { onSyncComplete = callback; }),
@@ -131,6 +134,13 @@ function createFixture() {
     })),
     createTriggerHandlers: vi.fn(() => triggerHandlers),
     createAtmosphere: vi.fn(() => ({ syncConfig: syncAtmosphere, destroy: destroyAtmosphere })),
+    createCursorTrail: vi.fn(() => ({
+      syncConfig: syncCursorTrail,
+      move: vi.fn(),
+      leave: vi.fn(),
+      clear: vi.fn(),
+      destroy: destroyCursorTrail,
+    })),
   } as unknown as NonNullable<ContentRuntimeOptions["factories"]>;
 
   return {
@@ -144,6 +154,8 @@ function createFixture() {
     clearStateCursorOverlay,
     syncAtmosphere,
     destroyAtmosphere,
+    syncCursorTrail,
+    destroyCursorTrail,
     clearEffects,
     debounceConfigSync,
     destroyConfigStore,
@@ -165,6 +177,7 @@ describe("extension content runtime assembly", () => {
     expect(runtime.state.ready).toBe(true);
     expect(fixture.clearStateCursorOverlay).toHaveBeenCalledTimes(1);
     expect(fixture.syncAtmosphere).toHaveBeenCalledWith({ mode: "none" });
+    expect(fixture.syncCursorTrail).toHaveBeenCalledWith(undefined);
 
     fixture.getStorageListener()?.({
       [CONTENT_RUNTIME_CONSTANTS.CONFIG_STORAGE_KEY]: {},
@@ -198,6 +211,7 @@ describe("extension content runtime assembly", () => {
     expect(fixture.resetTriggerHandlers).toHaveBeenCalledTimes(2);
     expect(fixture.getOnSyncComplete()).toBeNull();
     expect(fixture.destroyAtmosphere).toHaveBeenCalledTimes(1);
+    expect(fixture.destroyCursorTrail).toHaveBeenCalledTimes(1);
     expect(fixture.clearEffects).toHaveBeenCalledTimes(1);
   });
 });
