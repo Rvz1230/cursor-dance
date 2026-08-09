@@ -28,6 +28,9 @@ export type CursorTrailConfig = ConfigJsonObject & {
   readonly velocityResponse: number;
   readonly turnResponse: number;
   readonly gestureResponse: number;
+  readonly randomSeed: number;
+  readonly clickColor: string;
+  readonly clickDurationMs: number;
   readonly blendMode: CursorTrailBlendMode;
   readonly quality: CursorTrailQuality;
   readonly colors: readonly [string, string];
@@ -68,6 +71,9 @@ export const DEFAULT_CURSOR_TRAIL_CONFIG: CursorTrailConfig = Object.freeze({
   velocityResponse: 60,
   turnResponse: 36,
   gestureResponse: 55,
+  randomSeed: 2026,
+  clickColor: "#F8FAFC",
+  clickDurationMs: 180,
   blendMode: "normal",
   quality: "auto",
   colors: DEFAULT_COLORS,
@@ -97,6 +103,9 @@ export const CURSOR_TRAIL_PRESETS: readonly CursorTrailPreset[] = Object.freeze(
       velocityResponse: 82,
       turnResponse: 88,
       gestureResponse: 72,
+      randomSeed: 731,
+      clickColor: "#FEF3C7",
+      clickDurationMs: 220,
       blendMode: "normal",
       quality: "auto",
       colors: ["#F59E0B", "#FB7185"],
@@ -123,6 +132,9 @@ export const CURSOR_TRAIL_PRESETS: readonly CursorTrailPreset[] = Object.freeze(
       velocityResponse: 36,
       turnResponse: 24,
       gestureResponse: 64,
+      randomSeed: 404,
+      clickColor: "#E0F2FE",
+      clickDurationMs: 160,
       blendMode: "normal",
       quality: "auto",
       colors: ["#0EA5E9", "#6366F1"],
@@ -149,6 +161,9 @@ export const CURSOR_TRAIL_PRESETS: readonly CursorTrailPreset[] = Object.freeze(
       velocityResponse: 24,
       turnResponse: 18,
       gestureResponse: 92,
+      randomSeed: 108,
+      clickColor: "#F8FAFC",
+      clickDurationMs: 200,
       blendMode: "normal",
       quality: "auto",
       colors: ["#0F172A", "#64748B"],
@@ -261,6 +276,9 @@ export function normalizeCursorTrailConfig(value: unknown): CursorTrailConfig {
     velocityResponse: Math.round(clampNumber(source.velocityResponse, DEFAULT_CURSOR_TRAIL_CONFIG.velocityResponse, 0, 100)),
     turnResponse: Math.round(clampNumber(source.turnResponse, DEFAULT_CURSOR_TRAIL_CONFIG.turnResponse, 0, 100)),
     gestureResponse: Math.round(clampNumber(source.gestureResponse, DEFAULT_CURSOR_TRAIL_CONFIG.gestureResponse, 0, 100)),
+    randomSeed: Math.round(clampNumber(source.randomSeed, DEFAULT_CURSOR_TRAIL_CONFIG.randomSeed, 0, 9999)),
+    clickColor: normalizeColor(source.clickColor, DEFAULT_CURSOR_TRAIL_CONFIG.clickColor),
+    clickDurationMs: Math.round(clampNumber(source.clickDurationMs, DEFAULT_CURSOR_TRAIL_CONFIG.clickDurationMs, 80, 600)),
     blendMode: isCursorTrailBlendMode(source.blendMode) ? source.blendMode : DEFAULT_CURSOR_TRAIL_CONFIG.blendMode,
     quality: isCursorTrailQuality(source.quality) ? source.quality : DEFAULT_CURSOR_TRAIL_CONFIG.quality,
     colors,

@@ -12,8 +12,8 @@ const budgets = {
   optionsInitialRawBytes: 695_000,
   optionsInitialGzipBytes: 212_000,
   largestJavaScriptChunkBytes: 350_000,
-  // 拖尾 surface 增加混合模式与自适应质量，较 107,832-byte 基线净增约 1.1 KB。
-  contentRuntimeBytes: 110_000,
+  // 确定性粒子、点击变色与绕圈光环较 108,914-byte 基线净增约 1.1 KB。
+  contentRuntimeBytes: 111_000,
 };
 
 async function measureInitialAssets(entryName) {

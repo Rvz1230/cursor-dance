@@ -372,7 +372,11 @@ export function startContentRuntime(options: ContentRuntimeOptions = {}): Conten
     reportRuntimeError("messaging", "chrome.runtime.onMessage unavailable; preview trigger disabled.");
   }
 
-  platformDocument.addEventListener("pointerdown", triggerHandlers.handleLeftPointerDown, true);
+  const handleLeftPointerDown = (event: PointerEvent): void => {
+    if (event.button === 0) cursorTrail.press();
+    triggerHandlers.handleLeftPointerDown(event);
+  };
+  platformDocument.addEventListener("pointerdown", handleLeftPointerDown, true);
   platformDocument.addEventListener("pointerdown", triggerHandlers.handleRightPointerDown, true);
   const handlePointerMove = (event: PointerEvent): void => {
     cursorOverlay.syncStateCursorOverlay(event);
@@ -392,7 +396,7 @@ export function startContentRuntime(options: ContentRuntimeOptions = {}): Conten
   platformWindow.addEventListener("blur", handleWindowBlur);
 
   cleanupCallbacks.push(
-    () => platformDocument.removeEventListener("pointerdown", triggerHandlers.handleLeftPointerDown, true),
+    () => platformDocument.removeEventListener("pointerdown", handleLeftPointerDown, true),
     () => platformDocument.removeEventListener("pointerdown", triggerHandlers.handleRightPointerDown, true),
     () => platformDocument.removeEventListener("pointermove", handlePointerMove, true),
     () => platformDocument.removeEventListener("pointerup", triggerHandlers.handlePointerUp, true),

@@ -80,6 +80,7 @@ function createFixture() {
   const syncAtmosphere = vi.fn();
   const destroyAtmosphere = vi.fn();
   const syncCursorTrail = vi.fn();
+  const pressCursorTrail = vi.fn();
   const destroyCursorTrail = vi.fn();
   const clearEffects = vi.fn();
   const debounceConfigSync = vi.fn();
@@ -137,6 +138,7 @@ function createFixture() {
     createCursorTrail: vi.fn(() => ({
       syncConfig: syncCursorTrail,
       move: vi.fn(),
+      press: pressCursorTrail,
       leave: vi.fn(),
       clear: vi.fn(),
       destroy: destroyCursorTrail,
@@ -155,6 +157,7 @@ function createFixture() {
     syncAtmosphere,
     destroyAtmosphere,
     syncCursorTrail,
+    pressCursorTrail,
     destroyCursorTrail,
     clearEffects,
     debounceConfigSync,
@@ -178,6 +181,10 @@ describe("extension content runtime assembly", () => {
     expect(fixture.clearStateCursorOverlay).toHaveBeenCalledTimes(1);
     expect(fixture.syncAtmosphere).toHaveBeenCalledWith({ mode: "none" });
     expect(fixture.syncCursorTrail).toHaveBeenCalledWith(undefined);
+    for (const listener of fixture.documentListeners.get("pointerdown") ?? []) {
+      if (typeof listener === "function") listener({ button: 0, clientX: 48, clientY: 72 } as PointerEvent);
+    }
+    expect(fixture.pressCursorTrail).toHaveBeenCalledWith();
 
     fixture.getStorageListener()?.({
       [CONTENT_RUNTIME_CONSTANTS.CONFIG_STORAGE_KEY]: {},

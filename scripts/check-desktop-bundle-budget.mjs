@@ -13,8 +13,8 @@ const budgets = {
   // 键盘动效运行时新增窗口锚点、色相推导、拖尾与四种消散方式。
   // 重构前实测基线为 177,415 / 42,147 bytes；能力完整接入后约增加 10 KB / 3 KB。
   // 共享样式调整后 overlay 实测 190,043 bytes；保留不到 1 KB 的窄幅余量。
-  // 全局鼠标拖尾运行时与工作台复用 Canvas surface；三段插值与手势脉冲约增加 4 KB / 0.3 KB。
-  overlayInitialRawBytes: 220_000,
+  // 确定性粒子、点击变色与绕圈光环使 overlay 实测 221,208 bytes；保留约 1.8 KB 余量。
+  overlayInitialRawBytes: 223_000,
   overlayInitialGzipBytes: 53_500,
   largestJavaScriptChunkBytes: 1_100_000,
   // 键盘工作台与应用规则页均为懒加载，初始工作台预算不变；这里只容纳独立页面与样式产物。

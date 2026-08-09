@@ -343,6 +343,7 @@ function dispatchPointer(cursorEvent: PointerInputEvent): void {
       dragStarted = false;
       dragStartX = cursorEvent.x;
       dragStartY = cursorEvent.y;
+      cursorTrail.press();
       engine.triggerHandlers.handleLeftPointerDown(cursorEvent);
     }
     else if (cursorEvent.button === 2) {

@@ -174,6 +174,15 @@ test("saved cursor trail runs in the standalone Web runtime page", async ({ cont
   await tailColorInput.press("Escape");
   await selectRadixOption(workbenchPage, trailPanel, 0, "滤色");
   await selectRadixOption(workbenchPage, trailPanel, 1, "省电");
+  await trailPanel.getByRole("button", { name: /^点击强调色：/ }).click();
+  const clickColorInput = workbenchPage.getByLabel("输入点击强调色十六进制值");
+  await clickColorInput.fill("#E0F2FE");
+  await clickColorInput.press("Enter");
+  await clickColorInput.press("Escape");
+  await trailPanel.getByRole("spinbutton", { name: "鼠标拖尾点击变色时长" }).fill("240");
+  await trailPanel.getByRole("spinbutton", { name: "鼠标拖尾点击变色时长" }).press("Enter");
+  await trailPanel.getByRole("spinbutton", { name: "鼠标拖尾随机种子" }).fill("8128");
+  await trailPanel.getByRole("spinbutton", { name: "鼠标拖尾随机种子" }).press("Enter");
   await trailPanel.getByRole("spinbutton", { name: "尾部宽度" }).fill("3.7");
   await trailPanel.getByRole("spinbutton", { name: "尾部宽度" }).press("Enter");
   await trailPanel.getByRole("spinbutton", { name: "中段透明度" }).fill("47");
@@ -194,6 +203,9 @@ test("saved cursor trail runs in the standalone Web runtime page", async ({ cont
     shape: "stardust",
     blendMode: "screen",
     quality: "eco",
+    randomSeed: 8128,
+    clickColor: "#E0F2FE",
+    clickDurationMs: 240,
     turnResponse: 88,
     gestureResponse: 72,
     colors: ["#123456", "#FB7185"],

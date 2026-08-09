@@ -107,6 +107,7 @@ export function PreviewStage({ config, comparisonConfig, compareMode, disabled, 
           cursor: cursorEnabled && pointer.inside ? "none" : undefined,
         }}
         onPointerDown={(event) => {
+          trailSurfaceRef.current?.press();
           if (!trailEditor.handlePointerDown(event)) onReplay();
         }}
         onPointerMove={(event) => {

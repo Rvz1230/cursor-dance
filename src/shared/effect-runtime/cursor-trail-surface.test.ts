@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   createCursorTrailSurface,
+  detectCursorTrailCircle,
   mixCursorTrailColor,
   resolveCursorTrailCompositeOperation,
   resolveNextAutoQuality,
@@ -112,6 +113,15 @@ describe("cursor trail surface", () => {
     expect(mixCursorTrailColor("#000000", "#FFFFFF", 0.5)).toBe("rgb(128, 128, 128)");
   });
 
+  it("recognizes a closed circular gesture without matching an open arc", () => {
+    const circle = Array.from({ length: 17 }, (_, index) => {
+      const angle = index / 16 * Math.PI * 2;
+      return { x: 100 + Math.cos(angle) * 50, y: 100 + Math.sin(angle) * 50 };
+    });
+    expect(detectCursorTrailCircle(circle)).toBe(true);
+    expect(detectCursorTrailCircle(circle.slice(0, 12))).toBe(false);
+  });
+
   it("maps blend modes to Canvas composite operations", () => {
     expect(resolveCursorTrailCompositeOperation("normal")).toBe("source-over");
     expect(resolveCursorTrailCompositeOperation("screen")).toBe("screen");
@@ -143,6 +153,56 @@ describe("cursor trail surface", () => {
     expect(fixture.canvas.width).toBe(320);
     expect(fixture.canvas.height).toBe(180);
     expect(fixture.context.globalCompositeOperation).toBe("screen");
+  });
+
+  it("temporarily recolors the visible trail after a press", () => {
+    const fixture = createFixture();
+    const surface = createCursorTrailSurface({
+      window: fixture.window,
+      document: fixture.document,
+      root: fixture.root,
+      respectReducedMotion: false,
+    });
+    surface.syncConfig({
+      enabled: true,
+      shape: "ribbon",
+      smoothing: 0,
+      clickColor: "#FFFFFF",
+      clickDurationMs: 200,
+      segments: {
+        tail: { color: "#000000", width: 2, opacity: 100 },
+        middle: { color: "#000000", width: 4, opacity: 100 },
+        head: { color: "#000000", width: 8, opacity: 100 },
+      },
+    });
+    surface.move(20, 20);
+    fixture.setTime(16);
+    surface.move(80, 20);
+    surface.press();
+    fixture.frames.shift()?.(20);
+
+    expect(fixture.strokeStyles).toContain("#FFFFFF");
+  });
+
+  it("keeps seeded stardust positions stable across surfaces", () => {
+    function render(seed: number) {
+      const fixture = createFixture();
+      const surface = createCursorTrailSurface({
+        window: fixture.window,
+        document: fixture.document,
+        root: fixture.root,
+        respectReducedMotion: false,
+      });
+      surface.syncConfig({ enabled: true, shape: "stardust", smoothing: 0, randomSeed: seed });
+      surface.move(20, 20);
+      fixture.setTime(16);
+      surface.move(80, 50);
+      fixture.frames.shift()?.(20);
+      return vi.mocked(fixture.context.arc).mock.calls;
+    }
+
+    expect(render(42)).toEqual(render(42));
+    expect(render(42)).not.toEqual(render(43));
   });
 
   it("interpolates width, color and opacity across three trail segments", () => {

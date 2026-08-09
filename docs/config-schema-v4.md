@@ -77,7 +77,7 @@ interface CursorDanceThemeV4 {
 
 ### 持续效果
 
-`atmosphere` 保存不依赖单次点击动作的主题级效果。`atmosphere.trail` 是 Web 与桌面端共享的鼠标拖尾配置，包含启用状态、形态、采样长度、余辉时间、平滑度、柔光、速度响应、转向散射和手势爆发。`blendMode` 支持 `normal / screen / soft-light / overlay`；`quality` 支持 `auto / eco / balanced / fine`，自动档从精细质量开始并在持续掉帧时逐级降档。`segments.tail / middle / head` 分别保存尾部、中段和光标附近的颜色、宽度与透明度；旧配置中的 `colors / width / opacity` 仍会被读取并自动推导三段样式，缺少新字段时使用 `normal + auto`。网页端的磁场光晕继续使用同一对象中的 `mode`、`magnetRadius` 与 `magnetStrength`。
+`atmosphere` 保存不依赖单次点击动作的主题级效果。`atmosphere.trail` 是 Web 与桌面端共享的鼠标拖尾配置，包含启用状态、形态、采样长度、余辉时间、平滑度、柔光、速度响应、转向散射和手势爆发。`blendMode` 支持 `normal / screen / soft-light / overlay`；`quality` 支持 `auto / eco / balanced / fine`，自动档从精细质量开始并在持续掉帧时逐级降档。`randomSeed` 固定粒子相位，使相同路径在预览、Web 和桌面端保持一致；`clickColor / clickDurationMs` 控制按下鼠标时整条可见轨迹的临时强调色与持续时间。闭合绕圈手势由共享运行时识别并受 `gestureResponse` 控制。`segments.tail / middle / head` 分别保存尾部、中段和光标附近的颜色、宽度与透明度；旧配置中的 `colors / width / opacity` 仍会被读取并自动推导三段样式，缺少新字段时使用默认值。网页端的磁场光晕继续使用同一对象中的 `mode`、`magnetRadius` 与 `magnetStrength`。
 
 拖尾不写入任何 `actionConfigs`：动作配置只描述一次点击、滚轮或长按产生的反馈，持续移动效果始终跟随当前主题。
 

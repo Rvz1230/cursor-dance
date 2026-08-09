@@ -3,6 +3,7 @@ import { ColorField } from "@/components/ui/color-field";
 import { FieldRow } from "@/components/ui/field-row";
 import { Slider } from "@/components/ui/slider";
 import { Select } from "@/components/ui/select";
+import { NumberField } from "@/components/ui/number-field";
 import {
   CURSOR_TRAIL_PRESETS,
   DEFAULT_CURSOR_TRAIL_CONFIG,
@@ -80,7 +81,7 @@ export function CursorTrailCard({ atmosphere, onChange }: CursorTrailCardProps) 
           head: { ...DEFAULT_CURSOR_TRAIL_SEGMENTS.head },
         },
       } })}
-      settingCount={18}
+      settingCount={21}
       primaryCount={4}
       primary={(
         <>
@@ -104,6 +105,9 @@ export function CursorTrailCard({ atmosphere, onChange }: CursorTrailCardProps) 
       </div>
       <FieldRow label="混合模式" hint="控制拖尾如何与浅色或深色背景叠加。" control={<Select value={config.blendMode} options={BLEND_MODE_OPTIONS} onChange={(blendMode) => updateTrail({ blendMode })} aria-label="鼠标拖尾混合模式" />} />
       <FieldRow label="性能档位" hint="自动档只会逐级降档，避免在临界帧率反复跳动。" control={<Select value={config.quality} options={QUALITY_OPTIONS} onChange={(quality) => updateTrail({ quality })} aria-label="鼠标拖尾性能档位" />} />
+      <FieldRow label="点击强调色" hint="按下鼠标时，整条可见轨迹会短暂切换到这个颜色。" control={<ColorField compact label="点击强调色" value={config.clickColor} onChange={(clickColor) => updateTrail({ clickColor })} />} />
+      <FieldRow label="点击变色时长" control={<Slider value={config.clickDurationMs} min={80} max={600} step={20} suffix="ms" onChange={(clickDurationMs) => updateTrail({ clickDurationMs })} label="鼠标拖尾点击变色时长" />} />
+      <FieldRow label="随机种子" hint="相同种子和路径会得到一致的粒子分布。" control={<NumberField compact value={config.randomSeed} min={0} max={9999} onChange={(randomSeed) => updateTrail({ randomSeed })} ariaLabel="鼠标拖尾随机种子" />} />
       <FieldRow label="速度响应" hint="移动越快，轨迹越有张力。" control={<Slider value={config.velocityResponse} min={0} max={100} suffix="%" onChange={(velocityResponse) => updateTrail({ velocityResponse })} label="鼠标拖尾速度响应" />} />
       <FieldRow label="转向散射" hint="拐弯越急，越容易甩出侧向光点。" control={<Slider value={config.turnResponse} min={0} max={100} suffix="%" onChange={(turnResponse) => updateTrail({ turnResponse })} label="鼠标拖尾转向散射" />} />
       <FieldRow label="手势爆发" hint="快速甩动产生闪光，急停形成收束涟漪。" control={<Slider value={config.gestureResponse} min={0} max={100} suffix="%" onChange={(gestureResponse) => updateTrail({ gestureResponse })} label="鼠标拖尾手势爆发" />} />
