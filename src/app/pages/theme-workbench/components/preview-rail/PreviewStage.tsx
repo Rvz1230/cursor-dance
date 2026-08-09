@@ -6,6 +6,7 @@ import {
   getPreviewTriggerSummary,
 } from "../../lib/preview";
 import { getActionAudioConfig } from "../../model/workbenchSchema";
+import { getActionCursorFeedbackConfig } from "@/shared/effect-core/action-config";
 import { AtmosphereStagePreview } from "../AtmosphereStagePreview";
 import { getCursorTrailConfig } from "@/shared/config/cursor-trail";
 import {
@@ -45,6 +46,11 @@ export function PreviewStage({ config, comparisonConfig, compareMode, disabled, 
   useEffect(() => {
     trailSurfaceRef.current?.syncConfig(trailConfig);
   }, [trailConfig]);
+
+  useEffect(() => {
+    const feedback = getActionCursorFeedbackConfig(config);
+    trailSurfaceRef.current?.setStateColor(typeof feedback.cursorGlowColor === "string" ? feedback.cursorGlowColor : null);
+  }, [config]);
 
   const soundDelay = typeof audioConfig.soundDelay === "number" ? audioConfig.soundDelay : 0;
 

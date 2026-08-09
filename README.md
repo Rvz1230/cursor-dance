@@ -212,6 +212,7 @@ cursor-dance/
         randomSeed: 2026,
         clickColor: "#F8FAFC",
         clickDurationMs: 180,
+        followCursorStateColor: false,
         segments: {
           tail: { color: "#14B8A6", width: 2.4, opacity: 24 },
           middle: { color: "#508ACE", width: 4.96, opacity: 52 },

@@ -19,7 +19,7 @@ describe("extension cursor overlay adapter", () => {
       },
     });
 
-    overlay.syncStateCursorOverlay({ clientX: 1, clientY: 2, target: null });
+    expect(overlay.syncStateCursorOverlay({ clientX: 1, clientY: 2, target: null })).toBe("default");
 
     expect(remove).toHaveBeenCalledWith("hide-cursor");
   });

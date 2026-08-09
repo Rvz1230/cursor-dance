@@ -163,12 +163,23 @@ const engine = createEffectEngine({
 });
 const cursorTrail = createCursorTrailSurface({ window, document });
 
+function syncCursorTrailStateColor(): void {
+  const theme = configStore.getActiveTheme();
+  const binding = configStore.getCursorStateBinding(theme, activeCursorSkinStateId, "leftClick");
+  const feedback = configStore.getActionCursorFeedbackConfig(
+    configStore.getActionConfig(theme, binding.actionId),
+  );
+  cursorTrail.setStateColor(typeof feedback.cursorGlowColor === "string" ? feedback.cursorGlowColor : null);
+}
+
 function syncCursorTrailConfig(): void {
   if (configStore.isCurrentSiteEnabled?.() === false) {
     cursorTrail.syncConfig({ enabled: false });
+    cursorTrail.setStateColor(null);
     return;
   }
   cursorTrail.syncConfig(getCursorTrailConfig(configStore.getActiveTheme?.()?.atmosphere));
+  syncCursorTrailStateColor();
 }
 
 function syncCursorSkinAtLastPosition(): void {
@@ -333,6 +344,7 @@ function dispatchPointer(cursorEvent: PointerInputEvent): void {
     }
     setActiveCursorSkinState(dragStarted ? "grabbing" : "default");
     engine.cursorOverlay.syncStateCursorOverlay(cursorEvent.x, cursorEvent.y, resolveCachedCursorState());
+    syncCursorTrailStateColor();
     cursorTrail.move(cursorEvent.x, cursorEvent.y);
     return;
   }
@@ -358,6 +370,7 @@ function dispatchPointer(cursorEvent: PointerInputEvent): void {
       leftButtonDown = false;
       dragStarted = false;
       setActiveCursorSkinState("default");
+      syncCursorTrailStateColor();
     }
     engine.triggerHandlers.handlePointerUp(cursorEvent);
     return;
@@ -387,6 +400,7 @@ function dispatchInput(event: RuntimeInputEvent): void {
     setActiveCursorSkinState("default");
     engine.triggerHandlers.handlePointerCancel();
     engine.cursorOverlay.clearStateCursorOverlay();
+    cursorTrail.setStateColor(null);
     cursorTrail.leave();
     setNativeCursorHidden(false);
     return;

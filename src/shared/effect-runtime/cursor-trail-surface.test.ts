@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   createCursorTrailSurface,
-  detectCursorTrailCircle,
+  fitCursorTrailCircle,
   mixCursorTrailColor,
   resolveCursorTrailCompositeOperation,
   resolveNextAutoQuality,
@@ -118,8 +118,33 @@ describe("cursor trail surface", () => {
       const angle = index / 16 * Math.PI * 2;
       return { x: 100 + Math.cos(angle) * 50, y: 100 + Math.sin(angle) * 50 };
     });
-    expect(detectCursorTrailCircle(circle)).toBe(true);
-    expect(detectCursorTrailCircle(circle.slice(0, 12))).toBe(false);
+    const fitted = fitCursorTrailCircle(circle);
+    expect(fitted?.x).toBeCloseTo(100);
+    expect(fitted?.y).toBeCloseTo(100);
+    expect(fitted?.radius).toBeCloseTo(50);
+    expect(fitCursorTrailCircle(circle.slice(0, 12))).toBeNull();
+  });
+
+  it("renders a completed circle pulse at the fitted center and radius", () => {
+    const fixture = createFixture();
+    const surface = createCursorTrailSurface({
+      window: fixture.window,
+      document: fixture.document,
+      root: fixture.root,
+      respectReducedMotion: false,
+    });
+    surface.syncConfig({ enabled: true, smoothing: 0, gestureResponse: 100, turnResponse: 0 });
+    for (let index = 0; index <= 16; index += 1) {
+      const angle = index / 16 * Math.PI * 2;
+      fixture.setTime(index * 50);
+      surface.move(100 + Math.cos(angle) * 50, 100 + Math.sin(angle) * 50);
+    }
+    fixture.frames.shift()?.(820);
+
+    const circleArc = vi.mocked(fixture.context.arc).mock.calls.find((call) => call[2] > 40);
+    expect(circleArc?.[0]).toBeCloseTo(100);
+    expect(circleArc?.[1]).toBeCloseTo(100);
+    expect(circleArc?.[2]).toBeGreaterThan(40);
   });
 
   it("maps blend modes to Canvas composite operations", () => {
@@ -182,6 +207,24 @@ describe("cursor trail surface", () => {
     fixture.frames.shift()?.(20);
 
     expect(fixture.strokeStyles).toContain("#FFFFFF");
+  });
+
+  it("uses the current cursor-state color when following is enabled", () => {
+    const fixture = createFixture();
+    const surface = createCursorTrailSurface({
+      window: fixture.window,
+      document: fixture.document,
+      root: fixture.root,
+      respectReducedMotion: false,
+    });
+    surface.syncConfig({ enabled: true, shape: "ribbon", smoothing: 0, followCursorStateColor: true });
+    surface.setStateColor("#22C55E");
+    surface.move(20, 20);
+    fixture.setTime(16);
+    surface.move(80, 20);
+    fixture.frames.shift()?.(20);
+
+    expect(fixture.strokeStyles).toContain("#22C55E");
   });
 
   it("keeps seeded stardust positions stable across surfaces", () => {

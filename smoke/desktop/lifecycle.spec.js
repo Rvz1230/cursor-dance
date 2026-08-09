@@ -383,6 +383,7 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
               randomSeed: 8128,
               clickColor: "#E0F2FE",
               clickDurationMs: 240,
+              followCursorStateColor: true,
               length: 32,
               width: 7,
               lifetimeMs: 520,
@@ -412,6 +413,7 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
       randomSeed: 8128,
       clickColor: "#E0F2FE",
       clickDurationMs: 240,
+      followCursorStateColor: true,
       segments: {
         tail: { color: "#F59E0B", width: 2.1, opacity: 27 },
         middle: { color: "#F88848", width: 4.34, opacity: 56 },
@@ -513,9 +515,26 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
       y: overlayOrigin.y + 120,
     });
 
+    await sendMove(100, 160);
+    await sendMove(260, 160);
     await sendClick();
+    await expect.poll(() => overlayPage.evaluate(() => {
+      const canvas = document.querySelector('canvas[data-cursordance-trail="true"]');
+      if (!(canvas instanceof HTMLCanvasElement)) return false;
+      const pixels = canvas.getContext("2d")?.getImageData(0, 0, canvas.width, canvas.height).data;
+      if (!pixels) return false;
+      for (let index = 0; index < pixels.length; index += 4) {
+        if (pixels[index] >= 215 && pixels[index] <= 235 && pixels[index + 1] >= 235 && pixels[index + 2] >= 245) return true;
+      }
+      return false;
+    })).toBe(true);
     await expect(overlayPage.locator(".cd-effect").first()).toBeAttached();
 
+    await electronApp.evaluate((_electron, snapshot) => {
+      const testing = globalThis.__cursorDanceMainTesting;
+      if (!testing) throw new Error("Desktop smoke testing bridge is unavailable");
+      testing.publishActiveWindowSnapshot(snapshot);
+    }, activeCodeSnapshot);
     await workbenchPage.evaluate(async () => {
       if (!window.cursorDanceStorage) throw new Error("cursorDanceStorage bridge is unavailable");
       const current = await window.cursorDanceStorage.getConfig();
@@ -531,11 +550,6 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
         }],
       });
     });
-    await electronApp.evaluate((_electron, snapshot) => {
-      const testing = globalThis.__cursorDanceMainTesting;
-      if (!testing) throw new Error("Desktop smoke testing bridge is unavailable");
-      testing.publishActiveWindowSnapshot(snapshot);
-    }, activeCodeSnapshot);
 
     await expect.poll(async () => (await readWindowState(electronApp)).overlay.visibleCount).toBe(0);
     await expect(overlayPage.locator(".cd-effect")).toHaveCount(0);

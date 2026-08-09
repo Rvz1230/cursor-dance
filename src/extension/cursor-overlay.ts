@@ -22,17 +22,17 @@ interface ContentCursorOverlayRuntime {
 }
 
 export interface ContentCursorOverlay {
-  syncStateCursorOverlay(event: Pick<PointerEvent, "clientX" | "clientY" | "target">): void;
+  syncStateCursorOverlay(event: Pick<PointerEvent, "clientX" | "clientY" | "target">): string;
   clearStateCursorOverlay(): void;
 }
 
 export function createContentCursorOverlay(runtime: ContentCursorOverlayRuntime): ContentCursorOverlay {
   const renderer: CursorOverlayModule = createCursorOverlay(runtime);
 
-  function syncStateCursorOverlay(event: Pick<PointerEvent, "clientX" | "clientY" | "target">): void {
+  function syncStateCursorOverlay(event: Pick<PointerEvent, "clientX" | "clientY" | "target">): string {
     if (!runtime.configStore.isCurrentSiteEnabled()) {
       renderer.clearStateCursorOverlay();
-      return;
+      return "default";
     }
     const ElementCtor = runtime.document.defaultView?.Element;
     const target = ElementCtor && event.target instanceof ElementCtor ? event.target : runtime.document.body;
@@ -44,6 +44,7 @@ export function createContentCursorOverlay(runtime: ContentCursorOverlayRuntime)
       event.clientY,
       cursorSkinStateToOverlayState(state),
     );
+    return stateId;
   }
 
   return {

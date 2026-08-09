@@ -81,6 +81,7 @@ function createFixture() {
   const destroyAtmosphere = vi.fn();
   const syncCursorTrail = vi.fn();
   const pressCursorTrail = vi.fn();
+  const setCursorTrailStateColor = vi.fn();
   const destroyCursorTrail = vi.fn();
   const clearEffects = vi.fn();
   const debounceConfigSync = vi.fn();
@@ -95,6 +96,9 @@ function createFixture() {
     isLocalPreviewHost: vi.fn(() => false),
     isCurrentSiteEnabled: vi.fn(() => true),
     getActiveTheme: vi.fn(() => config.themes[0]),
+    getActionConfig: vi.fn(() => ({ cursorGlowColor: "#22C55E" })),
+    getActionCursorFeedbackConfig: vi.fn((value) => value || {}),
+    getCursorStateBinding: vi.fn((_theme, cursorStateId) => ({ cursorStateId, actionId: "leftClick", inheritedFromDefault: false })),
     getAtmosphereConfig: vi.fn(() => ({ mode: "none" })),
     setOnSyncComplete: vi.fn((callback) => { onSyncComplete = callback; }),
     syncConfigFromStorage: vi.fn(async ({ clearStateCursorOverlay: clear }) => { clear(); }),
@@ -130,13 +134,14 @@ function createFixture() {
     })),
     createAudioRuntime: vi.fn(() => ({ playSound: vi.fn() })),
     createCursorOverlay: vi.fn(() => ({
-      syncStateCursorOverlay: vi.fn(),
+      syncStateCursorOverlay: vi.fn(() => "pointer"),
       clearStateCursorOverlay,
     })),
     createTriggerHandlers: vi.fn(() => triggerHandlers),
     createAtmosphere: vi.fn(() => ({ syncConfig: syncAtmosphere, destroy: destroyAtmosphere })),
     createCursorTrail: vi.fn(() => ({
       syncConfig: syncCursorTrail,
+      setStateColor: setCursorTrailStateColor,
       move: vi.fn(),
       press: pressCursorTrail,
       leave: vi.fn(),
@@ -158,6 +163,7 @@ function createFixture() {
     destroyAtmosphere,
     syncCursorTrail,
     pressCursorTrail,
+    setCursorTrailStateColor,
     destroyCursorTrail,
     clearEffects,
     debounceConfigSync,
@@ -185,6 +191,10 @@ describe("extension content runtime assembly", () => {
       if (typeof listener === "function") listener({ button: 0, clientX: 48, clientY: 72 } as PointerEvent);
     }
     expect(fixture.pressCursorTrail).toHaveBeenCalledWith();
+    for (const listener of fixture.documentListeners.get("pointermove") ?? []) {
+      if (typeof listener === "function") listener({ clientX: 64, clientY: 96, target: null } as PointerEvent);
+    }
+    expect(fixture.setCursorTrailStateColor).toHaveBeenCalledWith("#22C55E");
 
     fixture.getStorageListener()?.({
       [CONTENT_RUNTIME_CONSTANTS.CONFIG_STORAGE_KEY]: {},

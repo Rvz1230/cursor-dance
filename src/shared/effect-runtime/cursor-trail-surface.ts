@@ -72,6 +72,13 @@ interface GesturePulse {
   lifetimeMs: number;
   intensity: number;
   kind: "flick" | "stop" | "circle";
+  radius: number;
+}
+
+export interface CursorTrailCircle {
+  readonly x: number;
+  readonly y: number;
+  readonly radius: number;
 }
 
 export interface CursorTrailSurfaceOptions {
@@ -84,6 +91,7 @@ export interface CursorTrailSurfaceOptions {
 
 export interface CursorTrailSurface {
   syncConfig(value: unknown): void;
+  setStateColor(color: string | null): void;
   move(x: number, y: number): void;
   press(): void;
   leave(): void;
@@ -112,17 +120,22 @@ export function mixCursorTrailColor(from: string, to: string, progress: number):
   return `rgb(${a.map((channel, index) => Math.round(channel + (b[index] - channel) * t)).join(", ")})`;
 }
 
-export function detectCursorTrailCircle(path: readonly Pick<TrailPoint, "x" | "y">[]): boolean {
-  if (path.length < 10) return false;
+export function fitCursorTrailCircle(path: readonly Pick<TrailPoint, "x" | "y">[]): CursorTrailCircle | null {
+  if (path.length < 10) return null;
   let signedTurn = 0;
-  let span = 0;
+  let diameter = 0;
   const first = path[0];
+  let opposite = first;
   for (let index = 1; index < path.length; index += 1) {
     const current = path[index];
     const previous = path[index - 1];
     const dx = current.x - previous.x;
     const dy = current.y - previous.y;
-    span = Math.max(span, Math.hypot(current.x - first.x, current.y - first.y));
+    const distanceFromStart = Math.hypot(current.x - first.x, current.y - first.y);
+    if (distanceFromStart > diameter) {
+      diameter = distanceFromStart;
+      opposite = current;
+    }
     if (index < 2) continue;
     const before = path[index - 2];
     const previousDx = previous.x - before.x;
@@ -130,9 +143,14 @@ export function detectCursorTrailCircle(path: readonly Pick<TrailPoint, "x" | "y
     signedTurn += Math.atan2(previousDx * dy - previousDy * dx, previousDx * dx + previousDy * dy);
   }
   const last = path[path.length - 1];
-  return span >= 32
-    && Math.hypot(last.x - first.x, last.y - first.y) <= Math.max(28, span * 0.45)
-    && Math.abs(signedTurn) >= Math.PI * 1.45;
+  if (diameter < 32
+    || Math.hypot(last.x - first.x, last.y - first.y) > Math.max(28, diameter * 0.45)
+    || Math.abs(signedTurn) < Math.PI * 1.45) return null;
+  return {
+    x: (first.x + opposite.x) / 2,
+    y: (first.y + opposite.y) / 2,
+    radius: diameter / 2,
+  };
 }
 
 function resolveSegmentStyle(config: ReturnType<typeof normalizeCursorTrailConfig>, progress: number) {
@@ -183,6 +201,7 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
   let lastFlickAt = Number.NEGATIVE_INFINITY;
   let lastCircleAt = Number.NEGATIVE_INFINITY;
   let clickAccentUntil = Number.NEGATIVE_INFINITY;
+  let stateColor: string | null = null;
   let stopPulseArmed = false;
   let frameId: number | null = null;
   let destroyed = false;
@@ -210,7 +229,10 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
 
   function getSegmentStyle(progress: number, timestamp: number) {
     const segment = resolveSegmentStyle(config, progress);
-    if (timestamp < clickAccentUntil) segment.color = config.clickColor;
+    const overrideColor = timestamp < clickAccentUntil
+      ? config.clickColor
+      : config.followCursorStateColor ? stateColor : null;
+    if (overrideColor) segment.color = overrideColor;
     return segment;
   }
 
@@ -387,7 +409,13 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
     if (sparks.length > sparkLimit) sparks.splice(0, sparks.length - sparkLimit);
   }
 
-  function addGesturePulse(point: TrailPoint, kind: GesturePulse["kind"], intensity: number, timestamp = point.bornAt): void {
+  function addGesturePulse(
+    point: TrailPoint,
+    kind: GesturePulse["kind"],
+    intensity: number,
+    timestamp = point.bornAt,
+    radius = 0,
+  ): void {
     if (intensity <= 0) return;
     pulses.push({
       x: point.x,
@@ -396,6 +424,7 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
       lifetimeMs: kind === "flick" ? 260 : kind === "circle" ? 680 : 420,
       intensity,
       kind,
+      radius,
     });
     const pulseLimit = getQualityProfile()[3];
     if (pulses.length > pulseLimit) pulses.splice(0, pulses.length - pulseLimit);
@@ -425,7 +454,7 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
       const radius = pulse.kind === "stop"
         ? 5 + (1 - easeOut) * (18 + pulse.intensity * 22)
         : pulse.kind === "circle"
-          ? 12 + easeOut * (30 + pulse.intensity * 30)
+          ? pulse.radius * (0.88 + easeOut * 0.12)
           : 6 + easeOut * (18 + pulse.intensity * 28);
       const segment = getSegmentStyle(pulse.kind === "stop" ? 0.9 : 0.65, timestamp);
       const color = segment.color;
@@ -522,6 +551,10 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
       if (!config.enabled) clear();
       else if (points.length) ensureFrame();
     },
+    setStateColor(color: string | null) {
+      stateColor = typeof color === "string" && color.trim() ? color.trim() : null;
+      if (points.length) ensureFrame();
+    },
     move(x: number, y: number) {
       if (destroyed || !config.enabled || reducedMotion || !Number.isFinite(x) || !Number.isFinite(y)) return;
       const timestamp = now(platformWindow);
@@ -568,8 +601,15 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
         addGesturePulse(next, "flick", flickEnergy);
         lastFlickAt = timestamp;
       }
-      if (timestamp - lastCircleAt >= 700 && detectCursorTrailCircle(gesturePath)) {
-        addGesturePulse(next, "circle", config.gestureResponse / 100);
+      const circle = timestamp - lastCircleAt >= 700 ? fitCursorTrailCircle(gesturePath) : null;
+      if (circle) {
+        addGesturePulse(
+          { ...next, x: circle.x, y: circle.y },
+          "circle",
+          config.gestureResponse / 100,
+          timestamp,
+          circle.radius,
+        );
         gesturePath = [next];
         lastCircleAt = timestamp;
       }

@@ -379,11 +379,18 @@ export function startContentRuntime(options: ContentRuntimeOptions = {}): Conten
   platformDocument.addEventListener("pointerdown", handleLeftPointerDown, true);
   platformDocument.addEventListener("pointerdown", triggerHandlers.handleRightPointerDown, true);
   const handlePointerMove = (event: PointerEvent): void => {
-    cursorOverlay.syncStateCursorOverlay(event);
+    const cursorStateId = cursorOverlay.syncStateCursorOverlay(event);
+    const theme = configStore.getActiveTheme();
+    const binding = configStore.getCursorStateBinding(theme, cursorStateId, "leftClick");
+    const feedback = configStore.getActionCursorFeedbackConfig(
+      configStore.getActionConfig(theme, binding.actionId) ?? undefined,
+    );
+    cursorTrail.setStateColor(typeof feedback.cursorGlowColor === "string" ? feedback.cursorGlowColor : null);
     cursorTrail.move(event.clientX, event.clientY);
   };
   const handleWindowBlur = (): void => {
     cursorOverlay.clearStateCursorOverlay();
+    cursorTrail.setStateColor(null);
     cursorTrail.leave();
   };
   platformDocument.addEventListener("pointermove", handlePointerMove, { capture: true, passive: true });

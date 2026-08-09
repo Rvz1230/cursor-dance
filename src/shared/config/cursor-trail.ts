@@ -31,6 +31,7 @@ export type CursorTrailConfig = ConfigJsonObject & {
   readonly randomSeed: number;
   readonly clickColor: string;
   readonly clickDurationMs: number;
+  readonly followCursorStateColor: boolean;
   readonly blendMode: CursorTrailBlendMode;
   readonly quality: CursorTrailQuality;
   readonly colors: readonly [string, string];
@@ -74,6 +75,7 @@ export const DEFAULT_CURSOR_TRAIL_CONFIG: CursorTrailConfig = Object.freeze({
   randomSeed: 2026,
   clickColor: "#F8FAFC",
   clickDurationMs: 180,
+  followCursorStateColor: false,
   blendMode: "normal",
   quality: "auto",
   colors: DEFAULT_COLORS,
@@ -106,6 +108,7 @@ export const CURSOR_TRAIL_PRESETS: readonly CursorTrailPreset[] = Object.freeze(
       randomSeed: 731,
       clickColor: "#FEF3C7",
       clickDurationMs: 220,
+      followCursorStateColor: false,
       blendMode: "normal",
       quality: "auto",
       colors: ["#F59E0B", "#FB7185"],
@@ -135,6 +138,7 @@ export const CURSOR_TRAIL_PRESETS: readonly CursorTrailPreset[] = Object.freeze(
       randomSeed: 404,
       clickColor: "#E0F2FE",
       clickDurationMs: 160,
+      followCursorStateColor: false,
       blendMode: "normal",
       quality: "auto",
       colors: ["#0EA5E9", "#6366F1"],
@@ -164,6 +168,7 @@ export const CURSOR_TRAIL_PRESETS: readonly CursorTrailPreset[] = Object.freeze(
       randomSeed: 108,
       clickColor: "#F8FAFC",
       clickDurationMs: 200,
+      followCursorStateColor: false,
       blendMode: "normal",
       quality: "auto",
       colors: ["#0F172A", "#64748B"],
@@ -279,6 +284,7 @@ export function normalizeCursorTrailConfig(value: unknown): CursorTrailConfig {
     randomSeed: Math.round(clampNumber(source.randomSeed, DEFAULT_CURSOR_TRAIL_CONFIG.randomSeed, 0, 9999)),
     clickColor: normalizeColor(source.clickColor, DEFAULT_CURSOR_TRAIL_CONFIG.clickColor),
     clickDurationMs: Math.round(clampNumber(source.clickDurationMs, DEFAULT_CURSOR_TRAIL_CONFIG.clickDurationMs, 80, 600)),
+    followCursorStateColor: source.followCursorStateColor === true,
     blendMode: isCursorTrailBlendMode(source.blendMode) ? source.blendMode : DEFAULT_CURSOR_TRAIL_CONFIG.blendMode,
     quality: isCursorTrailQuality(source.quality) ? source.quality : DEFAULT_CURSOR_TRAIL_CONFIG.quality,
     colors,

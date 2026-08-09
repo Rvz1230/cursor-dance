@@ -183,6 +183,7 @@ test("saved cursor trail runs in the standalone Web runtime page", async ({ cont
   await trailPanel.getByRole("spinbutton", { name: "鼠标拖尾点击变色时长" }).press("Enter");
   await trailPanel.getByRole("spinbutton", { name: "鼠标拖尾随机种子" }).fill("8128");
   await trailPanel.getByRole("spinbutton", { name: "鼠标拖尾随机种子" }).press("Enter");
+  await trailPanel.getByRole("switch", { name: "鼠标拖尾跟随光标状态色开关" }).click();
   await trailPanel.getByRole("spinbutton", { name: "尾部宽度" }).fill("3.7");
   await trailPanel.getByRole("spinbutton", { name: "尾部宽度" }).press("Enter");
   await trailPanel.getByRole("spinbutton", { name: "中段透明度" }).fill("47");
@@ -206,6 +207,7 @@ test("saved cursor trail runs in the standalone Web runtime page", async ({ cont
     randomSeed: 8128,
     clickColor: "#E0F2FE",
     clickDurationMs: 240,
+    followCursorStateColor: true,
     turnResponse: 88,
     gestureResponse: 72,
     colors: ["#123456", "#FB7185"],
@@ -237,6 +239,18 @@ test("saved cursor trail runs in the standalone Web runtime page", async ({ cont
     }
     return false;
   });
+  await runtimePage.mouse.down();
+  await runtimePage.waitForFunction(() => {
+    const canvas = document.querySelector('canvas[data-cursordance-trail="true"]');
+    if (!(canvas instanceof HTMLCanvasElement)) return false;
+    const pixels = canvas.getContext("2d")?.getImageData(0, 0, canvas.width, canvas.height).data;
+    if (!pixels) return false;
+    for (let index = 0; index < pixels.length; index += 4) {
+      if (pixels[index] >= 215 && pixels[index] <= 235 && pixels[index + 1] >= 235 && pixels[index + 2] >= 245) return true;
+    }
+    return false;
+  });
+  await runtimePage.mouse.up();
 });
 
 test("image effect can preview live, save into config, and render in content runtime", async ({ context, page }) => {

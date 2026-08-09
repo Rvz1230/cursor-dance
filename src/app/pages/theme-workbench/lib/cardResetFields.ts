@@ -113,6 +113,7 @@ export const CARD_RESET_FIELDS: Record<string, readonly string[]> = {
     "randomSeed",
     "clickColor",
     "clickDurationMs",
+    "followCursorStateColor",
     "blendMode",
     "quality",
     "colors",

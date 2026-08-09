@@ -108,6 +108,7 @@ describe("themeDraftAdapter schema v4", () => {
         randomSeed: 8128,
         clickColor: "#E0F2FE",
         clickDurationMs: 240,
+        followCursorStateColor: true,
         length: 32,
         width: 7,
         lifetimeMs: 520,
@@ -131,6 +132,7 @@ describe("themeDraftAdapter schema v4", () => {
       randomSeed: 8128,
       clickColor: "#E0F2FE",
       clickDurationMs: 240,
+      followCursorStateColor: true,
       turnResponse: 88,
       gestureResponse: 72,
     });
