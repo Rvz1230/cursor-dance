@@ -119,6 +119,10 @@ describe("themeDraftAdapter schema v4", () => {
         velocityResponse: 82,
         turnResponse: 88,
         gestureResponse: 72,
+        settleResponse: 31,
+        flickResponse: 62,
+        stopResponse: 83,
+        circleResponse: 44,
         colors: ["#F59E0B", "#FB7185"],
       },
     };
@@ -137,6 +141,10 @@ describe("themeDraftAdapter schema v4", () => {
       followCursorStateColor: true,
       turnResponse: 88,
       gestureResponse: 72,
+      settleResponse: 31,
+      flickResponse: 62,
+      stopResponse: 83,
+      circleResponse: 44,
     });
     const rehydrated = hydrate(stored);
     expect(getTheme(rehydrated).draft.atmosphere.trail).toEqual(storedTrail);

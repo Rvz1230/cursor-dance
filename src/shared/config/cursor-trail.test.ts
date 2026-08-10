@@ -21,6 +21,10 @@ describe("cursor trail config", () => {
       velocityResponse: -10,
       turnResponse: 180,
       gestureResponse: -20,
+      settleResponse: -30,
+      flickResponse: 150,
+      stopResponse: 40.4,
+      circleResponse: Number.NaN,
       randomSeed: 20_000,
       clickColor: "",
       clickDurationMs: 10,
@@ -41,6 +45,10 @@ describe("cursor trail config", () => {
       velocityResponse: 0,
       turnResponse: 100,
       gestureResponse: 0,
+      settleResponse: 0,
+      flickResponse: 100,
+      stopResponse: 40,
+      circleResponse: 0,
       randomSeed: 9999,
       clickColor: "#F8FAFC",
       clickDurationMs: 80,
@@ -53,6 +61,22 @@ describe("cursor trail config", () => {
         middle: { color: "#4E3F95", width: 1.24, opacity: 7 },
         head: { color: "#8B5CF6", width: 2, opacity: 10 },
       },
+    });
+  });
+
+  it("migrates the legacy aggregate gesture response into independent controls", () => {
+    expect(normalizeCursorTrailConfig({ gestureResponse: 73 })).toMatchObject({
+      gestureResponse: 73,
+      settleResponse: 73,
+      flickResponse: 73,
+      stopResponse: 73,
+      circleResponse: 73,
+    });
+    expect(normalizeCursorTrailConfig({ gestureResponse: 73, flickResponse: 18 })).toMatchObject({
+      settleResponse: 73,
+      flickResponse: 18,
+      stopResponse: 73,
+      circleResponse: 73,
     });
   });
 

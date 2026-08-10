@@ -398,6 +398,10 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
               velocityResponse: 82,
               turnResponse: 88,
               gestureResponse: 72,
+              settleResponse: 31,
+              flickResponse: 62,
+              stopResponse: 83,
+              circleResponse: 44,
               colors: ["#F59E0B", "#FB7185"],
               segments: {
                 tail: { color: "#F59E0B", width: 2.1, opacity: 27 },
@@ -420,6 +424,10 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
       clickColor: "#E0F2FE",
       clickDurationMs: 240,
       followCursorStateColor: true,
+      settleResponse: 31,
+      flickResponse: 62,
+      stopResponse: 83,
+      circleResponse: 44,
       segments: {
         tail: { color: "#F59E0B", width: 2.1, opacity: 27 },
         middle: { color: "#F88848", width: 4.34, opacity: 56 },

@@ -8,10 +8,26 @@ import {
 
 describe("cursor trail recipes", () => {
   it("round-trips an independent normalized trail config", () => {
-    const text = serializeCursorTrailRecipe({ enabled: true, material: "petal", randomSeed: 8128 });
+    const text = serializeCursorTrailRecipe({
+      enabled: true,
+      material: "petal",
+      randomSeed: 8128,
+      settleResponse: 31,
+      flickResponse: 62,
+      stopResponse: 83,
+      circleResponse: 44,
+    });
     const config = parseCursorTrailRecipe(text);
 
-    expect(config).toMatchObject({ enabled: true, material: "petal", randomSeed: 8128 });
+    expect(config).toMatchObject({
+      enabled: true,
+      material: "petal",
+      randomSeed: 8128,
+      settleResponse: 31,
+      flickResponse: 62,
+      stopResponse: 83,
+      circleResponse: 44,
+    });
     expect(JSON.parse(text)).toMatchObject({ format: CURSOR_TRAIL_RECIPE_FORMAT, version: 1 });
   });
 

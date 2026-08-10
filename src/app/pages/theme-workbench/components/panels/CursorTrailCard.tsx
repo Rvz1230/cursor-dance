@@ -61,6 +61,19 @@ const MATERIAL_OPTIONS = [
   { value: "code", label: "代码字符", description: "0、1 与括号组成的字符流" },
 ] as const;
 
+type GestureResponseKey = "settleResponse" | "flickResponse" | "stopResponse" | "circleResponse";
+
+const GESTURE_RESPONSE_CONTROLS: readonly {
+  key: GestureResponseKey;
+  label: string;
+  hint: string;
+}[] = [
+  { key: "settleResponse", label: "停顿收束", hint: "停止移动后在轨迹末端聚成光点；0% 时关闭。" },
+  { key: "flickResponse", label: "快速甩动", hint: "高速移动时向前喷发火花；0% 时关闭。" },
+  { key: "stopResponse", label: "急停涟漪", hint: "高速移动突然停止时向外扩散；0% 时关闭。" },
+  { key: "circleResponse", label: "绕圈光环", hint: "识别闭合圆周后沿拟合轨迹成环；0% 时关闭。" },
+];
+
 const TRAIL_PRESETS: EffectPreset[] = CURSOR_TRAIL_PRESETS.map((preset) => {
   const { enabled: _enabled, ...patch } = preset.config;
   return { name: preset.label, patch };
@@ -249,7 +262,7 @@ export function CursorTrailCard({ atmosphere, onChange }: CursorTrailCardProps) 
         },
       } })}
       disabledContent={recipeTools}
-      settingCount={23}
+      settingCount={26}
       primaryCount={4}
       primary={(
         <>
@@ -280,7 +293,14 @@ export function CursorTrailCard({ atmosphere, onChange }: CursorTrailCardProps) 
       <FieldRow label="随机种子" hint="相同种子和路径会得到一致的粒子分布。" control={<NumberField compact value={config.randomSeed} min={0} max={9999} onChange={(randomSeed) => updateTrail({ randomSeed })} ariaLabel="鼠标拖尾随机种子" />} />
       <FieldRow label="速度响应" hint="移动越快，轨迹越有张力。" control={<Slider value={config.velocityResponse} min={0} max={100} suffix="%" onChange={(velocityResponse) => updateTrail({ velocityResponse })} label="鼠标拖尾速度响应" />} />
       <FieldRow label="转向散射" hint="拐弯越急，越容易甩出侧向光点。" control={<Slider value={config.turnResponse} min={0} max={100} suffix="%" onChange={(turnResponse) => updateTrail({ turnResponse })} label="鼠标拖尾转向散射" />} />
-      <FieldRow label="手势爆发" hint="停顿收束为光点，快速甩动产生闪光，急停向外扩散涟漪，闭合绕圈形成光环。" control={<Slider value={config.gestureResponse} min={0} max={100} suffix="%" onChange={(gestureResponse) => updateTrail({ gestureResponse })} label="鼠标拖尾手势爆发" />} />
+      {GESTURE_RESPONSE_CONTROLS.map((control) => (
+        <FieldRow
+          key={control.key}
+          label={control.label}
+          hint={control.hint}
+          control={<Slider value={config[control.key]} min={0} max={100} suffix="%" onChange={(value) => updateTrail({ [control.key]: value } as Partial<CursorTrailConfig>)} label={`鼠标拖尾${control.label}`} />}
+        />
+      ))}
       {recipeTools}
     </WorkbenchEffectCard>
   );

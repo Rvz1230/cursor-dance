@@ -590,11 +590,10 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
     }
     lastPaintAt = timestamp;
     if (pausePulseArmed && lastPoint && timestamp - lastMoveAt >= 90) {
-      const response = config.gestureResponse / 100;
       const velocityEnergy = Math.min(1, lastPoint.velocity / 24);
-      addGesturePulse(lastPoint, "settle", response * (0.35 + velocityEnergy * 0.45), lastMoveAt + 90);
-      if (lastPoint.velocity >= 10) {
-        addGesturePulse(lastPoint, "stop", response * velocityEnergy, lastMoveAt + 90);
+      addGesturePulse(lastPoint, "settle", config.settleResponse / 100 * (0.35 + velocityEnergy * 0.45), lastMoveAt + 90);
+      if (lastPoint.velocity >= 10 && config.stopResponse > 0) {
+        addGesturePulse(lastPoint, "stop", config.stopResponse / 100 * velocityEnergy, lastMoveAt + 90);
       }
       pausePulseArmed = false;
     }
@@ -711,7 +710,7 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
       gesturePath = gesturePath.filter((point) => timestamp - point.bornAt <= 900).slice(-32);
       const turnEnergy = turn * (config.turnResponse / 100);
       if (turnEnergy >= 0.08) addSparkBurst(next, turnEnergy, "turn");
-      const flickEnergy = Math.min(1, Math.max(0, (next.velocity - 18) / 28)) * (config.gestureResponse / 100);
+      const flickEnergy = Math.min(1, Math.max(0, (next.velocity - 18) / 28)) * (config.flickResponse / 100);
       if (flickEnergy >= 0.12 && timestamp - lastFlickAt >= 140) {
         addSparkBurst(next, flickEnergy, "flick");
         addGesturePulse(next, "flick", flickEnergy);
@@ -722,14 +721,14 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
         addGesturePulse(
           { ...next, x: circle.x, y: circle.y },
           "circle",
-          config.gestureResponse / 100,
+          config.circleResponse / 100,
           timestamp,
           circle.radius,
         );
         gesturePath = [next];
         lastCircleAt = timestamp;
       }
-      pausePulseArmed = config.gestureResponse > 0;
+      pausePulseArmed = config.settleResponse > 0 || config.stopResponse > 0;
       const pointLimit = Math.min(config.length, getQualityProfile()[1]);
       if (points.length > pointLimit) points.splice(0, points.length - pointLimit);
       ensureFrame();

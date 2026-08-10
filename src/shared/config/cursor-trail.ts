@@ -29,7 +29,12 @@ export type CursorTrailConfig = ConfigJsonObject & {
   readonly glow: number;
   readonly velocityResponse: number;
   readonly turnResponse: number;
+  /** Legacy aggregate used to migrate configs saved before gesture controls were split. */
   readonly gestureResponse: number;
+  readonly settleResponse: number;
+  readonly flickResponse: number;
+  readonly stopResponse: number;
+  readonly circleResponse: number;
   readonly randomSeed: number;
   readonly clickColor: string;
   readonly clickDurationMs: number;
@@ -75,6 +80,10 @@ export const DEFAULT_CURSOR_TRAIL_CONFIG: CursorTrailConfig = Object.freeze({
   velocityResponse: 60,
   turnResponse: 36,
   gestureResponse: 55,
+  settleResponse: 55,
+  flickResponse: 55,
+  stopResponse: 55,
+  circleResponse: 55,
   randomSeed: 2026,
   clickColor: "#F8FAFC",
   clickDurationMs: 180,
@@ -109,6 +118,10 @@ export const CURSOR_TRAIL_PRESETS: readonly CursorTrailPreset[] = Object.freeze(
       velocityResponse: 82,
       turnResponse: 88,
       gestureResponse: 72,
+      settleResponse: 72,
+      flickResponse: 72,
+      stopResponse: 72,
+      circleResponse: 72,
       randomSeed: 731,
       clickColor: "#FEF3C7",
       clickDurationMs: 220,
@@ -140,6 +153,10 @@ export const CURSOR_TRAIL_PRESETS: readonly CursorTrailPreset[] = Object.freeze(
       velocityResponse: 36,
       turnResponse: 24,
       gestureResponse: 64,
+      settleResponse: 64,
+      flickResponse: 64,
+      stopResponse: 64,
+      circleResponse: 64,
       randomSeed: 404,
       clickColor: "#E0F2FE",
       clickDurationMs: 160,
@@ -171,6 +188,10 @@ export const CURSOR_TRAIL_PRESETS: readonly CursorTrailPreset[] = Object.freeze(
       velocityResponse: 24,
       turnResponse: 18,
       gestureResponse: 92,
+      settleResponse: 92,
+      flickResponse: 92,
+      stopResponse: 92,
+      circleResponse: 92,
       randomSeed: 108,
       clickColor: "#F8FAFC",
       clickDurationMs: 200,
@@ -274,6 +295,7 @@ export function normalizeCursorTrailConfig(value: unknown): CursorTrailConfig {
   ];
   const width = clampNumber(source.width, DEFAULT_CURSOR_TRAIL_CONFIG.width, 2, 24);
   const opacity = Math.round(clampNumber(source.opacity, DEFAULT_CURSOR_TRAIL_CONFIG.opacity, 10, 100));
+  const gestureResponse = Math.round(clampNumber(source.gestureResponse, DEFAULT_CURSOR_TRAIL_CONFIG.gestureResponse, 0, 100));
   const legacySegments: CursorTrailSegments = {
     tail: { color: colors[0], width: Math.max(1, width * 0.3), opacity: Math.round(opacity * 0.34) },
     middle: { color: mixHexColor(colors[0], colors[1]), width: Math.max(1, width * 0.62), opacity: Math.round(opacity * 0.72) },
@@ -292,7 +314,11 @@ export function normalizeCursorTrailConfig(value: unknown): CursorTrailConfig {
     glow: Math.round(clampNumber(source.glow, DEFAULT_CURSOR_TRAIL_CONFIG.glow, 0, 24)),
     velocityResponse: Math.round(clampNumber(source.velocityResponse, DEFAULT_CURSOR_TRAIL_CONFIG.velocityResponse, 0, 100)),
     turnResponse: Math.round(clampNumber(source.turnResponse, DEFAULT_CURSOR_TRAIL_CONFIG.turnResponse, 0, 100)),
-    gestureResponse: Math.round(clampNumber(source.gestureResponse, DEFAULT_CURSOR_TRAIL_CONFIG.gestureResponse, 0, 100)),
+    gestureResponse,
+    settleResponse: Math.round(clampNumber(source.settleResponse, gestureResponse, 0, 100)),
+    flickResponse: Math.round(clampNumber(source.flickResponse, gestureResponse, 0, 100)),
+    stopResponse: Math.round(clampNumber(source.stopResponse, gestureResponse, 0, 100)),
+    circleResponse: Math.round(clampNumber(source.circleResponse, gestureResponse, 0, 100)),
     randomSeed: Math.round(clampNumber(source.randomSeed, DEFAULT_CURSOR_TRAIL_CONFIG.randomSeed, 0, 9999)),
     clickColor: normalizeColor(source.clickColor, DEFAULT_CURSOR_TRAIL_CONFIG.clickColor),
     clickDurationMs: Math.round(clampNumber(source.clickDurationMs, DEFAULT_CURSOR_TRAIL_CONFIG.clickDurationMs, 80, 600)),

@@ -191,6 +191,11 @@ test("saved cursor trail runs in the standalone Web runtime page", async ({ cont
   await trailPanel.getByRole("spinbutton", { name: "中段透明度" }).press("Enter");
   await trailPanel.getByRole("spinbutton", { name: "光标附近宽度" }).fill("11.2");
   await trailPanel.getByRole("spinbutton", { name: "光标附近宽度" }).press("Enter");
+  for (const [label, value] of [["停顿收束", "31"], ["快速甩动", "62"], ["急停涟漪", "83"], ["绕圈光环", "44"]]) {
+    const input = trailPanel.getByRole("spinbutton", { name: `鼠标拖尾${label}` });
+    await input.fill(value);
+    await input.press("Enter");
+  }
   await expect(editorState).toHaveAttribute("data-trail-editor-state", "playing");
   await workbenchPage.getByRole("button", { name: "保存到浏览器" }).click();
 
@@ -212,6 +217,10 @@ test("saved cursor trail runs in the standalone Web runtime page", async ({ cont
     followCursorStateColor: true,
     turnResponse: 88,
     gestureResponse: 72,
+    settleResponse: 31,
+    flickResponse: 62,
+    stopResponse: 83,
+    circleResponse: 44,
     colors: ["#123456", "#FB7185"],
     width: 11.2,
     segments: {

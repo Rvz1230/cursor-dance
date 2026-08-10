@@ -210,7 +210,16 @@ describe("cursor trail surface", () => {
       root: fixture.root,
       respectReducedMotion: false,
     });
-    surface.syncConfig({ enabled: true, smoothing: 0, gestureResponse: 100, turnResponse: 0 });
+    surface.syncConfig({
+      enabled: true,
+      smoothing: 0,
+      gestureResponse: 0,
+      settleResponse: 0,
+      flickResponse: 0,
+      stopResponse: 0,
+      circleResponse: 100,
+      turnResponse: 0,
+    });
     for (let index = 0; index <= 16; index += 1) {
       const angle = index / 16 * Math.PI * 2;
       fixture.setTime(index * 50);
@@ -446,7 +455,11 @@ describe("cursor trail surface", () => {
       shape: "ribbon",
       smoothing: 0,
       turnResponse: 0,
-      gestureResponse: 100,
+      gestureResponse: 0,
+      settleResponse: 100,
+      flickResponse: 0,
+      stopResponse: 0,
+      circleResponse: 0,
     });
     surface.move(20, 20);
     fixture.setTime(100);
@@ -478,7 +491,11 @@ describe("cursor trail surface", () => {
       shape: "ribbon",
       smoothing: 0,
       turnResponse: 0,
-      gestureResponse: 100,
+      gestureResponse: 0,
+      settleResponse: 100,
+      flickResponse: 0,
+      stopResponse: 100,
+      circleResponse: 0,
     });
     surface.move(20, 20);
     fixture.setTime(16);
@@ -511,7 +528,11 @@ describe("cursor trail surface", () => {
       shape: "ribbon",
       smoothing: 0,
       turnResponse: 0,
-      gestureResponse: 100,
+      gestureResponse: 0,
+      settleResponse: 0,
+      flickResponse: 100,
+      stopResponse: 0,
+      circleResponse: 0,
     });
     surface.move(20, 20);
     fixture.setTime(16);
