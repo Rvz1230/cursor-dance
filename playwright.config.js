@@ -1,6 +1,6 @@
 import { defineConfig } from "@playwright/test";
 
-const PORT = 4173;
+const PORT = Number.parseInt(process.env.CURSORDANCE_SMOKE_PORT ?? "4173", 10);
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 const useExternalServer = process.env.CURSORDANCE_SMOKE_EXTERNAL_SERVER === "1";
 

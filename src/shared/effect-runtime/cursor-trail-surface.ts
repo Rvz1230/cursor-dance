@@ -61,8 +61,7 @@ interface TrailSpark {
   vx: number;
   vy: number;
   size: number;
-  color: string;
-  opacity: number;
+  styleProgress: number;
 }
 
 interface GesturePulse {
@@ -71,7 +70,7 @@ interface GesturePulse {
   bornAt: number;
   lifetimeMs: number;
   intensity: number;
-  kind: "flick" | "stop" | "circle";
+  kind: "flick" | "settle" | "stop" | "circle";
   radius: number;
 }
 
@@ -85,6 +84,7 @@ export interface CursorTrailSurfaceOptions {
   window: Window;
   document: Document;
   root?: HTMLElement;
+  blendWithPage?: boolean;
   respectReducedMotion?: boolean;
   zIndex?: number;
 }
@@ -123,6 +123,11 @@ export function mixCursorTrailColor(from: string, to: string, progress: number):
 export function sampleCursorTrailNoise(seed: number, x: number, y: number, index: number, salt = 0): number {
   const wave = Math.sin(seed * 12.9898 + x * 0.067 + y * 0.043 + index * 78.233 + salt * 37.719) * 43_758.5453;
   return (wave - Math.floor(wave)) * 2 - 1;
+}
+
+export function resolveCursorTrailVelocityGain(velocity: number, response: number, strength = 0.75): number {
+  const energy = Math.min(1, Math.max(0, velocity) / 28) * (Math.min(100, Math.max(0, response)) / 100);
+  return 1 + energy * strength;
 }
 
 export function fitCursorTrailCircle(path: readonly Pick<TrailPoint, "x" | "y">[]): CursorTrailCircle | null {
@@ -207,7 +212,7 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
   let lastCircleAt = Number.NEGATIVE_INFINITY;
   let clickAccentUntil = Number.NEGATIVE_INFINITY;
   let stateColor: string | null = null;
-  let stopPulseArmed = false;
+  let pausePulseArmed = false;
   let frameId: number | null = null;
   let destroyed = false;
   let reducedMotion = false;
@@ -299,7 +304,7 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
       const to = points[index];
       const progress = index / Math.max(1, points.length - 1);
       const segment = getSegmentStyle(progress, timestamp);
-      const velocityGain = 1 + Math.min(1, to.velocity / 28) * (config.velocityResponse / 100) * 0.75;
+      const velocityGain = resolveCursorTrailVelocityGain(to.velocity, config.velocityResponse);
       context.beginPath();
       context.moveTo(from.x, from.y);
       context.lineTo(to.x, to.y);
@@ -318,7 +323,7 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
       const point = points[index];
       const progress = index / Math.max(1, points.length - 1);
       const segment = getSegmentStyle(progress, timestamp);
-      const velocityGain = 1 + Math.min(1, point.velocity / 24) * (config.velocityResponse / 100);
+      const velocityGain = resolveCursorTrailVelocityGain(point.velocity, config.velocityResponse, 1);
       const baseRadius = Math.max(1, segment.width * 0.22 * velocityGain);
       context.fillStyle = segment.color;
       context.shadowColor = context.fillStyle;
@@ -347,7 +352,8 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
       const point = points[index];
       const progress = index / Math.max(1, points.length - 1);
       const segment = getSegmentStyle(progress, timestamp);
-      const size = Math.max(2, segment.width);
+      const velocityGain = resolveCursorTrailVelocityGain(point.velocity, config.velocityResponse);
+      const size = Math.max(2, segment.width * velocityGain);
       context.fillStyle = segment.color;
       context.shadowColor = context.fillStyle;
       context.globalAlpha = pointOpacity(point, timestamp, index, points.length, segment.opacity);
@@ -362,7 +368,7 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
       const point = points[index];
       const progress = index / Math.max(1, points.length - 1);
       const segment = getSegmentStyle(progress, timestamp);
-      const size = segment.width;
+      const size = segment.width * resolveCursorTrailVelocityGain(point.velocity, config.velocityResponse);
       context.save();
       context.translate(point.x, point.y);
       context.scale(size / 16, size / 16);
@@ -395,13 +401,14 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
       const dx = to.x - from.x;
       const dy = to.y - from.y;
       const length = Math.max(1, Math.hypot(dx, dy));
+      const velocityGain = resolveCursorTrailVelocityGain(to.velocity, config.velocityResponse);
       const jitter = sampleCursorTrailNoise(config.randomSeed, to.x, to.y, index) * segment.width * 0.9;
       context.beginPath();
       context.moveTo(from.x, from.y);
       context.lineTo((from.x + to.x) / 2 - dy / length * jitter, (from.y + to.y) / 2 + dx / length * jitter);
       context.lineTo(to.x, to.y);
       context.strokeStyle = segment.color;
-      context.lineWidth = Math.max(1, segment.width * 0.28);
+      context.lineWidth = Math.max(1, segment.width * 0.28 * velocityGain);
       context.shadowColor = segment.color;
       context.shadowBlur = config.glow + 5;
       context.globalAlpha = pointOpacity(to, timestamp, index, points.length, segment.opacity);
@@ -420,6 +427,7 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
       const point = points[index];
       const segment = getSegmentStyle(index / Math.max(1, points.length - 1), timestamp);
       const noise = sampleCursorTrailNoise(config.randomSeed, point.x, point.y, index);
+      const velocityGain = resolveCursorTrailVelocityGain(point.velocity, config.velocityResponse);
       const opacity = pointOpacity(point, timestamp, index, points.length, segment.opacity);
       const age = Math.max(0, timestamp - point.bornAt);
       context.fillStyle = segment.color;
@@ -432,7 +440,7 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
         context.arc(
           point.x + noise * segment.width * 0.45,
           point.y - age * 0.035,
-          Math.max(1, segment.width * (0.24 + Math.abs(noise) * 0.12)),
+          Math.max(1, segment.width * (0.24 + Math.abs(noise) * 0.12) * velocityGain),
           0,
           Math.PI * 2,
         );
@@ -440,16 +448,16 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
       } else if (material === "ink") {
         context.shadowBlur = 0;
         context.beginPath();
-        context.arc(point.x + noise * 2, point.y - noise * 2, Math.max(1, segment.width * (0.32 + Math.abs(noise) * 0.16)), 0, Math.PI * 2);
+        context.arc(point.x + noise * 2, point.y - noise * 2, Math.max(1, segment.width * (0.32 + Math.abs(noise) * 0.16) * velocityGain), 0, Math.PI * 2);
         context.fill();
       } else if (material === "liquid") {
         context.shadowBlur = config.glow * 0.5;
-        context.lineWidth = Math.max(1, segment.width * 0.12);
+        context.lineWidth = Math.max(1, segment.width * 0.12 * velocityGain);
         context.beginPath();
-        context.arc(point.x - noise * segment.width, point.y + noise * segment.width * 0.7, Math.max(1.5, segment.width * 0.24), 0, Math.PI * 2);
+        context.arc(point.x - noise * segment.width, point.y + noise * segment.width * 0.7, Math.max(1.5, segment.width * 0.24 * velocityGain), 0, Math.PI * 2);
         context.stroke();
       } else if (material === "petal") {
-        const size = Math.max(2, segment.width * 0.42);
+        const size = Math.max(2, segment.width * 0.42 * velocityGain);
         context.save();
         context.translate(point.x + noise * segment.width, point.y - age * 0.012);
         context.rotate(noise * Math.PI + age * 0.008);
@@ -461,7 +469,7 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
       } else {
         const glyphs = material === "note" ? noteGlyphs : codeGlyphs;
         const glyphIndex = Math.abs(Math.floor(noise * 10_000)) % glyphs.length;
-        context.font = `${Math.max(10, segment.width * 1.5)}px ${material === "code" ? "monospace" : "sans-serif"}`;
+        context.font = `${Math.max(10, segment.width * 1.5 * velocityGain)}px ${material === "code" ? "monospace" : "sans-serif"}`;
         context.textAlign = "center";
         context.textBaseline = "middle";
         context.shadowBlur = config.glow;
@@ -478,7 +486,8 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
     const unitY = point.dy / directionLength;
     const sideX = -unitY;
     const sideY = unitX;
-    const segment = getSegmentStyle(kind === "flick" ? 0.9 : 0.65, point.bornAt);
+    const styleProgress = kind === "flick" ? 0.9 : 0.65;
+    const segment = getSegmentStyle(styleProgress, point.bornAt);
     for (let index = 0; index < count; index += 1) {
       const spread = count <= 1 ? 0 : index / (count - 1) * 2 - 1;
       const phase = Math.sin(point.x * 0.071 + point.y * 0.053 + index * 2.17 + config.randomSeed * 0.013);
@@ -492,8 +501,7 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
         vx: unitX * forward + sideX * sideways,
         vy: unitY * forward + sideY * sideways,
         size: Math.max(1.2, segment.width * (kind === "flick" ? 0.2 : 0.13) * (0.7 + intensity)),
-        color: segment.color,
-        opacity: segment.opacity,
+        styleProgress,
       });
     }
     const sparkLimit = getQualityProfile()[2];
@@ -512,7 +520,7 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
       x: point.x,
       y: point.y,
       bornAt: timestamp,
-      lifetimeMs: kind === "flick" ? 260 : kind === "circle" ? 680 : 420,
+      lifetimeMs: kind === "flick" ? 260 : kind === "circle" ? 680 : kind === "settle" ? 360 : 460,
       intensity,
       kind,
       radius,
@@ -527,12 +535,13 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
       const progress = Math.min(1, Math.max(0, (timestamp - spark.bornAt) / spark.lifetimeMs));
       const travel = (timestamp - spark.bornAt) / 16.67;
       const size = spark.size * (1 - progress * 0.55);
+      const segment = getSegmentStyle(spark.styleProgress, timestamp);
       context.beginPath();
       context.arc(spark.x + spark.vx * travel, spark.y + spark.vy * travel, size, 0, Math.PI * 2);
-      context.fillStyle = spark.color;
-      context.shadowColor = spark.color;
+      context.fillStyle = segment.color;
+      context.shadowColor = segment.color;
       context.shadowBlur = config.glow * 0.7;
-      context.globalAlpha = (1 - progress) * (spark.opacity / 100);
+      context.globalAlpha = (1 - progress) * (segment.opacity / 100);
       context.fill();
     }
   }
@@ -542,12 +551,12 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
     for (const pulse of pulses) {
       const progress = Math.min(1, Math.max(0, (timestamp - pulse.bornAt) / pulse.lifetimeMs));
       const easeOut = 1 - (1 - progress) ** 3;
-      const radius = pulse.kind === "stop"
+      const radius = pulse.kind === "settle"
         ? 5 + (1 - easeOut) * (18 + pulse.intensity * 22)
         : pulse.kind === "circle"
           ? pulse.radius * (0.88 + easeOut * 0.12)
           : 6 + easeOut * (18 + pulse.intensity * 28);
-      const segment = getSegmentStyle(pulse.kind === "stop" ? 0.9 : 0.65, timestamp);
+      const segment = getSegmentStyle(pulse.kind === "settle" ? 0.9 : pulse.kind === "stop" ? 0.75 : 0.65, timestamp);
       const color = segment.color;
       context.beginPath();
       context.arc(pulse.x, pulse.y, radius, 0, Math.PI * 2);
@@ -557,6 +566,13 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
       context.shadowBlur = config.glow + 8 * pulse.intensity;
       context.globalAlpha = (1 - progress) * (segment.opacity / 100) * pulse.intensity;
       context.stroke();
+      if (pulse.kind === "settle") {
+        context.beginPath();
+        context.arc(pulse.x, pulse.y, Math.max(1.5, segment.width * 0.16 * (0.75 + easeOut)), 0, Math.PI * 2);
+        context.fillStyle = color;
+        context.globalAlpha = (1 - progress) * (0.35 + easeOut * 0.65) * (segment.opacity / 100) * pulse.intensity;
+        context.fill();
+      }
     }
   }
 
@@ -573,10 +589,14 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
       return;
     }
     lastPaintAt = timestamp;
-    if (stopPulseArmed && lastPoint && timestamp - lastMoveAt >= 90) {
-      const stopEnergy = Math.min(1, lastPoint.velocity / 24) * (config.gestureResponse / 100);
-      addGesturePulse(lastPoint, "stop", stopEnergy, lastMoveAt + 90);
-      stopPulseArmed = false;
+    if (pausePulseArmed && lastPoint && timestamp - lastMoveAt >= 90) {
+      const response = config.gestureResponse / 100;
+      const velocityEnergy = Math.min(1, lastPoint.velocity / 24);
+      addGesturePulse(lastPoint, "settle", response * (0.35 + velocityEnergy * 0.45), lastMoveAt + 90);
+      if (lastPoint.velocity >= 10) {
+        addGesturePulse(lastPoint, "stop", response * velocityEnergy, lastMoveAt + 90);
+      }
+      pausePulseArmed = false;
     }
     points = points.filter((point) => timestamp - point.bornAt < config.lifetimeMs);
     sparks = sparks.filter((spark) => timestamp - spark.bornAt < spark.lifetimeMs);
@@ -588,7 +608,9 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
     }
     if (context) {
       context.save();
-      context.globalCompositeOperation = resolveCursorTrailCompositeOperation(config.blendMode);
+      context.globalCompositeOperation = options.blendWithPage
+        ? "source-over"
+        : resolveCursorTrailCompositeOperation(config.blendMode);
       if (config.material === "lightning") drawLightning(timestamp);
       else if (config.material !== "neon") drawParticleMaterial(timestamp);
       else if (config.shape === "stardust") drawStardust(timestamp);
@@ -612,7 +634,7 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
     pulses = [];
     gesturePath = [];
     lastPoint = null;
-    stopPulseArmed = false;
+    pausePulseArmed = false;
     clickAccentUntil = Number.NEGATIVE_INFINITY;
     frameSampleTotal = frameSampleCount = 0;
     lastObservedFrameAt = null;
@@ -635,6 +657,7 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
     syncConfig(value: unknown) {
       const previousQuality = config.quality;
       config = normalizeCursorTrailConfig(value);
+      canvas.style.mixBlendMode = options.blendWithPage ? config.blendMode : "normal";
       if (config.quality !== previousQuality) {
         autoQuality = "fine";
         frameSampleTotal = frameSampleCount = 0;
@@ -706,7 +729,7 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
         gesturePath = [next];
         lastCircleAt = timestamp;
       }
-      stopPulseArmed = next.velocity >= 10 && config.gestureResponse > 0;
+      pausePulseArmed = config.gestureResponse > 0;
       const pointLimit = Math.min(config.length, getQualityProfile()[1]);
       if (points.length > pointLimit) points.splice(0, points.length - pointLimit);
       ensureFrame();
@@ -718,7 +741,7 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
     },
     leave() {
       lastPoint = null;
-      stopPulseArmed = false;
+      pausePulseArmed = false;
       gesturePath = [];
       ensureFrame();
     },

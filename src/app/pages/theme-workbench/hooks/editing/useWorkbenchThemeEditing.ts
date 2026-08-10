@@ -73,8 +73,25 @@ export function useWorkbenchThemeEditing({
       ),
     updateActionConfigs: (patchesByActionId: Record<string, WorkbenchActionConfig>) =>
       updateCurrentTheme((current) => applyActionConfigPatches(current, patchesByActionId)),
-    updateAtmosphere: (patch: Record<string, unknown>) =>
-      updateCurrentTheme((current) => applyAtmospherePatch(current, patch)),
+    updateAtmosphere: (patch: Record<string, unknown>) => {
+      const themeId = selected.themeId;
+      const previousAtmosphere = draftRef.current.atmosphere;
+      updateCurrentTheme((current) => applyAtmospherePatch(current, patch));
+      return () => dispatch({
+        type: "theme/update-by-id",
+        payload: {
+          themeId,
+          updater: (current) => {
+            const atmosphere = { ...current.atmosphere };
+            for (const key of Object.keys(patch)) {
+              if (Object.prototype.hasOwnProperty.call(previousAtmosphere, key)) atmosphere[key] = previousAtmosphere[key];
+              else delete atmosphere[key];
+            }
+            return { ...current, atmosphere };
+          },
+        },
+      });
+    },
     keyFeedbackConfig: normalizeKeyFeedbackConfig(draft.keyFeedbackConfig),
     updateKeyFeedbackConfig: (patch: Partial<KeyFeedbackConfig>) =>
       updateCurrentTheme(

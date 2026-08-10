@@ -23,7 +23,7 @@ import { assertIpcSender } from "./ipc-security";
 import { hydrateThemeExportContents } from "./asset-repository";
 
 const THEME_FILE_FILTERS = [
-  { name: "CursorDance Theme", extensions: ["cursordance-theme.json", "json"] },
+  { name: "CursorDance JSON", extensions: ["cursordance-theme.json", "cursordance-trail.json", "json"] },
   { name: "All Files", extensions: ["*"] },
 ];
 

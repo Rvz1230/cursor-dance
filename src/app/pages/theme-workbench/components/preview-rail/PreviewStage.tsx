@@ -33,6 +33,7 @@ export function PreviewStage({ config, comparisonConfig, compareMode, disabled, 
       window,
       document,
       root,
+      blendWithPage: true,
       respectReducedMotion: false,
       zIndex: 1,
     });

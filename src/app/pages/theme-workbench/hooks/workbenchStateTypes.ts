@@ -133,6 +133,7 @@ export type WorkbenchAction =
   | { type: "save/error"; payload?: string }
   | { type: "recent-assets/set"; payload: RecentCursorAsset[] }
   | { type: "theme/update-current"; payload: ThemeUpdater }
+  | { type: "theme/update-by-id"; payload: { themeId: string; updater: ThemeUpdater } }
   | { type: "theme/reset-current" }
   | { type: "theme/discard-changes"; payload: { themeId: string; draft: WorkbenchThemeDraft } };
 

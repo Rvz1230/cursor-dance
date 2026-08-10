@@ -276,6 +276,96 @@ test("saved cursor trail runs in the standalone Web runtime page", async ({ cont
   await runtimePage.mouse.up();
 });
 
+test("cursor trail recipes copy across themes and import or export independently", async ({ context, page }) => {
+  await clearLocalState(page);
+
+  const workbenchPage = await context.newPage();
+  await workbenchPage.goto("/index.html");
+  let trailPanel = panelByName(workbenchPage, /^鼠标拖尾$/);
+  await trailPanel.getByRole("switch", { name: "鼠标拖尾开关" }).click();
+  await revealPanelSettings(trailPanel);
+  await selectRadixOption(workbenchPage, trailPanel, 0, "花瓣");
+  await trailPanel.getByRole("button", { name: "复制" }).click();
+  await expect(workbenchPage.getByText("已复制拖尾配方", { exact: true })).toBeVisible();
+
+  await workbenchPage.getByRole("radio", { name: /选择主题 流光/ }).click();
+  await workbenchPage.getByRole("button", { name: "不保存直接切换" }).click();
+  await expect(workbenchPage.getByRole("radio", { name: /选择主题 流光/ })).toBeChecked();
+  trailPanel = panelByName(workbenchPage, /^鼠标拖尾$/);
+  await revealPanelSettings(trailPanel);
+  await trailPanel.getByRole("button", { name: "粘贴" }).click();
+  await expect(trailPanel.getByRole("combobox", { name: "鼠标拖尾轨迹材质" })).toContainText("花瓣");
+  await trailPanel.getByRole("textbox", { name: "拖尾配方名称" }).fill("跨主题花瓣");
+  await trailPanel.getByRole("button", { name: "保存到库" }).click();
+  await expect(trailPanel.getByRole("list", { name: "已保存拖尾配方" })).toContainText("跨主题花瓣");
+
+  const downloadPromise = workbenchPage.waitForEvent("download");
+  await trailPanel.getByRole("button", { name: "导出" }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe("cursor-trail-petal.cursordance-trail.json");
+
+  await trailPanel.getByLabel("选择拖尾配方文件").setInputFiles({
+    name: "code-trail.cursordance-trail.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify({
+      format: "cursordance-cursor-trail",
+      version: 1,
+      exportedAt: "2026-08-10T00:00:00.000Z",
+      trail: { enabled: true, material: "code", randomSeed: 99 },
+    })),
+  });
+  await expect(trailPanel.getByRole("combobox", { name: "鼠标拖尾轨迹材质" })).toContainText("代码字符");
+  await trailPanel.getByRole("button", { name: "应用配方 跨主题花瓣" }).click();
+  await expect(trailPanel.getByRole("combobox", { name: "鼠标拖尾轨迹材质" })).toContainText("花瓣");
+  await trailPanel.getByRole("button", { name: "删除配方 跨主题花瓣" }).click();
+  await expect(trailPanel.getByRole("list", { name: "已保存拖尾配方" })).toHaveCount(0);
+  const removedRecipeToast = workbenchPage.getByText("已移除配方", { exact: true }).locator("..").locator("..");
+  await removedRecipeToast.getByRole("button", { name: "撤销" }).click();
+  await expect(trailPanel.getByRole("list", { name: "已保存拖尾配方" })).toContainText("跨主题花瓣");
+  await workbenchPage.getByRole("button", { name: "保存到浏览器" }).click();
+  await expect.poll(() => workbenchPage.evaluate((configKey) => {
+    const raw = window.localStorage.getItem(configKey);
+    if (!raw) return null;
+    const config = JSON.parse(raw);
+    return config.themes?.find((theme) => theme.id === config.activeThemeId)?.atmosphere?.trail?.material ?? null;
+  }, CONFIG_STORAGE_KEY)).toBe("petal");
+  await workbenchPage.reload();
+  trailPanel = panelByName(workbenchPage, /^鼠标拖尾$/);
+  await revealPanelSettings(trailPanel);
+  await expect(trailPanel.getByText("跨主题花瓣", { exact: true })).toBeVisible();
+});
+
+test("all cursor trail materials paint pixels through the shared preview runtime", async ({ context, page }) => {
+  await clearLocalState(page);
+
+  const workbenchPage = await context.newPage();
+  await workbenchPage.goto("/index.html");
+  const trailPanel = panelByName(workbenchPage, /^鼠标拖尾$/);
+  await trailPanel.getByRole("switch", { name: "鼠标拖尾开关" }).click();
+  await revealPanelSettings(trailPanel);
+  const previewStage = workbenchPage.getByTestId("trail-preview-stage");
+  const canvas = previewStage.locator('canvas[data-cursordance-trail="true"]');
+  const stageBox = await previewStage.boundingBox();
+  if (!stageBox) throw new Error("Trail preview stage has no layout box");
+  const paintedPixels = () => canvas.evaluate((element) => {
+    const context2d = element.getContext("2d");
+    if (!context2d) return 0;
+    const pixels = context2d.getImageData(0, 0, element.width, element.height).data;
+    let count = 0;
+    for (let index = 3; index < pixels.length; index += 4) if (pixels[index] > 0) count += 1;
+    return count;
+  });
+
+  for (const material of ["霓虹", "火焰", "墨水", "液态", "闪电", "花瓣", "音符", "代码字符"]) {
+    await selectRadixOption(workbenchPage, trailPanel, 0, material);
+    await workbenchPage.mouse.move(1, 1);
+    await expect.poll(paintedPixels).toBe(0);
+    await workbenchPage.mouse.move(stageBox.x + stageBox.width * 0.2, stageBox.y + stageBox.height * 0.55);
+    await workbenchPage.mouse.move(stageBox.x + stageBox.width * 0.75, stageBox.y + stageBox.height * 0.35, { steps: 6 });
+    await expect.poll(paintedPixels).toBeGreaterThan(0);
+  }
+});
+
 test("image effect can preview live, save into config, and render in content runtime", async ({ context, page }) => {
   await clearLocalState(page);
 

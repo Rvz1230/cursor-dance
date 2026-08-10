@@ -217,9 +217,11 @@ export async function hydrateThemeAssets(theme: CursorDanceTheme): Promise<Curso
 }
 
 export async function hydrateThemeExportContents(contents: string): Promise<string> {
-  const payload = JSON.parse(contents) as JsonRecord;
-  const theme = payload.theme as CursorDanceTheme;
-  return `${JSON.stringify({ ...payload, theme: await hydrateThemeAssets(theme) }, null, 2)}\n`;
+  const parsed = JSON.parse(contents) as unknown;
+  const payload = asRecord(parsed);
+  const theme = asRecord(payload?.theme);
+  if (!payload || !theme) return `${JSON.stringify(parsed, null, 2)}\n`;
+  return `${JSON.stringify({ ...payload, theme: await hydrateThemeAssets(theme as unknown as CursorDanceTheme) }, null, 2)}\n`;
 }
 
 export function collectReferencedAssetIds(...values: unknown[]): Set<string> {

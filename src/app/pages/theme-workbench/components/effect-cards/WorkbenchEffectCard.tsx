@@ -25,6 +25,7 @@ interface WorkbenchEffectCardProps {
   onToggle?(enabled: boolean): void;
   onReset?(): void;
   children: ReactNode;
+  disabledContent?: ReactNode;
   primary?: ReactNode;
   primaryCount?: number;
   settingCount?: number;
@@ -44,6 +45,7 @@ export function WorkbenchEffectCard({
   onToggle,
   onReset,
   children,
+  disabledContent,
   primary,
   primaryCount = 3,
   settingCount,
@@ -69,6 +71,7 @@ export function WorkbenchEffectCard({
           </span>
           {onToggle ? <Switch checked={false} onCheckedChange={onToggle} aria-label={`${title}开关`} /> : null}
         </div>
+        {disabledContent ? <div className="border-t border-slate-100 px-3 py-3">{disabledContent}</div> : null}
       </section>
     );
   }

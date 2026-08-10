@@ -4,6 +4,7 @@ import {
   fitCursorTrailCircle,
   mixCursorTrailColor,
   resolveCursorTrailCompositeOperation,
+  resolveCursorTrailVelocityGain,
   resolveNextAutoQuality,
   sampleCursorTrailNoise,
 } from "./cursor-trail-surface";
@@ -40,10 +41,14 @@ function createFixture() {
   } as unknown as CanvasRenderingContext2D;
   const lineWidths: number[] = [];
   const strokeStyles: string[] = [];
+  const fillStyles: string[] = [];
   const globalAlphas: number[] = [];
+  const fonts: string[] = [];
   Object.defineProperty(context, "lineWidth", { configurable: true, get: () => lineWidths[lineWidths.length - 1] ?? 1, set: (value) => lineWidths.push(value) });
   Object.defineProperty(context, "strokeStyle", { configurable: true, get: () => strokeStyles[strokeStyles.length - 1] ?? "", set: (value) => strokeStyles.push(String(value)) });
+  Object.defineProperty(context, "fillStyle", { configurable: true, get: () => fillStyles[fillStyles.length - 1] ?? "", set: (value) => fillStyles.push(String(value)) });
   Object.defineProperty(context, "globalAlpha", { configurable: true, get: () => globalAlphas[globalAlphas.length - 1] ?? 1, set: (value) => globalAlphas.push(value) });
+  Object.defineProperty(context, "font", { configurable: true, get: () => fonts[fonts.length - 1] ?? "", set: (value) => fonts.push(String(value)) });
   const canvas = {
     dataset: {},
     style: { cssText: "" },
@@ -86,7 +91,9 @@ function createFixture() {
     document,
     lineWidths,
     strokeStyles,
+    fillStyles,
     globalAlphas,
+    fonts,
     setTime(next: number) { time = next; },
   };
 }
@@ -119,6 +126,8 @@ describe("cursor trail surface", () => {
     expect(mixCursorTrailColor("#000000", "#FFFFFF", 0.5)).toBe("rgb(128, 128, 128)");
     expect(sampleCursorTrailNoise(42, 10, 20, 3)).toBe(sampleCursorTrailNoise(42, 10, 20, 3));
     expect(sampleCursorTrailNoise(42, 10, 20, 3)).not.toBe(sampleCursorTrailNoise(43, 10, 20, 3));
+    expect(resolveCursorTrailVelocityGain(28, 100)).toBe(1.75);
+    expect(resolveCursorTrailVelocityGain(28, 0)).toBe(1);
   });
 
   it.each([
@@ -145,6 +154,41 @@ describe("cursor trail surface", () => {
 
     expect(fixture.context[method]).toHaveBeenCalled();
   });
+
+  it.each(["neon", "flame", "ink", "liquid", "lightning", "petal", "note", "code"] as const)(
+    "maps pointer velocity into %s material geometry",
+    (material) => {
+      function renderGeometry(elapsed: number) {
+        const fixture = createFixture();
+        const surface = createCursorTrailSurface({
+          window: fixture.window,
+          document: fixture.document,
+          root: fixture.root,
+          respectReducedMotion: false,
+        });
+        surface.syncConfig({
+          enabled: true,
+          shape: "ribbon",
+          material,
+          smoothing: 0,
+          velocityResponse: 100,
+          gestureResponse: 0,
+          turnResponse: 0,
+        });
+        surface.move(20, 20);
+        fixture.setTime(elapsed);
+        surface.move(100, 50);
+        fixture.frames.shift()?.(elapsed + 1);
+        return {
+          lineWidths: fixture.lineWidths,
+          radii: vi.mocked(fixture.context.arc).mock.calls.map((call) => call[2]),
+          fonts: fixture.fonts,
+        };
+      }
+
+      expect(renderGeometry(16)).not.toEqual(renderGeometry(160));
+    },
+  );
 
   it("recognizes a closed circular gesture without matching an open arc", () => {
     const circle = Array.from({ length: 17 }, (_, index) => {
@@ -194,12 +238,13 @@ describe("cursor trail surface", () => {
     expect(resolveNextAutoQuality("fine", 16.7)).toBe("fine");
   });
 
-  it("applies the selected blend mode and eco pixel density", () => {
+  it("uses CSS background blending on page surfaces and eco pixel density", () => {
     const fixture = createFixture();
     const surface = createCursorTrailSurface({
       window: fixture.window,
       document: fixture.document,
       root: fixture.root,
+      blendWithPage: true,
       respectReducedMotion: false,
     });
     surface.syncConfig({ enabled: true, shape: "ribbon", quality: "eco", blendMode: "screen" });
@@ -210,7 +255,26 @@ describe("cursor trail surface", () => {
 
     expect(fixture.canvas.width).toBe(320);
     expect(fixture.canvas.height).toBe(180);
-    expect(fixture.context.globalCompositeOperation).toBe("screen");
+    expect(fixture.canvas.style.mixBlendMode).toBe("screen");
+    expect(fixture.context.globalCompositeOperation).toBe("source-over");
+  });
+
+  it("falls back to Canvas composition for transparent desktop overlays", () => {
+    const fixture = createFixture();
+    const surface = createCursorTrailSurface({
+      window: fixture.window,
+      document: fixture.document,
+      root: fixture.root,
+      respectReducedMotion: false,
+    });
+    surface.syncConfig({ enabled: true, shape: "ribbon", blendMode: "soft-light" });
+    surface.move(20, 20);
+    fixture.setTime(16);
+    surface.move(80, 50);
+    fixture.frames.shift()?.(20);
+
+    expect(fixture.canvas.style.mixBlendMode).toBe("normal");
+    expect(fixture.context.globalCompositeOperation).toBe("soft-light");
   });
 
   it("temporarily recolors the visible trail after a press", () => {
@@ -337,7 +401,71 @@ describe("cursor trail surface", () => {
     expect(fixture.context.fill).toHaveBeenCalled();
   });
 
-  it("draws a stop pulse after a fast move comes to rest", () => {
+  it("recolors already-scattered sparks while the click accent is active", () => {
+    const fixture = createFixture();
+    const surface = createCursorTrailSurface({
+      window: fixture.window,
+      document: fixture.document,
+      root: fixture.root,
+      respectReducedMotion: false,
+    });
+    surface.syncConfig({
+      enabled: true,
+      shape: "ribbon",
+      smoothing: 0,
+      turnResponse: 100,
+      gestureResponse: 0,
+      clickColor: "#FFFFFF",
+      segments: {
+        tail: { color: "#000000", width: 2, opacity: 100 },
+        middle: { color: "#000000", width: 4, opacity: 100 },
+        head: { color: "#000000", width: 8, opacity: 100 },
+      },
+    });
+    surface.move(20, 20);
+    fixture.setTime(16);
+    surface.move(100, 20);
+    fixture.setTime(32);
+    surface.move(100, 100);
+    surface.press();
+    fixture.frames.shift()?.(40);
+
+    expect(fixture.fillStyles).toContain("#FFFFFF");
+  });
+
+  it("converges into a light point after a slow move pauses", () => {
+    const fixture = createFixture();
+    const surface = createCursorTrailSurface({
+      window: fixture.window,
+      document: fixture.document,
+      root: fixture.root,
+      respectReducedMotion: false,
+    });
+    surface.syncConfig({
+      enabled: true,
+      shape: "ribbon",
+      smoothing: 0,
+      turnResponse: 0,
+      gestureResponse: 100,
+    });
+    surface.move(20, 20);
+    fixture.setTime(100);
+    surface.move(25, 20);
+    fixture.frames.shift()?.(190);
+
+    const initialRadius = vi.mocked(fixture.context.arc).mock.calls[0]?.[2];
+    expect(initialRadius).toBeGreaterThan(10);
+
+    vi.mocked(fixture.context.arc).mockClear();
+    vi.mocked(fixture.context.fill).mockClear();
+    fixture.frames.shift()?.(360);
+
+    expect(fixture.context.arc).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(fixture.context.arc).mock.calls[0]?.[2]).toBeLessThan(initialRadius);
+    expect(fixture.context.fill).toHaveBeenCalled();
+  });
+
+  it("adds a separate outward ripple after a fast move stops", () => {
     const fixture = createFixture();
     const surface = createCursorTrailSurface({
       window: fixture.window,
@@ -354,12 +482,20 @@ describe("cursor trail surface", () => {
     });
     surface.move(20, 20);
     fixture.setTime(16);
-    surface.move(35, 20);
-    fixture.frames.shift()?.(30);
-    vi.mocked(fixture.context.arc).mockClear();
-    fixture.frames.shift()?.(120);
+    surface.move(32, 20);
+    fixture.frames.shift()?.(106);
 
-    expect(fixture.context.arc).toHaveBeenCalled();
+    const initialRadii = vi.mocked(fixture.context.arc).mock.calls.map((call) => call[2]);
+    expect(initialRadii).toHaveLength(3);
+    expect(initialRadii[0]).toBeGreaterThan(initialRadii[2]);
+
+    vi.mocked(fixture.context.arc).mockClear();
+    fixture.frames.shift()?.(300);
+    const laterRadii = vi.mocked(fixture.context.arc).mock.calls.map((call) => call[2]);
+
+    expect(laterRadii).toHaveLength(3);
+    expect(laterRadii[0]).toBeLessThan(initialRadii[0]);
+    expect(laterRadii[2]).toBeGreaterThan(initialRadii[2]);
   });
 
   it("bursts forward sparks during a fast flick", () => {

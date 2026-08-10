@@ -2,6 +2,10 @@ import {
   validateCursorDanceConfigV4,
 } from "../../shared/config-schema-v4";
 import type { CursorDanceConfig } from "../../shared/domain/cursor-dance";
+import {
+  CURSOR_TRAIL_RECIPE_FORMAT,
+  CURSOR_TRAIL_RECIPE_VERSION,
+} from "../../shared/config/cursor-trail-recipe";
 
 export const MAX_CONFIG_PAYLOAD_BYTES = 8 * 1024 * 1024;
 export const MAX_THEME_FILE_BYTES = 8 * 1024 * 1024;
@@ -80,6 +84,12 @@ export function validateThemeFileContents(contents: string): void {
     throw new Error("theme file is not valid JSON");
   }
   if (!isPlainRecord(parsed)) throw new Error("theme file root must be an object");
+  if (parsed.format === CURSOR_TRAIL_RECIPE_FORMAT) {
+    if (parsed.version !== CURSOR_TRAIL_RECIPE_VERSION || !isPlainRecord(parsed.trail)) {
+      throw new Error("cursor trail recipe is invalid");
+    }
+    return;
+  }
   if (parsed.format !== "cursordance-theme" || parsed.schemaVersion !== 4) {
     throw new Error("theme file must use CursorDance theme schema v4");
   }

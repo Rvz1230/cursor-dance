@@ -192,4 +192,22 @@ describe("themeWorkbenchStateStore", () => {
     expect(findWorkbenchTheme(switchedState.domain.themes, themeB)?.draft.keyFeedbackConfig.color).not.toBe("#00FFAA");
     expect(findWorkbenchTheme(switchedState.domain.themes, themeB)?.draft.keyFeedbackConfig.fontSize).not.toBe(72);
   });
+
+  it("updates an explicit theme without touching the currently selected theme", () => {
+    const themeA = initialState.domain.activeThemeId;
+    const themeB = initialState.domain.themes.find((theme) => theme.meta.id !== themeA)?.meta.id;
+    if (!themeB) throw new Error("Test requires two themes");
+    const switched = reducer(initialState, { type: "theme/select", payload: themeB });
+    const next = reducer(switched, {
+      type: "theme/update-by-id",
+      payload: {
+        themeId: themeA,
+        updater: (current) => ({ ...current, atmosphere: { ...current.atmosphere, marker: "restored" } }),
+      },
+    });
+
+    expect(findWorkbenchTheme(next.domain.themes, themeA)?.draft.atmosphere.marker).toBe("restored");
+    expect(findWorkbenchTheme(next.domain.themes, themeB)?.draft.atmosphere.marker).toBeUndefined();
+    expect(next.domain.activeThemeId).toBe(themeB);
+  });
 });

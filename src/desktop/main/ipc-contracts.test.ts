@@ -21,6 +21,15 @@ function validThemeContents(): string {
   });
 }
 
+function validTrailRecipeContents(): string {
+  return JSON.stringify({
+    format: "cursordance-cursor-trail",
+    version: 1,
+    exportedAt: "2026-08-10T00:00:00.000Z",
+    trail: { enabled: true, material: "petal" },
+  });
+}
+
 describe("IPC payload contracts", () => {
   it("accepts a complete schema v4 config before persistence", () => {
     const input = { ...defaultConfig, enabled: false };
@@ -51,7 +60,7 @@ describe("IPC payload contracts", () => {
     })).toThrow(/themeId/);
   });
 
-  it("accepts only v4 theme exports", () => {
+  it("accepts v4 theme exports and standalone trail recipes", () => {
     expect(validateSaveThemeFileRequest({
       defaultFileName: "theme.cursordance-theme.json",
       contents: validThemeContents(),
@@ -60,12 +69,21 @@ describe("IPC payload contracts", () => {
       defaultFileName: "../theme.json",
       contents: validThemeContents(),
     })).toThrow(/must not contain a path/);
+    expect(validateSaveThemeFileRequest({
+      defaultFileName: "cursor-trail-petal.cursordance-trail.json",
+      contents: validTrailRecipeContents(),
+    }).defaultFileName).toBe("cursor-trail-petal.cursordance-trail.json");
     expect(() => validateThemeFileContents("not json")).toThrow(/valid JSON/);
     expect(() => validateThemeFileContents(JSON.stringify({
       format: "cursordance-theme-pack",
       version: 1,
       themePack: defaultConfig.themes[0],
     }))).toThrow(/schema v4/);
+    expect(() => validateThemeFileContents(JSON.stringify({
+      format: "cursordance-cursor-trail",
+      version: 2,
+      trail: {},
+    }))).toThrow(/recipe is invalid/);
   });
 
   it("allows only bounded known AI settings fields", () => {

@@ -6,10 +6,10 @@ const projectRoot = resolve(import.meta.dirname, "..");
 const rendererRoot = resolve(projectRoot, "out/renderer");
 
 const budgets = {
-  // 主题级鼠标拖尾新增编辑卡、三段配置、循环预览与八种材质选择。
-  // 完整材质编辑器实测 gzip 约 284.1 KB，保留约 1% 窄幅余量。
-  workbenchInitialRawBytes: 1_320_000,
-  workbenchInitialGzipBytes: 287_000,
+  // 主题级鼠标拖尾新增编辑卡、循环预览、八种材质与独立配方操作。
+  // 完整编辑器实测约 1.335 MB / 288.1 KB，gzip 保留约 1% 窄幅余量。
+  workbenchInitialRawBytes: 1_340_000,
+  workbenchInitialGzipBytes: 291_000,
   // 键盘动效运行时新增窗口锚点、色相推导、拖尾与四种消散方式。
   // 重构前实测基线为 177,415 / 42,147 bytes；能力完整接入后约增加 10 KB / 3 KB。
   // 共享样式调整后 overlay 实测 190,043 bytes；保留不到 1 KB 的窄幅余量。
@@ -19,8 +19,8 @@ const budgets = {
   largestJavaScriptChunkBytes: 1_100_000,
   // 键盘工作台与应用规则页均为懒加载，初始工作台预算不变；这里只容纳独立页面与样式产物。
   // 当前总量约 2.33 MB；应用规则的脚本与独立样式按需加载，不进入首屏预算。
-  // 双入口共享拖尾 chunk 与轨迹编辑器后的完整 renderer 产物基线，保留约 25 KB 窄幅余量。
-  rendererOutputBytes: 2_620_000,
+  // 双入口共享拖尾、轨迹编辑器与独立配方后的完整产物实测约 2.623 MB。
+  rendererOutputBytes: 2_650_000,
 };
 
 async function measureInitialAssets(entryName) {

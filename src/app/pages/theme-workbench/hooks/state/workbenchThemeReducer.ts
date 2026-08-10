@@ -82,6 +82,20 @@ export function reduceWorkbenchThemeState(
         },
       }, themeId);
     }
+    case "theme/update-by-id": {
+      const { themeId, updater } = action.payload;
+      if (!findWorkbenchTheme(state.domain.themes, themeId)) return state;
+      return markThemeDirty({
+        ...state,
+        domain: {
+          ...state.domain,
+          themes: replaceTheme(state.domain.themes, themeId, (theme) => ({
+            ...theme,
+            draft: updater(theme.draft),
+          })),
+        },
+      }, themeId);
+    }
     case "theme/reset-current": {
       const themeId = state.domain.activeThemeId;
       const currentDraft = findWorkbenchTheme(state.domain.themes, themeId)?.draft;

@@ -243,6 +243,7 @@ export function startContentRuntime(options: ContentRuntimeOptions = {}): Conten
   const cursorTrail: CursorTrailSurface = factories.createCursorTrail({
     window: platformWindow,
     document: platformDocument,
+    blendWithPage: true,
   });
 
   let destroyed = false;

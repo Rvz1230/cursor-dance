@@ -7,10 +7,10 @@ const distRoot = resolve(projectRoot, "dist");
 const budgets = {
   popupInitialRawBytes: 370_000,
   popupInitialGzipBytes: 112_000,
-  // 主题级鼠标拖尾新增三段配置、录制/循环预览与八种材质选择。
-  // 完整材质编辑器实测 gzip 约 212.1 KB，保留约 1.3% 窄幅余量。
-  optionsInitialRawBytes: 695_000,
-  optionsInitialGzipBytes: 215_000,
+  // 主题级鼠标拖尾新增三段配置、循环预览、八种材质与独立配方操作。
+  // 完整编辑器实测约 700.4 KB / 215.1 KB，gzip 保留约 1.3% 窄幅余量。
+  optionsInitialRawBytes: 705_000,
+  optionsInitialGzipBytes: 218_000,
   largestJavaScriptChunkBytes: 350_000,
   // 八种确定性材质完整接入后实测约 112.8 KB，保留约 2% 窄幅余量。
   contentRuntimeBytes: 115_000,

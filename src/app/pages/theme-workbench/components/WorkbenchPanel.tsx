@@ -19,7 +19,7 @@ interface WorkbenchPanelProps {
   updateActionConfig(patch: Record<string, unknown>): void;
   conflicts: string[];
   atmosphere?: Record<string, unknown>;
-  updateAtmosphere(patch: Record<string, unknown>): void;
+  updateAtmosphere(patch: Record<string, unknown>): void | (() => void);
   accessibilityAuthorized?: boolean | null;
   onRequestAccessibility?(): void;
 }

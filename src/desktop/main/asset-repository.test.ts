@@ -13,6 +13,7 @@ import {
   __testing__,
   collectReferencedAssetIds,
   DESKTOP_ASSET_GC_GRACE_MS,
+  hydrateThemeExportContents,
   hydrateThemeAssets,
   materializeConfigAssets,
   storeDataUrlAsset,
@@ -68,6 +69,16 @@ describe("desktop asset repository", () => {
     expect(portable.cursorSkin.states.default.image.kind).toBe("dataUrl");
     expect(portable.actionConfigs.leftClick.imageDataUrl).toBe(PNG_DATA_URL);
     expect(portable.actionConfigs.leftClick).not.toHaveProperty("imageAssetId");
+  });
+
+  it("passes standalone cursor trail recipes through export hydration", async () => {
+    const recipe = {
+      format: "cursordance-cursor-trail",
+      version: 1,
+      exportedAt: "2026-08-10T00:00:00.000Z",
+      trail: { enabled: true, material: "code" },
+    };
+    expect(JSON.parse(await hydrateThemeExportContents(JSON.stringify(recipe)))).toEqual(recipe);
   });
 
   it("sweeps only unreferenced content-addressed files", async () => {
