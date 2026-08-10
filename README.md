@@ -206,6 +206,7 @@ cursor-dance/
       trail: {
         enabled: true,
         shape: "ribbon",
+        material: "neon",
         length: 24,
         blendMode: "screen",
         quality: "auto",

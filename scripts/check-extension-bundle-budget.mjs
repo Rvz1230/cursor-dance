@@ -7,13 +7,13 @@ const distRoot = resolve(projectRoot, "dist");
 const budgets = {
   popupInitialRawBytes: 370_000,
   popupInitialGzipBytes: 112_000,
-  // 主题级鼠标拖尾新增三段配置与录制/循环预览；保留约 1.5% 窄幅余量。
-  // 平台语义分流与网页试用入口约增加 3.6 KB / 2.6 KB。
+  // 主题级鼠标拖尾新增三段配置、录制/循环预览与八种材质选择。
+  // 完整材质编辑器实测 gzip 约 212.1 KB，保留约 1.3% 窄幅余量。
   optionsInitialRawBytes: 695_000,
-  optionsInitialGzipBytes: 212_000,
+  optionsInitialGzipBytes: 215_000,
   largestJavaScriptChunkBytes: 350_000,
-  // 确定性粒子、点击变色与绕圈光环较 108,914-byte 基线净增约 1.1 KB。
-  contentRuntimeBytes: 111_000,
+  // 八种确定性材质完整接入后实测约 112.8 KB，保留约 2% 窄幅余量。
+  contentRuntimeBytes: 115_000,
 };
 
 async function measureInitialAssets(entryName) {

@@ -120,6 +120,11 @@ export function mixCursorTrailColor(from: string, to: string, progress: number):
   return `rgb(${a.map((channel, index) => Math.round(channel + (b[index] - channel) * t)).join(", ")})`;
 }
 
+export function sampleCursorTrailNoise(seed: number, x: number, y: number, index: number, salt = 0): number {
+  const wave = Math.sin(seed * 12.9898 + x * 0.067 + y * 0.043 + index * 78.233 + salt * 37.719) * 43_758.5453;
+  return (wave - Math.floor(wave)) * 2 - 1;
+}
+
 export function fitCursorTrailCircle(path: readonly Pick<TrailPoint, "x" | "y">[]): CursorTrailCircle | null {
   if (path.length < 10) return null;
   let signedTurn = 0;
@@ -379,6 +384,92 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
     }
   }
 
+  function drawLightning(timestamp: number): void {
+    if (!context || points.length < 2) return;
+    context.lineCap = "round";
+    context.lineJoin = "round";
+    for (let index = 1; index < points.length; index += 1) {
+      const from = points[index - 1];
+      const to = points[index];
+      const segment = getSegmentStyle(index / Math.max(1, points.length - 1), timestamp);
+      const dx = to.x - from.x;
+      const dy = to.y - from.y;
+      const length = Math.max(1, Math.hypot(dx, dy));
+      const jitter = sampleCursorTrailNoise(config.randomSeed, to.x, to.y, index) * segment.width * 0.9;
+      context.beginPath();
+      context.moveTo(from.x, from.y);
+      context.lineTo((from.x + to.x) / 2 - dy / length * jitter, (from.y + to.y) / 2 + dx / length * jitter);
+      context.lineTo(to.x, to.y);
+      context.strokeStyle = segment.color;
+      context.lineWidth = Math.max(1, segment.width * 0.28);
+      context.shadowColor = segment.color;
+      context.shadowBlur = config.glow + 5;
+      context.globalAlpha = pointOpacity(to, timestamp, index, points.length, segment.opacity);
+      context.stroke();
+    }
+  }
+
+  function drawParticleMaterial(timestamp: number): void {
+    if (!context) return;
+    const material = config.material;
+    if (material === "ink" || material === "liquid") drawRibbon(timestamp);
+    const stride = getQualityProfile()[4] === 1 ? 2 : 1;
+    const noteGlyphs = ["♪", "♫", "♩"];
+    const codeGlyphs = ["0", "1", "{", "}", "<", ">", "/"];
+    for (let index = 0; index < points.length; index += stride) {
+      const point = points[index];
+      const segment = getSegmentStyle(index / Math.max(1, points.length - 1), timestamp);
+      const noise = sampleCursorTrailNoise(config.randomSeed, point.x, point.y, index);
+      const opacity = pointOpacity(point, timestamp, index, points.length, segment.opacity);
+      const age = Math.max(0, timestamp - point.bornAt);
+      context.fillStyle = segment.color;
+      context.strokeStyle = segment.color;
+      context.shadowColor = segment.color;
+      context.globalAlpha = opacity;
+      if (material === "flame") {
+        context.shadowBlur = config.glow + 6;
+        context.beginPath();
+        context.arc(
+          point.x + noise * segment.width * 0.45,
+          point.y - age * 0.035,
+          Math.max(1, segment.width * (0.24 + Math.abs(noise) * 0.12)),
+          0,
+          Math.PI * 2,
+        );
+        context.fill();
+      } else if (material === "ink") {
+        context.shadowBlur = 0;
+        context.beginPath();
+        context.arc(point.x + noise * 2, point.y - noise * 2, Math.max(1, segment.width * (0.32 + Math.abs(noise) * 0.16)), 0, Math.PI * 2);
+        context.fill();
+      } else if (material === "liquid") {
+        context.shadowBlur = config.glow * 0.5;
+        context.lineWidth = Math.max(1, segment.width * 0.12);
+        context.beginPath();
+        context.arc(point.x - noise * segment.width, point.y + noise * segment.width * 0.7, Math.max(1.5, segment.width * 0.24), 0, Math.PI * 2);
+        context.stroke();
+      } else if (material === "petal") {
+        const size = Math.max(2, segment.width * 0.42);
+        context.save();
+        context.translate(point.x + noise * segment.width, point.y - age * 0.012);
+        context.rotate(noise * Math.PI + age * 0.008);
+        context.scale(1, 0.46);
+        context.beginPath();
+        context.arc(0, 0, size, 0, Math.PI * 2);
+        context.fill();
+        context.restore();
+      } else {
+        const glyphs = material === "note" ? noteGlyphs : codeGlyphs;
+        const glyphIndex = Math.abs(Math.floor(noise * 10_000)) % glyphs.length;
+        context.font = `${Math.max(10, segment.width * 1.5)}px ${material === "code" ? "monospace" : "sans-serif"}`;
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.shadowBlur = config.glow;
+        context.fillText(glyphs[glyphIndex], point.x + noise * segment.width, point.y - age * 0.018);
+      }
+    }
+  }
+
   function addSparkBurst(point: TrailPoint, intensity: number, kind: "turn" | "flick"): void {
     if (intensity <= 0) return;
     const count = Math.max(1, Math.min(kind === "flick" ? 8 : 4, Math.round(1 + intensity * (kind === "flick" ? 7 : 3))));
@@ -498,7 +589,9 @@ export function createCursorTrailSurface(options: CursorTrailSurfaceOptions): Cu
     if (context) {
       context.save();
       context.globalCompositeOperation = resolveCursorTrailCompositeOperation(config.blendMode);
-      if (config.shape === "stardust") drawStardust(timestamp);
+      if (config.material === "lightning") drawLightning(timestamp);
+      else if (config.material !== "neon") drawParticleMaterial(timestamp);
+      else if (config.shape === "stardust") drawStardust(timestamp);
       else if (config.shape === "pixel") drawPixels(timestamp);
       else if (config.shape === "echo") drawEcho(timestamp);
       else drawRibbon(timestamp);

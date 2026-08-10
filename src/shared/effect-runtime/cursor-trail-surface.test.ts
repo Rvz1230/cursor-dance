@@ -5,6 +5,7 @@ import {
   mixCursorTrailColor,
   resolveCursorTrailCompositeOperation,
   resolveNextAutoQuality,
+  sampleCursorTrailNoise,
 } from "./cursor-trail-surface";
 
 function createFixture() {
@@ -21,8 +22,10 @@ function createFixture() {
     fill: vi.fn(),
     fillRect: vi.fn(),
     translate: vi.fn(),
+    rotate: vi.fn(),
     scale: vi.fn(),
     closePath: vi.fn(),
+    fillText: vi.fn(),
     lineCap: "butt",
     lineJoin: "miter",
     lineWidth: 1,
@@ -31,6 +34,9 @@ function createFixture() {
     fillStyle: "",
     shadowColor: "",
     shadowBlur: 0,
+    font: "",
+    textAlign: "start",
+    textBaseline: "alphabetic",
   } as unknown as CanvasRenderingContext2D;
   const lineWidths: number[] = [];
   const strokeStyles: string[] = [];
@@ -111,6 +117,33 @@ describe("cursor trail surface", () => {
 
   it("mixes hexadecimal preset colors deterministically", () => {
     expect(mixCursorTrailColor("#000000", "#FFFFFF", 0.5)).toBe("rgb(128, 128, 128)");
+    expect(sampleCursorTrailNoise(42, 10, 20, 3)).toBe(sampleCursorTrailNoise(42, 10, 20, 3));
+    expect(sampleCursorTrailNoise(42, 10, 20, 3)).not.toBe(sampleCursorTrailNoise(43, 10, 20, 3));
+  });
+
+  it.each([
+    ["flame", "fill"],
+    ["ink", "fill"],
+    ["liquid", "stroke"],
+    ["lightning", "stroke"],
+    ["petal", "fill"],
+    ["note", "fillText"],
+    ["code", "fillText"],
+  ] as const)("renders the %s material through its Canvas primitive", (material, method) => {
+    const fixture = createFixture();
+    const surface = createCursorTrailSurface({
+      window: fixture.window,
+      document: fixture.document,
+      root: fixture.root,
+      respectReducedMotion: false,
+    });
+    surface.syncConfig({ enabled: true, shape: "ribbon", material, smoothing: 0, gestureResponse: 0, turnResponse: 0 });
+    surface.move(20, 20);
+    fixture.setTime(16);
+    surface.move(80, 50);
+    fixture.frames.shift()?.(20);
+
+    expect(fixture.context[method]).toHaveBeenCalled();
   });
 
   it("recognizes a closed circular gesture without matching an open arc", () => {

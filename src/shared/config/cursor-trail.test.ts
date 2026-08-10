@@ -11,6 +11,7 @@ describe("cursor trail config", () => {
     expect(normalizeCursorTrailConfig({
       enabled: true,
       shape: "pixel",
+      material: "smoke",
       length: 200,
       width: -4,
       lifetimeMs: 12,
@@ -30,6 +31,7 @@ describe("cursor trail config", () => {
     })).toEqual({
       enabled: true,
       shape: "pixel",
+      material: "neon",
       length: 48,
       width: 2,
       lifetimeMs: 120,
@@ -70,8 +72,9 @@ describe("cursor trail config", () => {
     });
   });
 
-  it("preserves supported blend and quality modes", () => {
-    const config = normalizeCursorTrailConfig({ blendMode: "soft-light", quality: "eco" });
+  it("preserves supported material, blend and quality modes", () => {
+    const config = normalizeCursorTrailConfig({ material: "lightning", blendMode: "soft-light", quality: "eco" });
+    expect(config.material).toBe("lightning");
     expect(config.blendMode).toBe("soft-light");
     expect(config.quality).toBe("eco");
   });

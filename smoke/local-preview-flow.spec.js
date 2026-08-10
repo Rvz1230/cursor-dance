@@ -172,8 +172,9 @@ test("saved cursor trail runs in the standalone Web runtime page", async ({ cont
   await tailColorInput.fill("#123456");
   await tailColorInput.press("Enter");
   await tailColorInput.press("Escape");
-  await selectRadixOption(workbenchPage, trailPanel, 0, "滤色");
-  await selectRadixOption(workbenchPage, trailPanel, 1, "省电");
+  await selectRadixOption(workbenchPage, trailPanel, 0, "闪电");
+  await selectRadixOption(workbenchPage, trailPanel, 1, "滤色");
+  await selectRadixOption(workbenchPage, trailPanel, 2, "省电");
   await trailPanel.getByRole("button", { name: /^点击强调色：/ }).click();
   const clickColorInput = workbenchPage.getByLabel("输入点击强调色十六进制值");
   await clickColorInput.fill("#E0F2FE");
@@ -202,6 +203,7 @@ test("saved cursor trail runs in the standalone Web runtime page", async ({ cont
   }, CONFIG_STORAGE_KEY)).toMatchObject({
     enabled: true,
     shape: "stardust",
+    material: "lightning",
     blendMode: "screen",
     quality: "eco",
     randomSeed: 8128,
@@ -218,6 +220,17 @@ test("saved cursor trail runs in the standalone Web runtime page", async ({ cont
       head: { color: "#FB7185", width: 11.2, opacity: 78 },
     },
   });
+
+  await workbenchPage.evaluate((configKey) => {
+    const raw = window.localStorage.getItem(configKey);
+    if (!raw) throw new Error("Saved config is unavailable");
+    const config = JSON.parse(raw);
+    const theme = config.themes?.find((item) => item.id === config.activeThemeId);
+    if (!theme) throw new Error("Active theme is unavailable");
+    theme.actionConfigs = theme.actionConfigs || {};
+    theme.actionConfigs.leftClick = { ...(theme.actionConfigs.leftClick || {}), cursorGlowColor: "#22C55E" };
+    window.localStorage.setItem(configKey, JSON.stringify(config));
+  }, CONFIG_STORAGE_KEY);
 
   await workbenchPage.getByRole("button", { name: "网页试用" }).click();
   const runtimePage = workbenchPage;
@@ -236,6 +249,16 @@ test("saved cursor trail runs in the standalone Web runtime page", async ({ cont
     const pixels = context2d.getImageData(0, 0, canvas.width, canvas.height).data;
     for (let index = 3; index < pixels.length; index += 4) {
       if (pixels[index] > 0) return true;
+    }
+    return false;
+  });
+  await runtimePage.waitForFunction(() => {
+    const canvas = document.querySelector('canvas[data-cursordance-trail="true"]');
+    if (!(canvas instanceof HTMLCanvasElement)) return false;
+    const pixels = canvas.getContext("2d")?.getImageData(0, 0, canvas.width, canvas.height).data;
+    if (!pixels) return false;
+    for (let index = 0; index < pixels.length; index += 4) {
+      if (pixels[index] >= 25 && pixels[index] <= 45 && pixels[index + 1] >= 185 && pixels[index + 2] >= 80 && pixels[index + 2] <= 110) return true;
     }
     return false;
   });

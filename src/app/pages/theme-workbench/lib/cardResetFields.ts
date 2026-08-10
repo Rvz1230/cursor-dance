@@ -101,6 +101,7 @@ export const CARD_RESET_FIELDS: Record<string, readonly string[]> = {
   ],
   trail: [
     "shape",
+    "material",
     "length",
     "width",
     "lifetimeMs",

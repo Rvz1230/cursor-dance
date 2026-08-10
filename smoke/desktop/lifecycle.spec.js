@@ -373,12 +373,17 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
         enabled: true,
         themes: (config.themes || []).map((theme) => theme.id === activeThemeId ? {
           ...theme,
+          actionConfigs: {
+            ...(theme.actionConfigs || {}),
+            leftClick: { ...(theme.actionConfigs?.leftClick || {}), cursorGlowColor: "#22C55E" },
+          },
           atmosphere: {
             ...(theme.atmosphere || {}),
             trail: {
               enabled: true,
               shape: "stardust",
-              blendMode: "soft-light",
+              material: "ink",
+              blendMode: "normal",
               quality: "balanced",
               randomSeed: 8128,
               clickColor: "#E0F2FE",
@@ -408,7 +413,8 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
     expect(desktopStoredTrail).toMatchObject({
       enabled: true,
       shape: "stardust",
-      blendMode: "soft-light",
+      material: "ink",
+      blendMode: "normal",
       quality: "balanced",
       randomSeed: 8128,
       clickColor: "#E0F2FE",
@@ -478,6 +484,16 @@ test("desktop lifecycle keeps one Workbench and one overlay per display", async 
       const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
       for (let index = 3; index < pixels.length; index += 4) {
         if (pixels[index] > 0) return true;
+      }
+      return false;
+    })).toBe(true);
+    await expect.poll(() => overlayPage.evaluate(() => {
+      const canvas = document.querySelector('canvas[data-cursordance-trail="true"]');
+      if (!(canvas instanceof HTMLCanvasElement)) return false;
+      const pixels = canvas.getContext("2d")?.getImageData(0, 0, canvas.width, canvas.height).data;
+      if (!pixels) return false;
+      for (let index = 0; index < pixels.length; index += 4) {
+        if (pixels[index] >= 25 && pixels[index] <= 45 && pixels[index + 1] >= 185 && pixels[index + 2] >= 80 && pixels[index + 2] <= 110) return true;
       }
       return false;
     })).toBe(true);

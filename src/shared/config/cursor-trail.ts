@@ -7,6 +7,7 @@ type CursorTrailShape = "ribbon" | "stardust" | "pixel" | "echo";
 export type CursorTrailSegmentId = "tail" | "middle" | "head";
 export type CursorTrailBlendMode = "normal" | "screen" | "soft-light" | "overlay";
 export type CursorTrailQuality = "auto" | "eco" | "balanced" | "fine";
+type CursorTrailMaterial = "neon" | "flame" | "ink" | "liquid" | "lightning" | "petal" | "note" | "code";
 
 type CursorTrailSegmentStyle = ConfigJsonObject & {
   readonly color: string;
@@ -19,6 +20,7 @@ export type CursorTrailSegments = ConfigJsonObject & Record<CursorTrailSegmentId
 export type CursorTrailConfig = ConfigJsonObject & {
   readonly enabled: boolean;
   readonly shape: CursorTrailShape;
+  readonly material: CursorTrailMaterial;
   readonly length: number;
   readonly width: number;
   readonly lifetimeMs: number;
@@ -63,6 +65,7 @@ export const DEFAULT_CURSOR_TRAIL_SEGMENTS: CursorTrailSegments = Object.freeze(
 export const DEFAULT_CURSOR_TRAIL_CONFIG: CursorTrailConfig = Object.freeze({
   enabled: false,
   shape: "ribbon",
+  material: "neon",
   length: 24,
   width: 8,
   lifetimeMs: 320,
@@ -96,6 +99,7 @@ export const CURSOR_TRAIL_PRESETS: readonly CursorTrailPreset[] = Object.freeze(
     config: {
       enabled: true,
       shape: "stardust",
+      material: "neon",
       length: 32,
       width: 7,
       lifetimeMs: 520,
@@ -126,6 +130,7 @@ export const CURSOR_TRAIL_PRESETS: readonly CursorTrailPreset[] = Object.freeze(
     config: {
       enabled: true,
       shape: "pixel",
+      material: "neon",
       length: 20,
       width: 9,
       lifetimeMs: 300,
@@ -156,6 +161,7 @@ export const CURSOR_TRAIL_PRESETS: readonly CursorTrailPreset[] = Object.freeze(
     config: {
       enabled: true,
       shape: "echo",
+      material: "neon",
       length: 14,
       width: 14,
       lifetimeMs: 420,
@@ -239,6 +245,11 @@ function isCursorTrailQuality(value: unknown): value is CursorTrailQuality {
   return value === "auto" || value === "eco" || value === "balanced" || value === "fine";
 }
 
+function isCursorTrailMaterial(value: unknown): value is CursorTrailMaterial {
+  return value === "neon" || value === "flame" || value === "ink" || value === "liquid"
+    || value === "lightning" || value === "petal" || value === "note" || value === "code";
+}
+
 function createDefaultCursorTrailConfig(): CursorTrailConfig {
   return {
     ...DEFAULT_CURSOR_TRAIL_CONFIG,
@@ -272,6 +283,7 @@ export function normalizeCursorTrailConfig(value: unknown): CursorTrailConfig {
   return {
     enabled: source.enabled === true,
     shape: isCursorTrailShape(source.shape) ? source.shape : DEFAULT_CURSOR_TRAIL_CONFIG.shape,
+    material: isCursorTrailMaterial(source.material) ? source.material : DEFAULT_CURSOR_TRAIL_CONFIG.material,
     length: Math.round(clampNumber(source.length, DEFAULT_CURSOR_TRAIL_CONFIG.length, 6, 48)),
     width,
     lifetimeMs: Math.round(clampNumber(source.lifetimeMs, DEFAULT_CURSOR_TRAIL_CONFIG.lifetimeMs, 120, 900)),

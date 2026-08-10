@@ -31,6 +31,17 @@ const QUALITY_OPTIONS = [
   { value: "fine", label: "精细", description: "完整采样与高像素密度" },
 ] as const;
 
+const MATERIAL_OPTIONS = [
+  { value: "neon", label: "霓虹", description: "保留当前光带、星尘、像素或残像几何" },
+  { value: "flame", label: "火焰", description: "沿路径向上跃动的炽热光团" },
+  { value: "ink", label: "墨水", description: "浓淡相叠的圆润墨迹" },
+  { value: "liquid", label: "液态", description: "柔滑主轨与流动气泡" },
+  { value: "lightning", label: "闪电", description: "带确定性抖动的折线电弧" },
+  { value: "petal", label: "花瓣", description: "沿轨迹旋转散落的椭圆花瓣" },
+  { value: "note", label: "音符", description: "按路径浮现的节奏符号" },
+  { value: "code", label: "代码字符", description: "0、1 与括号组成的字符流" },
+] as const;
+
 const TRAIL_PRESETS: EffectPreset[] = CURSOR_TRAIL_PRESETS.map((preset) => {
   const { enabled: _enabled, ...patch } = preset.config;
   return { name: preset.label, patch };
@@ -82,7 +93,7 @@ export function CursorTrailCard({ atmosphere, onChange }: CursorTrailCardProps) 
           head: { ...DEFAULT_CURSOR_TRAIL_SEGMENTS.head },
         },
       } })}
-      settingCount={22}
+      settingCount={23}
       primaryCount={4}
       primary={(
         <>
@@ -104,6 +115,7 @@ export function CursorTrailCard({ atmosphere, onChange }: CursorTrailCardProps) 
           <TrailSegmentEditor segmentId="head" label="光标附近" description="最靠近指针" value={config.segments.head} onChange={updateSegment} />
         </div>
       </div>
+      <FieldRow label="轨迹材质" hint="材质决定轨迹的绘制语言；霓虹会继续使用上方预设的几何形态。" control={<Select value={config.material} options={MATERIAL_OPTIONS} onChange={(material) => updateTrail({ material })} aria-label="鼠标拖尾轨迹材质" />} />
       <FieldRow label="混合模式" hint="控制拖尾如何与浅色或深色背景叠加。" control={<Select value={config.blendMode} options={BLEND_MODE_OPTIONS} onChange={(blendMode) => updateTrail({ blendMode })} aria-label="鼠标拖尾混合模式" />} />
       <FieldRow label="性能档位" hint="自动档只会逐级降档，避免在临界帧率反复跳动。" control={<Select value={config.quality} options={QUALITY_OPTIONS} onChange={(quality) => updateTrail({ quality })} aria-label="鼠标拖尾性能档位" />} />
       <FieldRow label="点击强调色" hint="按下鼠标时，整条可见轨迹会短暂切换到这个颜色。" control={<ColorField compact label="点击强调色" value={config.clickColor} onChange={(clickColor) => updateTrail({ clickColor })} />} />

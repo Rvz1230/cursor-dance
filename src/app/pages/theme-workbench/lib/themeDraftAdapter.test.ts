@@ -103,6 +103,7 @@ describe("themeDraftAdapter schema v4", () => {
       trail: {
         enabled: true,
         shape: "stardust",
+        material: "lightning",
         blendMode: "screen",
         quality: "balanced",
         randomSeed: 8128,
@@ -127,6 +128,7 @@ describe("themeDraftAdapter schema v4", () => {
     expect(storedTrail).toMatchObject({
       enabled: true,
       shape: "stardust",
+      material: "lightning",
       blendMode: "screen",
       quality: "balanced",
       randomSeed: 8128,
